@@ -18,6 +18,7 @@ Use the minimum process that prevents the most likely expensive failure.
 
 Every task should be classified before choosing gates:
 
+- `Micro`: no-behavior, no-risk, obvious local edit.
 - `Tiny`: obvious, local, low-risk, easy to verify.
 - `Standard`: bounded feature, moderate bug fix, or multi-file change with clear requirements.
 - `High-risk`: touches public contracts, data, security, auth, privacy, migrations, infrastructure, dependencies, integrations, concurrency, or broad architecture.
@@ -29,9 +30,20 @@ Use `classify-work` when workflow depth is unclear. Do not run the full workflow
 
 ## Fast-Pass Routing
 
-Treat the workflow as a dependency graph, not a sequence to run every time. `classify-work` chooses the fast-pass route, context depth, dirty flags, skipped gates, and escalation triggers.
+Treat the workflow as a dependency graph, not a sequence to run every time. `classify-work` chooses the fast-pass route, context depth, dirty surfaces, skipped gates, and escalation triggers.
 
 A skipped gate is acceptable only when the classification explains why the failure it prevents is unlikely or cheap.
+
+### Micro
+```text
+classify-work
+-> select-context, minimal
+-> safe-edit-boundary, implicit or one-line
+-> direct edit
+-> verification-before-completion, smallest relevant check or documented inspection
+```
+
+Micro work escalates immediately if behavior, tests, shared code, public docs, generated artifacts, or more than one meaningful file changes.
 
 ### Tiny
 ```text
@@ -42,7 +54,7 @@ classify-work
 -> direct edit or execute-plan
 -> verification-before-completion
 -> assert-doc-sync, only if docs/code may disagree
--> update-context-docs, only if dirty flags require it
+-> update-context-docs, only if dirty surfaces require it
 -> context-save, only if pending work/context changed
 ```
 
@@ -61,14 +73,14 @@ classify-work
 -> execute-plan / tdd
 -> verification-before-completion
 -> review-spec-compliance
--> assert-doc-sync, if dirty flags require it
+-> assert-doc-sync, if dirty surfaces require it
 -> review-code-quality
--> update-context-docs, dirty flags only
+-> update-context-docs, dirty surfaces only
 -> manage-context-state, if uncertainty changed
 -> context-save
 ```
 
-Standard work usually skips product reframing, full app modeling, contracts, outside voice, engineering-principles review, and release docs unless the dirty flags or risk signals require them.
+Standard work usually skips product reframing, full app modeling, contracts, outside voice, engineering-principles review, and release docs unless the dirty surfaces or risk signals require them.
 
 ### High-risk
 ```text
@@ -95,7 +107,7 @@ classify-work
 Exploratory work produces findings, options, risks, and a recommended next classification. It does not produce production completion claims.
 ## Automated Gating
 
-The workflow is a map, not a mandatory ladder. `classify-work` must produce a fast-pass route, context depth, and dirty flags so agents run only the gates and artifact updates that are actually needed.
+The workflow is a map, not a mandatory ladder. `classify-work` must produce a fast-pass route, context depth, and dirty surfaces so agents run only the gates and artifact updates that are actually needed.
 
 Context depth:
 - `Shallow`: current file, nearby tests, immediate feature context.
@@ -103,16 +115,19 @@ Context depth:
 - `Deep`: application model sections, PRD, contract, decision index/ADRs, context-state.
 - `Cross-Cutting`: Memory Bank routing, multiple feature contexts, model sections, decisions, contracts, and broader retrieval.
 
-Dirty flags decide artifact updates:
-- `architectureChanged` -> application model.
-- `requirementsChanged` or `productIntentChanged` -> PRD.
-- `contractChanged` or `publicBehaviorChanged` -> contract spec.
-- `featureBehaviorChanged` -> feature context and code-local docs.
-- `contextRoutingChanged` -> Memory Bank routing.
+Dirty surfaces decide artifact updates:
+- `requirementsSurfaceChanged` -> PRD, issue, acceptance criteria, model section.
+- `publicContractSurfaceChanged` -> contract spec, API docs, schemas, compatibility notes.
+- `systemSurfaceChanged` -> application model, ADRs, diagrams, boundaries, feature context.
+- `verificationSurfaceChanged` -> tests, verification plan, health-check expectations.
+- `docsContextSurfaceChanged` -> code-local docs, feature context, Memory Bank routing, context index, release/dev docs.
+- `riskSurfaceChanged` -> security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review.
+- `agentOpsSurfaceChanged` -> AGENTS.md, setup commands, verification commands, workflow guidance.
 - `uncertaintyChanged` -> context-state.
-- `agentInstructionsChanged` -> AGENTS.md.
 
 Do not update every file every time.
+
+Mid-stream reclassification is required when implementation, verification, review, or doc-sync reveals that the original work class, route, or dirty surfaces were wrong.
 ## Engineering Principles
 
 Use engineering principles as judgment lenses, not slogans. First-principles reasoning, assumption challenge, story readability, cohesion, coupling, simplicity, DRY, SOLID, and design patterns should improve maintainability rather than create ceremony.
@@ -180,7 +195,7 @@ The contract should be language-neutral by default. In TypeScript projects it ma
 
 ## Required gates
 
-1. Classify the work before choosing the fast-pass route, workflow depth, context depth, and dirty flags.
+1. Classify the work before choosing the fast-pass route, workflow depth, context depth, and dirty surfaces.
 2. No meaningful implementation before an approved design or explicit small-change exception.
 3. No major app or feature work without `docs/application-model.md` or the relevant feature `context.md`.
 4. Diagrams are requirements artifacts when they clarify workflows, dependencies, entities, or state.
@@ -195,7 +210,7 @@ The contract should be language-neutral by default. In TypeScript projects it ma
 13. Context docs, Memory Bank routing files, code-local docs, and AGENTS.md are part of Definition of Done when they changed or should have changed.
 14. The agent loads the smallest sufficient context packet and expands only when evidence shows it is insufficient.
 15. External tools/MCPs must have explicit access boundaries and must not receive secrets, private data, or unnecessary context.
-16. Code/docs/contracts/context sync must be asserted when related dirty flags are true; docs must not be silently updated to match possibly wrong code.
+16. Code/docs/contracts/context sync must be asserted when related dirty surfaces are true; docs must not be silently updated to match possibly wrong code.
 
 ## Core flow
 
@@ -238,10 +253,13 @@ The contract should be language-neutral by default. In TypeScript projects it ma
 35. context-save
 ```
 
+## Human audit
+Use eview-agent-work when a human wants to inspect prior AI work before continuing or merging. It should audit classification, skipped gates, verification evidence, doc/code/contract sync, context-state updates, and high-risk review coverage without rewriting artifacts unless asked.
+
 ## Skill groups
 
 ### Routing and context spine
-- `classify-work`: choose tiny, standard, high-risk, or exploratory workflow depth.
+- classify-work: choose micro, tiny, standard, high-risk, or exploratory workflow depth and emit the compact execution contract.
 - `context-restore`: resume from Memory Bank routing files, context-state, and latest checkpoint.
 - `select-tools`: choose minimum tools/MCPs and define access boundaries.
 - `select-context`: choose the smallest safe context packet using work class, `activeContext.md`, and `contextIndex.md` first.
@@ -283,7 +301,8 @@ The contract should be language-neutral by default. In TypeScript projects it ma
 - `assert-doc-sync`: prove code, tests, docs, contracts, and context agree before completion or doc updates.
 - `review-code-quality`: review maintainability, engineering principle fit, code-local documentation, and operational risk after spec compliance.
 - `process-review-feedback`: evaluate feedback before applying it.
-- `health-check`: run broad project health checks without automatic fixes.
+- health-check: run broad project health checks without automatic fixes.
+- eview-agent-work: human-facing audit of AI work, verification evidence, process adherence, and artifact sync.
 
 ### Release and continuity
 - `document-release`: update public or project-facing docs.

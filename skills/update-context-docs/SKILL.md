@@ -34,6 +34,7 @@ This skill does not preserve full AI activity history. Finished implementation t
 - `AGENTS.md` owns concise agent setup, commands, conventions, and verification guidance.
 
 ## Required checks
+Before updating durable docs to match code, run or account for `assert-doc-sync` when any related dirty surface is true. If code and docs disagree, assume the implementation may be wrong until verified.
 - Update code-local docs for public exports, shared types/schemas, integration boundaries, complex domain behavior, invariants, side effects, or error behavior.
 - Update `src/features/<feature>/context.md` if behavior, structure, public surface, loading guidance, or related artifacts changed.
 - Update `docs/application-model.md` if feature boundaries, workflows, entities, architecture, diagrams, or trust boundaries changed.
@@ -91,5 +92,6 @@ Feature context should be thin and link-oriented when code-local docs are strong
 - Do not duplicate full requirements, architecture, contracts, implementation history, or ADR rationale across docs.
 - Do not move feature-level reasoning into source comments just to remove a context file.
 - Do not mark docs updated if only code changed and no durable knowledge changed.
+- Do not update docs merely to make surprising implementation behavior look intentional.
 - Do not leave stale comments, stale feature context, stale unresolved items, or stale Memory Bank routing that points to superseded artifacts.
 - If documentation updates reveal unclear requirements, update `context-state.md` and route back to the relevant model, PRD, issue, contract, or plan skill.

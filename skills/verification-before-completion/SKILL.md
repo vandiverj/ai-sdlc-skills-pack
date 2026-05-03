@@ -60,6 +60,13 @@ Use the category that best describes the evidence:
 - tool-retrieved documentation
 - manual inspection
 
+## Evidence by work class
+- Micro: targeted inspection, formatter/linter, or the smallest relevant command is enough when no behavior changed.
+- Tiny: targeted test, build/type/lint check, or focused manual verification that proves the local change.
+- Standard: targeted behavioral tests plus relevant type/build/lint/static checks; integration or contract checks when the changed surface requires them.
+- High-risk: targeted tests, broader regression evidence, contract/schema stress replay where relevant, security/privacy/dependency/license/migration/rollback/performance/accessibility/observability evidence as applicable.
+- Exploratory: evidence of findings, reproduction notes, constraints, and recommended next classification; no production completion claim.
+
 ## Evidence rules
 - Evidence must come from the current session.
 - If a command was not run, say it was not run and why.
@@ -68,6 +75,7 @@ Use the category that best describes the evidence:
 - If the contract includes stress tests, run or explicitly account for them.
 - If only partial verification was possible, state the residual risk.
 - If verification reveals unclear requirements, route back to the relevant model, PRD, contract, issue, plan, or context-state artifact.
+- If verification shows the original work class or dirty surfaces were wrong, pause and return to `classify-work` before claiming completion.
 
 ## Choosing commands
 Use project-local evidence first. Detect commands from existing project artifacts rather than assuming a language or package manager.
@@ -88,6 +96,7 @@ Prefer the narrowest command that proves the changed behavior, then broader chec
 - Do not say "all tests pass" unless the relevant test command was run and passed in the current session.
 - Do not hide failed commands in a summary. Report them with exit code and relevant output.
 - Do not proceed to final completion, branch finishing, or release documentation without recording verification status.
+- Do not use a Standard or High-risk completion claim when only Micro/Tiny evidence was collected.
 
 ## Next skills
 Usually `review-spec-compliance`, then `assert-doc-sync` when docs/code may disagree, then `engineering-principles-review` when needed, then `review-code-quality`, then `update-context-docs`, `health-check`, `finish-development-branch`, or `context-save`.

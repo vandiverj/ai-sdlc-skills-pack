@@ -15,14 +15,14 @@ The pack is designed to help coding agents preserve product intent, application 
 
 Use the minimum process that prevents the most likely expensive failure.
 
-Start by classifying work as `Tiny`, `Standard`, `High-risk`, or `Exploratory`, then choose a fast-pass route, context depth, and dirty flags. Apply only the gates and artifact updates that route and those flags require.
+Start by classifying work as `Micro`, `Tiny`, `Standard`, `High-risk`, or `Exploratory`, then choose a fast-pass route, context depth, and dirty surfaces. Apply only the gates and artifact updates that route and those surfaces require.
 
 ## Fast-pass routing
 
 Treat the workflow as a dependency graph, not a sequence to run every time.
 
-- Tiny: context, lightweight boundary, direct edit/execute, verification, doc-sync only if needed, dirty docs only.
-- Standard: context, task/PRD, issue if needed, implementation plan, safe boundary, execution, verification, spec/code review, dirty docs only.
+- `Micro`/`Tiny`: context, lightweight boundary, direct edit/execute, verification, doc-sync only if needed, dirty-surface docs only.
+- Standard: context, task/PRD, issue if needed, implementation plan, safe boundary, execution, verification, spec/code review, dirty-surface docs only.
 - High-risk: all relevant gates, none skipped silently.
 - Exploratory: context, optional product/model exploration, spike boundary, prototype execution, findings evidence, context-state, save.
 
@@ -30,9 +30,9 @@ A skipped gate is acceptable only when the classification explains why the failu
 
 ## Automated gating
 
-The workflow is a map, not a mandatory ladder. Use context depth and dirty flags to avoid updating every file every time.
+The workflow is a map, not a mandatory ladder. Use context depth and dirty surfaces to avoid updating every file every time.
 
-Dirty flags route updates: architecture changes update the model, requirements changes update PRDs, contract/public behavior changes update contracts, feature behavior changes update feature context/code-local docs, routing changes update Memory Bank, uncertainty changes update context-state, and agent instruction changes update AGENTS.md.
+Dirty surfaces route updates: architecture changes update the model, requirements changes update PRDs, contract/public behavior changes update contracts, feature behavior changes update feature context/code-local docs, routing changes update Memory Bank, uncertainty changes update context-state, and agent instruction changes update AGENTS.md.
 
 ## Engineering principles
 
@@ -141,3 +141,8 @@ Graph/index tooling such as Graphify can be added later as a memory and retrieva
 This repository is the reusable AI SDLC skills pack itself. It is not an application template and should stay independent from product repositories.
 
 Future projects should copy, reference, or selectively install skills and templates from this repo rather than owning the pack's source directly.
+
+
+## Recent workflow tightening
+
+The workflow now treats `classify-work` as the primary entry point that emits a compact execution contract. It includes `Micro` work, dirty surface routing, mid-stream reclassification, conditional artifact sync, and `review-agent-work` for human audits of AI sessions.

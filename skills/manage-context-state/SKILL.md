@@ -15,7 +15,9 @@ Maintain the project's uncertainty ledger: what is assumed, unknown, deferred, b
 ## Purpose
 Allow future sessions to resume from durable project state without rereading entire conversations or re-discovering known uncertainty.
 
-`docs/context-state.md` is not a history file. It is the current uncertainty and review-trigger ledger.
+`docs/context-state.md is not a history file. It is the current uncertainty and review-trigger ledger.
+
+Decision rule: Memory Bank stores what is known and what is next. docs/context-state.md stores what is unknown, suspected, deferred, contradicted, blocked, or needs review.
 
 ## Output artifact
 `docs/context-state.md`
