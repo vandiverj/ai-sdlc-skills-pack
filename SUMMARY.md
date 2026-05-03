@@ -226,52 +226,57 @@ Conversation history is useful but not durable. If a decision matters, it belong
 
 ## Core workflow
 
+`run-sdlc` is the preferred front door. It orchestrates classification, context selection, route choice, consent gates, artifact updates, and next-skill selection without replacing the specialized skills.
+
 See `WORKFLOW.md` for the canonical workflow map.
 
 ```text
-0. classify-work
-1. context-restore
-2. select-tools, when external/current knowledge or tool boundaries are needed
-3. select-context
-4. product-reframe
-5. define-application
-6. choose-technical-approach, when starting a project or changing technical surfaces
-7. grill-me / brainstorming
-8. model-application
-8. manage-context-state
-9. outside-voice-review
-10. review-application-model
-11. to-prd
-12. review-prd-against-model
-14. diagram-issues
-15. to-issues
-16. review-issue-dependencies
-17. write-contract-spec, when public/cross-boundary behavior changes
-18. review-contract-spec, when a contract spec is required
-19. write-implementation-plan
-20. review-implementation-plan
-21. create-work-branch
-22. safe-edit-boundary
-23. execute-plan / tdd
-24. verification-before-completion
-25. review-spec-compliance
-26. assert-doc-sync, when code/docs/contracts/context may disagree
-27. engineering-principles-review, when complexity/readability/abstraction risk warrants it
-28. review-code-quality
-29. process-review-feedback
-30. health-check
-31. document-release
-32. update-context-docs
-33. manage-context-state
-34. setup-agent-instructions, when agent instructions changed or are missing
-35. finish-development-branch
-36. review-agent-work, when a human wants to audit AI work before continuing or merging
-37. context-save
+0. run-sdlc, when orchestrating from a human request
+1. classify-work
+2. context-restore
+3. select-tools, when external/current knowledge or tool boundaries are needed
+4. select-context
+5. product-reframe
+6. define-application
+7. choose-technical-approach, when starting a project or changing technical surfaces
+8. grill-me / brainstorming
+9. model-application
+10. manage-context-state
+11. outside-voice-review
+12. review-application-model
+13. to-prd
+14. review-prd-against-model
+15. diagram-issues
+16. to-issues
+17. review-issue-dependencies
+18. write-contract-spec, when public/cross-boundary behavior changes
+19. review-contract-spec, when a contract spec is required
+20. write-implementation-plan
+21. review-implementation-plan
+22. create-work-branch
+23. safe-edit-boundary
+24. execute-plan / tdd
+25. verification-before-completion
+26. review-spec-compliance
+27. assert-doc-sync, when code/docs/contracts/context may disagree
+28. engineering-principles-review, when complexity/readability/abstraction risk warrants it
+29. review-code-quality
+30. process-review-feedback
+31. health-check
+32. document-release
+33. update-context-docs
+34. manage-context-state
+35. setup-agent-instructions, when agent instructions changed or are missing
+36. finish-development-branch
+37. review-agent-work, when a human wants to audit AI work before continuing or merging
+38. context-save
 ```
 
 ## Core skill boundaries
 
-- classify-work chooses fast-pass route, workflow depth, context depth, dirty surfaces, confidence, evidence requirements, and escalation triggers. It does not solve the task.
+- `run-sdlc` orchestrates the workflow from a human request. It routes to specialized skills and stops at consent gates; it does not replace the specialized skills.
+
+- `classify-work` chooses fast-pass route, workflow depth, context depth, dirty surfaces, confidence, evidence requirements, and escalation triggers. It does not solve the task.
 - `assert-doc-sync` checks whether code, tests, docs, contracts, and context agree before completion or doc updates. If code and docs disagree, assume implementation may be wrong until verified.
 - `select-tools` chooses optional tools/MCPs and access boundaries. It does not make tool output a source of truth.
 - `context-restore` resumes from Memory Bank routing files, context-state, and checkpoints.
