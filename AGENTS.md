@@ -7,6 +7,8 @@ This repository is the reusable AI SDLC skills pack. It is not an application te
 - Primary local environment: Windows.
 - Codex may run from a sandbox outside this repository and may need approval to write here.
 - Markdown and text files are normalized to LF by `.gitattributes`.
+- Prefer repo-local Git settings `core.autocrlf=false` and `core.eol=lf` so Windows checkouts do not rewrite text files to CRLF.
+- `.editorconfig` asks editors and agents to write UTF-8, LF-terminated text with final newlines.
 
 ## Editing Rules
 

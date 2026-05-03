@@ -28,6 +28,12 @@ Why:
 Dirty surfaces:
 Required gates:
 Technical approach status:
+Quality automation status:
+Retrieval approach status:
+Agent strategy status:
+Implementation pattern status:
+Threat model status:
+Production readiness status:
 Optional gates:
 Skipped gates and reason:
 Required context:
@@ -90,6 +96,7 @@ Fast-pass route:
 classify-work
 -> select-tools, only if needed
 -> select-context
+-> choose-implementation-pattern, if repeated project-specific patterns may apply
 -> existing PRD/task source or to-prd if requirements need durable form
 -> to-issues, if not already tracked
 -> write-implementation-plan
@@ -121,6 +128,7 @@ Usually required:
 - model/PRD/context-state alignment
 - contract spec when public/cross-boundary behavior changes
 - structured reasoning or `select-tools` for Sequential Thinking-style support when useful
+- `threat-model` when security, privacy, data, dependency, integration, untrusted input, AI/agent, tool-access, or abuse-case risk is present
 - implementation plan and review
 - security/privacy/supply-chain/license risk review
 - data retention/deletion review when user data is involved
@@ -128,6 +136,7 @@ Usually required:
 - contract/type/schema stress testing where relevant
 - performance, accessibility, observability, and rollout checks where relevant
 - fresh verification evidence
+- `production-readiness-review` before merge/release/deploy/handoff for production-intended changes
 - `assert-doc-sync`
 - context and release documentation updates only where dirty surfaces require them
 
@@ -166,10 +175,15 @@ requirementsSurfaceChanged: yes/no
 publicContractSurfaceChanged: yes/no
 systemSurfaceChanged: yes/no
 technicalApproachChanged: yes/no
+qualityAutomationChanged: yes/no
+retrievalApproachChanged: yes/no
 verificationSurfaceChanged: yes/no
 docsContextSurfaceChanged: yes/no
 riskSurfaceChanged: yes/no
+implementationPatternChanged: yes/no
 agentOpsSurfaceChanged: yes/no
+agentStrategyChanged: yes/no
+processLearningSurfaceChanged: yes/no
 uncertaintyChanged: yes/no
 ```
 
@@ -177,11 +191,16 @@ Surface routing:
 - `requirementsSurfaceChanged` -> update/review product intent, PRD, issue, acceptance criteria, or application model section.
 - `publicContractSurfaceChanged` -> write/review contract spec; update public API docs, schemas, type docs, examples, or compatibility notes.
 - `technicalApproachChanged` -> run `choose-technical-approach`; update ADRs, application model, AGENTS.md, context-state, and Memory Bank indexes as applicable.
+- `qualityAutomationChanged` -> run `choose-quality-automation`; update command wiring, CI/local preflight docs, AGENTS.md, verification expectations, context-state, and Memory Bank indexes as applicable.
+- `retrievalApproachChanged` -> run `choose-retrieval-approach`; update retrieval decisions, tool boundaries, index/report locations, freshness expectations, AGENTS.md, context-state, and Memory Bank indexes as applicable.
 - systemSurfaceChanged -> update/review application model, ADRs, diagrams, dependency boundaries, data flows, or feature context.
 - `verificationSurfaceChanged` -> update tests, verification plan, health-check expectations, or evidence requirements.
 - `docsContextSurfaceChanged` -> update code-local docs, feature context, Memory Bank routing, context index, release docs, or developer docs.
-- `riskSurfaceChanged` -> run security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review as applicable.
+- `riskSurfaceChanged` -> run `threat-model`, security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review, or `production-readiness-review` as applicable.
+- `implementationPatternChanged` -> run `choose-implementation-pattern`, `review-implementation-pattern`, or `update-implementation-patterns`; update `docs/patterns/*`, feature context, AGENTS.md, context-state, or Memory Bank indexes as applicable.
 - `agentOpsSurfaceChanged` -> update `AGENTS.md`, setup commands, verification commands, safe-edit rules, or workflow guidance.
+- `agentStrategyChanged` -> run `choose-agent-strategy`, `review-agent-strategy`, or `update-agent-definitions`; update `docs/agents/*`, runtime adapters, or AGENTS.md as applicable.
+- `processLearningSurfaceChanged` -> run `capture-process-event` or include the evidence in a `review-process-learning` report.
 - `uncertaintyChanged` -> update `docs/context-state.md`.
 
 Legacy dirty flags may still appear in older artifacts. Map them to the surface groups instead of preserving both lists.
@@ -210,6 +229,12 @@ Escalate when:
 - Any route -> `manage-context-state`: uncertainty, blocked questions, or affected artifacts appear.
 - Any route -> `assert-doc-sync`: code/docs/contracts/context disagree or related dirty surfaces are true.
 - Any route -> `choose-technical-approach`: stack, architecture, runtime, dependency, service, persistence, deployment, testing, or operations decisions are missing or changing.
+- Any route -> `choose-quality-automation`: formatter, linter, typecheck, test, build, contract, accessibility, security, dependency, license, generated artifact, docs, CI, local preflight, or verification command decisions are missing, stale, noisy, or changing.
+- Any route -> `choose-retrieval-approach`: RAG, embeddings, vector search, graph/index tooling, repo retrieval, Obsidian-style navigation, hosted retrieval, indexing cadence, source scope, freshness, privacy, or retrieval trust boundaries are missing, stale, risky, unnecessary, or changing.
+- Any route -> `choose-agent-strategy`: Standard, High-risk, Exploratory, broad review, or release work may benefit from delegation, model-tier selection, specialist review, independent verification, or runtime-specific agent boundaries.
+- Any route -> `choose-implementation-pattern`: work touches repeated project-specific implementation surfaces such as forms, tables, modals, data fetching, API handlers, error handling, tests, layouts, or feature module structure.
+- Any route -> `threat-model`: security, privacy, user data, untrusted input, dependency/supply-chain, external integration, public contract, AI/agent, tool-access, or abuse-case risk is present and not already addressed.
+- Any route -> `production-readiness-review`: Standard or High-risk work is intended for merge, release, deploy, or production handoff and needs Git reviewability, rollback, observability, or release confidence.
 - Any route -> select-tools: current external docs, reasoning scaffold, repo retrieval, or tool boundaries are needed.
 
 ## Risk signals
@@ -218,11 +243,13 @@ Treat the work as higher risk when it touches:
 - Authentication, authorization, sessions, secrets, encryption, or permissions.
 - User data, privacy, retention, export, deletion, or compliance.
 - Payments, billing, account state, or irreversible operations.
-- External network calls, downloads, dependencies, frameworks, runtimes, services, generated code, licenses, or untrusted content.
+- External network calls, downloads, dependencies, frameworks, runtimes, services, generated code, licenses, CI/build tooling, or untrusted content.
 - Database schema, migrations, data backfills, queues, jobs, or concurrency.
 - Public APIs, CLIs, SDKs, schemas, events, plugin contracts, or UI workflows.
+- Repeated implementation patterns such as forms, tables, modals, API handlers, data fetching, errors, tests, layouts, or feature modules.
 - Accessibility-critical UI paths, hot paths, performance-sensitive queries, observability, alerts, or deployment controls.
 - Cross-feature architecture, shared utilities, build systems, CI, or deployment.
+- AI, LLM, RAG, embeddings, agent tool-calling, MCP access, prompts, memory, retrieval indexes, or model output handling.
 
 ## Hard rules
 - Do not use the full workflow for small work unless a risk signal is present.

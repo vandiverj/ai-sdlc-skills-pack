@@ -5,6 +5,7 @@ Review code quality, maintainability, operational risk, engineering principles, 
 
 ## Checks
 - Type safety or language-appropriate correctness checks.
+- Appropriate deterministic tooling exists and was used for repeatable format, lint, type/schema, build, dependency, generated artifact, documentation, and CI/local preflight checks.
 - Story readability: can a maintainer follow the intent top-down?
 - Intent-revealing names and domain language.
 - Functions/modules/classes have cohesive responsibilities and clear reasons to change.
@@ -16,12 +17,15 @@ Review code quality, maintainability, operational risk, engineering principles, 
 - Separation of concerns.
 - Level of abstraction consistency.
 - Test quality and testability.
+- Automation signal quality: checks are discoverable, relevant, not excessively flaky/noisy, and not substituting for spec review.
 - Dependency usage, supply-chain risk, and license compatibility.
 - Maintainability.
 - Simplicity and YAGNI.
 - DRY with judgment: avoid harmful duplication without creating premature abstractions.
 - SOLID or equivalent boundary principles where relevant.
 - Design pattern appropriateness: useful tool or unnecessary ceremony.
+- Project implementation pattern fit: applicable `docs/patterns/*` guidance was followed or deviations are intentional.
+- Pattern maturity: Standard/Validated guidance is respected, Emerging/Experimental guidance is bounded, and Deprecated/Superseded examples are not copied into new work.
 - Security-sensitive behavior.
 - Privacy, data lifecycle, retention, export, deletion, and compliance-sensitive handling.
 - Secrets/configuration handling.
@@ -40,6 +44,7 @@ Review code quality, maintainability, operational risk, engineering principles, 
 - Readable code is not necessarily short code.
 - DRY is a tradeoff, not a commandment.
 - Patterns are options, not goals.
+- Project patterns are preferred defaults, not universal laws; challenge them when requirements, frameworks, accessibility, security, performance, or maintainability change.
 - Prefer local simplicity over architectural theater.
 
 ## Code-local documentation guidance
@@ -65,6 +70,8 @@ Do not require comments for obvious private code.
 - Optional improvements.
 - Engineering principle findings.
 - Missing or stale code-local docs.
+- Missing, stale, noisy, or ignored quality automation.
+- Missing, stale, over-broad, or ignored implementation pattern guidance.
 - Security/privacy/dependency risks.
 - Operability and maintainability risks.
 - Risks accepted or deferred.

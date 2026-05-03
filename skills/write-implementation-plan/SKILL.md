@@ -23,8 +23,14 @@ Make implementation testable, bounded, maintainable, and reviewable before editi
 7. Related contract spec, if public or cross-boundary behavior changes.
 8. Related feature `context.md` files.
 9. Related ADRs or decisions, including approved technical approach.
-10. Relevant open questions from `docs/context-state.md`.
-11. Existing source files and tests only when needed to identify exact file responsibilities.
+10. Approved quality automation decisions or documented command contract, if relevant.
+11. Approved retrieval approach, index freshness, and tool boundaries, if relevant.
+12. Agent strategy, specialist roles, model-tier expectations, and runtime boundaries, if relevant.
+13. Applicable implementation patterns, pattern status, canonical examples, and exceptions, if relevant.
+14. Threat-model output or explicit not-required reason when risk surfaces are present.
+15. Production readiness constraints, release expectations, rollback requirements, and Git review expectations when the work is production-intended.
+16. Relevant open questions from `docs/context-state.md`.
+17. Existing source files and tests only when needed to identify exact file responsibilities.
 
 ## Required output sections
 - Plan status: Draft / Approved / Needs Review.
@@ -42,6 +48,12 @@ Make implementation testable, bounded, maintainable, and reviewable before editi
 - Responsibility of each file.
 - Step-by-step task order.
 - Technical approach fit: approved stack/dependencies/services used, new technical choices needed, or explicit none.
+- Quality automation fit: approved checks used, missing rails to address, or explicit none.
+- Retrieval approach fit: approved retrieval/index sources used, freshness/update needs, missing rails to address, or explicit none.
+- Agent strategy fit: single-agent/delegated plan, model tiers, specialist roles, handoffs, escalation triggers, or explicit none.
+- Implementation pattern fit: applicable docs/patterns guidance, maturity status, canonical examples, exceptions, or explicit none.
+- Threat model fit: approved findings/mitigations used, required threat model to run, or explicit not-required reason.
+- Production readiness fit: release/merge/deploy expectations, rollback or mitigation path, observability/support needs, and Git commit boundary.
 - Maintainability approach: readability, responsibilities, abstraction boundaries, duplication strategy, and pattern/dependency rationale.
 - Tools/MCPs allowed, why they are needed, and what they may access.
 - Test-first steps or explicit TDD exception.
@@ -64,9 +76,15 @@ A plan is ready only if:
 - Abstractions, patterns, dependencies, frameworks, and services are justified by known requirements and approved technical approach.
 - The plan avoids both harmful duplication and premature abstraction.
 - Required tools/MCPs are justified and bounded.
-- Verification commands are named.
+- Verification commands are named and align with approved quality automation when present.
 - Code-local documentation needs are identified or explicitly not applicable.
 - Security/privacy/dependency/license/migration/deployment/operations risks are either addressed or explicitly not applicable.
+- Missing, stale, or inadequate quality automation is addressed, deferred with rationale, or routed to `choose-quality-automation`.
+- Missing, stale, risky, or unnecessary retrieval/indexing is addressed, deferred with rationale, or routed to `choose-retrieval-approach`.
+- Missing, excessive, stale, or unsafe agent strategy is addressed, deferred with rationale, or routed to `choose-agent-strategy`.
+- Missing, stale, disputed, deprecated, or newly needed implementation pattern guidance is addressed, deferred with rationale, or routed to `choose-implementation-pattern` / `update-implementation-patterns`.
+- Required threat-model findings are addressed, deferred with rationale, or routed to `threat-model`.
+- Production readiness needs are addressed for production-intended work, including reviewable scope, intentional commit boundary, rollback/mitigation, and observability/support expectations where relevant.
 - Documentation/context updates are included.
 - Open questions are either resolved, safely deferred, or explicitly blocking.
 - The plan can be reviewed against the PRD, application model, and contract spec when present.
@@ -82,13 +100,19 @@ A plan is ready only if:
 ## Stop and return when
 - Acceptance criteria are missing or untestable.
 - The issue contradicts the PRD, model, approved technical approach, or contract spec.
+- The plan relies on unstated quality automation or introduces new tooling without approval.
+- The plan relies on retrieval/RAG/index output as proof or introduces new retrieval tooling without approval.
+- The plan relies on unstated delegation, model-tier assumptions, or runtime adapter behavior without `choose-agent-strategy` when the decision matters.
+- The plan invents or copies a repeated implementation pattern without checking applicable `docs/patterns/*` guidance when such guidance exists or should exist.
+- The plan has unreviewed threat-model requirements for security, privacy, data, untrusted input, external integration, dependency/supply-chain, AI/agent, or tool-access risk.
 - Required files, module boundaries, or approved technical constraints are unknown.
 - The public contract is missing but required.
 - Security, privacy, migration, dependency, license, deployment, operations, or tool-access risk is present but unaddressed.
+- Production-intended work lacks a reviewable commit boundary, rollback/mitigation path, or necessary observability/support expectation.
 - Required code-local documentation would duplicate or contradict feature-level docs instead of linking cleanly.
 - The plan would likely create tangled responsibilities, unjustified abstraction, or brittle coupling.
 - The safe-edit boundary cannot be stated.
 - A context-state open question affects implementation behavior.
 
 ## Next skills
-Usually `review-implementation-plan`, then `create-work-branch`, `safe-edit-boundary`, and `execute-plan` / `tdd`.
+Usually `choose-agent-strategy` when delegation/model tiers matter, `choose-implementation-pattern` when project patterns may apply, `threat-model` when risk surfaces need review, then `review-implementation-plan`, `create-work-branch`, `safe-edit-boundary`, and `execute-plan` / `tdd`.

@@ -16,6 +16,10 @@ This skill does not preserve full AI activity history. Finished implementation t
 - A public API, CLI, UI, or system behavior changes.
 - Implementation reveals something not captured in docs.
 - Public/shared code-local documentation changed or should have changed.
+- Quality automation decisions, command wiring, CI/local preflight expectations, or verification guidance changed.
+- Retrieval decisions, index/report locations, source boundaries, freshness expectations, or privacy guidance changed.
+- Agent strategy, model-tier policy, delegation patterns, specialist roles, runtime adapters, or agent learning guidance changed.
+- Implementation pattern guidance, pattern maturity, canonical examples, deprecated examples, or pattern exceptions changed.
 - Current focus, pending work, known gaps, decision indexes, or context routing changed.
 
 ## Artifact ownership
@@ -31,7 +35,13 @@ This skill does not preserve full AI activity history. Finished implementation t
 - `docs/memory-bank/progress.md` owns current status, pending work, known gaps, and not-yet-done work.
 - `docs/memory-bank/decisionIndex.md` owns the decision index and ADR links.
 - `docs/memory-bank/contextIndex.md` owns the routing map for what to load when.
+- `docs/agents/` owns portable agent strategy, model-tier policy, delegation patterns, runtime adapter mappings, specialist roles, and agent learning loop.
+- `docs/patterns/` owns project-specific implementation pattern guidance, maturity, examples, exceptions, and change triggers.
 - `AGENTS.md` owns concise agent setup, commands, conventions, and verification guidance.
+- Quality automation decisions own what deterministic checks exist, why they exist, and when agents should use them.
+- Retrieval approach decisions own whether retrieval exists, what sources it may index/query, how fresh it must be, and why it is not authoritative.
+- Agent strategy decisions own when to use single-agent work, specialists, model tiers, delegation, handoffs, escalation, and runtime adapters.
+- Implementation pattern decisions own project-specific structure and behavior expectations that deterministic tools cannot express.
 
 ## Required checks
 Before updating durable docs to match code, run or account for `assert-doc-sync` when any related dirty surface is true. If code and docs disagree, assume the implementation may be wrong until verified.
@@ -43,6 +53,10 @@ Before updating durable docs to match code, run or account for `assert-doc-sync`
 - Update PRDs or issues if scope changed.
 - Update Memory Bank routing files if focus, pending work, known gaps, decision links, product north star, or context selection guidance changed.
 - Update `AGENTS.md` if commands, conventions, verification expectations, security gotchas, or agent workflow guidance changed.
+- Update quality automation decision links or context-state entries if formatter, lint, typecheck, test, build, security, dependency, generated artifact, docs, CI, or local preflight expectations changed.
+- Update retrieval decision links, index/report locations, freshness notes, or context-state entries if RAG, embeddings, graph/index tooling, repo retrieval, hosted search, or human navigation expectations changed.
+- Update `docs/agents/*`, runtime adapters, `AGENTS.md`, context-state, or Memory Bank indexes if agent roles, model-tier mappings, delegation patterns, specialist guidance, or adapter behavior changed.
+- Update `docs/patterns/*`, feature context, `AGENTS.md`, context-state, or Memory Bank indexes if project-specific implementation pattern guidance changed or should have changed.
 
 ## Feature context sections
 Feature context should be thin and link-oriented when code-local docs are strong:
@@ -58,6 +72,8 @@ Feature context should be thin and link-oriented when code-local docs are strong
 - Validation and error-case summary.
 - Test coverage map.
 - Related artifacts: PRD, contract, model sections, ADRs, issues.
+- Agent strategy notes when feature work needs specific specialists, model tiers, tool boundaries, or runtime adapter behavior.
+- Implementation pattern notes when the feature uses or intentionally deviates from a documented project pattern.
 - Known limitations.
 - When to load this context.
 - Last updated.
@@ -75,6 +91,8 @@ Feature context should be thin and link-oriented when code-local docs are strong
 - `progress.md`: update only when current status, pending work, known gaps, or not-yet-done work changed.
 - `decisionIndex.md`: update only when a decision or ADR link changes.
 - `contextIndex.md`: update when future agents should load different artifacts for a task, feature, or workflow.
+- `docs/agents/*`: update when agent roles, model-tier policy, delegation patterns, runtime adapters, or learning-loop guidance changed.
+- `docs/patterns/*`: update when implementation pattern guidance, maturity, examples, exceptions, or change triggers changed.
 - `productContext.md`: update only when the product thesis, target user, product principle, or non-goal changes.
 - `docs/context-state.md`: update when uncertainty, assumptions, affected artifacts, or revisit triggers change.
 
@@ -95,3 +113,5 @@ Feature context should be thin and link-oriented when code-local docs are strong
 - Do not update docs merely to make surprising implementation behavior look intentional.
 - Do not leave stale comments, stale feature context, stale unresolved items, or stale Memory Bank routing that points to superseded artifacts.
 - If documentation updates reveal unclear requirements, update `context-state.md` and route back to the relevant model, PRD, issue, contract, or plan skill.
+- If documentation updates reveal unclear agent ownership, model-tier mapping, or runtime adapter behavior, update `context-state.md` and route to `choose-agent-strategy` or `update-agent-definitions`.
+- If documentation updates reveal unclear, stale, or disputed implementation pattern guidance, update `context-state.md` and route to `choose-implementation-pattern` or `update-implementation-patterns`.

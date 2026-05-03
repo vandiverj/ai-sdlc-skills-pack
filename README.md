@@ -32,7 +32,7 @@ A skipped gate is acceptable only when the classification explains why the failu
 
 The workflow is a map, not a mandatory ladder. Use context depth and dirty surfaces to avoid updating every file every time.
 
-Dirty surfaces route updates: architecture changes update the model, requirements changes update PRDs, contract/public behavior changes update contracts, feature behavior changes update feature context/code-local docs, routing changes update Memory Bank, uncertainty changes update context-state, and agent instruction changes update AGENTS.md.
+Dirty surfaces route updates: architecture changes update the model, requirements changes update PRDs, contract/public behavior changes update contracts, quality automation changes update command wiring and verification guidance, retrieval approach changes update index/tool boundaries, implementation pattern changes update `docs/patterns`, feature behavior changes update feature context/code-local docs, routing changes update Memory Bank, uncertainty changes update context-state, and agent instruction changes update AGENTS.md.
 
 ## Engineering principles
 
@@ -65,16 +65,56 @@ Memory Bank files summarize current state, pending work, and routing. They do no
 - `docs/prds/` owns requirements.
 - `docs/contracts/` owns public and cross-boundary contract specs when needed.
 - `docs/decisions/` owns full ADR rationale.
+- `docs/agents/` owns portable agent roles, model-tier policy, delegation patterns, runtime adapters, and learning loop guidance.
+- `docs/patterns/` owns project-specific implementation pattern guidance, maturity, examples, exceptions, and change triggers.
 - `src/features/<feature>/context.md` owns feature-level maps and loading guidance.
 - `docs/context-state.md` owns uncertainty, assumptions, affected artifacts, and revisit triggers.
+
+Process-learning metrics live separately from Memory Bank:
+
+```text
+docs/process-improvement/
+  events.jsonl
+  friction-log.md
+```
+
+Use `capture-process-event` to record small observations about friction, gaps, corrections, near misses, and useful workflow successes during project work. Use `review-process-learning` to aggregate those events across projects and propose evidence-backed improvements to project guidance, templates, tooling, retrieval, or the skills pack.
 
 ## Tool and MCP use
 
 MCPs and tools are optional infrastructure. Use select-tools when external/current knowledge, tool access, or MCP boundaries matter. Tools retrieve or act; they do not remember for the project and they do not outrank local source-of-truth artifacts.
 
+## Agent strategy
+
+Use `choose-agent-strategy` when Standard, High-risk, Exploratory, review, release, or cross-cutting work may benefit from delegation, specialist review, independent verification, or model-tier selection.
+
+The portable SDLC defines roles and model tiers in `docs/agents/*`; runtime-specific files for Codex, VS Code/Copilot, Augment, Claude Code, or other tools are adapters. Keep adapters thin and do not let them outrank `AGENTS.md`, workflow docs, skills, or source-of-truth artifacts.
+
+Use the minimum model tier and fewest agents that can satisfy the evidence requirement. Escalate by concrete triggers such as low confidence, failed verification, conflicting artifacts, risky surfaces, or an inability to produce a testable plan or reviewable diff.
+
+## Implementation patterns
+
+Use `choose-implementation-pattern` when work touches repeated project-specific surfaces such as forms, tables, modals, data fetching, API handlers, error handling, tests, layouts, or feature module structure.
+
+Implementation patterns live in `docs/patterns/*`. They capture project-specific guidance that deterministic tools cannot express. They start as Emerging, harden through reviewed evidence, and can be deprecated or superseded when requirements, design systems, frameworks, accessibility, security, or performance constraints change.
+
+Do not use pattern docs to duplicate formatter, linter, typechecker, schema, accessibility, test, or CI rules.
+
 ## Technical approach gate
 
 When starting a project or changing meaningful technical surfaces, use `choose-technical-approach` to propose and approve stack, architecture, runtime, persistence, deployment, testing, operations, and dependency policy before deep modeling or implementation planning depends on those choices.
+
+## Quality automation gate
+
+Use `choose-quality-automation` when a project needs explicit decisions about formatter, linter, typecheck, test, build, contract, accessibility, security, dependency, license, generated artifact, documentation, or CI/local preflight checks.
+
+The goal is to let deterministic tools catch repeatable problems so agents reserve judgment for product intent, architecture, contracts, usability, maintainability, and risk.
+
+## Retrieval approach gate
+
+Use `choose-retrieval-approach` when a project may need optional RAG, embeddings, vector search, graph indexing, repo retrieval, Obsidian-like navigation, or another retrieval layer to find source artifacts reliably.
+
+Retrieval output is a pointer, not proof. It should help agents load authoritative code, tests, PRDs, contracts, ADRs, application models, feature context, AGENTS.md, context-state, and Memory Bank routing files.
 
 ## Contract-first gate
 
@@ -88,6 +128,15 @@ This gate is conditional. Do not force it onto internal refactors, private imple
 
 For most work, start with `run-sdlc`. It classifies the request, chooses the fast-pass route, invokes the right skills, and stops at human consent gates instead of making the human manually pick workflow steps.
 
+To install or refresh the SDLC in a downstream repository, use:
+
+```text
+setup-sdlc-in-repo
+setup-agent-instructions, if AGENTS.md is missing or stale
+choose-agent-strategy, if agent roles, model tiers, or runtime adapters are needed
+choose-implementation-pattern, if project-specific pattern guidance is needed
+```
+
 For lower-level manual routing, begin with context:
 
 ```text
@@ -99,10 +148,14 @@ manage-context-state
 
 For new product or feature design, continue with:
 
-`	ext
+```text
 product-reframe
 define-application
 choose-technical-approach, when starting a project or changing technical surfaces
+choose-quality-automation, when quality rails are missing or changing
+choose-retrieval-approach, when retrieval/RAG/indexing may be justified
+choose-agent-strategy, when delegation, specialists, or model tiers may matter
+choose-implementation-pattern, when repeated project-specific implementation patterns may matter
 grill-me
 model-application
 review-application-model
@@ -114,6 +167,10 @@ For implementation, use:
 
 ```text
 write-contract-spec / review-contract-spec, when public contracts change
+choose-quality-automation, when verification or tooling rails are missing or changing
+choose-retrieval-approach, when context selection or retrieval rails are missing or changing
+choose-agent-strategy, when delegation, specialist review, or independent verification would reduce risk
+choose-implementation-pattern, when forms, tables, APIs, tests, layouts, or feature patterns apply
 write-implementation-plan
 review-implementation-plan
 create-work-branch
@@ -127,6 +184,15 @@ finish-development-branch
 context-save
 ```
 
+For process improvement across projects, use:
+
+```text
+capture-process-event, when real work exposes process friction, gaps, corrections, near misses, or useful successes
+review-process-learning, periodically across project event logs
+update-agent-definitions, when reviewed evidence shows agent roles, model tiers, or adapters should change
+update-implementation-patterns, when reviewed evidence shows project patterns should emerge, harden, deprecate, or change
+```
+
 ## Non-negotiable gates
 
 - Classify work before choosing workflow depth.
@@ -135,6 +201,11 @@ context-save
 - No issue enters implementation without a testable implementation plan.
 - If public or cross-boundary behavior changes, no implementation plan before a reviewed contract spec.
 - Public/shared/non-obvious behavior must have accurate code-local docs or an explicit documentation exception.
+- Repeatable quality checks should be automated and documented when the project risk profile justifies them.
+- Retrieval, RAG, graph, embedding, or human navigation layers are optional aids for finding authoritative artifacts, not sources of truth.
+- Agent roles, subagents, model tiers, and runtime adapters are optional execution aids; they must stay bounded, reviewable, and subordinate to portable SDLC docs and project artifacts.
+- Project implementation patterns are preferred defaults for product-specific consistency; they must be evidence-backed, reviewable, and subordinate to requirements, contracts, accessibility, security, and deterministic tooling.
+- Process-learning events are optional evidence for improving the workflow; they are not product requirements, technical decisions, completion evidence, or hidden memory.
 - High-risk work must address security, privacy, dependency, migration, and rollback concerns as applicable.
 - No completion claim without fresh verification evidence.
 - Reviews split spec compliance from code quality.
@@ -142,7 +213,7 @@ context-save
 
 ## Optional retrieval layer
 
-Graph/index tooling such as Graphify can be added later as a memory and retrieval accelerator for larger projects. It should not be required for the core workflow and must not replace code, tests, code-local docs, PRDs, contracts, ADRs, application models, feature context files, AGENTS.md, or Memory Bank routing files as sources of truth.
+Retrieval/index tooling such as Graphify, embeddings, vector search, repo retrieval, or Obsidian-style navigation can be added later as an accelerator for larger projects. Use `choose-retrieval-approach` before adding it. It should not be required for the core workflow and must not replace code, tests, code-local docs, PRDs, contracts, ADRs, application models, feature context files, AGENTS.md, or Memory Bank routing files as sources of truth.
 ## Repository scope
 
 This repository is the reusable AI SDLC skills pack itself. It is not an application template and should stay independent from product repositories.
@@ -152,4 +223,4 @@ Future projects should copy, reference, or selectively install skills and templa
 
 ## Recent workflow tightening
 
-The workflow now treats `classify-work` as the primary entry point that emits a compact execution contract. It includes `Micro` work, dirty surface routing, mid-stream reclassification, conditional artifact sync, and `review-agent-work` for human audits of AI sessions.
+The workflow now treats `classify-work` as the primary entry point that emits a compact execution contract. It includes `Micro` work, dirty surface routing, mid-stream reclassification, conditional artifact sync, and `review-agent-work` for human review of AI sessions through Git diffs, scoped commits, and verification evidence.

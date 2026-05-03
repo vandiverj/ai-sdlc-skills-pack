@@ -29,7 +29,10 @@ Do not run the whole workflow by default. Run the smallest route that prevents t
 7. Stop at consent gates.
 8. Continue after approval.
 9. Reclassify when new evidence changes the route.
-10. Keep the user oriented with short progress summaries.
+10. Ensure approved quality automation is considered and used when verification or tooling surfaces matter.
+11. Choose agent strategy when delegation, specialists, model tiers, or runtime adapters may help.
+12. Capture process-learning events when real work exposes friction, gaps, corrections, near misses, or useful workflow successes.
+13. Keep the user oriented with short progress summaries.
 
 ## What this skill does not do
 - Do not replace the specialized skills.
@@ -44,6 +47,7 @@ Choose one mode:
 
 ```text
 new-project
+setup-sdlc
 new-feature
 bugfix
 refactor
@@ -61,6 +65,10 @@ Work class:
 Classification confidence:
 Context depth:
 Technical approach status:
+Quality automation status:
+Retrieval approach status:
+Agent strategy status:
+Implementation pattern status:
 Fast-pass route:
 Immediate next skill:
 Human consent gates expected:
@@ -74,6 +82,25 @@ Keep this compact.
 
 ## Routing table
 
+### Setup SDLC
+Use when installing or refreshing this SDLC in a downstream repository.
+
+Typical route:
+```text
+classify-work
+-> select-context
+-> setup-sdlc-in-repo
+-> setup-agent-instructions, if AGENTS.md is missing or stale
+-> choose-agent-strategy, if agent roles/model tiers/runtime adapters are needed
+-> choose-implementation-pattern, if implementation pattern docs are missing or needed
+-> choose-quality-automation, if command rails are missing or changing
+-> choose-retrieval-approach, if retrieval/indexing is needed
+-> verification-before-completion
+-> context-save
+```
+
+Stop at ambiguous existing instructions, runtime adapter choices, new tooling/dependency decisions, or any change that would overwrite project-specific guidance.
+
 ### New project
 Use when the user starts from an idea or empty/new repo.
 
@@ -85,6 +112,10 @@ classify-work
 -> product-reframe
 -> define-application
 -> choose-technical-approach
+-> choose-quality-automation
+-> choose-retrieval-approach, if retrieval/RAG/indexing may be justified
+-> choose-agent-strategy, if multiple runtimes, specialists, or model tiers may matter
+-> choose-implementation-pattern, if project-specific implementation patterns may matter
 -> grill-me, if assumptions remain
 -> model-application
 -> review-application-model
@@ -93,7 +124,7 @@ classify-work
 -> write-implementation-plan for first slice
 ```
 
-Stop at product direction, application definition, technical approach, application model, MVP PRD, and first implementation plan approval.
+Stop at product direction, application definition, technical approach, quality automation when needed, retrieval approach when needed, application model, MVP PRD, and first implementation plan approval.
 
 ### New feature
 Use when adding meaningful behavior to an existing project.
@@ -106,12 +137,16 @@ classify-work
 -> product-reframe, if feature value is unclear
 -> define/model update, if app structure changes
 -> choose-technical-approach, if new technical surface is needed
+-> choose-quality-automation, if verification or tooling rails are missing or changing
+-> choose-retrieval-approach, if retrieval/RAG/indexing is part of the feature or context selection is failing
+-> choose-agent-strategy, if delegation, specialist review, or model-tier selection would reduce risk
+-> choose-implementation-pattern, if repeated project-specific implementation patterns apply
 -> to-prd or update existing PRD
 -> to-issues
 -> write-implementation-plan
 ```
 
-Stop at scope approval, technical approach approval if needed, PRD/issue approval, and implementation plan approval.
+Stop at scope approval, technical approach, quality automation, or retrieval approval if needed, PRD/issue approval, and implementation plan approval.
 
 ### Bugfix
 Use when fixing broken behavior.
@@ -122,6 +157,10 @@ classify-work
 -> context-restore
 -> select-context
 -> diagnose
+-> choose-quality-automation, if verification or tooling rails are missing or changing
+-> choose-retrieval-approach, if diagnosis needs missing/stale retrieval rails
+-> choose-agent-strategy, if diagnosis needs read-only exploration, specialist review, or independent verification
+-> choose-implementation-pattern, if the bug involves a repeated project pattern
 -> write-implementation-plan, if non-trivial
 -> safe-edit-boundary
 -> execute-plan / tdd
@@ -139,6 +178,10 @@ Typical route:
 classify-work
 -> select-context
 -> choose-technical-approach, if patterns/dependencies/architecture change
+-> choose-quality-automation, if verification or tooling rails are missing or changing
+-> choose-retrieval-approach, if retrieval/index sources or context-selection workflow changes
+-> choose-agent-strategy, if the refactor can be split into bounded workers or specialist review
+-> choose-implementation-pattern, if the refactor changes or depends on project patterns
 -> write-implementation-plan
 -> review-implementation-plan
 -> safe-edit-boundary
@@ -147,7 +190,7 @@ classify-work
 -> review-code-quality
 ```
 
-Stop at technical approach approval if architecture/dependency changes, and at refactor plan approval.
+Stop at technical approach, quality automation, or retrieval approval if architecture, dependency, verification, tooling, or retrieval rails change, and at refactor plan approval.
 
 ### Exploratory spike
 Use when feasibility or direction is uncertain.
@@ -159,6 +202,10 @@ classify-work
 -> select-context
 -> product-reframe or grill-me
 -> choose-technical-approach, if comparing technical options
+-> choose-quality-automation, if comparing automation options or spike checks
+-> choose-retrieval-approach, if comparing retrieval/RAG/index options
+-> choose-agent-strategy, if exploration benefits from read-only specialists or model-tier comparison
+-> choose-implementation-pattern, if exploring or comparing implementation patterns
 -> safe-edit-boundary
 -> execute-plan as spike/prototype
 -> verification-before-completion for findings
@@ -175,6 +222,7 @@ Typical route:
 ```text
 context-restore
 -> classify-work
+-> choose-agent-strategy, if restored work requires delegation or model-tier changes
 -> select-context
 -> manage-context-state, if uncertainty changed
 -> next required gate from restored state
@@ -189,6 +237,7 @@ Typical route:
 ```text
 classify-work
 -> select-context
+-> choose-agent-strategy, if independent specialist review or verification is useful
 -> review-agent-work
 -> assert-doc-sync, if artifacts may disagree
 -> verification-before-completion, if evidence is missing
@@ -207,6 +256,10 @@ classify-work
 -> assert-doc-sync
 -> review-code-quality
 -> health-check, if needed
+-> choose-quality-automation, if release checks expose missing or stale rails
+-> choose-retrieval-approach, if release checks expose missing or stale retrieval/index rails
+-> choose-agent-strategy, if release review needs specialists or independent verification
+-> review-implementation-pattern, if implementation patterns affected the release surface
 -> document-release
 -> finish-development-branch
 -> context-save
@@ -220,6 +273,10 @@ Ask for human approval before proceeding past:
 - Product direction or MVP scope.
 - Application definition for meaningful new work.
 - Technical approach, stack, architecture, deployment, persistence, or dependency choice.
+- Quality automation, CI/local preflight, test framework, lint/type/build tooling, or verification command changes.
+- Retrieval, RAG, embeddings, vector search, graph/index tooling, Obsidian-style navigation, hosted retrieval, or repo retrieval changes.
+- Agent strategy, runtime adapters, model-tier mappings, specialist definitions, or delegation policy changes.
+- Implementation pattern guidance, pattern maturity, canonical examples, deprecated examples, or pattern exceptions.
 - New framework, runtime, production dependency, external service, auth provider, database, AI provider, or testing tool.
 - Application model for meaningful work.
 - PRD or acceptance criteria.
@@ -261,6 +318,10 @@ Pause and return to `classify-work` when:
 
 - The task is broader/narrower than expected.
 - A new technical surface appears.
+- A missing or inadequate quality automation surface appears.
+- A missing, stale, risky, or unnecessary retrieval surface appears.
+- A missing, stale, excessive, or unsafe agent strategy appears.
+- A missing, stale, disputed, deprecated, or newly needed implementation pattern appears.
 - A requirement contradicts the model, PRD, issue, contract, or plan.
 - A public contract changes.
 - Security, privacy, data, migration, dependency, deployment, or operations risk appears.
@@ -282,4 +343,4 @@ Do not update every artifact every time. Draft artifacts when required, then ask
 - Do not claim completion without fresh verification evidence.
 
 ## Next skills
-Usually one of: `classify-work`, `context-restore`, `select-context`, `product-reframe`, `define-application`, `choose-technical-approach`, `grill-me`, `model-application`, `to-prd`, `to-issues`, `write-implementation-plan`, `execute-plan`, `verification-before-completion`, `review-agent-work`, `finish-development-branch`, or `context-save`.
+Usually one of: `classify-work`, `context-restore`, `setup-sdlc-in-repo`, `select-context`, `product-reframe`, `define-application`, `choose-technical-approach`, `choose-quality-automation`, `choose-retrieval-approach`, `choose-agent-strategy`, `choose-implementation-pattern`, `grill-me`, `model-application`, `to-prd`, `to-issues`, `write-implementation-plan`, `execute-plan`, `verification-before-completion`, `review-agent-work`, `capture-process-event`, `finish-development-branch`, or `context-save`.
