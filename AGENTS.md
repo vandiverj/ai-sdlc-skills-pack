@@ -24,6 +24,10 @@ Markdown with `backticks` is safe here.
 
 - For scripted Markdown edits, write UTF-8 without BOM and preserve LF line endings.
 - Avoid broad regex rewrites when a smaller targeted edit is safer.
+- Do not embed a literal PowerShell here-string terminator such as `'@` at the beginning of a line inside another PowerShell here-string. It will terminate the outer string.
+- When documenting here-string examples inside generated Markdown, avoid nesting the exact terminator shape used by the script that writes the file.
+- For numbered workflow blocks, replace the entire block instead of applying many incremental regex renumbering replacements.
+- Prefer whole-section replacement for structured docs when the section has ordered steps, repeated skill names, or Markdown backticks.
 
 ## Verification After Docs Or Skill Edits
 
