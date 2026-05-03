@@ -86,7 +86,9 @@ This gate is conditional. Do not force it onto internal refactors, private imple
 
 ## Start here
 
-For a new or returning project, begin with routing and context:
+For most work, start with `run-sdlc`. It classifies the request, chooses the fast-pass route, invokes the right skills, and stops at human consent gates instead of making the human manually pick workflow steps.
+
+For lower-level manual routing, begin with context:
 
 ```text
 classify-work

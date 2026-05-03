@@ -14,6 +14,12 @@ Use the minimum process that prevents the most likely expensive failure.
 - Security, data, migration, integration, or infrastructure work needs explicit risk review and rollback thinking.
 - Long-running work needs context routing and durable state updates.
 
+## Orchestration
+
+Use `run-sdlc` as the preferred front door when the human gives a request and wants the workflow driven for them. `run-sdlc` classifies the work, chooses the route, invokes the right skills, keeps progress visible, and stops at consent gates.
+
+Use individual skills directly only when the human wants a specific gate or review.
+
 ## Work Classification
 
 Every task should be classified before choosing gates:
@@ -223,43 +229,45 @@ The contract should be language-neutral by default. In TypeScript projects it ma
 ## Core flow
 
 ```text
-0. classify-work
-1. context-restore
-2. select-tools, when external/current knowledge or tool boundaries are needed
-3. select-context
-4. product-reframe
-5. define-application
-6. choose-technical-approach, when starting a project or changing technical surfaces
-7. grill-me / brainstorming
-8. model-application
-8. manage-context-state
-9. outside-voice-review
-10. review-application-model
-11. to-prd
-12. review-prd-against-model
-13. diagram-issues
-14. to-issues
-15. review-issue-dependencies
-16. write-contract-spec, when public/cross-boundary behavior changes
-17. review-contract-spec, when a contract spec is required
-18. write-implementation-plan
-19. review-implementation-plan
-20. create-work-branch
-21. safe-edit-boundary
-22. execute-plan / tdd
-23. verification-before-completion
-24. review-spec-compliance
-25. assert-doc-sync, when code/docs/contracts/context may disagree
-26. engineering-principles-review, when complexity/readability/abstraction risk warrants it
-27. review-code-quality
-28. process-review-feedback
-29. health-check
-30. document-release
-31. update-context-docs
-32. manage-context-state
-33. setup-agent-instructions, when agent instructions changed or are missing
-34. finish-development-branch
-35. context-save
+0. run-sdlc, when orchestrating from a human request
+1. classify-work
+2. context-restore
+3. select-tools, when external/current knowledge or tool boundaries are needed
+4. select-context
+5. product-reframe
+6. define-application
+7. choose-technical-approach, when starting a project or changing technical surfaces
+8. grill-me / brainstorming
+9. model-application
+10. manage-context-state
+11. outside-voice-review
+12. review-application-model
+13. to-prd
+14. review-prd-against-model
+15. diagram-issues
+16. to-issues
+17. review-issue-dependencies
+18. write-contract-spec, when public/cross-boundary behavior changes
+19. review-contract-spec, when a contract spec is required
+20. write-implementation-plan
+21. review-implementation-plan
+22. create-work-branch
+23. safe-edit-boundary
+24. execute-plan / tdd
+25. verification-before-completion
+26. review-spec-compliance
+27. assert-doc-sync, when code/docs/contracts/context may disagree
+28. engineering-principles-review, when complexity/readability/abstraction risk warrants it
+29. review-code-quality
+30. process-review-feedback
+31. health-check
+32. document-release
+33. update-context-docs
+34. manage-context-state
+35. setup-agent-instructions, when agent instructions changed or are missing
+36. finish-development-branch
+37. review-agent-work, when a human wants to audit AI work before continuing or merging
+38. context-save
 ```
 
 ## Human audit
@@ -268,6 +276,7 @@ Use `review-agent-work` when a human wants to inspect prior AI work before conti
 ## Skill groups
 
 ### Routing and context spine
+- `run-sdlc`: orchestrate the SDLC from a human request, route to specialized skills, and stop at consent gates.
 - `classify-work`: choose micro, tiny, standard, high-risk, or exploratory workflow depth and emit the compact execution contract.
 - `context-restore`: resume from Memory Bank routing files, context-state, and latest checkpoint.
 - `select-tools`: choose minimum tools/MCPs and define access boundaries.
