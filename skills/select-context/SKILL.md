@@ -1,0 +1,86 @@
+# select-context
+
+## Description
+Choose the smallest safe context packet before running another skill, implementing code, reviewing work, or debugging.
+
+## Use when
+- Starting or resuming any non-trivial task.
+- Moving from design to PRD, PRD to issues, issues to plan, plan to implementation, or implementation to review.
+- The agent is tempted to scan the whole repository or rely on conversation memory.
+- Prior context may be stale, contradictory, or too broad.
+- External/current docs or MCP/tool access may be needed.
+
+## Purpose
+Keep the agent in the smart zone: enough context to act safely, not so much that the task becomes noisy or stale assumptions crowd out evidence.
+
+## Inputs to check first
+1. Work classification from `classify-work`, if available.
+2. User request or current issue.
+3. `AGENTS.md`, if commands or conventions are needed.
+4. `docs/memory-bank/activeContext.md`, if present.
+5. `docs/memory-bank/contextIndex.md`, if present.
+6. `docs/context-state.md`, if present.
+7. Relevant PRD, contract, application model section, ADR, or feature `context.md`, if the task names one.
+8. Tool/MCP needs from `select-tools`, if external/current knowledge is required.
+
+## Required output
+
+```text
+Task:
+Work class:
+Current phase:
+Next skill this packet supports:
+Must load:
+Useful if needed:
+Do not load yet:
+Memory Bank files used:
+Authoritative artifacts needed:
+Tools/MCPs needed:
+Open questions to check:
+Risk of missing context:
+Expansion trigger:
+Reasoning:
+```
+
+## Context tiers
+
+### Tier 0: Task and routing packet
+Always include the current request, work class, issue, acceptance criteria, current phase, constraints, active context, context index entries, relevant tool boundaries, and relevant open questions.
+
+### Tier 1: Durable summaries and indexes
+Usually include relevant sections of `docs/application-model.md`, related PRD, contract spec, relevant feature `context.md`, related ADRs, `progress.md`, or `decisionIndex.md` when they are directly relevant.
+
+### Tier 2: Source files
+Load only files named by the implementation plan, files directly imported by those files, nearby tests, and files referenced by the feature context.
+
+### Tier 3: External/current retrieval
+Use tools/MCPs, such as Context7 or official docs, when project-local context is insufficient for current library/framework/API behavior. Attribute and verify retrieved information against the project version.
+
+### Tier 4: Retrieval or graph query
+Use optional graph/index tooling only when Memory Bank routing, durable summaries, selected files, and targeted tool retrieval are insufficient to identify relationships.
+
+### Tier 5: Wider repository or conversation scan
+Use only when selected context is insufficient, stale, or contradictory. State why expansion is necessary before doing it.
+
+## Hard rules
+- Do not solve the task inside this skill. Select context and recommend the next skill.
+- Do not treat Memory Bank files or MCP output as final source of truth. They route to authoritative artifacts.
+- Do not treat old conversation as source of truth when durable artifacts exist.
+- Do not load all PRDs, all docs, all Memory Bank files, all tool output, or the whole repository by default.
+- Do not trust a PRD, contract, issue, tool answer, or feature context without checking its status, source, version, and related open questions.
+- If there is no application model or feature context for meaningful feature work, recommend creating or updating it before implementation.
+
+## Anti-patterns
+- Grepping the whole repository before checking work class, `activeContext.md`, `contextIndex.md`, `context-state.md`, and feature context.
+- Loading every artifact because one artifact might be relevant.
+- Calling external tools before checking local project artifacts.
+- Duplicating requirements into Memory Bank files instead of linking to PRDs.
+- Using optional graph or MCP data as authority instead of a pointer to source files and docs.
+- Continuing with implementation when the context packet exposes an unresolved requirement.
+
+## Next skills
+- Use `classify-work` first if workflow depth is unclear.
+- Use `select-tools` if external/current knowledge, MCP access, or tool boundaries are needed.
+- Use `context-restore` first if the project state is unknown.
+- Use `manage-context-state` if unresolved questions or affected artifacts appear.
+- Use `model-application`, `to-prd`, `write-contract-spec`, `write-implementation-plan`, `execute-plan`, or review skills depending on the current phase and work class.
