@@ -1,3 +1,9 @@
+---
+name: outside-voice-review
+description: 'Run an independent reviewer pass over a plan, model, issue breakdown, contract, or diff using a curated context packet.'
+user-invocable: true
+---
+
 # outside-voice-review
 
 ## Description

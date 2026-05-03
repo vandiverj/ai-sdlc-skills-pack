@@ -1,3 +1,9 @@
+---
+name: review-issue-dependencies
+description: 'Verify the issue list is buildable in order.'
+user-invocable: true
+---
+
 # review-issue-dependencies
 
 ## Description

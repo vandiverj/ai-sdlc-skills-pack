@@ -1,3 +1,9 @@
+---
+name: graphify-index
+description: 'Optionally build or update a knowledge graph or retrieval index for larger projects.'
+user-invocable: true
+---
+
 # graphify-index
 
 ## Description

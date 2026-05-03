@@ -1,3 +1,9 @@
+---
+name: context-restore
+description: 'Restore the current project state before beginning work. Use this at the start of a new session or when returning to a project after time away.'
+user-invocable: true
+---
+
 # context-restore
 
 ## Description

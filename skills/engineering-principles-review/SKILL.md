@@ -1,3 +1,9 @@
+---
+name: engineering-principles-review
+description: 'Review a design, plan, refactor, or implementation using durable engineering principles as judgment lenses.'
+user-invocable: true
+---
+
 # engineering-principles-review
 
 ## Description

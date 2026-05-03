@@ -1,3 +1,9 @@
+---
+name: create-work-branch
+description: 'Create an isolated branch or worktree before implementation.'
+user-invocable: true
+---
+
 # create-work-branch
 
 ## Description

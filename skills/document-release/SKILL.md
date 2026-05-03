@@ -1,3 +1,9 @@
+---
+name: document-release
+description: 'Update user-facing and developer-facing documentation after completed work.'
+user-invocable: true
+---
+
 # document-release
 
 ## Description

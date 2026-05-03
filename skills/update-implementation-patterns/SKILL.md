@@ -1,3 +1,9 @@
+---
+name: update-implementation-patterns
+description: 'Create, revise, promote, deprecate, or supersede project-specific implementation pattern guidance based on reviewed evidence.'
+user-invocable: true
+---
+
 # update-implementation-patterns
 
 ## Description

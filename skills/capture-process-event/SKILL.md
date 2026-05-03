@@ -1,3 +1,9 @@
+---
+name: capture-process-event
+description: 'Record lightweight process-learning events during real project work so repeated friction, gaps, and useful patterns can be reviewed later.'
+user-invocable: true
+---
+
 # capture-process-event
 
 ## Description

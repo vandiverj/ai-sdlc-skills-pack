@@ -1,3 +1,9 @@
+---
+name: review-implementation-pattern
+description: 'Review whether implementation follows the applicable project-specific patterns, or whether deviations are intentional and documented.'
+user-invocable: true
+---
+
 # review-implementation-pattern
 
 ## Description

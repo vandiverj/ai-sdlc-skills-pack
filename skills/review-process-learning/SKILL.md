@@ -1,3 +1,9 @@
+---
+name: review-process-learning
+description: 'Aggregate process-learning events from multiple projects and turn repeated evidence into reviewed improvement proposals.'
+user-invocable: true
+---
+
 # review-process-learning
 
 ## Description

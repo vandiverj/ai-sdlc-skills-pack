@@ -1,3 +1,9 @@
+---
+name: tdd
+description: 'Implement behavior through a red-green-refactor loop.'
+user-invocable: true
+---
+
 # tdd
 
 ## Description

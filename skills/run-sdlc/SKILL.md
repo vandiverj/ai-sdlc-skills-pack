@@ -1,3 +1,9 @@
+---
+name: run-sdlc
+description: 'Orchestrate the AI SDLC workflow from a human request by classifying work, selecting the minimum route, invoking the right skills, maintaining context/artifact state, and stopping only at meaningful human consent gates.'
+user-invocable: true
+---
+
 # run-sdlc
 
 ## Description

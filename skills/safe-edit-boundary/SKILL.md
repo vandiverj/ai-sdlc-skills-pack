@@ -1,3 +1,9 @@
+---
+name: safe-edit-boundary
+description: 'Define where the agent is allowed to edit and which commands/tools it may use before implementation or refactor.'
+user-invocable: true
+---
+
 # safe-edit-boundary
 
 ## Description

@@ -1,3 +1,9 @@
+---
+name: define-application
+description: 'Define the whole application before defining features or implementation tasks.'
+user-invocable: true
+---
+
 # define-application
 
 ## Description

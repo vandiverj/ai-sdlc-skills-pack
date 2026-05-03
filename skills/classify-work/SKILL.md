@@ -1,3 +1,9 @@
+---
+name: classify-work
+description: 'Classify requested work by risk, confidence, context depth, dirty surfaces, required gates, and fast-pass route so the agent runs the minimum workflow needed to prevent expensive failure.'
+user-invocable: true
+---
+
 # classify-work
 
 ## Description

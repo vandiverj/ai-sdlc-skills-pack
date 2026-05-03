@@ -1,3 +1,9 @@
+---
+name: model-application
+description: 'Create or update the durable, diagrammed application model before PRDs, issues, or meaningful implementation.'
+user-invocable: true
+---
+
 # model-application
 
 ## Description

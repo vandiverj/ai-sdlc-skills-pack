@@ -1,3 +1,9 @@
+---
+name: graphify-query
+description: 'Optionally query a knowledge graph or retrieval index when selected context is insufficient.'
+user-invocable: true
+---
+
 # graphify-query
 
 ## Description

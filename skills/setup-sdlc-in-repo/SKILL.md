@@ -1,3 +1,9 @@
+---
+name: setup-sdlc-in-repo
+description: 'Bootstrap or update a downstream repository so AI coding agents can follow the SDLC, agent strategy, context model, and runtime-specific IDE/tool adapters.'
+user-invocable: true
+---
+
 # setup-sdlc-in-repo
 
 ## Description

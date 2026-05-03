@@ -1,3 +1,9 @@
+---
+name: review-agent-work
+description: 'Review completed or in-progress AI agent work for workflow adherence, artifact alignment, verification evidence, Git reviewability, and unsafe silent changes.'
+user-invocable: true
+---
+
 # review-agent-work
 
 ## Description

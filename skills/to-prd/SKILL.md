@@ -1,3 +1,9 @@
+---
+name: to-prd
+description: 'Synthesize developed conversation context and the application model into a durable PRD.'
+user-invocable: true
+---
+
 # to-prd
 
 ## Description

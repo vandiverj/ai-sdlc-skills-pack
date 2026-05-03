@@ -1,3 +1,9 @@
+---
+name: verification-before-completion
+description: 'Require fresh evidence before claiming work is complete, fixed, safe, or ready.'
+user-invocable: true
+---
+
 # verification-before-completion
 
 ## Description

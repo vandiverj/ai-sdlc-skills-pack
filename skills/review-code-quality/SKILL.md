@@ -1,3 +1,9 @@
+---
+name: review-code-quality
+description: 'Review code quality, maintainability, operational risk, engineering principles, and code-local documentation after spec compliance passes.'
+user-invocable: true
+---
+
 # review-code-quality
 
 ## Description

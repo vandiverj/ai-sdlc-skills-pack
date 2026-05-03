@@ -1,3 +1,9 @@
+---
+name: review-prd-against-model
+description: 'Ensure the PRD matches the application model before creating issues.'
+user-invocable: true
+---
+
 # review-prd-against-model
 
 ## Description

@@ -1,3 +1,9 @@
+---
+name: product-reframe
+description: 'Challenge whether the app or feature idea is the right thing to build before defining the application.'
+user-invocable: true
+---
+
 # product-reframe
 
 ## Description

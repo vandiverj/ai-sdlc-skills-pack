@@ -1,3 +1,9 @@
+---
+name: review-implementation-plan
+description: 'Review an implementation plan before coding.'
+user-invocable: true
+---
+
 # review-implementation-plan
 
 ## Description

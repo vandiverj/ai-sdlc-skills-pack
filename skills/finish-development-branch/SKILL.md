@@ -1,3 +1,9 @@
+---
+name: finish-development-branch
+description: 'Finish a development branch with verification, documentation checks, and an explicit next action.'
+user-invocable: true
+---
+
 # finish-development-branch
 
 ## Description

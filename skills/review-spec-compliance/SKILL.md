@@ -1,3 +1,9 @@
+---
+name: review-spec-compliance
+description: 'Review whether the implementation satisfies the issue, PRD, application model, and contract spec when present.'
+user-invocable: true
+---
+
 # review-spec-compliance
 
 ## Description

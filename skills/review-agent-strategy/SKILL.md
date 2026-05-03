@@ -1,3 +1,9 @@
+---
+name: review-agent-strategy
+description: 'Review whether the selected agent strategy, model tiers, delegation boundaries, and runtime adapter behavior fit the work class and evidence requirements.'
+user-invocable: true
+---
+
 # review-agent-strategy
 
 ## Description

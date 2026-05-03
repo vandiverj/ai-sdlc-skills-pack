@@ -1,3 +1,9 @@
+---
+name: decision-brief
+description: 'Document meaningful forks before committing to a path.'
+user-invocable: true
+---
+
 # decision-brief
 
 ## Description

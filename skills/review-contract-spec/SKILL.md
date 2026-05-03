@@ -1,3 +1,9 @@
+---
+name: review-contract-spec
+description: 'Review a contract specification before implementation planning.'
+user-invocable: true
+---
+
 # review-contract-spec
 
 ## Description
