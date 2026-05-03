@@ -1,29 +1,31 @@
 # classify-work
 
 ## Description
-Classify the requested work by risk, context depth, dirty flags, and fast-pass route so the agent runs the minimum workflow gates needed to prevent expensive failure.
+Classify requested work by risk, confidence, context depth, dirty surfaces, required gates, and fast-pass route so the agent runs the minimum workflow needed to prevent expensive failure.
 
 ## Use when
-- Starting a new task.
-- The user asks for a change and the appropriate workflow depth is unclear.
-- `select-context` needs to know which artifacts and gates matter.
-- A task may be tiny, exploratory, standard, high-risk, shallow, deep, or cross-cutting.
+- Starting any new task.
+- Reality changes during execution and the current route may be wrong.
+- The agent needs to decide which skills, artifacts, tools, and verification evidence are required.
+- A task may be micro, tiny, standard, high-risk, exploratory, shallow, deep, or cross-cutting.
 
 ## Purpose
 Prevent two failure modes:
 
 - Too little process for risky work, causing drift, security issues, broken contracts, stale docs, or unverified behavior.
-- Too much process for tiny work, causing documentation churn, context exhaustion, and slow delivery.
+- Too much process for small work, causing documentation churn, context exhaustion, and slow delivery.
 
 ## Required output
+Return a compact execution contract:
 
 ```text
 Work class:
+Classification confidence:
 Risk level:
 Context depth:
 Fast-pass route:
 Why:
-Dirty flags:
+Dirty surfaces:
 Required gates:
 Optional gates:
 Skipped gates and reason:
@@ -32,18 +34,37 @@ Required tools/MCPs:
 Required verification:
 Context/documentation updates:
 Escalation triggers:
+Reclassification triggers:
 Next skill:
 ```
+
+Prefer short, decisive answers. The execution contract should be small enough for the agent to follow without re-deciding the whole process.
 
 ## Fast-pass principle
 The workflow is a dependency graph, not a mandatory ladder. A skipped gate is acceptable only when the classification explains why the failure it prevents is unlikely or cheap.
 
 ## Work classes and fast-pass routes
 
+### Micro
+Use for no-behavior, no-risk edits that are obvious and local.
+
+Examples: typo fix, formatting-only change, comment wording, dead link update, mechanical rename within one private scope, lint-only cleanup.
+
+Fast-pass route:
+```text
+classify-work
+-> select-context, minimal
+-> safe-edit-boundary, implicit or one-line
+-> direct edit
+-> verification-before-completion, smallest relevant check or documented inspection
+```
+
+Escalate out of Micro if behavior, tests, public docs, generated artifacts, shared code, or more than one meaningful file changes.
+
 ### Tiny
 Use for changes that are obvious, local, low-risk, and easy to verify.
 
-Examples: typo fix, small copy edit, simple config comment, narrow test expectation update, one-line bug fix with clear behavior.
+Examples: small copy edit, simple config comment, narrow test expectation update, one-line bug fix with clear behavior.
 
 Fast-pass route:
 ```text
@@ -54,19 +75,11 @@ classify-work
 -> direct edit or execute-plan
 -> verification-before-completion
 -> assert-doc-sync, only if docs/code may disagree
--> update-context-docs, only if dirty flags require it
+-> update-context-docs, only if dirty surfaces require it
 -> context-save, only if pending work/context changed
 ```
 
-Usually skip:
-- application modeling
-- PRD
-- issues
-- contract spec
-- implementation plan
-- outside voice
-- broad reviews
-- branch finishing
+Usually skip application modeling, PRD, issues, contract spec, implementation plan, outside voice, broad reviews, and branch finishing.
 
 ### Standard
 Use for bounded feature work, moderate bug fixes, or multi-file changes with clear requirements.
@@ -84,20 +97,14 @@ classify-work
 -> execute-plan / tdd
 -> verification-before-completion
 -> review-spec-compliance
--> assert-doc-sync, if dirty flags require it
+-> assert-doc-sync, if dirty surfaces require it
 -> review-code-quality
--> update-context-docs, dirty flags only
+-> update-context-docs, dirty surfaces only
 -> manage-context-state, if uncertainty changed
 -> context-save
 ```
 
-Usually skip unless dirty flags or risk require:
-- product-reframe
-- full application modeling
-- contract specs
-- outside voice
-- engineering-principles-review
-- release docs
+For Standard work, spec compliance, artifact sync, and code quality can be performed as one concise review pass when risk is low and the dirty surfaces are narrow.
 
 ### High-risk
 Use when the change affects public contracts, data, security, auth, payments, privacy, permissions, migrations, infrastructure, external integrations, concurrency, irreversible operations, or broad architecture.
@@ -107,19 +114,21 @@ Fast-pass route:
 Run all relevant gates, none skipped silently.
 ```
 
-High-risk does not always mean every step. A backend migration may not need UI design review. A security fix may not need product reframing. But every skipped gate must be justified, and all relevant model/PRD/contract/plan/security/verification/doc-sync/context gates must be considered.
+High-risk does not always mean every step. Every skipped gate must be justified. Keep spec compliance, artifact sync, and code quality as distinct passes for high-risk work.
 
 Usually required:
 - model/PRD/context-state alignment
 - contract spec when public/cross-boundary behavior changes
 - structured reasoning or `select-tools` for Sequential Thinking-style support when useful
 - implementation plan and review
-- security/privacy/supply-chain risk review inside plan and code review
-- rollback or mitigation plan
+- security/privacy/supply-chain/license risk review
+- data retention/deletion review when user data is involved
+- migration rehearsal or rollback/mitigation plan where relevant
 - contract/type/schema stress testing where relevant
+- performance, accessibility, observability, and rollout checks where relevant
 - fresh verification evidence
 - `assert-doc-sync`
-- context and release documentation updates only where dirty flags require them
+- context and release documentation updates only where dirty surfaces require them
 
 ### Exploratory
 Use for spikes, prototypes, research, or uncertain feasibility work.
@@ -139,69 +148,64 @@ classify-work
 -> context-save
 ```
 
-Usually skip:
-- production implementation claims
-- release documentation
-- full PRD unless the spike becomes product work
-- branch finishing unless there is production-ready work
+Exploratory work produces findings, options, risks, and a recommended next classification. It does not produce production completion claims.
 
 ## Context depth
 
-### Shallow
-Needs only the current file, nearby tests, and immediate feature context.
+- `Shallow`: current file, nearby tests, immediate feature context.
+- `Feature`: feature `context.md`, related source/tests, related PRD/contract excerpts, nearby decisions.
+- `Deep`: application model sections, PRD, contract, decision index/ADRs, context-state.
+- `Cross-Cutting`: Memory Bank routing, multiple feature contexts, model sections, decisions, contracts, and broader retrieval/index support.
 
-### Feature
-Needs the feature `context.md`, related source/tests, related PRD/contract excerpts, and nearby decisions.
-
-### Deep
-Needs application model sections, PRD, contract, decision index/ADRs, and context-state.
-
-### Cross-Cutting
-Needs Memory Bank routing, multiple feature contexts, model sections, decisions, contracts, and broader dependency/retrieval support.
-
-## Dirty flags
-
-Dirty flags decide which artifacts are eligible to update. Do not update every artifact by default.
+## Dirty surfaces
+Dirty surfaces decide which artifacts are eligible to update. Do not update every artifact by default.
 
 ```text
-architectureChanged: yes/no
-productIntentChanged: yes/no
-requirementsChanged: yes/no
-contractChanged: yes/no
-publicBehaviorChanged: yes/no
-featureBehaviorChanged: yes/no
-codeLocalDocsChanged: yes/no
-testsChanged: yes/no
-securityPrivacyRiskChanged: yes/no
-dependencyChanged: yes/no
-migrationChanged: yes/no
-contextRoutingChanged: yes/no
+requirementsSurfaceChanged: yes/no
+publicContractSurfaceChanged: yes/no
+systemSurfaceChanged: yes/no
+verificationSurfaceChanged: yes/no
+docsContextSurfaceChanged: yes/no
+riskSurfaceChanged: yes/no
+agentOpsSurfaceChanged: yes/no
 uncertaintyChanged: yes/no
-agentInstructionsChanged: yes/no
-releaseDocsChanged: yes/no
 ```
 
-Dirty flag routing:
-- `architectureChanged` -> update/review `docs/application-model.md`.
-- `productIntentChanged` or `requirementsChanged` -> update/review PRD.
-- `contractChanged` or `publicBehaviorChanged` -> write/review contract spec.
-- `featureBehaviorChanged` -> update feature `context.md` and code-local docs.
-- `codeLocalDocsChanged` -> review code-local docs.
-- `securityPrivacyRiskChanged`, `dependencyChanged`, or `migrationChanged` -> high-risk review and rollback/mitigation planning.
-- `contextRoutingChanged` -> update Memory Bank routing files.
+Surface routing:
+- `requirementsSurfaceChanged` -> update/review product intent, PRD, issue, acceptance criteria, or application model section.
+- `publicContractSurfaceChanged` -> write/review contract spec; update public API docs, schemas, type docs, examples, or compatibility notes.
+- `systemSurfaceChanged` -> update/review application model, ADRs, diagrams, dependency boundaries, data flows, or feature context.
+- `verificationSurfaceChanged` -> update tests, verification plan, health-check expectations, or evidence requirements.
+- `docsContextSurfaceChanged` -> update code-local docs, feature context, Memory Bank routing, context index, release docs, or developer docs.
+- `riskSurfaceChanged` -> run security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review as applicable.
+- `agentOpsSurfaceChanged` -> update `AGENTS.md`, setup commands, verification commands, safe-edit rules, or workflow guidance.
 - `uncertaintyChanged` -> update `docs/context-state.md`.
-- `agentInstructionsChanged` -> update `AGENTS.md`.
-- `releaseDocsChanged` -> update public/developer docs.
 
-## Escalation triggers
-Escalate the work class or route when:
+Legacy dirty flags may still appear in older artifacts. Map them to the surface groups instead of preserving both lists.
 
+## Mid-stream reclassification
+During `execute-plan`, `verification-before-completion`, review, or doc-sync, pause and reclassify when:
+
+- The change touches more files/modules than expected.
+- Public behavior, contracts, schema, API, CLI, integration, data, auth, security, privacy, dependency, migration, infrastructure, concurrency, or architecture changes appear.
+- Tests reveal behavior different from the PRD, issue, contract, or plan.
+- The agent discovers misunderstood requirements or contradictory artifacts.
+- Tool/MCP output conflicts with project artifacts.
+- Verification cannot prove the required evidence for the current class.
+
+Reclassification may escalate or narrow the route. Record why the original route changed.
+
+## Confidence and escalation
+If classification confidence is below 80%, take the smallest uncertainty-reducing step: ask one or two clarifying questions, run `select-context`, use `diagnose`, use `grill-me`, use `select-tools`, or draft/review a contract spec.
+
+Escalate when:
+- Micro -> Tiny: behavior, tests, docs, shared code, generated files, or more than one meaningful file changes.
 - Tiny -> Standard: more than one module changes, behavior changes, tests are non-trivial, or docs/code may disagree.
 - Standard -> High-risk: public behavior, auth, permissions, user data, dependencies, migrations, infrastructure, concurrency, external integrations, or architecture changes.
 - Exploratory -> Standard: spike findings become production implementation.
 - Exploratory -> High-risk: spike touches high-risk systems or recommends high-risk production work.
 - Any route -> `manage-context-state`: uncertainty, blocked questions, or affected artifacts appear.
-- Any route -> `assert-doc-sync`: code/docs/contracts/context disagree or related dirty flags are true.
+- Any route -> `assert-doc-sync`: code/docs/contracts/context disagree or related dirty surfaces are true.
 - Any route -> `select-tools`: current external docs, reasoning scaffold, repo retrieval, or tool boundaries are needed.
 
 ## Risk signals
@@ -213,15 +217,16 @@ Treat the work as higher risk when it touches:
 - External network calls, downloads, dependencies, generated code, licenses, or untrusted content.
 - Database schema, migrations, data backfills, queues, jobs, or concurrency.
 - Public APIs, CLIs, SDKs, schemas, events, plugin contracts, or UI workflows.
+- Accessibility-critical UI paths, hot paths, performance-sensitive queries, observability, alerts, or deployment controls.
 - Cross-feature architecture, shared utilities, build systems, CI, or deployment.
 
 ## Hard rules
-- Do not use the full workflow for tiny work unless a risk signal is present.
-- Do not classify work as tiny if it changes behavior across a public or shared boundary.
+- Do not use the full workflow for small work unless a risk signal is present.
+- Do not classify work as Micro or Tiny if it changes behavior across a public or shared boundary.
 - Do not classify exploratory work as complete production work.
-- Do not update artifacts whose dirty flags are false unless review finds they are stale.
+- Do not update artifacts whose dirty surfaces are false unless review finds they are stale.
 - Do not skip a gate without explaining which risk is unlikely or cheap enough to accept.
-- If classification is uncertain, choose the smallest next step that reduces uncertainty, usually `select-context`, `diagnose`, `grill-me`, `select-tools`, or `write-contract-spec`.
+- Do not continue on the original route after evidence shows the route is wrong.
 
 ## Next skills
 Usually `select-tools` when tools are needed, then `select-context`, then the first required gate for the chosen fast-pass route.

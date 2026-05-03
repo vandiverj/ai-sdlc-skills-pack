@@ -16,18 +16,19 @@ Review code quality, maintainability, operational risk, engineering principles, 
 - Separation of concerns.
 - Level of abstraction consistency.
 - Test quality and testability.
-- Dependency usage.
+- Dependency usage, supply-chain risk, and license compatibility.
 - Maintainability.
 - Simplicity and YAGNI.
 - DRY with judgment: avoid harmful duplication without creating premature abstractions.
 - SOLID or equivalent boundary principles where relevant.
 - Design pattern appropriateness: useful tool or unnecessary ceremony.
 - Security-sensitive behavior.
-- Privacy and data handling.
+- Privacy, data lifecycle, retention, export, deletion, and compliance-sensitive handling.
 - Secrets/configuration handling.
-- Observability: logs, metrics, traces, debug output, or supportability where relevant.
-- Performance implications.
-- Migration, rollback, and compatibility implications.
+- Observability and debuggability: logs, metrics, traces, alerts, debug output, failure modes, or supportability where relevant.
+- Performance implications and hot-path regressions.
+- Migration, rollback, compatibility, feature flag, and rollout implications.
+- Accessibility implications for UI/user workflows.
 - README/example accuracy when user-facing behavior changed.
 - Public API, shared module, type/schema, CLI, integration, or non-obvious behavior has accurate code-local documentation.
 - Comments explain purpose, contract, invariants, side effects, errors, examples, or "why"; they do not narrate obvious implementation.

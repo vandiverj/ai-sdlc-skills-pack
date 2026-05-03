@@ -12,7 +12,7 @@ Outside voice findings are advisory until accepted.
 ## Review packet
 - Purpose of review.
 - Work class and context depth.
-- Dirty flags.
+- Dirty surfaces.
 - Application model excerpt.
 - PRD excerpt.
 - Contract excerpt, when relevant.
@@ -43,7 +43,7 @@ Do not require actual multi-agent execution. A single agent may simulate these l
 - Missing questions.
 - Alternative design options.
 - Recommendation.
-- Dirty flag changes.
+- Dirty surface changes.
 - Impact on model / PRD / contract / issues / context-state.
 
 ## Hard rules

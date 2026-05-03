@@ -37,6 +37,7 @@ The purpose is to prevent AI drift by keeping the application model, PRDs, issue
 
 Every task should be routed by risk before choosing gates:
 
+- `Micro`: no-behavior, no-risk, obvious local edit.
 - `Tiny`: obvious, local, low-risk, easy to verify.
 - `Standard`: bounded feature, moderate bug fix, or multi-file change with clear requirements.
 - `High-risk`: touches public contracts, data, security, auth, privacy, migrations, infrastructure, dependencies, integrations, concurrency, or broad architecture.
@@ -46,9 +47,10 @@ Every task should be routed by risk before choosing gates:
 
 ## Fast-pass routing
 
-Treat the workflow as a dependency graph, not a sequence to run every time. `classify-work` chooses the fast-pass route, context depth, dirty flags, skipped gates, and escalation triggers.
+Treat the workflow as a dependency graph, not a sequence to run every time. `classify-work` chooses the fast-pass route, context depth, dirty surfaces, skipped gates, and escalation triggers.
 
 Routes:
+- `Micro`: minimal context, tiny boundary, direct edit, smallest relevant verification.
 - `Tiny`: context, lightweight boundary, direct edit/execute, verification, doc-sync only if needed, dirty docs only.
 - `Standard`: context, task/PRD, issue if needed, implementation plan, safe boundary, execution, verification, spec/code review, dirty docs only.
 - `High-risk`: all relevant gates, none skipped silently.
@@ -57,7 +59,7 @@ Routes:
 A skipped gate is acceptable only when the classification explains why the failure it prevents is unlikely or cheap.
 ## Automated gating
 
-The workflow is a map, not a mandatory ladder. `classify-work` produces a fast-pass route, context depth, and dirty flags so agents run only the gates and artifact updates that are actually needed.
+The workflow is a map, not a mandatory ladder. `classify-work` produces a fast-pass route, context depth, and dirty surfaces so agents run only the gates and artifact updates that are actually needed.
 
 Context depth:
 - `Shallow`: current file, nearby tests, immediate feature context.
@@ -65,16 +67,17 @@ Context depth:
 - `Deep`: application model sections, PRD, contract, decision index/ADRs, context-state.
 - `Cross-Cutting`: Memory Bank routing, multiple feature contexts, model sections, decisions, contracts, and broader retrieval.
 
-Dirty flags route artifact updates:
-- `architectureChanged` -> application model.
-- `requirementsChanged` or `productIntentChanged` -> PRD.
-- `contractChanged` or `publicBehaviorChanged` -> contract spec.
-- `featureBehaviorChanged` -> feature context and code-local docs.
-- `contextRoutingChanged` -> Memory Bank routing.
+Dirty surfaces route artifact updates:
+- `requirementsSurfaceChanged` -> PRD, issue, acceptance criteria, or model section.
+- `publicContractSurfaceChanged` -> contract spec, public docs, schemas, examples, compatibility notes.
+- `systemSurfaceChanged` -> application model, ADRs, diagrams, boundaries, feature context.
+- `verificationSurfaceChanged` -> tests, verification plan, health-check expectations.
+- `docsContextSurfaceChanged` -> code-local docs, feature context, Memory Bank routing, context index, release/developer docs.
+- `riskSurfaceChanged` -> security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review.
+- `agentOpsSurfaceChanged` -> AGENTS.md, setup commands, verification commands, workflow guidance.
 - `uncertaintyChanged` -> context-state.
-- `agentInstructionsChanged` -> AGENTS.md.
 
-Do not update every file every time.
+Do not update every file every time. Reclassify mid-stream when implementation, verification, review, or doc-sync shows the route was wrong.
 ## Engineering principles
 
 Use engineering principles as judgment lenses, not slogans. First-principles reasoning, assumption challenge, story readability, single responsibility, cohesion, coupling, simplicity, DRY, SOLID, and design patterns should improve maintainability rather than create ceremony.
@@ -115,10 +118,12 @@ File ownership:
 
 - `activeContext.md` owns current focus, branch, immediate next action, and blockers. It is rewritten often.
 - `productContext.md` owns product thesis, target users, product principles, north-star constraints, and non-goals.
-- `progress.md` owns current status, pending work, known gaps, and not-yet-done work. It mentions completed work only when needed to explain current state.
+- progress.md owns current status, pending work, known gaps, and not-yet-done work. It mentions completed work only when needed to explain current state.
 - `decisionIndex.md` owns a concise decision index with links to ADRs.
 - `contextIndex.md` owns the map of important artifacts and when to load them.
-- `docs/context-state.md` owns uncertainty: assumptions, open questions, deferred decisions, blocked items, affected artifacts, and revisit triggers.
+- docs/context-state.md owns uncertainty: assumptions, open questions, deferred decisions, blocked items, affected artifacts, and revisit triggers.
+
+Decision rule: Memory Bank stores what is known and what is next. docs/context-state.md stores what is unknown, suspected, deferred, contradicted, blocked, or needs review.
 
 Memory Bank files summarize current state, pending work, and routing. They do not store the full history of AI changes. Durable artifacts define and prove.
 
@@ -194,7 +199,7 @@ Conversation history is useful but not durable. If a decision matters, it belong
 
 ## Required gates
 
-1. Classify work before choosing fast-pass route, workflow depth, context depth, and dirty flags.
+1. Classify work before choosing fast-pass route, workflow depth, context depth, and dirty surfaces.
 2. No meaningful implementation before approved design or an explicit small-change exception.
 3. No app or feature work without an application model or feature context.
 4. Diagrams are part of requirements when they clarify workflows, dependencies, entities, or state.
@@ -208,7 +213,7 @@ Conversation history is useful but not durable. If a decision matters, it belong
 12. Review feedback must be evaluated, not blindly applied.
 13. If implementation reveals unclear requirements, return to model, PRD, contract, issues, implementation plan, or context-state.
 14. Context docs, Memory Bank routing files, code-local docs, and AGENTS.md are part of Definition of Done when they changed or should have changed.
-15. Code/docs/contracts/context sync must be asserted when related dirty flags are true; docs must not be silently updated to match possibly wrong code.
+15. Code/docs/contracts/context sync must be asserted when related dirty surfaces are true; docs must not be silently updated to match possibly wrong code.
 15. Load the smallest safe context packet and expand only when the packet is insufficient.
 
 ## Core workflow
@@ -251,13 +256,14 @@ See `WORKFLOW.md` for the canonical workflow map.
 32. manage-context-state
 33. setup-agent-instructions, when agent instructions changed or are missing
 34. finish-development-branch
-35. context-save
+35. review-agent-work, when a human wants to audit AI work before continuing or merging
+36. context-save
 ```
 
 ## Core skill boundaries
 
-- `classify-work` chooses fast-pass route, workflow depth, context depth, and dirty flags. It does not solve the task.
-- `assert-doc-sync` checks whether code, tests, docs, contracts, and context agree before completion or doc updates.
+- classify-work chooses fast-pass route, workflow depth, context depth, dirty surfaces, confidence, evidence requirements, and escalation triggers. It does not solve the task.
+- `assert-doc-sync` checks whether code, tests, docs, contracts, and context agree before completion or doc updates. If code and docs disagree, assume implementation may be wrong until verified.
 - `select-tools` chooses optional tools/MCPs and access boundaries. It does not make tool output a source of truth.
 - `context-restore` resumes from Memory Bank routing files, context-state, and checkpoints.
 - `select-context` decides what to load. It does not solve the task.
@@ -270,7 +276,8 @@ See `WORKFLOW.md` for the canonical workflow map.
 - `execute-plan` orchestrates implementation. `tdd` is the per-behavior discipline used inside execution.
 - `verification-before-completion` reports fresh evidence. It does not infer success from old runs.
 - `engineering-principles-review` asks whether the design or code is understandable, cohesive, appropriately abstracted, and maintainable.
-- `review-spec-compliance` asks whether the implementation built the right thing. `review-code-quality` asks whether it was built well, safely, and with accurate code-local documentation.
+- eview-spec-compliance asks whether the implementation built the right thing. eview-code-quality asks whether it was built well, safely, operably, accessibly when UI is involved, and with accurate code-local documentation.
+- eview-agent-work audits prior AI work for classification quality, skipped gates, verification evidence, artifact sync, and unsafe silent changes.
 
 ## Optional memory and retrieval layer
 
@@ -280,14 +287,14 @@ Graph/indexing tools such as Graphify may be useful later for large repositories
 
 A task is not done until:
 
-- Work classification, fast-pass route, context depth, and dirty flags were appropriate or corrected.
+- Work classification, fast-pass route, context depth, and dirty surfaces were appropriate or corrected.
 - Complex or hard-to-read designs/code received engineering-principles review when warranted.
 - Implementation matches the issue.
 - Issue matches the PRD.
 - Public or cross-boundary behavior matches the reviewed contract spec, if one exists.
 - PRD matches the application model.
 - Public/shared/non-obvious behavior has accurate code-local documentation or a documented exception.
-- Code/docs/contracts/context sync was asserted when related dirty flags were true.
+- Code/docs/contracts/context sync was asserted when related dirty surfaces were true.
 - Tests were written first where practical, or an exception is documented.
 - Tests and relevant verification commands were run in the current session.
 - High-risk security/privacy/dependency/migration/rollback concerns are addressed or explicitly accepted.

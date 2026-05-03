@@ -58,7 +58,8 @@ Next skill:
 - Do not make optional MCPs mandatory for the workflow.
 - If a memory-sync tool is used, it must write readable, version-controlled project files or be treated as transient.
 - If a tool affects implementation decisions, record the decision, source/link, or verified fact in the owning artifact.
-- If a tool reveals uncertainty, update `docs/context-state.md`.
+- If a tool reveals uncertainty, update docs/context-state.md.
+- If tool output conflicts with project artifacts, surface the conflict in docs/context-state.md; do not silently overwrite durable truth.
 
 ## Next skills
 Usually `select-context`, `write-implementation-plan`, `safe-edit-boundary`, `execute-plan`, or `verification-before-completion`.
