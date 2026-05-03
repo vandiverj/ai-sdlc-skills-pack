@@ -1,3 +1,9 @@
+---
+name: manage-context-state
+description: 'Maintain the project''s uncertainty ledger: what is assumed, unknown, deferred, blocked, superseded, affected, and only temporarily resolved when it still matters to current or future work.'
+user-invocable: true
+---
+
 # manage-context-state
 
 ## Description

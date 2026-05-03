@@ -1,3 +1,9 @@
+---
+name: choose-quality-automation
+description: 'Choose, review, or revise project quality automation so deterministic tools handle repeatable checks such as formatting, linting, typing, tests, builds, contracts, accessibility, security, dependency, license, generated artifact, documentation, and CI/local preflight validation.'
+user-invocable: true
+---
+
 # choose-quality-automation
 
 ## Description

@@ -1,3 +1,9 @@
+---
+name: review-application-model
+description: 'Challenge the application model before PRD creation.'
+user-invocable: true
+---
+
 # review-application-model
 
 ## Description

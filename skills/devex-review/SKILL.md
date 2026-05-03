@@ -1,3 +1,9 @@
+---
+name: devex-review
+description: 'Review developer experience for CLIs, APIs, SDKs, packages, or developer tools.'
+user-invocable: true
+---
+
 # devex-review
 
 ## Description

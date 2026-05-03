@@ -1,3 +1,9 @@
+---
+name: choose-implementation-pattern
+description: 'Choose the project-specific implementation pattern that should guide a task, such as forms, tables, API handlers, data fetching, errors, tests, page layouts, or feature modules.'
+user-invocable: true
+---
+
 # choose-implementation-pattern
 
 ## Description

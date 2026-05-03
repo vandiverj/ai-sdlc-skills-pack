@@ -8,7 +8,8 @@ The pack is designed to help coding agents preserve product intent, application 
 
 - `WORKFLOW.md` - ordered workflow, gates, context routing model, and skill groups.
 - `SUMMARY.md` - working baseline and development notes for the pack.
-- `skills/` - draft `SKILL.md` files for the workflow.
+- `skills/` - loader-compatible `SKILL.md` files for the workflow.
+- `scripts/` - repository maintenance checks for skill file format and related rails.
 - `templates/` - starter docs and feature context templates.
 
 ## First principle
@@ -219,6 +220,20 @@ Retrieval/index tooling such as Graphify, embeddings, vector search, repo retrie
 This repository is the reusable AI SDLC skills pack itself. It is not an application template and should stay independent from product repositories.
 
 Future projects should copy, reference, or selectively install skills and templates from this repo rather than owning the pack's source directly.
+
+## Skill source format
+
+Each source `skills/*/SKILL.md` file must begin at byte 0 with YAML frontmatter:
+
+```yaml
+---
+name: run-sdlc
+description: 'Short loader description.'
+user-invocable: true
+---
+```
+
+Do not save skill files with a UTF-8 BOM. The Codex skill loader expects the first bytes to be the plain `---` delimiter.
 
 
 ## Recent workflow tightening

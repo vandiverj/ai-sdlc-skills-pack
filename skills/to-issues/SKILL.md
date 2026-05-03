@@ -1,3 +1,9 @@
+---
+name: to-issues
+description: 'Break a PRD into small, testable implementation issues.'
+user-invocable: true
+---
+
 # to-issues
 
 ## Description

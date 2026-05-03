@@ -1,3 +1,9 @@
+---
+name: diagram-issues
+description: 'Visually map features, tasks, and dependencies before creating or coding issues.'
+user-invocable: true
+---
+
 # diagram-issues
 
 ## Description

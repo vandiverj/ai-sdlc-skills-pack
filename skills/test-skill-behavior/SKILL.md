@@ -1,3 +1,9 @@
+---
+name: test-skill-behavior
+description: 'Pressure-test a skill or workflow rule before relying on it.'
+user-invocable: true
+---
+
 # test-skill-behavior
 
 ## Description

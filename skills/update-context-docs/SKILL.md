@@ -1,3 +1,9 @@
+---
+name: update-context-docs
+description: 'Keep durable context files, code-local documentation, and Memory Bank routing summaries aligned with code, requirements, and decisions.'
+user-invocable: true
+---
+
 # update-context-docs
 
 ## Description

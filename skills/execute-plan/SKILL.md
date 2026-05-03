@@ -1,3 +1,9 @@
+---
+name: execute-plan
+description: 'Execute an approved implementation plan sequentially while preserving the selected work route, safe-edit boundary, and evidence requirements.'
+user-invocable: true
+---
+
 # execute-plan
 
 ## Description

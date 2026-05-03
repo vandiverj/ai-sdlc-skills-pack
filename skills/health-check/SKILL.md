@@ -1,3 +1,9 @@
+---
+name: health-check
+description: 'Run a read-only project quality dashboard using commands discovered from the project, not language assumptions.'
+user-invocable: true
+---
+
 # health-check
 
 ## Description

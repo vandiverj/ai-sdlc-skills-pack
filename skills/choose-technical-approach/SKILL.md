@@ -1,3 +1,9 @@
+---
+name: choose-technical-approach
+description: 'Choose, review, or revise the approved technical approach for a project, feature, or subsystem, including stack, architecture style, runtime, persistence, deployment, testing, operations, dependency policy, and approval triggers.'
+user-invocable: true
+---
+
 # choose-technical-approach
 
 ## Description

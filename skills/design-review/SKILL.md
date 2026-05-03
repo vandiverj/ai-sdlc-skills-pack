@@ -1,3 +1,9 @@
+---
+name: design-review
+description: 'Review UI/user experience when the application has meaningful interface work.'
+user-invocable: true
+---
+
 # design-review
 
 ## Description

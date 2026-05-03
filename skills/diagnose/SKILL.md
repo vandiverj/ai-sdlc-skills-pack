@@ -1,3 +1,9 @@
+---
+name: diagnose
+description: 'Systematically investigate bugs before changing code.'
+user-invocable: true
+---
+
 # diagnose
 
 ## Description

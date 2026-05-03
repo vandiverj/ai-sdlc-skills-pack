@@ -9,6 +9,7 @@ This repository is the reusable AI SDLC skills pack. It is not an application te
 - Markdown and text files are normalized to LF by `.gitattributes`.
 - Prefer repo-local Git settings `core.autocrlf=false` and `core.eol=lf` so Windows checkouts do not rewrite text files to CRLF.
 - `.editorconfig` asks editors and agents to write UTF-8, LF-terminated text with final newlines.
+- Skill files must be UTF-8 without BOM and start at byte 0 with YAML frontmatter delimiter `---`.
 
 ## Editing Rules
 
@@ -37,6 +38,7 @@ Run these checks before committing:
 
 ```powershell
 git diff --check
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-SkillFiles.ps1
 Select-String -Path README.md,SUMMARY.md,WORKFLOW.md,skills\*\SKILL.md -Pattern "[\x00-\x08\x0B\x0C\x0E-\x1F]"
 git status --short
 ```

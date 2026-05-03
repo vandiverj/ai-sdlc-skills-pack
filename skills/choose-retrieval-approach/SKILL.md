@@ -1,3 +1,9 @@
+---
+name: choose-retrieval-approach
+description: 'Choose, review, or revise whether a project needs an optional retrieval, indexing, graph, embedding, RAG, semantic search, or human knowledge-navigation layer, and if so define its scope, trust boundaries, freshness model, privacy constraints, source-of-truth rules, lifecycle usage, and tool choices.'
+user-invocable: true
+---
+
 # choose-retrieval-approach
 
 ## Description

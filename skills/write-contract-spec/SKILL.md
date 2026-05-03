@@ -1,3 +1,9 @@
+---
+name: write-contract-spec
+description: 'Write a public contract specification before implementation planning when an issue changes an observable boundary.'
+user-invocable: true
+---
+
 # write-contract-spec
 
 ## Description

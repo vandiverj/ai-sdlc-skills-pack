@@ -1,3 +1,9 @@
+---
+name: process-review-feedback
+description: 'Evaluate and apply code review feedback intentionally.'
+user-invocable: true
+---
+
 # process-review-feedback
 
 ## Description

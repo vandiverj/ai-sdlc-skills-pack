@@ -1,3 +1,9 @@
+---
+name: production-readiness-review
+description: 'Review whether completed Standard or High-risk work is ready to merge, release, deploy, or hand off for production use.'
+user-invocable: true
+---
+
 # production-readiness-review
 
 ## Description

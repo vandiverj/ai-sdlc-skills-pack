@@ -1,3 +1,9 @@
+---
+name: setup-agent-instructions
+description: 'Create or update `AGENTS.md` so coding agents have concise, durable project instructions.'
+user-invocable: true
+---
+
 # setup-agent-instructions
 
 ## Description

@@ -1,3 +1,9 @@
+---
+name: assert-doc-sync
+description: 'Assert that code, tests, code-local docs, contracts, feature context, PRDs, application model, Memory Bank routing, and context-state agree before completion or documentation updates.'
+user-invocable: true
+---
+
 # assert-doc-sync
 
 ## Description

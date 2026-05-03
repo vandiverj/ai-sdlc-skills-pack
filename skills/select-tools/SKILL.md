@@ -1,3 +1,9 @@
+---
+name: select-tools
+description: 'Choose the minimum external tools, MCPs, connectors, or plugins needed for a task, and define their trust boundaries.'
+user-invocable: true
+---
+
 # select-tools
 
 ## Description

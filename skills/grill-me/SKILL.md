@@ -1,3 +1,9 @@
+---
+name: grill-me
+description: 'Develop the conversation context that will later be synthesized by `to-prd`.'
+user-invocable: true
+---
+
 # grill-me
 
 ## Description

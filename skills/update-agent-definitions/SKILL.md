@@ -1,3 +1,9 @@
+---
+name: update-agent-definitions
+description: 'Update portable agent definitions, model-tier policy, delegation patterns, or runtime adapter guidance based on reviewed evidence.'
+user-invocable: true
+---
+
 # update-agent-definitions
 
 ## Description

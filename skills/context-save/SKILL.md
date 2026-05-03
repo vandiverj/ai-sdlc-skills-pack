@@ -1,3 +1,9 @@
+---
+name: context-save
+description: 'Save current working state so future sessions can resume without reprocessing everything.'
+user-invocable: true
+---
+
 # context-save
 
 ## Description

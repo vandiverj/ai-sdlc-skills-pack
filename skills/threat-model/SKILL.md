@@ -1,3 +1,9 @@
+---
+name: threat-model
+description: 'Review security, privacy, abuse-case, data, dependency, tool-access, and AI/agent-specific risks before implementation or release when a change touches a risky surface.'
+user-invocable: true
+---
+
 # threat-model
 
 ## Description

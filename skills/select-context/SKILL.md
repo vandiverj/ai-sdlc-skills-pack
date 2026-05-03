@@ -1,3 +1,9 @@
+---
+name: select-context
+description: 'Choose the smallest safe context packet before running another skill, implementing code, reviewing work, or debugging.'
+user-invocable: true
+---
+
 # select-context
 
 ## Description

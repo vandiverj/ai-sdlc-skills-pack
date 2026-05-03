@@ -1,3 +1,9 @@
+---
+name: write-implementation-plan
+description: 'Convert one issue, or a small coherent issue batch, into an executable implementation plan.'
+user-invocable: true
+---
+
 # write-implementation-plan
 
 ## Description

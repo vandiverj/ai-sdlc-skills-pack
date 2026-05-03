@@ -1,3 +1,9 @@
+---
+name: choose-agent-strategy
+description: 'Choose whether to use one agent or delegated specialist agents, and select the minimum model tier needed for the work evidence requirements.'
+user-invocable: true
+---
+
 # choose-agent-strategy
 
 ## Description
