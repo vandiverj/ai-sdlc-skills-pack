@@ -1,0 +1,54 @@
+# AGENTS.md
+
+This repository is the reusable AI SDLC skills pack. It is not an application template. Keep project-maintenance guidance here separate from the portable skills and workflow guidance intended for downstream projects.
+
+## Environment
+
+- Primary local environment: Windows.
+- Codex may run from a sandbox outside this repository and may need approval to write here.
+- Markdown and text files are normalized to LF by `.gitattributes`.
+
+## Editing Rules
+
+- Prefer direct file edits with `apply_patch` when the target files are inside the active writable workspace.
+- When this repo is outside the writable workspace, use small PowerShell scripts with escalation.
+- Keep temporary scripts in the active Codex workspace, not in this repo, and delete them after use.
+- Do not use double-quoted PowerShell strings for Markdown content containing backticks.
+- Prefer single-quoted here-strings for Markdown content:
+
+```powershell
+$content = @'
+Markdown with `backticks` is safe here.
+'@
+```
+
+- For scripted Markdown edits, write UTF-8 without BOM and preserve LF line endings.
+- Avoid broad regex rewrites when a smaller targeted edit is safer.
+
+## Verification After Docs Or Skill Edits
+
+Run these checks before committing:
+
+```powershell
+git diff --check
+Select-String -Path README.md,SUMMARY.md,WORKFLOW.md,skills\*\SKILL.md -Pattern "[\x00-\x08\x0B\x0C\x0E-\x1F]"
+git status --short
+```
+
+Also run targeted `Select-String` checks for concepts that were renamed or added, such as skill names, dirty surfaces, gates, or artifact names.
+
+## Git Workflow
+
+- Review `git status --short` before editing and before committing.
+- Do not revert unrelated user changes.
+- Keep commits scoped to one coherent workflow or skill update.
+- Commit only after verification passes.
+- Push after a clean commit when the user asks for the change to be saved to GitHub.
+
+## Skills Pack Maintenance
+
+- Keep reusable SDLC guidance portable across operating systems and development environments.
+- Do not put Windows, PowerShell, Codex sandbox, or local-maintainer rules into reusable skills unless the skill is explicitly about that environment.
+- Prefer concise skill instructions. Avoid turning skills into long essays.
+- Add templates only after the process shape is stable enough to avoid churn.
+- Treat optional tooling such as Graphify or MCP servers as optional retrieval/action layers, not sources of truth.
