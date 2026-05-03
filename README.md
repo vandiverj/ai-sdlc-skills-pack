@@ -2,7 +2,7 @@
 
 A working skills package for recursive, context-managed AI-assisted software development.
 
-The pack is designed to help coding agents preserve product intent, application structure, feature context, task state, verification evidence, public contracts, accurate code-local documentation, agent instructions, and unresolved questions across sessions without loading an entire repository or conversation by default.
+The pack is designed to help coding agents preserve product intent, application structure, technical approach, feature context, task state, verification evidence, public contracts, accurate code-local documentation, agent instructions, and unresolved questions across sessions without loading an entire repository or conversation by default.
 
 ## Contents
 
@@ -72,6 +72,10 @@ Memory Bank files summarize current state, pending work, and routing. They do no
 
 MCPs and tools are optional infrastructure. Use select-tools when external/current knowledge, tool access, or MCP boundaries matter. Tools retrieve or act; they do not remember for the project and they do not outrank local source-of-truth artifacts.
 
+## Technical approach gate
+
+When starting a project or changing meaningful technical surfaces, use `choose-technical-approach` to propose and approve stack, architecture, runtime, persistence, deployment, testing, operations, and dependency policy before deep modeling or implementation planning depends on those choices.
+
 ## Contract-first gate
 
 When an issue changes a public or cross-boundary interface, write and review the contract before implementation planning.
@@ -93,9 +97,10 @@ manage-context-state
 
 For new product or feature design, continue with:
 
-```text
+`	ext
 product-reframe
 define-application
+choose-technical-approach, when starting a project or changing technical surfaces
 grill-me
 model-application
 review-application-model

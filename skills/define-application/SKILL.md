@@ -21,11 +21,13 @@ Create enough shared context for grilling, modeling, PRD creation, and issue pla
 - Major feature areas
 - Core data concepts
 - External integrations
+- Technical constraints already known
 - MVP boundary
 - NOT in scope
 - What already exists
 - Open questions
+- Recommended next use of `choose-technical-approach` when stack/architecture/runtime/persistence/deployment/testing decisions are needed
 - Recommended next use of `grill-me`
 
 ## Approval behavior
-For meaningful applications, present the definition in sections and ask for approval or revision before proceeding to modeling.
+For meaningful applications, present the definition in sections and ask for approval or revision before proceeding to `choose-technical-approach` or modeling.

@@ -9,7 +9,7 @@ The workflow is recursive, not linear. If implementation reveals unclear require
 Use the minimum process that prevents the most likely expensive failure.
 
 - Tiny work mostly needs context, careful editing, and fresh verification.
-- Feature work mostly needs alignment between product intent, model, issue, plan, tests, and docs.
+- Feature work mostly needs alignment between product intent, technical approach, model, issue, plan, tests, and docs.
 - Public interface work mostly needs a reviewed contract before implementation planning.
 - Security, data, migration, integration, or infrastructure work needs explicit risk review and rollback thinking.
 - Long-running work needs context routing and durable state updates.
@@ -183,6 +183,14 @@ Use MCPs to retrieve or act, not to remember. Record durable decisions or verifi
 
 Projects using this workflow should maintain `AGENTS.md` when possible. It should contain concise agent-facing setup commands, verification commands, conventions, code-local documentation rules, security gotchas, and workflow rules. It must link to deeper docs rather than duplicating them.
 
+## Technical Approach Gate
+
+For new projects or meaningful technical surface changes, use `choose-technical-approach` after `define-application` and before `model-application`. This keeps stack, architecture style, runtime, persistence, deployment, testing, operations, and dependency policy explicit before requirements and issue slicing depend on them.
+
+Do not run this gate for Micro/Tiny work unless the change unexpectedly introduces a new dependency, service, runtime, deployment concern, or technical constraint.
+
+Human approval is required for the initial stack and for meaningful new frameworks, services, databases, auth/payment/AI providers, deployment targets, production dependencies, data retention/security models, or migration paths.
+
 ## Contract-First Gate
 
 For work that changes a public or cross-boundary interface, write and review the contract before implementation planning.
@@ -221,8 +229,9 @@ The contract should be language-neutral by default. In TypeScript projects it ma
 3. select-context
 4. product-reframe
 5. define-application
-6. grill-me / brainstorming
-7. model-application
+6. choose-technical-approach, when starting a project or changing technical surfaces
+7. grill-me / brainstorming
+8. model-application
 8. manage-context-state
 9. outside-voice-review
 10. review-application-model
@@ -254,12 +263,12 @@ The contract should be language-neutral by default. In TypeScript projects it ma
 ```
 
 ## Human audit
-Use eview-agent-work when a human wants to inspect prior AI work before continuing or merging. It should audit classification, skipped gates, verification evidence, doc/code/contract sync, context-state updates, and high-risk review coverage without rewriting artifacts unless asked.
+Use `review-agent-work` when a human wants to inspect prior AI work before continuing or merging. It should audit classification, skipped gates, verification evidence, doc/code/contract sync, context-state updates, and high-risk review coverage without rewriting artifacts unless asked.
 
 ## Skill groups
 
 ### Routing and context spine
-- classify-work: choose micro, tiny, standard, high-risk, or exploratory workflow depth and emit the compact execution contract.
+- `classify-work`: choose micro, tiny, standard, high-risk, or exploratory workflow depth and emit the compact execution contract.
 - `context-restore`: resume from Memory Bank routing files, context-state, and latest checkpoint.
 - `select-tools`: choose minimum tools/MCPs and define access boundaries.
 - `select-context`: choose the smallest safe context packet using work class, `activeContext.md`, and `contextIndex.md` first.
@@ -272,8 +281,9 @@ Use eview-agent-work when a human wants to inspect prior AI work before continu
 ### Product and model
 - `product-reframe`: challenge whether the request is the right thing to build.
 - `define-application`: establish app-level purpose, users, workflows, data concepts, and scope.
+- `choose-technical-approach`: select and record approved stack, architecture, runtime, persistence, deployment, testing, operations, and dependency constraints.
 - `grill-me`: resolve assumptions through targeted questioning.
-- `model-application`: create or update the durable diagrammed application model.
+- `model-application`: create or update the durable diagrammed application model using approved technical constraints.
 - `review-application-model`: challenge the model before PRD creation.
 - `outside-voice-review`: advisory review of model, PRD, plan, issue breakdown, contract, or diff.
 
@@ -287,7 +297,7 @@ Use eview-agent-work when a human wants to inspect prior AI work before continu
 - `review-contract-spec`: block ambiguous, untestable, unsupported, or over-broad contracts.
 
 ### Planning and boundaries
-- `write-implementation-plan`: convert one issue or coherent issue batch into an executable plan.
+- `write-implementation-plan`: convert one issue or coherent issue batch into an executable plan that stays within approved technical constraints.
 - `review-implementation-plan`: block vague, untestable, or misaligned plans.
 - `create-work-branch`: isolate implementation work.
 - `safe-edit-boundary`: declare allowed files, commands, and scope limits.
@@ -301,8 +311,8 @@ Use eview-agent-work when a human wants to inspect prior AI work before continu
 - `assert-doc-sync`: prove code, tests, docs, contracts, and context agree before completion or doc updates.
 - `review-code-quality`: review maintainability, engineering principle fit, code-local documentation, and operational risk after spec compliance.
 - `process-review-feedback`: evaluate feedback before applying it.
-- health-check: run broad project health checks without automatic fixes.
-- eview-agent-work: human-facing audit of AI work, verification evidence, process adherence, and artifact sync.
+- `health-check`: run broad project health checks without automatic fixes.
+- `review-agent-work`: human-facing audit of AI work, verification evidence, process adherence, and artifact sync.
 
 ### Release and continuity
 - `document-release`: update public or project-facing docs.
