@@ -23,14 +23,21 @@ Usually `AGENTS.md` at the repository root. In monorepos or large projects, nest
 4. `docs/memory-bank/contextIndex.md`, if present.
 5. CI configuration.
 6. Build/test/lint configuration.
-7. Package, workspace, Makefile, Justfile, Taskfile, or equivalent project command files.
-8. Security, deployment, contribution, or documentation-generation docs if present.
+7. Approved quality automation decisions, if present.
+8. Approved retrieval approach, allowed sources, and privacy boundaries, if present.
+9. Agent strategy docs, model-tier policy, delegation patterns, and runtime adapters, if present.
+10. Implementation pattern docs and canonical examples, if present.
+11. Package, workspace, Makefile, Justfile, Taskfile, or equivalent project command files.
+12. Security, deployment, contribution, or documentation-generation docs if present.
 
 ## Recommended sections
 - Project overview.
 - Repository layout.
 - Setup commands.
 - Build, test, lint, typecheck, format, and health commands.
+- Retrieval/index commands, allowed sources, freshness expectations, and privacy boundaries when applicable.
+- Agent strategy and runtime adapter pointers, including where model-tier mappings and specialist roles live.
+- Implementation pattern pointers, including where project-specific forms, tables, APIs, tests, errors, or feature-structure guidance lives.
 - Testing guidance, including narrow test commands and broad verification commands.
 - Code style and architecture conventions that agents cannot easily infer.
 - Code-local documentation conventions, such as TSDoc/JSDoc/docstrings and what must be documented.

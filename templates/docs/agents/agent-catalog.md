@@ -1,0 +1,100 @@
+# Agent Catalog
+
+## Status
+Draft / Active / Needs Review
+
+## Role definition format
+
+```text
+Agent id:
+Purpose:
+Use when:
+Do not use when:
+Default model tier:
+Escalation tier:
+Allowed tools:
+Disallowed tools:
+Write access:
+Required context:
+Expected output:
+Verification/evidence required:
+Escalation triggers:
+Can delegate:
+Learning signals:
+```
+
+## Core roles
+
+### orchestrator
+- Purpose: Own SDLC routing, delegation, synthesis, user updates, and final accountability.
+- Default model tier: `standard`; escalate to `deep` for high-risk or ambiguous decisions.
+- Write access: Only when also acting as a bounded worker.
+- Can delegate: Yes, when the runtime supports it and the strategy allows it.
+
+### context-explorer
+- Purpose: Find the smallest safe context packet, related artifacts, risks, and contradictions.
+- Default model tier: `fast` or `standard`.
+- Write access: No.
+- Expected output: Files/artifacts to load, why they matter, uncertainty, and next recommended skill.
+
+### implementation-planner
+- Purpose: Convert approved issue/contract/context into an executable, testable, bounded plan.
+- Default model tier: `standard`; escalate to `deep` for high-risk planning.
+- Write access: No implementation edits.
+- Expected output: Plan sections required by `write-implementation-plan`.
+
+### implementation-worker
+- Purpose: Execute an approved plan within a safe-edit boundary.
+- Default model tier: `standard`.
+- Write access: Only assigned files.
+- Expected output: Changed files, tests run, blockers, and deviations from plan.
+
+### test-engineer
+- Purpose: Design or review tests, edge cases, regression checks, and verification commands.
+- Default model tier: `standard`.
+- Write access: Usually read-only; may write tests when explicitly assigned.
+- Expected output: Missing tests, test-first recommendations, verification evidence gaps.
+
+### spec-compliance-reviewer
+- Purpose: Check implementation against issue, PRD, model, and contract.
+- Default model tier: `standard`.
+- Write access: No.
+- Expected output: Pass/fail, missing requirements, contract mismatches, scope creep.
+
+### code-quality-reviewer
+- Purpose: Review maintainability, cohesion, coupling, abstractions, documentation, and operability.
+- Default model tier: `standard`.
+- Write access: No.
+- Expected output: Findings ordered by risk, optional improvements, accepted risks.
+
+### contract-reviewer
+- Purpose: Review public API, CLI, schema, event, SDK, plugin, integration, or UI workflow contracts.
+- Default model tier: `standard`; escalate to `deep` for high-risk public surfaces.
+- Write access: No.
+- Expected output: Ambiguity, invalid states, compatibility issues, stress-test gaps.
+
+### threat-modeler
+- Purpose: Review security, privacy, abuse cases, data, dependency, tool-access, and AI/agent risks.
+- Default model tier: `deep`.
+- Write access: No.
+- Expected output: Threat-model findings, required mitigations, tests/checks, residual risks.
+
+### production-readiness-reviewer
+- Purpose: Review release, rollback, observability, migration, CI/local parity, and Git reviewability.
+- Default model tier: `standard`; escalate to `deep` for high-risk release decisions.
+- Write access: No.
+- Expected output: Ready/needs fixes/not ready, blocking issues, accepted risks, commit boundary advice.
+
+### doc-sync-reviewer
+- Purpose: Check that code, tests, contracts, docs, feature context, Memory Bank, and AGENTS.md agree.
+- Default model tier: `fast` or `standard`.
+- Write access: No, unless assigned a bounded docs update.
+- Expected output: Drift findings and owning artifacts to update.
+
+## Specialist additions
+Add a specialist only when repeated work proves a stable need, the output contract is clear, and the role improves quality, safety, reviewability, or cost.
+
+## Last updated
+- Date:
+- Updated because:
+- Confidence:

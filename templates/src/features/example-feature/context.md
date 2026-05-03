@@ -7,10 +7,10 @@ What this feature does and why it exists.
 How the user interacts with it.
 
 ## Main files
-- `index.ts` — public exports
-- `<feature>.service.ts` — business behavior
-- `<feature>.schema.ts` — validation/data shape
-- `<feature>.test.ts` — expected behavior
+- `index.ts` - public exports
+- `<feature>.service.ts` - business behavior
+- `<feature>.schema.ts` - validation/data shape
+- `<feature>.test.ts` - expected behavior
 
 ## Domain concepts
 
@@ -26,11 +26,25 @@ How the user interacts with it.
 
 ## Test coverage
 
+## Agent strategy
+- Recommended agent roles:
+- Model tier guidance:
+- Specialist review triggers:
+- Runtime/tool boundaries:
+
+## Implementation patterns
+- Applicable patterns:
+- Pattern status:
+- Canonical examples:
+- Known exceptions:
+
 ## Related artifacts
 - `docs/application-model.md`
 - PRD:
 - ADRs:
 - Issues:
+- Agent strategy:
+- Patterns:
 
 ## Known limitations
 

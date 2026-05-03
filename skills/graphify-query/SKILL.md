@@ -10,6 +10,7 @@ Find relationships without loading the whole repo, then point the agent toward t
 This skill is optional. It supports memory and context management for larger projects; it is not required for the core SDLC workflow.
 
 ## Use when
+- `choose-retrieval-approach` has approved graph/index querying or the user explicitly asks to evaluate it as an exploratory option.
 - Feature dependencies are unclear.
 - You need to check impact across modules or docs.
 - Selected context contradicts code.
@@ -34,6 +35,7 @@ This skill is optional. It supports memory and context management for larger pro
 ## Rules
 - Do not treat graph answers as authoritative.
 - Do not continue from graph output alone when correctness matters. Load the cited source artifacts.
+- Do not use graph querying as a default context step for small or ordinary work.
 - If graph output exposes stale docs, stale Memory Bank routing, or contradictory relationships, mark affected artifacts in `docs/context-state.md`.
 
 ## Next skills

@@ -21,7 +21,10 @@ Keep the agent in the smart zone: enough context to act safely, not so much that
 5. `docs/memory-bank/contextIndex.md`, if present.
 6. `docs/context-state.md`, if present.
 7. Relevant PRD, contract, application model section, ADR, or feature `context.md`, if the task names one.
-8. Tool/MCP needs from `select-tools`, if external/current knowledge is required.
+8. Approved retrieval approach and index freshness, if present.
+9. Agent strategy docs, model-tier policy, delegation patterns, and runtime adapter mappings if delegation/model routing matters.
+10. Implementation pattern docs and canonical examples if repeated project-specific patterns may apply.
+11. Tool/MCP needs from `select-tools`, if external/current knowledge is required.
 
 ## Required output
 
@@ -36,6 +39,8 @@ Do not load yet:
 Memory Bank files used:
 Authoritative artifacts needed:
 Tools/MCPs needed:
+Agent strategy context needed:
+Implementation pattern context needed:
 Open questions to check:
 Risk of missing context:
 Expansion trigger:
@@ -50,6 +55,12 @@ Always include the current request, work class, issue, acceptance criteria, curr
 ### Tier 1: Durable summaries and indexes
 Usually include relevant sections of `docs/application-model.md`, related PRD, contract spec, relevant feature `context.md`, related ADRs, `progress.md`, or `decisionIndex.md` when they are directly relevant.
 
+### Agent strategy context
+Load only the relevant `docs/agents/*` files when delegation, specialist roles, model tiers, runtime adapters, or agent learning-loop behavior affects the task.
+
+### Implementation pattern context
+Load only the relevant `docs/patterns/*` files and canonical examples when forms, tables, API handlers, data fetching, errors, tests, layouts, feature modules, or another repeated project-specific pattern affects the task.
+
 ### Tier 2: Source files
 Load only files named by the implementation plan, files directly imported by those files, nearby tests, and files referenced by the feature context.
 
@@ -57,7 +68,7 @@ Load only files named by the implementation plan, files directly imported by tho
 Use tools/MCPs, such as Context7 or official docs, when project-local context is insufficient for current library/framework/API behavior. Attribute and verify retrieved information against the project version.
 
 ### Tier 4: Retrieval or graph query
-Use optional graph/index tooling only when Memory Bank routing, durable summaries, selected files, and targeted tool retrieval are insufficient to identify relationships.
+Use optional retrieval, graph, embedding, repo search, or RAG tooling only when Memory Bank routing, durable summaries, selected files, targeted search, and targeted tool retrieval are insufficient to identify relationships. Prefer approved retrieval approaches and check freshness before relying on indexes.
 
 ### Tier 5: Wider repository or conversation scan
 Use only when selected context is insufficient, stale, or contradictory. State why expansion is necessary before doing it.
@@ -65,8 +76,11 @@ Use only when selected context is insufficient, stale, or contradictory. State w
 ## Hard rules
 - Do not solve the task inside this skill. Select context and recommend the next skill.
 - Do not treat Memory Bank files or MCP output as final source of truth. They route to authoritative artifacts.
+- Do not treat retrieval, graph, embedding, RAG, or Obsidian-style navigation output as final source of truth. Use it to find source artifacts.
 - Do not treat old conversation as source of truth when durable artifacts exist.
 - Do not load all PRDs, all docs, all Memory Bank files, all tool output, or the whole repository by default.
+- Do not load all agent strategy files by default; load only the role, model-tier, delegation, adapter, or learning-loop docs that affect the current task.
+- Do not load all pattern docs by default; load only the patterns and examples that affect the current task.
 - Do not trust a PRD, contract, issue, tool answer, or feature context without checking its status, source, version, and related open questions.
 - If there is no application model or feature context for meaningful feature work, recommend creating or updating it before implementation.
 
@@ -81,6 +95,9 @@ Use only when selected context is insufficient, stale, or contradictory. State w
 ## Next skills
 - Use `classify-work` first if workflow depth is unclear.
 - Use `select-tools` if external/current knowledge, MCP access, or tool boundaries are needed.
+- Use `choose-retrieval-approach` if retrieval/indexing is missing, stale, risky, unnecessary, or newly needed.
+- Use `choose-agent-strategy` if delegation, specialists, model tiers, independent verification, or runtime adapter behavior may affect the task.
+- Use `choose-implementation-pattern` if repeated project-specific implementation guidance may apply.
 - Use `context-restore` first if the project state is unknown.
 - Use `manage-context-state` if unresolved questions or affected artifacts appear.
 - Use `model-application`, `to-prd`, `write-contract-spec`, `write-implementation-plan`, `execute-plan`, or review skills depending on the current phase and work class.

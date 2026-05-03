@@ -8,6 +8,7 @@ Choose the minimum external tools, MCPs, connectors, or plugins needed for a tas
 - The agent wants to use Context7, Sequential Thinking, browser automation, GitHub tools, package registry docs, or another MCP/tool.
 - `select-context`, `write-implementation-plan`, `safe-edit-boundary`, or `execute-plan` needs tool boundaries.
 - The task involves secrets, private data, network access, external docs, or untrusted content.
+- Retrieval/RAG/index tooling has been approved and the current task needs explicit access boundaries.
 
 ## Purpose
 Use tools to retrieve or act, not to remember. MCP/tool output may inform work, but durable project artifacts remain the source of truth.
@@ -42,7 +43,7 @@ Next skill:
 ## Common tool roles
 - Documentation retrieval, such as Context7: use for current, version-specific external library/framework/API docs. Do not use it as a project context pruning tool.
 - Reasoning scaffold, such as Sequential Thinking: use for ambiguous architecture, debugging, refactoring, or high-risk tradeoffs. Do not make it mandatory for simple plans.
-- Repo retrieval/index tools: use for surgical retrieval from the project when Memory Bank and direct file selection are insufficient.
+- Repo retrieval/index tools: use for surgical retrieval from the project when Memory Bank and direct file selection are insufficient, preferably under an approved `choose-retrieval-approach` decision.
 - Memory-sync tools: optional only if they write plain, reviewable repo artifacts and do not become hidden canonical memory.
 
 ## Trust model
@@ -54,6 +55,7 @@ Next skill:
 ## Hard rules
 - Do not use more tools than the task needs.
 - Do not send secrets, credentials, private user data, or unnecessary repo context to external tools.
+- Do not introduce new retrieval, RAG, vector, graph, hosted search, or human navigation tools without `choose-retrieval-approach` when the decision is meaningful.
 - Do not treat MCP output as a source of truth over local code/tests/docs.
 - Do not make optional MCPs mandatory for the workflow.
 - If a memory-sync tool is used, it must write readable, version-controlled project files or be treated as transient.
@@ -62,4 +64,4 @@ Next skill:
 - If tool output conflicts with project artifacts, surface the conflict in docs/context-state.md; do not silently overwrite durable truth.
 
 ## Next skills
-Usually `select-context`, `write-implementation-plan`, `safe-edit-boundary`, `execute-plan`, or `verification-before-completion`.
+Usually `select-context`, `choose-retrieval-approach` when retrieval decisions are missing, `write-implementation-plan`, `safe-edit-boundary`, `execute-plan`, or `verification-before-completion`.

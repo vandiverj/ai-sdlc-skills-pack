@@ -54,6 +54,8 @@ Consider only the areas that matter for the current scope:
 - Auth, permissions, secrets, privacy, data retention, export, deletion, and compliance constraints.
 - Hosting, deployment, environments, configuration, observability, rollback, and release strategy.
 - Testing strategy: unit, integration, contract, E2E, visual, type/schema, smoke, security/dependency.
+- Quality automation handoff: which verification, build, lint, type/schema, security, dependency, generated artifact, documentation, and CI/local preflight decisions need `choose-quality-automation`.
+- Retrieval handoff: whether RAG, embeddings, vector search, graph/index tooling, repo retrieval, hosted search, or human navigation needs `choose-retrieval-approach`.
 - Dependency policy: new packages, services, licenses, supply-chain risk, maintenance health, and lock-in.
 - Cost, scale, performance, portability, developer experience, and maintenance burden.
 
@@ -101,4 +103,4 @@ Use the approved approach to prune irrelevant workflow steps:
 - If an implementation plan violates the approved approach, return to this skill before coding.
 
 ## Next skills
-Usually `model-application`, `review-application-model`, `to-prd`, `write-implementation-plan`, `review-implementation-plan`, `manage-context-state`, or `update-context-docs`.
+Usually `choose-quality-automation`, `choose-retrieval-approach`, `model-application`, `review-application-model`, `to-prd`, `write-implementation-plan`, `review-implementation-plan`, `manage-context-state`, or `update-context-docs`.
