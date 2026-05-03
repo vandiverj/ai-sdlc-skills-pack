@@ -19,7 +19,7 @@ classify work
 -> restore context
 -> select only necessary context
 -> reframe product when needed
--> define/model application when needed
+-> define application and technical approach when needed
 -> capture open questions
 -> write PRD/issues/contracts when needed
 -> write implementation plan when needed
@@ -31,7 +31,7 @@ classify work
 -> save context
 ```
 
-The purpose is to prevent AI drift by keeping the application model, PRDs, issues, contracts, tests, implementation, code-local docs, feature context files, Memory Bank routing summaries, agent instructions, and unresolved questions aligned without forcing heavy process onto tiny work.
+The purpose is to prevent AI drift by keeping the application model, technical decisions, PRDs, issues, contracts, tests, implementation, code-local docs, feature context files, Memory Bank routing summaries, agent instructions, and unresolved questions aligned without forcing heavy process onto tiny work.
 
 ## Work classification
 
@@ -137,6 +137,14 @@ Use select-tools when external/current knowledge, tool access, or MCP boundaries
 
 Projects should maintain `AGENTS.md` when practical. It owns concise agent-facing setup commands, verification commands, conventions, code-local documentation rules, security gotchas, workflow gates, and PR/release instructions. It should link to deeper docs rather than duplicating them.
 
+## Technical approach
+
+For new projects or meaningful technical surface changes, choose and approve the technical approach before deep modeling, PRD breakdown, or implementation planning. This includes stack, architecture style, runtime, persistence, deployment, testing, operations, and dependency policy.
+
+Use `choose-technical-approach` after `define-application` has enough product/workflow/data context, and before `model-application` depends on stack constraints. Re-run it when a feature needs a new framework, library, service, database, runtime, hosting target, auth provider, queue, job system, AI provider, testing tool, deployment model, or other technical surface change.
+
+Approved technical choices belong in ADRs, docs/application-model.md, AGENTS.md, docs/context-state.md, and Memory Bank indexes as applicable.
+
 ## Contract-first development
 
 When an issue changes public or cross-boundary behavior, write and review a contract spec before implementation planning.
@@ -227,37 +235,38 @@ See `WORKFLOW.md` for the canonical workflow map.
 3. select-context
 4. product-reframe
 5. define-application
-6. grill-me / brainstorming
-7. model-application
+6. choose-technical-approach, when starting a project or changing technical surfaces
+7. grill-me / brainstorming
+8. model-application
 8. manage-context-state
 9. outside-voice-review
 10. review-application-model
 11. to-prd
 12. review-prd-against-model
-13. diagram-issues
-14. to-issues
-15. review-issue-dependencies
-16. write-contract-spec, when public/cross-boundary behavior changes
-17. review-contract-spec, when a contract spec is required
-18. write-implementation-plan
-19. review-implementation-plan
-20. create-work-branch
-21. safe-edit-boundary
-22. execute-plan / tdd
-23. verification-before-completion
-24. review-spec-compliance
-25. assert-doc-sync, when code/docs/contracts/context may disagree
-26. engineering-principles-review, when complexity/readability/abstraction risk warrants it
-27. review-code-quality
-28. process-review-feedback
-29. health-check
-30. document-release
-31. update-context-docs
-32. manage-context-state
-33. setup-agent-instructions, when agent instructions changed or are missing
-34. finish-development-branch
-35. review-agent-work, when a human wants to audit AI work before continuing or merging
-36. context-save
+14. diagram-issues
+15. to-issues
+16. review-issue-dependencies
+17. write-contract-spec, when public/cross-boundary behavior changes
+18. review-contract-spec, when a contract spec is required
+19. write-implementation-plan
+20. review-implementation-plan
+21. create-work-branch
+22. safe-edit-boundary
+23. execute-plan / tdd
+24. verification-before-completion
+25. review-spec-compliance
+26. assert-doc-sync, when code/docs/contracts/context may disagree
+27. engineering-principles-review, when complexity/readability/abstraction risk warrants it
+28. review-code-quality
+29. process-review-feedback
+30. health-check
+31. document-release
+32. update-context-docs
+33. manage-context-state
+34. setup-agent-instructions, when agent instructions changed or are missing
+35. finish-development-branch
+36. review-agent-work, when a human wants to audit AI work before continuing or merging
+37. context-save
 ```
 
 ## Core skill boundaries
@@ -268,7 +277,8 @@ See `WORKFLOW.md` for the canonical workflow map.
 - `context-restore` resumes from Memory Bank routing files, context-state, and checkpoints.
 - `select-context` decides what to load. It does not solve the task.
 - `manage-context-state` records uncertainty and affected artifacts. It does not replace PRDs, contracts, ADRs, feature context files, AGENTS.md, or Memory Bank routing files.
-- `model-application` defines structure and diagrams. It does not create implementation issues.
+- `choose-technical-approach` selects and records approved stack, architecture, runtime, persistence, deployment, testing, operations, and dependency constraints. It does not implement.
+- `model-application` defines structure and diagrams using approved technical constraints. It does not create implementation issues.
 - `to-prd` defines durable requirements. It does not break work into tasks.
 - `write-contract-spec` defines observable public or cross-boundary behavior. It does not implement.
 - `review-contract-spec` checks whether the contract is clear, supported, and testable.
@@ -276,8 +286,8 @@ See `WORKFLOW.md` for the canonical workflow map.
 - `execute-plan` orchestrates implementation. `tdd` is the per-behavior discipline used inside execution.
 - `verification-before-completion` reports fresh evidence. It does not infer success from old runs.
 - `engineering-principles-review` asks whether the design or code is understandable, cohesive, appropriately abstracted, and maintainable.
-- eview-spec-compliance asks whether the implementation built the right thing. eview-code-quality asks whether it was built well, safely, operably, accessibly when UI is involved, and with accurate code-local documentation.
-- eview-agent-work audits prior AI work for classification quality, skipped gates, verification evidence, artifact sync, and unsafe silent changes.
+- `review-spec-compliance` asks whether the implementation built the right thing. `review-code-quality` asks whether it was built well, safely, operably, accessibly when UI is involved, and with accurate code-local documentation.
+- `review-agent-work` audits prior AI work for classification quality, skipped gates, verification evidence, artifact sync, and unsafe silent changes.
 
 ## Optional memory and retrieval layer
 
@@ -297,14 +307,15 @@ A task is not done until:
 - Code/docs/contracts/context sync was asserted when related dirty surfaces were true.
 - Tests were written first where practical, or an exception is documented.
 - Tests and relevant verification commands were run in the current session.
-- High-risk security/privacy/dependency/migration/rollback concerns are addressed or explicitly accepted.
+- High-risk security/privacy/dependency/license/migration/rollback/performance/accessibility/observability concerns are addressed or explicitly accepted.
 - Health-check passes or exceptions are documented.
 - Spec compliance review passes.
 - Code quality review passes or accepted risks are recorded.
 - Review feedback is processed intentionally.
 - Feature `context.md` is updated if behavior, structure, related artifacts, loading guidance, or public surface changed.
 - `docs/application-model.md` is updated if feature boundaries, workflows, entities, or architecture changed.
-- `docs/context-state.md` is updated with resolved, deferred, open, and affected items.
+- docs/context-state.md is updated with resolved, deferred, open, and affected items.
+- Technical approach ADRs, application model, AGENTS.md, and context indexes are updated when stack, dependency, deployment, testing, or operations decisions changed.
 - Memory Bank routing files are updated if current focus, pending work, known gaps, product context, decision indexes, or context indexes changed.
 - `AGENTS.md` is updated if agent commands, conventions, documentation rules, security gotchas, or verification guidance changed.
 - Public or developer docs are updated if behavior changed.

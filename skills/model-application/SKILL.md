@@ -19,7 +19,8 @@ Prevent drift by defining the application's structures, workflows, data, compone
 1. Selected context packet from `select-context`.
 2. `docs/context-state.md`, especially open questions and affected artifacts.
 3. Existing `docs/application-model.md`, if present.
-4. Related PRDs, ADRs, feature `context.md` files, or source files named by the context packet.
+4. Approved technical approach ADRs or decision notes, if present.
+5. Related PRDs, ADRs, feature `context.md` files, or source files named by the context packet.
 
 ## Required sections
 - Status: Draft / Active / Needs Review / Superseded.
@@ -30,12 +31,14 @@ Prevent drift by defining the application's structures, workflows, data, compone
 - Domain entities.
 - Data relationships.
 - System components.
+- Approved technical approach and constraints.
 - Module boundaries.
 - Dependency direction.
 - Cohesion and coupling notes for major modules or subsystems.
 - Data flow.
 - State transitions, when relevant.
 - External integrations.
+- Runtime, persistence, deployment, and operations boundaries when relevant.
 - Trust boundaries.
 - Failure modes.
 - Edge cases.
@@ -60,7 +63,7 @@ Use Mermaid unless the project has a stronger local diagram convention.
 ## Modeling process
 1. State the modeling scope: whole app, feature area, subsystem, or correction.
 2. Identify stable facts, assumptions, open questions, and deferred decisions.
-3. Map users, workflows, entities, modules, data flow, and boundaries.
+3. Map users, workflows, entities, modules, data flow, technical constraints, and boundaries.
 4. Check whether the app contains independent subsystems. If yes, define each subsystem's purpose, dependencies, build order, and whether it needs its own PRD or issue sequence.
 5. Check cohesion, coupling, and dependency direction for major modules.
 6. Add diagrams for relationships that would otherwise require prose-heavy explanation.
@@ -76,14 +79,14 @@ Use Mermaid unless the project has a stronger local diagram convention.
 - Avoid modeling speculative abstractions not required by the current product direction.
 
 ## Hard gates
-- Do not create PRDs, issues, or implementation plans from an unreviewed model for meaningful work.
+- Do not create PRDs, issues, or implementation plans from an unreviewed model or missing required technical approach decision for meaningful work.
 - Do not hide unknowns in polished prose. Record them in the model and context-state.
 - Do not let diagrams become decoration. Each diagram must clarify a requirement, dependency, state, boundary, or data relationship.
 - If the model contradicts current code or tests, identify the contradiction and route it through review rather than silently choosing one.
 
 ## Loop behavior
 - If user answers change scope, update the model and context-state before continuing.
-- If review finds blocking gaps, return to `grill-me`, `define-application`, or another modeling pass.
+- If review finds blocking gaps, return to `grill-me`, `define-application`, `choose-technical-approach`, or another modeling pass.
 - If implementation reveals a missing requirement, stop expanding implementation and update the model, PRD, issue, or context-state as appropriate.
 
 ## Next skills

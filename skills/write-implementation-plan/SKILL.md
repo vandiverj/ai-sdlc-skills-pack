@@ -22,7 +22,7 @@ Make implementation testable, bounded, maintainable, and reviewable before editi
 6. Related application model sections.
 7. Related contract spec, if public or cross-boundary behavior changes.
 8. Related feature `context.md` files.
-9. Related ADRs or decisions.
+9. Related ADRs or decisions, including approved technical approach.
 10. Relevant open questions from `docs/context-state.md`.
 11. Existing source files and tests only when needed to identify exact file responsibilities.
 
@@ -41,12 +41,13 @@ Make implementation testable, bounded, maintainable, and reviewable before editi
 - Files expected not to change.
 - Responsibility of each file.
 - Step-by-step task order.
+- Technical approach fit: approved stack/dependencies/services used, new technical choices needed, or explicit none.
 - Maintainability approach: readability, responsibilities, abstraction boundaries, duplication strategy, and pattern/dependency rationale.
 - Tools/MCPs allowed, why they are needed, and what they may access.
 - Test-first steps or explicit TDD exception.
 - Testing strategy: unit / integration / contract / E2E / visual / snapshot / type-schema / smoke as applicable.
 - Code-local documentation updates: public exports, shared types/schemas, integration boundaries, non-obvious behavior, invariants, errors, or examples.
-- Security, privacy, dependency, migration, and rollback considerations.
+- Security, privacy, dependency, license, migration, deployment, observability, performance, accessibility, and rollback considerations.
 - Verification commands.
 - Documentation and context updates.
 - Safe-edit boundary.
@@ -60,12 +61,12 @@ A plan is ready only if:
 - Expected behavior is testable.
 - File responsibilities are clear.
 - The planned units are cohesive and readable.
-- Abstractions, patterns, and dependencies are justified by known requirements.
+- Abstractions, patterns, dependencies, frameworks, and services are justified by known requirements and approved technical approach.
 - The plan avoids both harmful duplication and premature abstraction.
 - Required tools/MCPs are justified and bounded.
 - Verification commands are named.
 - Code-local documentation needs are identified or explicitly not applicable.
-- Security/privacy/dependency/migration risks are either addressed or explicitly not applicable.
+- Security/privacy/dependency/license/migration/deployment/operations risks are either addressed or explicitly not applicable.
 - Documentation/context updates are included.
 - Open questions are either resolved, safely deferred, or explicitly blocking.
 - The plan can be reviewed against the PRD, application model, and contract spec when present.
@@ -80,10 +81,10 @@ A plan is ready only if:
 
 ## Stop and return when
 - Acceptance criteria are missing or untestable.
-- The issue contradicts the PRD, model, or contract spec.
-- Required files or module boundaries are unknown.
+- The issue contradicts the PRD, model, approved technical approach, or contract spec.
+- Required files, module boundaries, or approved technical constraints are unknown.
 - The public contract is missing but required.
-- Security, privacy, migration, dependency, or tool-access risk is present but unaddressed.
+- Security, privacy, migration, dependency, license, deployment, operations, or tool-access risk is present but unaddressed.
 - Required code-local documentation would duplicate or contradict feature-level docs instead of linking cleanly.
 - The plan would likely create tangled responsibilities, unjustified abstraction, or brittle coupling.
 - The safe-edit boundary cannot be stated.

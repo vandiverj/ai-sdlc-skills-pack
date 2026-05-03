@@ -27,6 +27,7 @@ Fast-pass route:
 Why:
 Dirty surfaces:
 Required gates:
+Technical approach status:
 Optional gates:
 Skipped gates and reason:
 Required context:
@@ -164,6 +165,7 @@ Dirty surfaces decide which artifacts are eligible to update. Do not update ever
 requirementsSurfaceChanged: yes/no
 publicContractSurfaceChanged: yes/no
 systemSurfaceChanged: yes/no
+technicalApproachChanged: yes/no
 verificationSurfaceChanged: yes/no
 docsContextSurfaceChanged: yes/no
 riskSurfaceChanged: yes/no
@@ -174,7 +176,8 @@ uncertaintyChanged: yes/no
 Surface routing:
 - `requirementsSurfaceChanged` -> update/review product intent, PRD, issue, acceptance criteria, or application model section.
 - `publicContractSurfaceChanged` -> write/review contract spec; update public API docs, schemas, type docs, examples, or compatibility notes.
-- `systemSurfaceChanged` -> update/review application model, ADRs, diagrams, dependency boundaries, data flows, or feature context.
+- `technicalApproachChanged` -> run `choose-technical-approach`; update ADRs, application model, AGENTS.md, context-state, and Memory Bank indexes as applicable.
+- systemSurfaceChanged -> update/review application model, ADRs, diagrams, dependency boundaries, data flows, or feature context.
 - `verificationSurfaceChanged` -> update tests, verification plan, health-check expectations, or evidence requirements.
 - `docsContextSurfaceChanged` -> update code-local docs, feature context, Memory Bank routing, context index, release docs, or developer docs.
 - `riskSurfaceChanged` -> run security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review as applicable.
@@ -206,7 +209,8 @@ Escalate when:
 - Exploratory -> High-risk: spike touches high-risk systems or recommends high-risk production work.
 - Any route -> `manage-context-state`: uncertainty, blocked questions, or affected artifacts appear.
 - Any route -> `assert-doc-sync`: code/docs/contracts/context disagree or related dirty surfaces are true.
-- Any route -> `select-tools`: current external docs, reasoning scaffold, repo retrieval, or tool boundaries are needed.
+- Any route -> `choose-technical-approach`: stack, architecture, runtime, dependency, service, persistence, deployment, testing, or operations decisions are missing or changing.
+- Any route -> select-tools: current external docs, reasoning scaffold, repo retrieval, or tool boundaries are needed.
 
 ## Risk signals
 Treat the work as higher risk when it touches:
@@ -214,7 +218,7 @@ Treat the work as higher risk when it touches:
 - Authentication, authorization, sessions, secrets, encryption, or permissions.
 - User data, privacy, retention, export, deletion, or compliance.
 - Payments, billing, account state, or irreversible operations.
-- External network calls, downloads, dependencies, generated code, licenses, or untrusted content.
+- External network calls, downloads, dependencies, frameworks, runtimes, services, generated code, licenses, or untrusted content.
 - Database schema, migrations, data backfills, queues, jobs, or concurrency.
 - Public APIs, CLIs, SDKs, schemas, events, plugin contracts, or UI workflows.
 - Accessibility-critical UI paths, hot paths, performance-sensitive queries, observability, alerts, or deployment controls.
