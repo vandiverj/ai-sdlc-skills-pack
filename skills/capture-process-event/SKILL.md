@@ -14,6 +14,7 @@ Record lightweight process-learning events during real project work so repeated 
 - A missing, stale, noisy, or underused quality, retrieval, context, or documentation rail affected the work.
 - Classification, dirty surfaces, context selection, verification, review, or artifact sync had to be corrected mid-stream.
 - A skill, template, project `AGENTS.md`, or workflow rule clearly helped avoid a likely failure.
+- A contract, product-fit, or implementation-plan question was hidden in an artifact when it should have been surfaced in chat with a recommendation.
 - The human asks to capture lessons for later process improvement.
 
 ## Purpose
@@ -24,6 +25,11 @@ Process events are observations, not decisions. They should be small enough to r
 ## Output artifacts
 - `docs/process-improvement/events.jsonl`
 - `docs/process-improvement/friction-log.md`, optional human-readable rollup for notable events.
+
+## Skill Change Candidates
+When an event reveals a reusable process gap, name the likely skill owner instead of storing it as a vague lesson. Prefer environment-neutral owners such as `run-sdlc`, `slice-product-fit`, `write-implementation-plan`, `review-implementation-plan`, `test-skill-behavior`, or `review-process-learning`.
+
+Capture whether the lesson is a one-off project note, a project pattern, an agent definition update, or a portable skill update candidate.
 
 ## Event schema
 Append one JSON object per line:
@@ -53,6 +59,7 @@ Use stable keys so simple scripts can merge events from many repositories.
 - Documentation or Memory Bank routing caused confusion.
 - Retrieval/index output was stale, noisy, missing, or unusually useful.
 - A user correction revealed a reusable process gap.
+- A question needed a recommendation, rationale, tradeoff, or default action before the human could answer usefully.
 - A workflow rule saved time or prevented drift.
 
 ## What not to capture

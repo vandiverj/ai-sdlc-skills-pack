@@ -39,6 +39,7 @@ Block ambiguous, untestable, over-broad, or unsupported contracts before they be
 - Are required docs, schemas, type surfaces, or E2E/acceptance tests identified?
 - Does the contract/type/schema stress test plan try to break invalid states?
 - Are unresolved questions recorded in `docs/context-state.md`?
+- Were decision-bearing questions surfaced in chat with recommendations, not only recorded in the contract or context docs?
 
 ## Stress review
 Challenge the contract:
@@ -55,8 +56,22 @@ Challenge the contract:
 - Optional improvements.
 - Contract/type/schema stress findings.
 - Scope or compatibility risks.
+- Chat attention items and recommendations.
 - Required context-state updates.
 - Recommendation: approve, revise, or return to PRD/model/issue refinement.
+
+## Chat attention review
+For every blocking or meaningful contract question, present or require a chat-ready decision item:
+
+```text
+Question:
+Recommendation:
+Why this fits current evidence:
+Tradeoff or risk:
+Default action if approved or not corrected:
+```
+
+Classify each item as `Needs decision before work`, `Recommended default unless corrected`, or `Recorded for later`. Questions below 70% confidence, contract-shaping decisions, AI/automation authority boundaries, compatibility behavior, data ownership, safety/privacy, persistence, rollback, and user-visible workflow choices must be surfaced before implementation planning.
 
 ## Hard gates
 - Do not approve a contract that cannot be tested.
@@ -64,6 +79,7 @@ Challenge the contract:
 - Do not approve a contract that leaves public error behavior or compatibility expectations vague when they matter.
 - Do not approve a contract whose type/schema/API surface permits important invalid states without a documented reason.
 - Do not proceed to implementation planning until blocking contract issues are resolved or explicitly accepted by the user.
+- Do not approve a contract review that hides decision-bearing questions only in files.
 
 ## Next skills
 Usually `write-implementation-plan`, or return to `write-contract-spec`, `to-prd`, `model-application`, or `manage-context-state` if gaps are found.

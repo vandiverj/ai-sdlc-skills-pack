@@ -38,6 +38,13 @@ Make implementation testable, bounded, maintainable, and reviewable before editi
 16. Relevant open questions from `docs/context-state.md`.
 17. Existing source files and tests only when needed to identify exact file responsibilities.
 
+## Slice Product-Fit Gate
+For Standard work, read or create the `slice-product-fit` output before writing the implementation plan. The plan must carry forward the primary actor, actor job, concept ownership, input/output contract, validation approach, AI/automation authority, cross-slice impacts, predecessor work, and evidence needed.
+
+If the product-fit pass says `Revise`, `Split`, `Add predecessor`, or `Defer`, do not write a normal implementation plan for the original slice. Rewrite the slice plan around that decision or return for approval.
+
+For Micro/Tiny work, add this gate when the task touches UX, API contracts, data ownership, validation, shared vocabularies, AI/automation behavior, permissions, or cross-feature behavior.
+
 ## Required output sections
 - Plan status: Draft / Approved / Needs Review.
 - Work class and risk level.
@@ -48,6 +55,7 @@ Make implementation testable, bounded, maintainable, and reviewable before editi
 - Related feature context files.
 - Related context-state entries.
 - Assumptions and unresolved questions.
+- Human attention items and recommended defaults.
 - Files to create.
 - Files to modify.
 - Files expected not to change.
@@ -69,8 +77,26 @@ Make implementation testable, bounded, maintainable, and reviewable before editi
 - Verification commands.
 - Documentation and context updates.
 - Safe-edit boundary.
+- Chat handoff before execution.
 - Checkpoint or commit points.
 - Rollback or stop conditions.
+
+## Required slice-fit fields
+When `slice-product-fit` applies, include these fields in the plan or explicitly link to the artifact that contains them:
+
+```text
+Primary actor:
+Actor job-to-be-done:
+Product outcome:
+Concept ownership and boundaries:
+Input/output contract:
+Validation and resistance controls:
+AI/automation authority:
+Cross-slice impacts:
+Predecessor work needed:
+Evidence needed before confidence:
+Slice product-fit carried forward: Yes / No / Not applicable
+```
 
 ## Plan quality bar
 A plan is ready only if:
@@ -93,7 +119,35 @@ A plan is ready only if:
 - Production readiness needs are addressed for production-intended work, including reviewable scope, intentional commit boundary, rollback/mitigation, and observability/support expectations where relevant.
 - Documentation/context updates are included.
 - Open questions are either resolved, safely deferred, or explicitly blocking.
+- Decision-bearing questions and meaningful assumptions are surfaced in chat with recommendations, not only recorded in the plan.
 - The plan can be reviewed against the PRD, application model, and contract spec when present.
+
+## Chat handoff before execution
+Before implementation begins, present a compact chat handoff for any question, assumption, or risk that affects the next coding step.
+
+Every question must include:
+
+```text
+Question:
+Recommendation:
+Why this fits current evidence:
+Tradeoff or risk:
+Default action if approved or not corrected:
+```
+
+Group items as:
+
+- `Needs decision before work`: below 70% confidence, blocking, or affecting scope, contract, data ownership, AI/automation authority, security/privacy, persistence, dependencies, rollback, or user-visible behavior.
+- `Recommended default unless corrected`: 70%+ confidence and safe to proceed, but meaningful enough that the human should see it.
+- `Recorded for later`: useful context that does not affect this slice.
+
+If there are no attention items, say so briefly. Do not create ceremony for obvious Tiny/Micro work unless risk appears.
+
+## Product-fit hard gate
+- Do not write a Standard implementation plan without slice-product-fit evidence.
+- Do not hide unresolved actor, input, validation, concept ownership, AI/automation authority, or cross-slice questions inside implementation steps.
+- Do not ask the human a planning question without a recommended answer, rationale, tradeoff, and default action.
+- Do not plan the original slice when the correct next step is a predecessor slice.
 
 ## Hard gates
 - Do not implement while writing the plan.
@@ -102,6 +156,7 @@ A plan is ready only if:
 - Do not skip tests because work seems small. If TDD is not practical, document the exception and alternate verification.
 - Do not expand scope beyond the issue unless the PRD/model/contract/context-state are updated first.
 - Do not allow an issue into execution until `review-implementation-plan` passes or the user explicitly accepts the risk.
+- Do not execute a plan while `Needs decision before work` attention items remain unresolved.
 
 ## Stop and return when
 - Acceptance criteria are missing or untestable.
