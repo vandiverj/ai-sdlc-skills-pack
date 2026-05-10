@@ -32,6 +32,17 @@ The review should separate project-specific fixes from reusable skills-pack, tem
   - A maintainer-chosen central report location when reviewing many repositories.
 - Optional skills-pack issues or PR-ready recommendations.
 
+## Skill Improvement Loop
+When repeated process events point to a workflow or skill gap, convert them into reviewed skill-change proposals instead of relying on memory.
+
+Use this loop:
+1. Aggregate events by repeated failure mode, near miss, or successful pattern.
+2. Identify affected skills and the route location where the rule belongs.
+3. Draft the smallest environment-neutral rule or checklist change.
+4. Pressure-test the change with `test-skill-behavior` before editing the skill.
+5. Record the result in a portable skill changelog, preferably `docs/process-improvement/skill-changelog.md` in the skills/source repository or equivalent docs location.
+6. Apply the skill update only after the proposal has a clear owner, evidence, and rollback/deprecation path.
+
 ## Review steps
 1. Collect events from the selected projects.
 2. Validate that events are recent enough, redacted, and linked to usable evidence.

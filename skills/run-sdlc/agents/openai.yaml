@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Run SDLC"
+  short_description: "Orchestrate the AI SDLC workflow from request through routed phases"
+  default_prompt: "Use the run-sdlc skill to classify the work, choose the smallest safe SDLC route, invoke needed skills, track artifacts, and stop at consent gates."

@@ -51,6 +51,7 @@ Language-specific companion artifacts may be appropriate, such as schema files, 
 - Invalid states or invalid inputs that should be rejected.
 - Non-goals and explicitly unsupported behavior.
 - Documentation impact.
+- Human attention items.
 
 ## Contract types
 Choose the smallest contract form that makes the boundary reviewable:
@@ -74,12 +75,34 @@ Design how the contract can be challenged before implementation:
 
 For TypeScript, this may include type tests or examples that should fail. For other ecosystems, use the local equivalent: schemas, contract tests, property tests, invalid examples, or compile-time checks.
 
+## Human attention items
+Surface contract questions in chat before moving to implementation planning when they affect behavior, compatibility, side effects, rollback, AI/automation authority, safety, data ownership, user-visible workflow, or implementation scope.
+
+Every surfaced question must include:
+
+```text
+Question:
+Recommendation:
+Why this fits current evidence:
+Tradeoff or risk:
+Default action if approved or not corrected:
+```
+
+Use three groups:
+
+- `Needs decision before work`: below 70% confidence, blocking, contract-shaping, or risky.
+- `Recommended default unless corrected`: 70%+ confidence and safe, but meaningful enough to show.
+- `Recorded for later`: useful but not blocking the next step.
+
+Do not bury these only in `docs/context-state.md` or the contract artifact. Record them there as needed, but present the decision-bearing version in chat.
+
 ## Hard gates
 - Do not implement while writing the contract.
 - Do not duplicate the entire PRD. Link to it and specify only observable boundary behavior.
 - Do not invent public behavior unsupported by PRD/model/context.
 - Do not hand-author language-specific declaration files unless that is the best local artifact for the project.
 - If the contract exposes unclear requirements, update `docs/context-state.md` and return to PRD, model, issue, or grilling before implementation planning.
+- Do not proceed to implementation planning with unresolved `Needs decision before work` contract items.
 - If no public or cross-boundary contract changes, state that this skill is not needed and proceed to `write-implementation-plan`.
 
 ## Next skills

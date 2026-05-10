@@ -9,6 +9,19 @@ user-invocable: true
 ## Description
 Review an implementation plan before coding.
 
+## Slice Product-Fit Review
+For every Standard plan, verify that `slice-product-fit` ran and that the implementation plan preserved its decisions.
+
+Check:
+- The primary actor and secondary actors are explicit.
+- The actor job-to-be-done and product outcome are stated in human/domain language.
+- Concept ownership and boundaries are clear enough to avoid global/per-user/event/library confusion.
+- Input methods, validation rules, defaults, and error states reduce resistance and prevent low-quality input.
+- Shared vocabularies, libraries, and settings are controlled where consistency matters.
+- AI/automation authority is explicit, including suggest/decide/persist/escalate boundaries.
+- Cross-slice impacts and predecessor work are handled before coding.
+- Evidence needed before confidence is present and testable.
+
 ## Checks
 - Does the plan match the PRD?
 - Does it match docs/application-model.md?
@@ -31,12 +44,36 @@ Review an implementation plan before coding.
 - Are code-local documentation updates identified for public exports, shared types/schemas, integration boundaries, non-obvious behavior, invariants, errors, or examples?
 - Are verification commands listed?
 - Are documentation/context updates included?
+- Were human attention items surfaced in chat with recommendations, including 70%+ recommended defaults when meaningful?
 - Could an agent execute this without guessing?
 
 ## Principle guidance
 - Use `engineering-principles-review` when the plan introduces patterns, abstractions, dependencies, or broad refactors.
 - Line count estimates are only signals. The real concern is responsibility, cohesion, coupling, and abstraction level.
 - Design patterns should simplify the plan, not decorate it.
+
+## Product-fit hard gate
+- Do not approve a Standard implementation plan that lacks slice-product-fit evidence or an explicit route downgrade to Tiny/Micro.
+- Do not approve a plan that converts unresolved product-fit questions into hidden implementation assumptions.
+
+## Chat attention review
+Reject or revise a plan when decision-bearing questions are only stored in files. Every surfaced question must include:
+
+```text
+Question:
+Recommendation:
+Why this fits current evidence:
+Tradeoff or risk:
+Default action if approved or not corrected:
+```
+
+Confirm the plan separates:
+
+- `Needs decision before work`: unresolved blockers or below-70% confidence questions.
+- `Recommended default unless corrected`: 70%+ assumptions that are safe but meaningful.
+- `Recorded for later`: non-blocking context.
+
+Do not approve execution when `Needs decision before work` items remain unresolved unless the user explicitly accepts the risk.
 
 ## Hard gates
 - Do not approve a plan for public or cross-boundary behavior without an approved contract spec or explicit documented exception.
@@ -48,6 +85,7 @@ Review an implementation plan before coding.
 - Do not approve a plan that introduces or depends on new quality automation, CI gates, scanners, build tooling, or verification commands without `choose-quality-automation` approval when the decision is meaningful.
 - Do not approve a plan that introduces or depends on new RAG, embeddings, vector search, graph/index tooling, repo retrieval, hosted search, or Obsidian-style workflow without `choose-retrieval-approach` approval when the decision is meaningful.
 - Do not approve a plan that invents, promotes, deprecates, or supersedes a project implementation pattern without `choose-implementation-pattern` or `update-implementation-patterns` when the decision is meaningful.
+- Do not approve a plan that asks naked questions without recommendations.
 
 ## Loop behavior
 If the plan is incomplete, return to plan, `choose-technical-approach`, `choose-quality-automation`, `choose-retrieval-approach`, `choose-implementation-pattern`, contract, issues, PRD, model, engineering-principles-review, or context-state.

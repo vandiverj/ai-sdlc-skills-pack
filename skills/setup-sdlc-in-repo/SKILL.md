@@ -37,6 +37,7 @@ Runtime adapters to create/update:
 Existing files preserved:
 Merge conflicts or manual review needed:
 Agent strategy installed:
+Skill pack expectations installed:
 Implementation patterns installed:
 Quality/retrieval/tool boundaries installed:
 Verification commands discovered:
@@ -67,6 +68,7 @@ docs/patterns/README.md
 docs/patterns/pattern.md
 docs/process-improvement/events.jsonl
 docs/process-improvement/friction-log.md
+docs/process-improvement/skill-changelog.md
 ```
 
 Create PRD, contract, decision, issue, implementation-plan, release, concrete pattern, or feature-context folders only when the project needs them or the user asks for the full scaffold.
@@ -81,6 +83,9 @@ Adapters are optional and should stay thin:
 - Other tools: document the mapping in `docs/agents/runtime-adapters.md` before adding tool-specific files.
 
 Adapters should reference `AGENTS.md`, `docs/ai-sdlc-workflow.md`, and `docs/agents/*` instead of copying the full SDLC.
+
+## Skill pack expectations
+When installing or refreshing the SDLC, ensure the runtime can discover the portable skills root and that `slice-product-fit` is available for Standard work. Runtime-specific adapters may mention the rule, but the source of truth should stay in portable docs and the skill pack.
 
 ## Setup process
 1. Classify setup as `Standard` unless it only updates a tiny existing instruction file.
@@ -119,6 +124,11 @@ Install or update:
 - `docs/patterns/pattern.md` as the generic template for forms, tables, API handlers, data fetching, errors, tests, layouts, or feature modules.
 
 Create concrete pattern files only when the project has evidence, examples, or the user asks to document a specific pattern.
+
+## Skill root rules
+- Prefer a portable `.agents/skills` or documented equivalent over runtime-specific custom skill roots.
+- Do not install duplicate custom skills into runtime-specific roots unless the runtime cannot discover the portable root.
+- Keep runtime-owned system skills separate from portable project/SDLC skills.
 
 ## Hard rules
 - Do not make runtime-specific files the source of truth over portable SDLC docs.

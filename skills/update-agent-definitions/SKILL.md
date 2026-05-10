@@ -49,6 +49,9 @@ Next skill:
 - Preserve human Git review: make small scoped commits with intentional messages.
 - If the change affects downstream setup, update `setup-sdlc-in-repo` guidance.
 
+## Boundary With Skill Updates
+This skill owns agent roles, model-tier policy, delegation patterns, and runtime adapter guidance. General SDLC workflow behavior belongs in the relevant workflow skill, not in an agent definition. If a learning changes how all agents should plan a slice, test the rule and update the portable skill instead of burying it in one runtime adapter.
+
 ## Hard rules
 - Do not auto-update agent definitions from raw logs or one failed session.
 - Do not encode secrets, private prompts, private customer data, or local-only preferences.
