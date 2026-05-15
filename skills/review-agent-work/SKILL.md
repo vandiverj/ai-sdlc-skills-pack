@@ -24,7 +24,7 @@ Provide a human-facing review path that checks whether the SDLC process was foll
 3. Verification evidence from the current or reviewed session.
 4. Threat-model and production-readiness evidence when risk or release surfaces are present.
 5. Implementation pattern guidance and review evidence when repeated project-specific surfaces are present.
-6. Related code-local docs, feature context, application model, PRD, contract, ADRs, Memory Bank routing files, and `docs/context-state.md`.
+6. Related code-local docs, feature context, application model, PRD, contract, ADRs, Memory Bank routing files, and `<context-state>`.
 7. Classification output if available.
 
 ## Required output
@@ -52,7 +52,7 @@ Next skill:
 - Does any commit span unrelated tasks that should be split before merge?
 - Did code, tests, contracts, docs, Memory Bank routing, and context-state stay aligned?
 - Were docs updated only after confirming implementation correctness?
-- Were unresolved questions recorded in `docs/context-state.md` instead of conversation history?
+- Were unresolved questions recorded in `<context-state>` instead of conversation history?
 - Did high-risk work include `threat-model` coverage and security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review as applicable?
 - Did production-intended Standard or High-risk work include `production-readiness-review` coverage or equivalent evidence?
 - Did work that touched repeated project-specific surfaces include `choose-implementation-pattern` or `review-implementation-pattern` coverage when applicable?

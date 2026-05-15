@@ -11,7 +11,7 @@ Aggregate process-learning events from multiple projects and turn repeated evide
 
 ## Use when
 - The human wants to review process metrics across projects.
-- Several projects have `docs/process-improvement/events.jsonl` files.
+- Several projects have `<process-improvement>/events.jsonl` files (resolved via `sdlc-config`).
 - A recurring friction point, verification gap, routing miss, or useful pattern should be evaluated for workflow improvement.
 - The skills pack may need evidence-backed updates.
 
@@ -21,15 +21,15 @@ Convert project-local observations into portable improvements without treating m
 The review should separate project-specific fixes from reusable skills-pack, template, documentation, or tooling changes.
 
 ## Inputs
-- One or more project `docs/process-improvement/events.jsonl` files.
-- Optional project `docs/process-improvement/friction-log.md` files.
+- One or more project `<process-improvement>/events.jsonl` files (resolved via `sdlc-config` per project).
+- Optional project `<process-improvement>/friction-log.md` files.
 - Related PRs, session checkpoints, verification evidence, or review findings when needed.
 - Current skills pack docs and templates when recommending pack changes.
 
 ## Output artifacts
-- A cross-project review report, usually outside individual product source truth:
-  - `docs/process-improvement/reviews/<date>-process-learning-review.md`, for a single project.
-  - A maintainer-chosen central report location when reviewing many repositories.
+- A review report:
+  - Single-project review → `<process-improvement>/reviews/<date>-process-learning-review.md`.
+  - Cross-project review → `<process-reviews-cross>/<date>-process-learning-review.md` (`$VAULT_ROOT/_index/process-reviews/`).
 - Optional skills-pack issues or PR-ready recommendations.
 
 ## Skill Improvement Loop
@@ -40,7 +40,7 @@ Use this loop:
 2. Identify affected skills and the route location where the rule belongs.
 3. Draft the smallest environment-neutral rule or checklist change.
 4. Pressure-test the change with `test-skill-behavior` before editing the skill.
-5. Record the result in a portable skill changelog, preferably `docs/process-improvement/skill-changelog.md` in the skills/source repository or equivalent docs location.
+5. Record the result in the skills-pack changelog at `~/.agents/docs/process-improvement/skill-changelog.md` (the skills pack repo, NOT the consumer repo). This file is owned by the pack and versioned in its Git history.
 6. Apply the skill update only after the proposal has a clear owner, evidence, and rollback/deprecation path.
 
 ## Review steps

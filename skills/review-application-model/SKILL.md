@@ -22,7 +22,7 @@ Find missing workflows, unclear boundaries, circular dependencies, and untestabl
 - Is the MVP boundary realistic?
 - Is the first vertical slice identifiable?
 - Do diagrams match the written model?
-- Are open questions recorded in `docs/context-state.md`?
+- Are open questions recorded in `<context-state>`?
 
 ## Loop behavior
 If blocking gaps exist, return to `grill-me` or `model-application` and update `context-state.md`.

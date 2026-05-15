@@ -13,11 +13,11 @@ Restore the current project state before beginning work. Use this at the start o
 Avoid reprocessing long conversations or scanning the whole repository by loading durable routing and state artifacts first.
 
 ## Read first
-1. `docs/memory-bank/activeContext.md`, if present.
-2. `docs/memory-bank/contextIndex.md`, if present.
-3. `docs/memory-bank/progress.md`, if present.
-4. `docs/context-state.md`, if present.
-5. Latest relevant file in `docs/session-checkpoints/`, if present.
+1. `<memory-bank>/activeContext.md`, if present.
+2. `<memory-bank>/contextIndex.md`, if present.
+3. `<memory-bank>/progress.md`, if present.
+4. `<context-state>`, if present.
+5. Latest relevant file in `<session-checkpoints>/`, if present.
 6. Current branch and working tree status.
 7. Current task or user request.
 
@@ -27,6 +27,15 @@ Avoid reprocessing long conversations or scanning the whole repository by loadin
 - `progress.md`: what is built, in progress, not started, and known issues.
 - `productContext.md`: product north star, loaded only when product intent matters.
 - `decisionIndex.md`: decision map, loaded when architectural or scope decisions matter.
+
+## Resolver fallback behavior
+Resolve `<memory-bank>`, `<context-state>`, `<session-checkpoints>` via `sdlc-config` before reading anything. Three outcomes:
+
+- **Vault path returned and contains artifacts**: restore proceeds normally.
+- **Vault path returned but `VAULT_ROOT` is unreachable** (OneDrive offline, mount missing, permission error): surface a chat warning naming the configured `VAULT_ROOT` and the fallback path that will be used. Continue restore from the repo-local fallback (`docs/memory-bank/`, `docs/context-state.md`, `docs/session-checkpoints/`). Do not stop.
+- **Both vault and fallback empty**: surface a "no prior context found" warning naming both attempted paths. Continue with the user request as a cold start.
+
+Never silently downgrade from vault to repo-local. The user must see the warning so they can decide whether to wait for sync or accept the fallback.
 
 ## Process
 1. Read the smallest restoration packet: active context, context index, progress, context-state, and latest checkpoint if needed.
@@ -49,3 +58,4 @@ Avoid reprocessing long conversations or scanning the whole repository by loadin
 - Do not treat Memory Bank summaries as authoritative when they conflict with code, tests, PRDs, ADRs, application model, or feature context files.
 - Do not load every memory and doc file by default.
 - If restoration reveals stale or contradictory routing files, route to `manage-context-state` or `update-context-docs`.
+- Do not silently downgrade to repo-local when vault mode is enabled but unreachable; surface the warning per `## Resolver fallback behavior`.

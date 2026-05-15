@@ -194,7 +194,7 @@ Memory Bank files summarize current state, pending work, and routing. They do no
 - `progress.md`: current status, pending work, known gaps, and not-yet-done work. Mention completed work only when it explains current state or prevents confusion.
 - `decisionIndex.md`: concise index of decisions with links to ADRs. ADRs own full rationale.
 - `contextIndex.md`: map of PRDs, feature contexts, model sections, workflows, contracts, documented source surfaces, and when to load them.
-- `docs/context-state.md`: uncertainty ledger: assumptions, open questions, deferred decisions, blocked items, affected artifacts, and revisit triggers.
+- `<context-state>`: uncertainty ledger: assumptions, open questions, deferred decisions, blocked items, affected artifacts, and revisit triggers.
 - `docs/agents/*`: portable agent strategy, model tiers, specialist roles, delegation patterns, runtime adapter mappings, and reviewed learning loop.
 - `docs/patterns/*`: project-specific implementation patterns, maturity, canonical examples, exceptions, deprecated patterns, and change triggers.
 
@@ -203,6 +203,8 @@ Do not duplicate full requirements, architecture, issue details, contract detail
 ## Process Learning
 
 Process-learning events are optional project-local observations used to improve the workflow over time. They live outside Memory Bank so they do not become product state or hidden requirements.
+
+Repo-local fallback shape; vault mode resolves these via the symbols in `skills/sdlc-config/SKILL.md`.
 
 ```text
 docs/process-improvement/

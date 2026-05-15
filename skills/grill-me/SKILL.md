@@ -30,4 +30,4 @@ Ask targeted questions one at a time when possible. Prefer clarifying decisions 
 - Edge cases
 - Scope boundaries
 - Remaining unknowns
-- Questions that should be added to `docs/context-state.md`
+- Questions that should be added to `<context-state>`

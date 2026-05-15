@@ -133,9 +133,9 @@ File ownership:
 - progress.md owns current status, pending work, known gaps, and not-yet-done work. It mentions completed work only when needed to explain current state.
 - `decisionIndex.md` owns a concise decision index with links to ADRs.
 - `contextIndex.md` owns the map of important artifacts and when to load them.
-- docs/context-state.md owns uncertainty: assumptions, open questions, deferred decisions, blocked items, affected artifacts, and revisit triggers.
+- `<context-state>` owns uncertainty: assumptions, open questions, deferred decisions, blocked items, affected artifacts, and revisit triggers.
 
-Decision rule: Memory Bank stores what is known and what is next. docs/context-state.md stores what is unknown, suspected, deferred, contradicted, blocked, or needs review.
+Decision rule: Memory Bank stores what is known and what is next. `<context-state>` stores what is unknown, suspected, deferred, contradicted, blocked, or needs review.
 
 Memory Bank files summarize current state, pending work, and routing. They do not store the full history of AI changes. Durable artifacts define and prove.
 
@@ -173,7 +173,7 @@ For new projects or meaningful technical surface changes, choose and approve the
 
 Use `choose-technical-approach` after `define-application` has enough product/workflow/data context, and before `model-application` depends on stack constraints. Re-run it when a feature needs a new framework, library, service, database, runtime, hosting target, auth provider, queue, job system, AI provider, testing tool, deployment model, or other technical surface change.
 
-Approved technical choices belong in ADRs, docs/application-model.md, AGENTS.md, docs/context-state.md, and Memory Bank indexes as applicable.
+Approved technical choices belong in ADRs, docs/application-model.md, AGENTS.md, `<context-state>`, and Memory Bank indexes as applicable.
 
 ## Quality automation
 
@@ -183,7 +183,7 @@ Use `choose-quality-automation` after `choose-technical-approach` when the stack
 
 The workflow should prefer deterministic tooling over agent judgment for repeatable consistency and validation. Passing tools is evidence, not proof that the right product behavior was built.
 
-Approved quality automation belongs in command wiring, CI/task runner files, AGENTS.md, verification expectations, ADRs when durable rationale is needed, docs/context-state.md for deferred gaps, and Memory Bank indexes as applicable.
+Approved quality automation belongs in command wiring, CI/task runner files, AGENTS.md, verification expectations, ADRs when durable rationale is needed, `<context-state>` for deferred gaps, and Memory Bank indexes as applicable.
 
 ## Retrieval approach
 
@@ -193,7 +193,7 @@ Use `choose-retrieval-approach` after `choose-technical-approach` and `choose-qu
 
 Retrieval output is a pointer, not proof. Important claims must trace back to authoritative artifacts such as code, tests, code-local docs, PRDs, contracts, ADRs, application model, feature context, AGENTS.md, context-state, or Memory Bank routing files.
 
-Approved retrieval choices belong in AGENTS.md, Memory Bank context indexes, docs/context-state.md, ADRs when durable rationale is needed, generated index/report locations, and tool boundaries as applicable.
+Approved retrieval choices belong in AGENTS.md, Memory Bank context indexes, `<context-state>`, ADRs when durable rationale is needed, generated index/report locations, and tool boundaries as applicable.
 
 ## Contract-first development
 
@@ -393,7 +393,7 @@ Retrieval/indexing tools such as Graphify, embeddings, vector search, repo retri
 
 ## Process improvement layer
 
-Each project may capture lightweight process-learning events in `docs/process-improvement/events.jsonl`. Periodic `review-process-learning` runs can merge those logs across projects, rank patterns by severity and frequency, and propose improvements to project-local guidance, templates, quality automation, retrieval, or the reusable skills pack.
+Each project may capture lightweight process-learning events in `<process-improvement>/events.jsonl`. Periodic `review-process-learning` runs can merge those logs across projects, rank patterns by severity and frequency, and propose improvements to project-local guidance, templates, quality automation, retrieval, or the reusable skills pack.
 
 Events are evidence for review, not automatic policy. Accepted changes still need normal human approval and scoped edits.
 
@@ -418,7 +418,7 @@ A task is not done until:
 - Review feedback is processed intentionally.
 - Feature `context.md` is updated if behavior, structure, related artifacts, loading guidance, or public surface changed.
 - `docs/application-model.md` is updated if feature boundaries, workflows, entities, or architecture changed.
-- docs/context-state.md is updated with resolved, deferred, open, and affected items.
+- `<context-state>` is updated with resolved, deferred, open, and affected items.
 - Technical approach ADRs, application model, AGENTS.md, and context indexes are updated when stack, dependency, deployment, testing, or operations decisions changed.
 - Quality automation commands, CI/task runner wiring, verification expectations, AGENTS.md, and context indexes are updated when deterministic quality rails changed or should have changed.
 - Retrieval approach decisions, index/report locations, freshness expectations, privacy boundaries, AGENTS.md, and context indexes are updated when retrieval rails changed or should have changed.

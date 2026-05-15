@@ -35,12 +35,12 @@ This skill does not preserve full AI activity history. Finished implementation t
 - `docs/prds/` owns requirements.
 - `docs/contracts/` owns public and cross-boundary contract specs.
 - `docs/decisions/` owns full decision rationale.
-- `docs/context-state.md` owns uncertainty, affected artifacts, and revisit triggers.
-- `docs/memory-bank/activeContext.md` owns current focus and next action.
-- `docs/memory-bank/productContext.md` owns product north star.
-- `docs/memory-bank/progress.md` owns current status, pending work, known gaps, and not-yet-done work.
-- `docs/memory-bank/decisionIndex.md` owns the decision index and ADR links.
-- `docs/memory-bank/contextIndex.md` owns the routing map for what to load when.
+- `<context-state>` owns uncertainty, affected artifacts, and revisit triggers.
+- `<memory-bank>/activeContext.md` owns current focus and next action.
+- `<memory-bank>/productContext.md` owns product north star.
+- `<memory-bank>/progress.md` owns current status, pending work, known gaps, and not-yet-done work.
+- `<memory-bank>/decisionIndex.md` owns the decision index and ADR links.
+- `<memory-bank>/contextIndex.md` owns the routing map for what to load when.
 - `docs/agents/` owns portable agent strategy, model-tier policy, delegation patterns, runtime adapter mappings, specialist roles, and agent learning loop.
 - `docs/patterns/` owns project-specific implementation pattern guidance, maturity, examples, exceptions, and change triggers.
 - `AGENTS.md` owns concise agent setup, commands, conventions, and verification guidance.
@@ -55,7 +55,7 @@ Before updating durable docs to match code, run or account for `assert-doc-sync`
 - Update `src/features/<feature>/context.md` if behavior, structure, public surface, loading guidance, or related artifacts changed.
 - Update `docs/application-model.md` if feature boundaries, workflows, entities, architecture, diagrams, or trust boundaries changed.
 - Update `docs/contracts/` if public or cross-boundary behavior changed.
-- Update `docs/context-state.md` for open, deferred, blocked, superseded, affected, or still-relevant resolved items.
+- Update `<context-state>` for open, deferred, blocked, superseded, affected, or still-relevant resolved items.
 - Update PRDs or issues if scope changed.
 - Update Memory Bank routing files if focus, pending work, known gaps, decision links, product north star, or context selection guidance changed.
 - Update `AGENTS.md` if commands, conventions, verification expectations, security gotchas, or agent workflow guidance changed.
@@ -100,7 +100,7 @@ Feature context should be thin and link-oriented when code-local docs are strong
 - `docs/agents/*`: update when agent roles, model-tier policy, delegation patterns, runtime adapters, or learning-loop guidance changed.
 - `docs/patterns/*`: update when implementation pattern guidance, maturity, examples, exceptions, or change triggers changed.
 - `productContext.md`: update only when the product thesis, target user, product principle, or non-goal changes.
-- `docs/context-state.md`: update when uncertainty, assumptions, affected artifacts, or revisit triggers change.
+- `<context-state>`: update when uncertainty, assumptions, affected artifacts, or revisit triggers change.
 
 ## Memory Bank update rules
 - Keep Memory Bank files concise.
@@ -118,6 +118,6 @@ Feature context should be thin and link-oriented when code-local docs are strong
 - Do not mark docs updated if only code changed and no durable knowledge changed.
 - Do not update docs merely to make surprising implementation behavior look intentional.
 - Do not leave stale comments, stale feature context, stale unresolved items, or stale Memory Bank routing that points to superseded artifacts.
-- If documentation updates reveal unclear requirements, update `context-state.md` and route back to the relevant model, PRD, issue, contract, or plan skill.
-- If documentation updates reveal unclear agent ownership, model-tier mapping, or runtime adapter behavior, update `context-state.md` and route to `choose-agent-strategy` or `update-agent-definitions`.
-- If documentation updates reveal unclear, stale, or disputed implementation pattern guidance, update `context-state.md` and route to `choose-implementation-pattern` or `update-implementation-patterns`.
+- If documentation updates reveal unclear requirements, update `<context-state>` and route back to the relevant model, PRD, issue, contract, or plan skill.
+- If documentation updates reveal unclear agent ownership, model-tier mapping, or runtime adapter behavior, update `<context-state>` and route to `choose-agent-strategy` or `update-agent-definitions`.
+- If documentation updates reveal unclear, stale, or disputed implementation pattern guidance, update `<context-state>` and route to `choose-implementation-pattern` or `update-implementation-patterns`.

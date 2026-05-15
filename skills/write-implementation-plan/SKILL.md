@@ -35,7 +35,7 @@ Make implementation testable, bounded, maintainable, and reviewable before editi
 13. Applicable implementation patterns, pattern status, canonical examples, and exceptions, if relevant.
 14. Threat-model output or explicit not-required reason when risk surfaces are present.
 15. Production readiness constraints, release expectations, rollback requirements, and Git review expectations when the work is production-intended.
-16. Relevant open questions from `docs/context-state.md`.
+16. Relevant open questions from `<context-state>`.
 17. Existing source files and tests only when needed to identify exact file responsibilities.
 
 ## Slice Product-Fit Gate

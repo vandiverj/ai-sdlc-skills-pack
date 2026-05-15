@@ -23,7 +23,7 @@ Prevent drift by defining the application's structures, workflows, data, compone
 
 ## Read first
 1. Selected context packet from `select-context`.
-2. `docs/context-state.md`, especially open questions and affected artifacts.
+2. `<context-state>`, especially open questions and affected artifacts.
 3. Existing `docs/application-model.md`, if present.
 4. Approved technical approach ADRs or decision notes, if present.
 5. Related PRDs, ADRs, feature `context.md` files, or source files named by the context packet.
@@ -74,7 +74,7 @@ Use Mermaid unless the project has a stronger local diagram convention.
 5. Check cohesion, coupling, and dependency direction for major modules.
 6. Add diagrams for relationships that would otherwise require prose-heavy explanation.
 7. Mark uncertain sections clearly instead of inventing certainty.
-8. Update `docs/context-state.md` with new open questions, changed assumptions, affected artifacts, and revisit triggers.
+8. Update `<context-state>` with new open questions, changed assumptions, affected artifacts, and revisit triggers.
 9. Present the model for review before PRD or issue generation.
 
 ## Engineering principle guidance

@@ -17,7 +17,7 @@ Prevent experiments from polluting main and preserve clean execution context.
 2. Confirm working tree status.
 3. Create a feature branch or worktree.
 4. Run baseline health-check if appropriate.
-5. Record branch name and phase in `docs/context-state.md` or a session checkpoint.
+5. Record branch name and phase in `<context-state>` or a session checkpoint.
 
 ## Rules
 - Do not force-push.

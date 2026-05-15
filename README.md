@@ -49,6 +49,8 @@ Feature `context.md` files should be thinner and more link-oriented when code-lo
 
 The workflow uses a thin Memory Bank as a routing layer:
 
+The block below shows the repo-local fallback shape. In vault mode, these paths resolve via the symbols documented in `skills/sdlc-config/SKILL.md` `## Path symbols` (`<memory-bank>`, `<process-improvement>`, etc.) — see `skills/run-sdlc/SKILL.md` `## Context storage location` for the trust-zone split.
+
 ```text
 docs/memory-bank/
   activeContext.md
@@ -69,9 +71,11 @@ Memory Bank files summarize current state, pending work, and routing. They do no
 - `docs/agents/` owns portable agent roles, model-tier policy, delegation patterns, runtime adapters, and learning loop guidance.
 - `docs/patterns/` owns project-specific implementation pattern guidance, maturity, examples, exceptions, and change triggers.
 - `src/features/<feature>/context.md` owns feature-level maps and loading guidance.
-- `docs/context-state.md` owns uncertainty, assumptions, affected artifacts, and revisit triggers.
+- `<context-state>` owns uncertainty, assumptions, affected artifacts, and revisit triggers.
 
 Process-learning metrics live separately from Memory Bank:
+
+Repo-local fallback shape; vault mode resolves these via the symbols in `skills/sdlc-config/SKILL.md`.
 
 ```text
 docs/process-improvement/
@@ -80,6 +84,8 @@ docs/process-improvement/
 ```
 
 Use `capture-process-event` to record small observations about friction, gaps, corrections, near misses, and useful workflow successes during project work. Use `review-process-learning` to aggregate those events across projects and propose evidence-backed improvements to project guidance, templates, tooling, retrieval, or the skills pack.
+
+Personal AI memory storage (Memory Bank, context-state, session checkpoints, process-improvement events, knowledge graph) is path-neutral in the skills themselves. Each skill references storage through symbols like `<memory-bank>` and `<context-state>`. The active `skills/sdlc-config/SKILL.md` defines what those symbols resolve to on this machine — either a personal vault root (`$VAULT_ROOT/<project_slug>/...`) or the repo-local `docs/...` fallback. See `skills/run-sdlc/SKILL.md` `## Context storage location` for the trust-zone split between personal memory and team-shareable artifacts.
 
 ## Tool and MCP use
 

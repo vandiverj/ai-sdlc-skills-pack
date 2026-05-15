@@ -15,15 +15,15 @@ Preserve the current focus, pending work, unresolved questions, affected artifac
 Session checkpoints may contain historical handoff detail. Memory Bank files must not become session history.
 
 ## Output artifacts
-- `docs/session-checkpoints/<date>-<topic>.md`
-- `docs/memory-bank/activeContext.md`, when current focus, next action, branch, or blocker changed.
-- `docs/memory-bank/progress.md`, when current status, pending work, known gaps, or not-yet-done work changed.
-- `docs/memory-bank/decisionIndex.md`, when decisions or ADR links changed.
-- `docs/memory-bank/contextIndex.md`, when future context selection guidance changed.
-- `docs/context-state.md`, when assumptions, open questions, deferred decisions, blocked items, or affected artifacts changed.
+- `<session-checkpoints>/<date>-<topic>.md`
+- `<memory-bank>/activeContext.md`, when current focus, next action, branch, or blocker changed.
+- `<memory-bank>/progress.md`, when current status, pending work, known gaps, or not-yet-done work changed.
+- `<memory-bank>/decisionIndex.md`, when decisions or ADR links changed.
+- `<memory-bank>/contextIndex.md`, when future context selection guidance changed.
+- `<context-state>`, when assumptions, open questions, deferred decisions, blocked items, or affected artifacts changed.
 - `docs/agents/*`, when agent roles, model-tier policy, delegation patterns, runtime adapters, or learning-loop guidance changed.
 - `docs/patterns/*`, when implementation pattern guidance, maturity, examples, exceptions, or change triggers changed.
-- `docs/process-improvement/events.jsonl`, when real work exposed process friction, gaps, corrections, near misses, or useful successes worth later review.
+- `<process-improvement>/events.jsonl`, when real work exposed process friction, gaps, corrections, near misses, or useful successes worth later review.
 
 ## Required checkpoint sections
 - Current branch or workspace.
@@ -55,6 +55,33 @@ Session checkpoints may contain historical handoff detail. Memory Bank files mus
 - Do not copy the whole checkpoint into Memory Bank files.
 - Do not copy raw MCP/tool output into Memory Bank files.
 
+## Frontmatter contract
+Every saved artifact carries YAML frontmatter so multi-machine resume works without scanning bodies.
+
+Session checkpoints (`<session-checkpoints>/<date>-<topic>.md`):
+
+```yaml
+---
+project_slug: <slug>
+machine: <SDLC_MACHINE_PROFILE>
+date: <YYYY-MM-DD>
+topic: <kebab-case>
+---
+```
+
+Memory Bank files (`activeContext.md`, `productContext.md`, `progress.md`, `decisionIndex.md`, `contextIndex.md`):
+
+```yaml
+---
+project_slug: <slug>
+last_updated: <YYYY-MM-DD>
+---
+```
+
+`<context-state>` follows the Memory Bank shape. `<process-improvement>/events.jsonl` is line-delimited JSON and carries `project_slug` and `machine` on each record instead of a frontmatter block.
+
+Read `SDLC_MACHINE_PROFILE` from `sdlc-config` and `project_slug` from the active `.sdlc-project` marker. Do not hard-code either value.
+
 ## Finished-work rule
 Finished work should be documented primarily in code, tests, code-local docs, contracts, release docs, feature context links, PRs, or changelog entries. Do not re-store completed implementation history in Memory Bank files unless it affects current or future work.
 
@@ -75,4 +102,4 @@ If project-specific pattern guidance affected a decision, plan, implementation, 
 - Do not duplicate full PRDs, model sections, contract specs, issue text, source docs, tool dumps, or ADR rationale into Memory Bank files.
 - Do not duplicate full agent transcripts, specialist reports, or runtime adapter configs into Memory Bank files; link to the owning artifact or checkpoint.
 - Do not duplicate full implementation pattern docs into Memory Bank files; link to `docs/patterns/*`.
-- Do not mix process-learning events into Memory Bank files; use `docs/process-improvement/events.jsonl`.
+- Do not mix process-learning events into Memory Bank files; use `<process-improvement>/events.jsonl`.

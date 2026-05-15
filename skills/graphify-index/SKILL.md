@@ -25,9 +25,9 @@ This skill is optional. It is a memory and context-management accelerator, not a
 
 ## Behavior
 - Build or update the graph using the selected graphing/indexing tool.
-- Store generated files in a predictable location, such as `docs/knowledge-graph/`.
+- Store generated files in a predictable location, such as `<knowledge-graph>/`.
 - Summarize key nodes, relationships, freshness, and limits in a human-readable report.
-- Record graph location and freshness in `docs/context-state.md` or `docs/memory-bank/contextIndex.md`.
+- Record graph location and freshness in `<context-state>` or `<memory-bank>/contextIndex.md`.
 
 ## Rules
 - The graph is not a source of truth.

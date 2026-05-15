@@ -23,9 +23,9 @@ Keep the agent in the smart zone: enough context to act safely, not so much that
 1. Work classification from `classify-work`, if available.
 2. User request or current issue.
 3. `AGENTS.md`, if commands or conventions are needed.
-4. `docs/memory-bank/activeContext.md`, if present.
-5. `docs/memory-bank/contextIndex.md`, if present.
-6. `docs/context-state.md`, if present.
+4. `<memory-bank>/activeContext.md`, if present.
+5. `<memory-bank>/contextIndex.md`, if present.
+6. `<context-state>`, if present.
 7. Relevant PRD, contract, application model section, ADR, or feature `context.md`, if the task names one.
 8. Approved retrieval approach and index freshness, if present.
 9. Agent strategy docs, model-tier policy, delegation patterns, and runtime adapter mappings if delegation/model routing matters.

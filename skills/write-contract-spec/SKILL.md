@@ -94,14 +94,14 @@ Use three groups:
 - `Recommended default unless corrected`: 70%+ confidence and safe, but meaningful enough to show.
 - `Recorded for later`: useful but not blocking the next step.
 
-Do not bury these only in `docs/context-state.md` or the contract artifact. Record them there as needed, but present the decision-bearing version in chat.
+Do not bury these only in `<context-state>` or the contract artifact. Record them there as needed, but present the decision-bearing version in chat.
 
 ## Hard gates
 - Do not implement while writing the contract.
 - Do not duplicate the entire PRD. Link to it and specify only observable boundary behavior.
 - Do not invent public behavior unsupported by PRD/model/context.
 - Do not hand-author language-specific declaration files unless that is the best local artifact for the project.
-- If the contract exposes unclear requirements, update `docs/context-state.md` and return to PRD, model, issue, or grilling before implementation planning.
+- If the contract exposes unclear requirements, update `<context-state>` and return to PRD, model, issue, or grilling before implementation planning.
 - Do not proceed to implementation planning with unresolved `Needs decision before work` contract items.
 - If no public or cross-boundary contract changes, state that this skill is not needed and proceed to `write-implementation-plan`.
 

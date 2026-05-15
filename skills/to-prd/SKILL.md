@@ -15,7 +15,7 @@ Turn clarified context into product requirements without re-interviewing the use
 ## Inputs
 - Conversation context from `grill-me` or approved design notes.
 - `docs/application-model.md`.
-- Relevant `docs/context-state.md` open questions.
+- Relevant `<context-state>` open questions.
 - Related feature `context.md`, ADRs, or existing repo context when applicable.
 
 ## Required sections

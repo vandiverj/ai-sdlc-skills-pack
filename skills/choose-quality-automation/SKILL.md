@@ -92,7 +92,7 @@ After approval, route updates to the owning artifacts:
 - ADRs or technical decision docs own durable rationale when automation changes dependencies, CI, release gates, or developer workflow.
 - `docs/application-model.md` owns verification, deployment, generated artifact, or operational implications when they affect the system model.
 - PRDs, issues, contracts, and implementation plans own feature-specific verification expectations.
-- `docs/context-state.md` owns unresolved tooling gaps, flaky checks, deferred automation, and reconsideration triggers.
+- `<context-state>` owns unresolved tooling gaps, flaky checks, deferred automation, and reconsideration triggers.
 - Memory Bank indexes link to quality automation decisions and command locations when present.
 
 ## Lifecycle integration

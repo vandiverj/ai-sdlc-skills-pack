@@ -22,7 +22,7 @@ This skill is optional. It supports memory and context management for larger pro
 - Selected context contradicts code.
 - A change may affect multiple features.
 - `select-context` needs help choosing the next source files or artifacts.
-- `docs/memory-bank/contextIndex.md` is too sparse or stale to route the task.
+- `<memory-bank>/contextIndex.md` is too sparse or stale to route the task.
 
 ## Example questions
 - What features depend on this module?
@@ -42,7 +42,7 @@ This skill is optional. It supports memory and context management for larger pro
 - Do not treat graph answers as authoritative.
 - Do not continue from graph output alone when correctness matters. Load the cited source artifacts.
 - Do not use graph querying as a default context step for small or ordinary work.
-- If graph output exposes stale docs, stale Memory Bank routing, or contradictory relationships, mark affected artifacts in `docs/context-state.md`.
+- If graph output exposes stale docs, stale Memory Bank routing, or contradictory relationships, mark affected artifacts in `<context-state>`.
 
 ## Next skills
 Usually `select-context`, `manage-context-state`, `update-context-docs`, or the skill that needed the relationship answer.

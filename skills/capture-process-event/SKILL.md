@@ -23,8 +23,8 @@ Make process improvement evidence-based without relying on conversation memory o
 Process events are observations, not decisions. They should be small enough to record during normal work and structured enough to aggregate across projects.
 
 ## Output artifacts
-- `docs/process-improvement/events.jsonl`
-- `docs/process-improvement/friction-log.md`, optional human-readable rollup for notable events.
+- `<process-improvement>/events.jsonl`
+- `<process-improvement>/friction-log.md`, optional human-readable rollup for notable events.
 
 ## Skill Change Candidates
 When an event reveals a reusable process gap, name the likely skill owner instead of storing it as a vague lesson. Prefer environment-neutral owners such as `run-sdlc`, `slice-product-fit`, `write-implementation-plan`, `review-implementation-plan`, `test-skill-behavior`, or `review-process-learning`.
@@ -41,7 +41,7 @@ Append one JSON object per line:
 Use stable keys so simple scripts can merge events from many repositories.
 
 ## Capture rules
-1. Prefer project-local files under `docs/process-improvement/`.
+1. Prefer project-local files under `<process-improvement>/`.
 2. Keep each event short and factual.
 3. Redact secrets, customer data, private URLs, tokens, credentials, and unnecessary source snippets.
 4. Link or name evidence instead of copying long tool output.

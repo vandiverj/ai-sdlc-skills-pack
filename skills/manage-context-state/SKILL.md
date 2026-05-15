@@ -21,23 +21,23 @@ Maintain the project's uncertainty ledger: what is assumed, unknown, deferred, b
 ## Purpose
 Allow future sessions to resume from durable project state without rereading entire conversations or re-discovering known uncertainty.
 
-`docs/context-state.md is not a history file. It is the current uncertainty and review-trigger ledger.
+`<context-state>` is not a history file. It is the current uncertainty and review-trigger ledger.
 
-Decision rule: Memory Bank stores what is known and what is next. docs/context-state.md stores what is unknown, suspected, deferred, contradicted, blocked, or needs review.
+Decision rule: Memory Bank stores what is known and what is next. `<context-state>` stores what is unknown, suspected, deferred, contradicted, blocked, or needs review.
 
 ## Output artifact
-`docs/context-state.md`
+`<context-state>`
 
 ## Related routing artifacts
-- `docs/memory-bank/activeContext.md` owns current focus and next action.
-- `docs/memory-bank/progress.md` owns current status, pending work, known gaps, and not-yet-done work.
-- `docs/memory-bank/decisionIndex.md` owns decision links and short summaries.
-- `docs/memory-bank/contextIndex.md` owns where to load context from.
-- `docs/context-state.md` owns uncertainty, affected artifacts, and revisit triggers.
+- `<memory-bank>/activeContext.md` owns current focus and next action.
+- `<memory-bank>/progress.md` owns current status, pending work, known gaps, and not-yet-done work.
+- `<memory-bank>/decisionIndex.md` owns decision links and short summaries.
+- `<memory-bank>/contextIndex.md` owns where to load context from.
+- `<context-state>` owns uncertainty, affected artifacts, and revisit triggers.
 
 ## Read first
 1. Selected context packet from `select-context`, if available.
-2. Existing `docs/context-state.md`.
+2. Existing `<context-state>`.
 3. Relevant Memory Bank routing files when the task affects focus, progress, decisions, or context selection.
 4. Relevant `docs/application-model.md` sections.
 5. Related PRDs, contracts, ADRs, issue text, feature `context.md`, or checkpoint files named by the task.

@@ -207,7 +207,7 @@ Surface routing:
 - `agentOpsSurfaceChanged` -> update `AGENTS.md`, setup commands, verification commands, safe-edit rules, or workflow guidance.
 - `agentStrategyChanged` -> run `choose-agent-strategy`, `review-agent-strategy`, or `update-agent-definitions`; update `docs/agents/*`, runtime adapters, or AGENTS.md as applicable.
 - `processLearningSurfaceChanged` -> run `capture-process-event` or include the evidence in a `review-process-learning` report.
-- `uncertaintyChanged` -> update `docs/context-state.md`.
+- `uncertaintyChanged` -> update `<context-state>`.
 
 Legacy dirty flags may still appear in older artifacts. Map them to the surface groups instead of preserving both lists.
 

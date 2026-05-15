@@ -19,7 +19,7 @@ Keep implementation tied to the plan, tests, and verification rather than ad hoc
 4. Execute one task at a time.
 5. Prefer TDD for behavior changes.
 6. Stop on blockers, unclear requirements, or artifact disagreement.
-7. Update `docs/context-state.md` if new questions arise.
+7. Update `<context-state>` if new questions arise.
 8. Run verification commands listed in the plan.
 
 ## Chat attention preflight

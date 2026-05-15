@@ -25,6 +25,26 @@ The AI handles routing, context selection, artifact drafting, verification disci
 ## Core rule
 Do not run the whole workflow by default. Run the smallest route that prevents the most likely expensive failure.
 
+## Context storage location
+Skills in this pack split storage into two trust zones. Every storage-touching skill MUST honor this split.
+
+**Personal AI memory (path-neutral symbols, resolved by `sdlc-config`).** Skill text refers to these locations only by symbol; the resolver picks the concrete path at runtime.
+
+| Symbol | Resolves to when vault enabled | Repo-local fallback |
+|--------|--------|--------|
+| `<memory-bank>` | `$VAULT_ROOT/<project_slug>/memory-bank` | `docs/memory-bank` |
+| `<context-state>` | `$VAULT_ROOT/<project_slug>/context-state.md` | `docs/context-state.md` |
+| `<session-checkpoints>` | `$VAULT_ROOT/<project_slug>/session-checkpoints` | `docs/session-checkpoints` |
+| `<process-improvement>` | `$VAULT_ROOT/<project_slug>/process-improvement` | `docs/process-improvement` |
+| `<knowledge-graph>` | `$VAULT_ROOT/<project_slug>/knowledge-graph` | `docs/knowledge-graph` |
+| `<process-reviews-cross>` | `$VAULT_ROOT/_index/process-reviews` | `docs/process-improvement/reviews` |
+
+**Team artifacts (literal `docs/` paths in skills, never moved).** `docs/agents/*`, `docs/patterns/*`, `docs/prds/`, `docs/contracts/`, `docs/decisions/`, `docs/application-model.md`, `docs/ai-sdlc-workflow.md`, repo-root `AGENTS.md`, and `src/features/<feature>/context.md` always live in the consumer repo and ship through PRs. Skills reference these by their literal path.
+
+**Project slug source.** Every consumer repo carries a one-line `.sdlc-project` file at its root: `project_slug = <slug>`. The resolver reads this; if absent it falls back to `SDLC_DEFAULT_PROJECT_SLUG` from `sdlc-config`; if that is also unset it surfaces a chat warning.
+
+**Authoritative resolver.** `~/.agents/skills/sdlc-config/SKILL.md` owns the resolver algorithm, the current per-machine values, and the schema. Other skills cite it; they do not duplicate it.
+
 ## What this skill does
 1. Interpret the user request.
 2. Run or simulate `classify-work`.

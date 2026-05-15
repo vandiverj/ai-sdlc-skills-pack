@@ -23,7 +23,7 @@ Make technical direction explicit before modeling, PRDs, issue slicing, or imple
 1. `define-application` output or existing application definition.
 2. Product constraints, users, workflows, data concepts, integrations, MVP boundary, and non-goals.
 3. Existing `docs/application-model.md`, ADRs, AGENTS.md, package/build files, deployment files, and repo conventions if the project already exists.
-4. Relevant `docs/context-state.md` entries.
+4. Relevant `<context-state>` entries.
 5. Current external docs through `select-tools` when version-specific library, service, license, security, or deployment facts matter.
 
 ## Required output
@@ -83,9 +83,9 @@ After approval, route updates to the owning artifacts:
 - `docs/decisions/000x-<decision>.md` owns durable technical rationale.
 - `docs/application-model.md` owns architecture/runtime/data/deployment implications.
 - `AGENTS.md` owns package manager, setup commands, verification commands, conventions, and tool rules.
-- `docs/context-state.md` owns unresolved assumptions, rejected-but-revisitable options, and reconsideration triggers.
-- `docs/memory-bank/decisionIndex.md` links to the ADR.
-- `docs/memory-bank/contextIndex.md` explains which stack/config/docs future agents should load.
+- `<context-state>` owns unresolved assumptions, rejected-but-revisitable options, and reconsideration triggers.
+- `<memory-bank>/decisionIndex.md` links to the ADR.
+- `<memory-bank>/contextIndex.md` explains which stack/config/docs future agents should load.
 
 Prefer ADRs plus the application model. Create a separate `docs/technical-approach.md` only when the project is large enough that one or two ADRs are not enough.
 

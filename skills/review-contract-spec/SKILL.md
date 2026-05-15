@@ -38,7 +38,7 @@ Block ambiguous, untestable, over-broad, or unsupported contracts before they be
 - Does it avoid leaking private implementation details into the public contract?
 - Are required docs, schemas, type surfaces, or E2E/acceptance tests identified?
 - Does the contract/type/schema stress test plan try to break invalid states?
-- Are unresolved questions recorded in `docs/context-state.md`?
+- Are unresolved questions recorded in `<context-state>`?
 - Were decision-bearing questions surfaced in chat with recommendations, not only recorded in the contract or context docs?
 
 ## Stress review

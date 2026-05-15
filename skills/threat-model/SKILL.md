@@ -74,7 +74,7 @@ For LLM, RAG, agent, tool-calling, or MCP work, challenge:
 - Are there quotas, timeouts, rate limits, sandboxing, allowlists, and human approval gates where needed?
 
 ## Artifact behavior
-- Record durable threat-model decisions in the smallest appropriate artifact: issue, contract spec, implementation plan, ADR, application model, feature context, `AGENTS.md`, or `docs/context-state.md`.
+- Record durable threat-model decisions in the smallest appropriate artifact: issue, contract spec, implementation plan, ADR, application model, feature context, `AGENTS.md`, or `<context-state>`.
 - Prefer updating existing design/plan artifacts over creating standalone threat-model files unless the project needs a durable security artifact.
 - Keep the review diff small and intentional. If a risk or mitigation belongs to a different task, record it as a follow-up instead of expanding the current change silently.
 - Use scoped, intentional commits for security-relevant work. Do not bundle unrelated behavior, docs, tooling, and release changes into one commit when they should be reviewed separately.

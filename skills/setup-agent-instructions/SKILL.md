@@ -26,7 +26,7 @@ Usually `AGENTS.md` at the repository root. In monorepos or large projects, nest
 1. `README.md`.
 2. Existing `AGENTS.md`, if present.
 3. `docs/ai-sdlc-workflow.md`, `WORKFLOW.md`, or local workflow docs.
-4. `docs/memory-bank/contextIndex.md`, if present.
+4. `<memory-bank>/contextIndex.md`, if present.
 5. CI configuration.
 6. Build/test/lint configuration.
 7. Approved quality automation decisions, if present.

@@ -21,7 +21,7 @@ Decide whether retrieval infrastructure is worth its cost before adding it. Retr
 
 ## Read first
 1. Work classification, context depth, and evidence of context-selection pain.
-2. `docs/memory-bank/contextIndex.md`, `activeContext.md`, and `docs/context-state.md`, if present.
+2. `<memory-bank>/contextIndex.md`, `activeContext.md`, and `<context-state>`, if present.
 3. Existing application model, PRDs, contracts, ADRs, feature context files, AGENTS.md, README/developer docs, and repo layout.
 4. Existing search/index/retrieval tooling, generated docs, Graphify outputs, Obsidian vault conventions, MCP/repo tools, or CI/indexing workflows.
 5. Privacy, secrets, data retention, hosting, compliance, cost, and access constraints.
@@ -89,7 +89,7 @@ Choose the smallest useful shape:
 - Retrieval output is a pointer, not proof.
 - Claims used for design, implementation, verification, or completion must trace back to code, tests, code-local docs, PRDs, contracts, ADRs, application model, feature context, AGENTS.md, context-state, or Memory Bank routing files.
 - Generated indexes, graph reports, embeddings, vector stores, Obsidian backlinks, and MCP answers must not outrank authoritative artifacts.
-- If retrieval exposes contradictions, stale docs, or missing links, update `docs/context-state.md` and route to the owning artifact.
+- If retrieval exposes contradictions, stale docs, or missing links, update `<context-state>` and route to the owning artifact.
 
 ## Approval behavior
 Ask for human approval before accepting:
@@ -105,11 +105,11 @@ Do not require approval for using existing local `rg`, documented repo search, o
 After approval, route updates to the owning artifacts:
 
 - `AGENTS.md` owns retrieval commands, allowed sources, privacy boundaries, and when agents may use retrieval.
-- `docs/memory-bank/contextIndex.md` owns when to use retrieval and where indexes/reports live.
-- `docs/context-state.md` owns stale indexes, deferred retrieval decisions, privacy concerns, and reconsideration triggers.
+- `<memory-bank>/contextIndex.md` owns when to use retrieval and where indexes/reports live.
+- `<context-state>` owns stale indexes, deferred retrieval decisions, privacy concerns, and reconsideration triggers.
 - `docs/decisions/` owns durable rationale when retrieval adds dependencies, services, hosted infrastructure, CI jobs, or major workflow changes.
 - `docs/application-model.md` owns retrieval architecture only when retrieval is part of the application or development system model.
-- `docs/knowledge-graph/` or equivalent owns generated retrieval reports when a graph/index tool is approved.
+- `<knowledge-graph>/` or equivalent owns generated retrieval reports when a graph/index tool is approved.
 - `select-tools` owns per-task tool access boundaries.
 
 ## Lifecycle integration
