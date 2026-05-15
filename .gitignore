@@ -7,3 +7,5 @@ node_modules/
 dist/
 build/
 .cache/
+# Skill runtime lock (machine-local, not source of truth)
+.skill-lock.json
