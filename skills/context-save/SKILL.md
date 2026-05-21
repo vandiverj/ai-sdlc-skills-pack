@@ -15,15 +15,17 @@ Preserve the current focus, pending work, unresolved questions, affected artifac
 Session checkpoints may contain historical handoff detail. Memory Bank files must not become session history.
 
 ## Output artifacts
-- `docs/session-checkpoints/<date>-<topic>.md`
-- `docs/memory-bank/activeContext.md`, when current focus, next action, branch, or blocker changed.
-- `docs/memory-bank/progress.md`, when current status, pending work, known gaps, or not-yet-done work changed.
-- `docs/memory-bank/decisionIndex.md`, when decisions or ADR links changed.
-- `docs/memory-bank/contextIndex.md`, when future context selection guidance changed.
-- `docs/context-state.md`, when assumptions, open questions, deferred decisions, blocked items, or affected artifacts changed.
-- `docs/agents/*`, when agent roles, model-tier policy, delegation patterns, runtime adapters, or learning-loop guidance changed.
-- `docs/patterns/*`, when implementation pattern guidance, maturity, examples, exceptions, or change triggers changed.
-- `docs/process-improvement/events.jsonl`, when real work exposed process friction, gaps, corrections, near misses, or useful successes worth later review.
+- `engineering-context/operations/sdlc/session-checkpoints/<date>-<topic>.md`
+- `engineering-context/operations/sdlc/memory-bank/activeContext.md`, when current focus, next action, branch, or blocker changed.
+- `engineering-context/operations/sdlc/memory-bank/progress.md`, when current status, pending work, known gaps, or not-yet-done work changed.
+- `engineering-context/operations/sdlc/memory-bank/decisionIndex.md`, when decisions or ADR links changed.
+- `engineering-context/operations/sdlc/memory-bank/contextIndex.md`, when future context selection guidance changed.
+- `engineering-context/operations/sdlc/context-state.md`, when assumptions, open questions, deferred decisions, blocked items, or affected artifacts changed.
+- `engineering-context/operations/sdlc/agents/*`, when agent roles, model-tier policy, delegation patterns, runtime adapters, or learning-loop guidance changed.
+- `engineering-context/operations/sdlc/patterns/*`, when implementation pattern guidance, maturity, examples, exceptions, or change triggers changed.
+- `engineering-context/operations/sdlc/process-improvement/events.jsonl`, when real work exposed process friction, gaps, corrections, near misses, or useful successes worth later review.
+
+For generic repositories that do not use `engineering-context`, use the equivalent repo-local `docs/*` paths. In the `C:\WebSite` legacy environment, do not create duplicate repo-local Memory Bank files unless a repo explicitly owns them.
 
 ## Required checkpoint sections
 - Current branch or workspace.
@@ -41,6 +43,7 @@ Session checkpoints may contain historical handoff detail. Memory Bank files mus
 - Process-learning events captured, if any.
 - Context files updated.
 - Memory Bank files updated.
+- Durable context root used.
 - Model/PRD/contract/issues alignment status.
 - Next recommended skill.
 

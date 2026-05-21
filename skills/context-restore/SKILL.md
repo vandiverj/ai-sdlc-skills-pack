@@ -13,13 +13,16 @@ Restore the current project state before beginning work. Use this at the start o
 Avoid reprocessing long conversations or scanning the whole repository by loading durable routing and state artifacts first.
 
 ## Read first
-1. `docs/memory-bank/activeContext.md`, if present.
-2. `docs/memory-bank/contextIndex.md`, if present.
-3. `docs/memory-bank/progress.md`, if present.
-4. `docs/context-state.md`, if present.
-5. Latest relevant file in `docs/session-checkpoints/`, if present.
-6. Current branch and working tree status.
-7. Current task or user request.
+1. `engineering-context/index.md`, if present near the workspace.
+2. `engineering-context/operations/sdlc/memory-bank/activeContext.md`, if present.
+3. `engineering-context/operations/sdlc/memory-bank/contextIndex.md`, if present.
+4. `engineering-context/operations/sdlc/memory-bank/progress.md`, if present.
+5. `engineering-context/operations/sdlc/context-state.md`, if present.
+6. Latest relevant file in `engineering-context/operations/sdlc/session-checkpoints/`, if present.
+7. Current branch and working tree status.
+8. Current task or user request.
+
+For generic repositories that do not use `engineering-context`, fall back to the repo-local `docs/memory-bank/*`, `docs/context-state.md`, and `docs/session-checkpoints/*` paths.
 
 ## Memory Bank roles
 - `activeContext.md`: current focus, recent changes, next action, branch, blockers.
@@ -39,6 +42,7 @@ Avoid reprocessing long conversations or scanning the whole repository by loadin
 - Current phase.
 - Active focus.
 - Current branch or workspace state.
+- Durable context root used.
 - Relevant progress status.
 - Relevant open questions and affected artifacts.
 - Recommended next skill.

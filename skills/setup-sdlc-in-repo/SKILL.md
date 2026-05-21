@@ -21,15 +21,28 @@ Install portable SDLC source-of-truth files first, then create thin runtime adap
 ## Read first
 1. Existing project `README.md`, `AGENTS.md`, contribution docs, CI/build/test config, and package/workspace files.
 2. Existing AI/IDE instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*`, `.augment/agents/*`, `.claude/agents/*`, `.cursor/*`, or local equivalents.
-3. Existing docs under `docs/`, especially application model, PRDs, contracts, decisions, patterns, Memory Bank, context-state, and process-improvement files.
-4. The approved technical approach, quality automation, retrieval approach, and agent strategy if they exist.
-5. Templates from this skills pack only as starting points; do not overwrite project-specific truth.
+3. Existing `engineering-context/index.md`, if present near the workspace, plus relevant `engineering-context/domains/`, `systems/`, `repos/`, and `operations/` files.
+4. Existing docs under `docs/`, especially application model, PRDs, contracts, decisions, patterns, Memory Bank, context-state, and process-improvement files, when the repo uses repo-local docs.
+5. The approved technical approach, quality automation, retrieval approach, and agent strategy if they exist.
+6. Templates from this skills pack only as starting points; do not overwrite project-specific truth.
+
+## Legacy engineering-context setup
+When the target workspace is part of `C:\WebSite` or a nearby `engineering-context/index.md` exists, prefer that existing context store over creating a new repo-local `docs/` scaffold. In that mode:
+
+- use `C:\WebSite\engineering-context` as the durable context root when available
+- keep domain, system, repo, and operations context in the existing folders
+- put SDLC operational state under `engineering-context/operations/sdlc/`
+- create repo-local runtime adapters only when the runtime needs them
+- make adapters point to `engineering-context` instead of copying durable context
+- do not create duplicate repo-local Memory Bank or application-model files unless explicitly approved
 
 ## Required output
 
 ```text
 Setup status: Proposed / Applied / Needs Review
 Target repo:
+Durable context root:
+Engineering-context profile: yes / no
 Detected runtimes:
 Portable SDLC files present:
 Portable SDLC files to create/update:
@@ -73,6 +86,8 @@ docs/process-improvement/skill-changelog.md
 
 Create PRD, contract, decision, issue, implementation-plan, release, concrete pattern, or feature-context folders only when the project needs them or the user asks for the full scaffold.
 
+In the `engineering-context` legacy environment, map the portable files above to `engineering-context/operations/sdlc/*` and place domain-specific PRDs, contracts, issues, and implementation plans beside the relevant domain context, for example `engineering-context/domains/<domain>/<feature>.prd.md`.
+
 ## Runtime adapters
 Adapters are optional and should stay thin:
 
@@ -90,14 +105,15 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 ## Setup process
 1. Classify setup as `Standard` unless it only updates a tiny existing instruction file.
 2. Inventory existing instruction, workflow, docs, command, CI, and agent runtime files.
-3. Identify which portable SDLC files are missing, stale, or project-specific.
-4. Identify IDE/tool runtimes to support. If unclear, create portable files first and record adapter decisions as follow-up.
-5. Draft changes without overwriting project-specific guidance.
-6. Merge existing instructions by linking to deeper docs and preserving local commands/conventions.
-7. Add `docs/patterns/README.md` and pattern templates when repeated project-specific implementation guidance should be captured.
-8. Add runtime adapters only for tools the project actually uses or explicitly wants.
-9. Run documentation verification checks and `git diff --check`.
-10. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
+3. Check for a nearby `engineering-context/index.md` and decide whether the setup is using the legacy engineering-context profile.
+4. Identify which portable SDLC files or engineering-context equivalents are missing, stale, or project-specific.
+5. Identify IDE/tool runtimes to support. If unclear, create portable files first and record adapter decisions as follow-up.
+6. Draft changes without overwriting project-specific guidance.
+7. Merge existing instructions by linking to deeper docs and preserving local commands/conventions.
+8. Add `engineering-context/operations/sdlc/patterns/README.md` or fallback `docs/patterns/README.md` when repeated project-specific implementation guidance should be captured.
+9. Add runtime adapters only for tools the project actually uses or explicitly wants.
+10. Run documentation verification checks and `git diff --check`.
+11. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
 
 ## Merge rules
 - Existing project instructions outrank templates.
@@ -129,6 +145,7 @@ Create concrete pattern files only when the project has evidence, examples, or t
 - Prefer a portable `.agents/skills` or documented equivalent over runtime-specific custom skill roots.
 - Do not install duplicate custom skills into runtime-specific roots unless the runtime cannot discover the portable root.
 - Keep runtime-owned system skills separate from portable project/SDLC skills.
+- In the `C:\WebSite` machine-specific branch, global skills in `C:\Users\Jerrick\.agents\skills` may be updated, but repo-local adapters should remain thin pointers to the durable `engineering-context` store.
 
 ## Hard rules
 - Do not make runtime-specific files the source of truth over portable SDLC docs.

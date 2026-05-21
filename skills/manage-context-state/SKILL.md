@@ -21,25 +21,26 @@ Maintain the project's uncertainty ledger: what is assumed, unknown, deferred, b
 ## Purpose
 Allow future sessions to resume from durable project state without rereading entire conversations or re-discovering known uncertainty.
 
-`docs/context-state.md is not a history file. It is the current uncertainty and review-trigger ledger.
+The context-state artifact is not a history file. It is the current uncertainty and review-trigger ledger.
 
-Decision rule: Memory Bank stores what is known and what is next. docs/context-state.md stores what is unknown, suspected, deferred, contradicted, blocked, or needs review.
+Decision rule: Memory Bank stores what is known and what is next. `engineering-context/operations/sdlc/context-state.md` or fallback `docs/context-state.md` stores what is unknown, suspected, deferred, contradicted, blocked, or needs review.
 
 ## Output artifact
-`docs/context-state.md`
+`engineering-context/operations/sdlc/context-state.md` when the workspace uses the legacy engineering-context profile; otherwise `docs/context-state.md`.
 
 ## Related routing artifacts
-- `docs/memory-bank/activeContext.md` owns current focus and next action.
-- `docs/memory-bank/progress.md` owns current status, pending work, known gaps, and not-yet-done work.
-- `docs/memory-bank/decisionIndex.md` owns decision links and short summaries.
-- `docs/memory-bank/contextIndex.md` owns where to load context from.
-- `docs/context-state.md` owns uncertainty, affected artifacts, and revisit triggers.
+- `engineering-context/operations/sdlc/memory-bank/activeContext.md` owns current focus and next action.
+- `engineering-context/operations/sdlc/memory-bank/progress.md` owns current status, pending work, known gaps, and not-yet-done work.
+- `engineering-context/operations/sdlc/memory-bank/decisionIndex.md` owns decision links and short summaries.
+- `engineering-context/operations/sdlc/memory-bank/contextIndex.md` owns where to load context from.
+- `engineering-context/operations/sdlc/context-state.md` owns uncertainty, affected artifacts, and revisit triggers.
+- Use equivalent repo-local `docs/*` paths only outside the engineering-context profile.
 
 ## Read first
 1. Selected context packet from `select-context`, if available.
-2. Existing `docs/context-state.md`.
+2. Existing `engineering-context/operations/sdlc/context-state.md`, or fallback `docs/context-state.md`.
 3. Relevant Memory Bank routing files when the task affects focus, progress, decisions, or context selection.
-4. Relevant `docs/application-model.md` sections.
+4. Relevant `engineering-context/systems/**`, `domains/**`, or fallback `docs/application-model.md` sections.
 5. Related PRDs, contracts, ADRs, issue text, feature `context.md`, or checkpoint files named by the task.
 
 ## Required context-state categories

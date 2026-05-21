@@ -26,9 +26,10 @@ Prevent agents from silently rewriting documentation to match a potentially wron
 3. Related feature `context.md`.
 4. Related contract spec, if present.
 5. Related PRD and application model sections.
-6. Relevant `docs/context-state.md` entries.
+6. Relevant `engineering-context/operations/sdlc/context-state.md` or fallback `docs/context-state.md` entries.
 7. Implementation plan and verification evidence, if present.
 8. Tool/MCP source notes when external information affected the work.
+9. In the engineering-context profile, relevant `engineering-context/domains/`, `systems/`, `repos/`, and `operations/` artifacts.
 
 ## Required output
 
@@ -58,6 +59,7 @@ Next skill:
 - Do code-local docs describe the actual public/shared behavior?
 - Does feature `context.md` link to the right source surfaces and summarize the feature accurately?
 - Does the application model still describe the real architecture and boundaries?
+- In the engineering-context profile, do domain, system, repo, and operations context still agree with code, tests, PRDs, contracts, and plans?
 - Do resolved or deferred context-state entries still make sense?
 - Are dirty surfaces consistent with the actual changed artifacts?
 - Did a tool/MCP provide information that conflicts with local code, tests, docs, contracts, or agent instructions?
@@ -71,15 +73,15 @@ Resolution paths:
 - `contract changed` -> return to `write-contract-spec` or `review-contract-spec` before implementation planning continues.
 - `docs/context are stale` -> use `update-context-docs` only after implementation correctness is verified.
 - `tests are stale/missing` -> update test plan or tests, then rerun verification.
-- `tool output conflicts with project artifacts` -> prefer local artifacts, record unresolved conflict in `docs/context-state.md`, and verify before changing durable truth.
-- `uncertainty remains` -> update `docs/context-state.md` and route back to the appropriate artifact.
+- `tool output conflicts with project artifacts` -> prefer local artifacts, record unresolved conflict in `engineering-context/operations/sdlc/context-state.md` or fallback `docs/context-state.md`, and verify before changing durable truth.
+- `uncertainty remains` -> update `engineering-context/operations/sdlc/context-state.md` or fallback `docs/context-state.md` and route back to the appropriate artifact.
 
 ## Hard rules
 - Do not silently update docs to match code when code may be wrong.
 - Do not silently change code to match stale docs without checking requirements.
 - Do not treat external tool/MCP output as more authoritative than local project artifacts.
 - If code and docs disagree, pause and classify the discrepancy.
-- If uncertainty remains, update `docs/context-state.md` and route back to the appropriate artifact.
+- If uncertainty remains, update `engineering-context/operations/sdlc/context-state.md` or fallback `docs/context-state.md` and route back to the appropriate artifact.
 - If the requirement changed, update PRD/contract/model/issues before claiming completion.
 - If implementation is wrong, return to `execute-plan`, `tdd`, or `diagnose`.
 - If docs are stale, use `update-context-docs` after confirming the implementation is correct.

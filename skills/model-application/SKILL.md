@@ -19,12 +19,19 @@ Create or update the durable, diagrammed application model before PRDs, issues, 
 Prevent drift by defining the application's structures, workflows, data, components, failure modes, and boundaries in durable form.
 
 ## Output artifact
-`docs/application-model.md`
+For generic repositories, `docs/application-model.md`.
+
+For the `C:\WebSite` legacy engineering-context environment, update the smallest owning context artifact instead of creating a duplicate repo-local model by default:
+
+- `engineering-context/systems/legacy-platform.context.md` for whole-platform structure
+- relevant `engineering-context/systems/*.context.md` for system/runtime boundaries
+- relevant `engineering-context/domains/<domain>/*.context.md` for domain workflows and entities
+- relevant `engineering-context/repos/*.context.md` for repository-specific mechanics
 
 ## Read first
 1. Selected context packet from `select-context`.
-2. `docs/context-state.md`, especially open questions and affected artifacts.
-3. Existing `docs/application-model.md`, if present.
+2. `engineering-context/operations/sdlc/context-state.md` or fallback `docs/context-state.md`, especially open questions and affected artifacts.
+3. Existing `engineering-context/index.md` and relevant domain/system/repo context, or fallback `docs/application-model.md`, if present.
 4. Approved technical approach ADRs or decision notes, if present.
 5. Related PRDs, ADRs, feature `context.md` files, or source files named by the context packet.
 
@@ -74,7 +81,7 @@ Use Mermaid unless the project has a stronger local diagram convention.
 5. Check cohesion, coupling, and dependency direction for major modules.
 6. Add diagrams for relationships that would otherwise require prose-heavy explanation.
 7. Mark uncertain sections clearly instead of inventing certainty.
-8. Update `docs/context-state.md` with new open questions, changed assumptions, affected artifacts, and revisit triggers.
+8. Update `engineering-context/operations/sdlc/context-state.md` or fallback `docs/context-state.md` with new open questions, changed assumptions, affected artifacts, and revisit triggers.
 9. Present the model for review before PRD or issue generation.
 
 ## Engineering principle guidance

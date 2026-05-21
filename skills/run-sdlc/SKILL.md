@@ -25,6 +25,37 @@ The AI handles routing, context selection, artifact drafting, verification disci
 ## Core rule
 Do not run the whole workflow by default. Run the smallest route that prevents the most likely expensive failure.
 
+## Legacy engineering-context environment
+When the current workspace is part of the `C:\WebSite` legacy environment, or when an `engineering-context/index.md` file exists near the workspace, treat `engineering-context` as the durable SDLC/context root instead of creating a repo-local `docs/` tree by default.
+
+Preferred root for this machine-specific environment:
+
+```text
+C:\WebSite\engineering-context
+```
+
+From `C:\WebSite\www_dev`, this is usually `..\engineering-context`.
+
+For legacy work, start routing from:
+
+1. `engineering-context/index.md`
+2. relevant `engineering-context/domains/**`
+3. relevant `engineering-context/systems/**`
+4. relevant `engineering-context/repos/**`
+5. relevant `engineering-context/operations/**`
+
+Preserve the legacy `setup-task` discipline inside the SDLC flow:
+
+- identify the domain, or list candidates when uncertain
+- always evaluate frontend, API, legacy main site, infrastructure/config, and database impact
+- separate confirmed repos from potential repos
+- record missing context and initial risks
+- separate Known, Believed, and Unknown facts
+- stop after context routing when domain or repo impact is unclear
+- ask only for answers that cannot be found in code or durable context
+
+Use repo-local `docs/` only as a fallback outside this environment or when a specific repository intentionally owns code-local documentation or a thin runtime adapter.
+
 ## What this skill does
 1. Interpret the user request.
 2. Run or simulate `classify-work`.
@@ -72,6 +103,7 @@ SDLC mode:
 Work class:
 Classification confidence:
 Context depth:
+Durable context root:
 Technical approach status:
 Quality automation status:
 Retrieval approach status:
@@ -82,6 +114,7 @@ Fast-pass route:
 Immediate next skill:
 Human consent gates expected:
 Artifacts likely needed:
+Legacy context routing: domain / confirmed repos / potential repos / missing context / initial risks / Known-Believed-Unknown
 Dirty surfaces likely:
 Verification expectation:
 Stop condition for this phase:

@@ -19,6 +19,9 @@ Convert one issue, or a small coherent issue batch, into an executable implement
 ## Purpose
 Make implementation testable, bounded, maintainable, and reviewable before editing production code.
 
+## Output artifact
+For the `C:\WebSite` legacy engineering-context environment, write durable implementation plans beside the owning domain artifact, usually `engineering-context/domains/<domain>/<feature>.implementation-plan.md`. Use repo-local `docs/*` plan locations only for generic repositories or when a repo explicitly owns the plan.
+
 ## Read first
 1. Work classification from `classify-work`.
 2. Selected context packet from `select-context`.
@@ -35,8 +38,9 @@ Make implementation testable, bounded, maintainable, and reviewable before editi
 13. Applicable implementation patterns, pattern status, canonical examples, and exceptions, if relevant.
 14. Threat-model output or explicit not-required reason when risk surfaces are present.
 15. Production readiness constraints, release expectations, rollback requirements, and Git review expectations when the work is production-intended.
-16. Relevant open questions from `docs/context-state.md`.
+16. Relevant open questions from `engineering-context/operations/sdlc/context-state.md` or fallback `docs/context-state.md`.
 17. Existing source files and tests only when needed to identify exact file responsibilities.
+18. In the engineering-context profile, relevant `engineering-context/index.md`, domain/system/repo context, confirmed repos, potential repos, missing context, and Known / Believed / Unknown routing facts.
 
 ## Slice Product-Fit Gate
 For Standard work, read or create the `slice-product-fit` output before writing the implementation plan. The plan must carry forward the primary actor, actor job, concept ownership, input/output contract, validation approach, AI/automation authority, cross-slice impacts, predecessor work, and evidence needed.
@@ -53,6 +57,7 @@ For Micro/Tiny work, add this gate when the task touches UX, API contracts, data
 - Related application model sections.
 - Related contract spec or explicit "not required" reason.
 - Related feature context files.
+- Durable engineering-context files used and target artifact path, when the engineering-context profile applies.
 - Related context-state entries.
 - Assumptions and unresolved questions.
 - Human attention items and recommended defaults.

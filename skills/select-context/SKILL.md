@@ -22,15 +22,21 @@ Keep the agent in the smart zone: enough context to act safely, not so much that
 ## Inputs to check first
 1. Work classification from `classify-work`, if available.
 2. User request or current issue.
-3. `AGENTS.md`, if commands or conventions are needed.
-4. `docs/memory-bank/activeContext.md`, if present.
-5. `docs/memory-bank/contextIndex.md`, if present.
-6. `docs/context-state.md`, if present.
-7. Relevant PRD, contract, application model section, ADR, or feature `context.md`, if the task names one.
-8. Approved retrieval approach and index freshness, if present.
-9. Agent strategy docs, model-tier policy, delegation patterns, and runtime adapter mappings if delegation/model routing matters.
-10. Implementation pattern docs and canonical examples if repeated project-specific patterns may apply.
-11. Tool/MCP needs from `select-tools`, if external/current knowledge is required.
+3. `engineering-context/index.md`, if present near the workspace.
+4. Relevant files under `engineering-context/domains/`, `engineering-context/systems/`, `engineering-context/repos/`, and `engineering-context/operations/`.
+5. `AGENTS.md`, if commands or conventions are needed.
+6. `engineering-context/operations/sdlc/memory-bank/activeContext.md`, if present.
+7. `engineering-context/operations/sdlc/memory-bank/contextIndex.md`, if present.
+8. `engineering-context/operations/sdlc/context-state.md`, if present.
+9. Relevant PRD, contract, application model section, ADR, or feature `context.md`, if the task names one.
+10. Approved retrieval approach and index freshness, if present.
+11. Agent strategy docs, model-tier policy, delegation patterns, and runtime adapter mappings if delegation/model routing matters.
+12. Implementation pattern docs and canonical examples if repeated project-specific patterns may apply.
+13. Tool/MCP needs from `select-tools`, if external/current knowledge is required.
+
+For generic repositories without `engineering-context`, use the equivalent repo-local `docs/*` paths. In the `C:\WebSite` legacy environment, always report the durable context root and use `engineering-context` as the primary routing source.
+
+Legacy context routing must identify domain candidates, confirmed repos, potential repos, missing context, initial risks, and Known / Believed / Unknown facts before moving to PRD, issue, or implementation planning.
 
 ## Required output
 
@@ -59,13 +65,13 @@ Reasoning:
 Always include the current request, work class, issue, acceptance criteria, current phase, constraints, active context, context index entries, relevant tool boundaries, and relevant open questions.
 
 ### Tier 1: Durable summaries and indexes
-Usually include relevant sections of `docs/application-model.md`, related PRD, contract spec, relevant feature `context.md`, related ADRs, `progress.md`, or `decisionIndex.md` when they are directly relevant.
+Usually include relevant sections of `engineering-context/systems/**`, `engineering-context/domains/**`, `engineering-context/repos/**`, related PRD, contract spec, relevant feature `context.md`, related ADRs, `progress.md`, or `decisionIndex.md` when they are directly relevant. Use `docs/application-model.md` only when the project does not use `engineering-context`.
 
 ### Agent strategy context
-Load only the relevant `docs/agents/*` files when delegation, specialist roles, model tiers, runtime adapters, or agent learning-loop behavior affects the task.
+Load only the relevant `engineering-context/operations/sdlc/agents/*` or fallback `docs/agents/*` files when delegation, specialist roles, model tiers, runtime adapters, or agent learning-loop behavior affects the task.
 
 ### Implementation pattern context
-Load only the relevant `docs/patterns/*` files and canonical examples when forms, tables, API handlers, data fetching, errors, tests, layouts, feature modules, or another repeated project-specific pattern affects the task.
+Load only the relevant `engineering-context/operations/sdlc/patterns/*` or fallback `docs/patterns/*` files and canonical examples when forms, tables, API handlers, data fetching, errors, tests, layouts, feature modules, or another repeated project-specific pattern affects the task.
 
 ### Tier 2: Source files
 Load only files named by the implementation plan, files directly imported by those files, nearby tests, and files referenced by the feature context.

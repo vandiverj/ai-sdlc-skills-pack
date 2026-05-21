@@ -14,9 +14,12 @@ Turn clarified context into product requirements without re-interviewing the use
 
 ## Inputs
 - Conversation context from `grill-me` or approved design notes.
-- `docs/application-model.md`.
-- Relevant `docs/context-state.md` open questions.
+- `engineering-context/index.md` and relevant domain/system/repo context, or fallback `docs/application-model.md`.
+- Relevant `engineering-context/operations/sdlc/context-state.md` or fallback `docs/context-state.md` open questions.
 - Related feature `context.md`, ADRs, or existing repo context when applicable.
+
+## Output artifact
+For the legacy engineering-context environment, write PRDs beside the owning domain context, usually `engineering-context/domains/<domain>/<feature>.prd.md`. Use `docs/prds/*` only for generic repositories or when a repo explicitly owns PRDs locally.
 
 ## Required sections
 - Status: Draft / Active / Superseded / Implemented / Needs Review.
@@ -41,6 +44,7 @@ Turn clarified context into product requirements without re-interviewing the use
 - Do not treat unresolved blocking questions as resolved.
 - If context is insufficient, identify exact missing questions and update `context-state.md`.
 - If the PRD changes the application model, mark the model as needing review.
+- In the engineering-context profile, include context used, confirmed repos, potential repos, missing context, risks, and Known / Believed / Unknown facts from setup-task-style routing.
 
 ## Next skills
 Usually `review-prd-against-model`, then `diagram-issues`, then `to-issues`.

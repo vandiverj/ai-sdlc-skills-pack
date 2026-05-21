@@ -49,6 +49,21 @@ This skill does not preserve full AI activity history. Finished implementation t
 - Agent strategy decisions own when to use single-agent work, specialists, model tiers, delegation, handoffs, escalation, and runtime adapters.
 - Implementation pattern decisions own project-specific structure and behavior expectations that deterministic tools cannot express.
 
+### Legacy engineering-context ownership
+When the workspace uses the `C:\WebSite` legacy engineering-context profile, prefer these ownership rules over creating duplicate repo-local `docs/*` artifacts:
+
+- `engineering-context/index.md` owns the durable context map and routing entry point.
+- `engineering-context/domains/<domain>/*.context.md` owns domain behavior, workflows, entities, risks, validation, and observability notes.
+- `engineering-context/domains/<domain>/*.prd.md` owns domain requirements.
+- `engineering-context/domains/<domain>/*.contract.md` owns domain public or cross-boundary contracts.
+- `engineering-context/domains/<domain>/*.issues.md` owns domain implementation slices.
+- `engineering-context/domains/<domain>/*.implementation-plan.md` owns approved implementation plans.
+- `engineering-context/systems/*.context.md` owns platform/system architecture, runtime, deployment, observability, and trust boundaries.
+- `engineering-context/repos/*.context.md` owns repository-specific mechanics and important code paths.
+- `engineering-context/operations/*.context.md` owns operational practices.
+- `engineering-context/operations/sdlc/*` owns SDLC state, Memory Bank routing, session checkpoints, agent strategy, patterns, and process-improvement events.
+- Repo-local `docs/*` remains a fallback for generic repositories or deliberately repo-owned code-local documentation.
+
 ## Required checks
 Before updating durable docs to match code, run or account for `assert-doc-sync` when any related dirty surface is true. If code and docs disagree, assume the implementation may be wrong until verified.
 - Update code-local docs for public exports, shared types/schemas, integration boundaries, complex domain behavior, invariants, side effects, or error behavior.
@@ -63,6 +78,7 @@ Before updating durable docs to match code, run or account for `assert-doc-sync`
 - Update retrieval decision links, index/report locations, freshness notes, or context-state entries if RAG, embeddings, graph/index tooling, repo retrieval, hosted search, or human navigation expectations changed.
 - Update `docs/agents/*`, runtime adapters, `AGENTS.md`, context-state, or Memory Bank indexes if agent roles, model-tier mappings, delegation patterns, specialist guidance, or adapter behavior changed.
 - Update `docs/patterns/*`, feature context, `AGENTS.md`, context-state, or Memory Bank indexes if project-specific implementation pattern guidance changed or should have changed.
+- In the engineering-context profile, apply the equivalent updates to `engineering-context/domains`, `systems`, `repos`, and `operations/sdlc` first, then update repo-local docs only when they are intentionally authoritative for that repo.
 
 ## Feature context sections
 Feature context should be thin and link-oriented when code-local docs are strong:

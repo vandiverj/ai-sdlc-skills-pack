@@ -20,6 +20,12 @@ Turn "build this from a PRD" into "satisfy this reviewed contract." The contract
 ## Output artifact
 Usually `docs/contracts/<feature-or-interface>.md`, unless the project has an existing contract/spec location.
 
+For the `C:\WebSite` legacy engineering-context environment, prefer the smallest owning engineering-context location:
+
+- `engineering-context/domains/<domain>/<feature>.contract.md` for domain behavior
+- `engineering-context/systems/<system>.<contract>.contract.md` for system/runtime boundaries
+- `engineering-context/repos/<repo>.<contract>.contract.md` for repo-specific public or integration behavior
+
 Language-specific companion artifacts may be appropriate, such as schema files, interface sketches, type tests, OpenAPI fragments, CLI help snapshots, protocol examples, or generated declaration expectations. Do not assume TypeScript or `.d.ts` files unless the project calls for them.
 
 ## Read first
@@ -31,6 +37,7 @@ Language-specific companion artifacts may be appropriate, such as schema files, 
 6. Related ADRs or decision index entries.
 7. Relevant context-state open questions.
 8. Existing public contract files, schemas, API docs, CLI docs, tests, or examples.
+9. In the engineering-context profile, relevant `domains/`, `systems/`, `repos/`, and `operations/` context plus confirmed/potential repo routing.
 
 ## Required sections
 - Contract status: Draft / Approved / Needs Review / Superseded.
