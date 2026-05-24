@@ -112,12 +112,30 @@ Feature context should be thin and link-oriented when code-local docs are strong
 - Keep `decisionIndex.md` as an index; ADR files own the rationale.
 - Keep `contextIndex.md` focused on when to load which artifacts.
 
+## Artifact lifecycle rules
+- Implementation plans are execution aids, not durable history. Once a slice is
+  complete, distill lasting truth into code, tests, contracts, ADRs, backlog,
+  feature context, context-state, or Memory Bank routing, then remove or mark
+  the plan inactive unless it still drives upcoming work.
+- Contracts should describe current observable boundaries, not completed
+  implementation diary entries. If several slice contracts now describe one
+  stable product boundary, consolidate them into the grouped owning contract
+  and update references.
+- Memory Bank and `docs/context-state.md` should route to current source truth,
+  not preserve a full changelog of completed AI work.
+- Historical process-learning logs may retain old evidence paths, but active
+  routing docs should not point to removed or superseded artifacts.
+- After removing or superseding an artifact, run a targeted link/reference
+  search and update durable docs that still route to it.
+
 ## Hard rules
 - Do not duplicate full requirements, architecture, contracts, implementation history, or ADR rationale across docs.
 - Do not move feature-level reasoning into source comments just to remove a context file.
 - Do not mark docs updated if only code changed and no durable knowledge changed.
 - Do not update docs merely to make surprising implementation behavior look intentional.
 - Do not leave stale comments, stale feature context, stale unresolved items, or stale Memory Bank routing that points to superseded artifacts.
+- Do not leave stale implementation plans or slice-specific contracts as active
+  source truth after their current behavior has been consolidated elsewhere.
 - If documentation updates reveal unclear requirements, update `context-state.md` and route back to the relevant model, PRD, issue, contract, or plan skill.
 - If documentation updates reveal unclear agent ownership, model-tier mapping, or runtime adapter behavior, update `context-state.md` and route to `choose-agent-strategy` or `update-agent-definitions`.
 - If documentation updates reveal unclear, stale, or disputed implementation pattern guidance, update `context-state.md` and route to `choose-implementation-pattern` or `update-implementation-patterns`.

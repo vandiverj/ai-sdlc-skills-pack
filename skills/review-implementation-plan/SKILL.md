@@ -44,6 +44,9 @@ Check:
 - Are code-local documentation updates identified for public exports, shared types/schemas, integration boundaries, non-obvious behavior, invariants, errors, or examples?
 - Are verification commands listed?
 - Are documentation/context updates included?
+- Does the plan define an artifact lifecycle: what is temporary, what is
+  durable, where final truth will live, and what references must be cleaned up
+  after completion?
 - Were human attention items surfaced in chat with recommendations, including 70%+ recommended defaults when meaningful?
 - Could an agent execute this without guessing?
 
@@ -80,6 +83,9 @@ Do not approve execution when `Needs decision before work` items remain unresolv
 - Do not approve a plan that contradicts the PRD, application model, approved technical approach, contract spec, AGENTS.md, or context-state.
 - Do not approve a plan that lacks testable behavior or verification commands.
 - Do not approve a plan that would create undocumented public/shared behavior without an explicit documentation exception.
+- Do not approve a Standard plan that creates implementation plans,
+  slice-specific contracts, or context docs without a cleanup/ownership path for
+  those artifacts.
 - Do not approve a plan whose core approach is over-abstracted, under-specified, or likely to produce tangled responsibilities.
 - Do not approve a plan that introduces a new framework, runtime, service, database, production dependency, deployment model, or testing tool without `choose-technical-approach` approval.
 - Do not approve a plan that introduces or depends on new quality automation, CI gates, scanners, build tooling, or verification commands without `choose-quality-automation` approval when the decision is meaningful.

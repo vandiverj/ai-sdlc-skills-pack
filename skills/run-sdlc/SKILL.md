@@ -40,7 +40,11 @@ Do not run the whole workflow by default. Run the smallest route that prevents t
 12. Capture process-learning events when real work exposes friction, gaps, corrections, near misses, or useful workflow successes.
 13. Run `slice-product-fit` for Standard implementation slices before implementation planning, and for smaller work when actor, input, contract, data, AI, or cross-slice risk appears.
 14. Surface contract, product-fit, and planning attention items in chat when they affect the next decision or implementation path.
-15. Keep the user oriented with short progress summaries.
+15. Run a documentation hygiene checkpoint at phase closeout so active routing
+    docs point to current source truth, completed implementation plans are
+    removed or marked inactive, slice-specific contracts are consolidated when
+    stable, and backlog owns future work.
+16. Keep the user oriented with short progress summaries.
 
 ## What this skill does not do
 - Do not replace the specialized skills.
@@ -371,6 +375,12 @@ Pause and return to `classify-work` when:
 Use dirty surfaces to decide what to update.
 
 Do not update every artifact every time. Draft artifacts when required, then ask for approval when they become decision-bearing.
+
+At phase closeout, check that active implementation plans are still active,
+contracts are grouped by durable product boundary where the surface is stable,
+`docs/context-state.md` and Memory Bank route to current artifacts, backlog rows
+own deferred/future work, and process-learning logs are treated as history
+rather than active context routing.
 
 ## Hard rules
 - Do not make the human manually pick skills.

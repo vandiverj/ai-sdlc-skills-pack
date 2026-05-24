@@ -21,6 +21,12 @@ Keep implementation tied to the plan, tests, and verification rather than ad hoc
 6. Stop on blockers, unclear requirements, or artifact disagreement.
 7. Update `docs/context-state.md` if new questions arise.
 8. Run verification commands listed in the plan.
+9. Close the artifact lifecycle before completion: distill durable truth into
+   code, tests, contracts, ADRs, backlog, feature context, context-state, or
+   Memory Bank routing; remove or mark completed implementation plans when
+   they are no longer active; consolidate slice-specific contracts into grouped
+   owning contracts once the public surface has stabilized; and check for stale
+   links to removed or superseded artifacts.
 
 ## Chat attention preflight
 Before editing files, confirm there are no unresolved `Needs decision before work` items from the contract, product-fit pass, implementation plan, or review.
@@ -58,3 +64,5 @@ When reclassifying, explain what changed and whether the route escalates, narrow
 - Start implementation while unresolved `Needs decision before work` items remain.
 - Continue on a Micro/Tiny route after behavior or public/shared surface changes appear.
 - Update docs to match surprising implementation behavior before `assert-doc-sync`.
+- Leave completed implementation plans or slice-specific contracts as active
+  source truth after their durable outcomes have been distilled elsewhere.

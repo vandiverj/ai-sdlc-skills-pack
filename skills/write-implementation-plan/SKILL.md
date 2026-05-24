@@ -76,6 +76,7 @@ For Micro/Tiny work, add this gate when the task touches UX, API contracts, data
 - Security, privacy, dependency, license, migration, deployment, observability, performance, accessibility, and rollback considerations.
 - Verification commands.
 - Documentation and context updates.
+- Artifact lifecycle and cleanup path.
 - Safe-edit boundary.
 - Chat handoff before execution.
 - Checkpoint or commit points.
@@ -118,6 +119,9 @@ A plan is ready only if:
 - Required threat-model findings are addressed, deferred with rationale, or routed to `threat-model`.
 - Production readiness needs are addressed for production-intended work, including reviewable scope, intentional commit boundary, rollback/mitigation, and observability/support expectations where relevant.
 - Documentation/context updates are included.
+- The plan states which artifacts are temporary, which durable docs own the
+  final truth, whether the plan should be removed or retained after closeout,
+  and which references must be updated if temporary artifacts are removed.
 - Open questions are either resolved, safely deferred, or explicitly blocking.
 - Decision-bearing questions and meaningful assumptions are surfaced in chat with recommendations, not only recorded in the plan.
 - The plan can be reviewed against the PRD, application model, and contract spec when present.
