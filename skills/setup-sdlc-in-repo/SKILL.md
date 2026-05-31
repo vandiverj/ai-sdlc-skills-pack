@@ -96,7 +96,7 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 3. Identify which portable SDLC files are missing, stale, or project-specific.
 4. Identify IDE/tool runtimes to support. If unclear, create portable files first and record adapter decisions as follow-up.
 5. Establish repository setup/profile locations before creating noisy artifacts.
-6. Decide the local AI notes policy: tracked shared docs belong under `docs/`; personal or pilot scratch notes belong under `.ai-local/` and should be ignored via `.git/info/exclude` or project `.gitignore` by explicit choice.
+6. Decide the local AI notes policy: tracked shared docs belong under `docs/`; personal or pilot scratch notes belong under `.ai-local/` and should be ignored via `.git/info/exclude` or project `.gitignore` by explicit choice. Inspect `git status --short --untracked-files=all`, `git check-ignore -v .ai-local .ai-local/*`, and `.git/info/exclude` when `.ai-local/` exists.
 7. Check Git identity and privacy expectations before public or shared publication: `git config user.name`, `git config user.email`, whether a noreply email is desired, and how to verify author/committer with `git log --format=fuller -1`.
 8. Review infrastructure and quality capabilities: install/build/run commands, formatter, linter, typecheck/compiler, unit/integration/contract/E2E tests, rendered UI tooling, accessibility checks, security/dependency scans, CI/local preflight, deployment/smoke checks, logs/debugging, QA/manual validation.
 9. Classify each capability as available/documented, available/undocumented, partial, missing but valuable, not applicable, or blocked by environment/security.
@@ -141,6 +141,19 @@ Minimum setup facts to capture:
 - approved/blocked tools and MCPs,
 - work/personal data boundary,
 - command style pitfalls.
+
+## Local AI notes policy
+Use this default decision matrix:
+
+```text
+Raw personal/pilot notes with local paths, transcripts, prompts, outputs, or handoff history -> `.git/info/exclude`.
+Repo-wide local scratch convention that should protect every clone -> project `.gitignore`.
+Sanitized reusable examples, evidence packets, or process docs -> tracked `docs/`.
+```
+
+Never track raw transcripts, private paths, local handoffs, prompt/output logs, secrets, customer data, or provider/tool credentials by default.
+
+If `.ai-local/` is present and not ignored, record the risk before committing or handing off. Prefer `.git/info/exclude` for a personal/public fixture repo unless the team explicitly wants a shared ignore convention.
 
 ## Quality capability proposals
 When tooling or testing gaps exist, propose improvements; do not silently add dependencies or workflow changes.

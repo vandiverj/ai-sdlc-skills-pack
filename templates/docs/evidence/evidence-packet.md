@@ -7,6 +7,7 @@
 - Work class:
 - Risk level:
 - Contextual caps:
+- Local scratch policy:
 
 ## Changed Files
 -

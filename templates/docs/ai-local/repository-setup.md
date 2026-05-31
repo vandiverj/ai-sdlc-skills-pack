@@ -26,6 +26,9 @@
 - Durable project docs:
 - Shared terminology:
 - Agent-local working docs:
+- Local scratch policy:
+- Local scratch ignore location: `.git/info/exclude` / project `.gitignore` / none
+- Sanitized evidence/docs path:
 - Implementation history:
 - External context root:
 - Generated artifacts:

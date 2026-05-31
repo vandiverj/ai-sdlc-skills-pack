@@ -94,6 +94,9 @@
 - Branch naming:
 - Git identity/privacy:
 - Local-only files:
+  - `.ai-local/` policy:
+  - Ignored via `.git/info/exclude` or `.gitignore`:
+  - Sanitized docs path, if any:
 - Public push/PR checks:
 - Commit expectations:
 - Keep commits scoped to one coherent task, gate, or mechanical change.
