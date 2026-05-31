@@ -61,6 +61,7 @@ Use stable keys so simple scripts can merge events from many repositories.
 - A user correction revealed a reusable process gap.
 - A question needed a recommendation, rationale, tradeoff, or default action before the human could answer usefully.
 - A workflow rule saved time or prevented drift.
+- A fixture-agent pilot run exposed a reusable SDLC gap, role-boundary issue, missing evidence expectation, or prompt/template weakness.
 
 ## What not to capture
 - Full implementation history.

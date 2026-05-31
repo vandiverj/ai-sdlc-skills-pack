@@ -74,6 +74,7 @@ Use the smallest useful pattern:
 - Specialists should receive narrow context packets and output findings, not broad rewrites.
 - Subagents should request escalation instead of expanding scope or spawning more agents by default.
 - In SDLC pilot work, assign fixture agents only to the fixture repository. Keep reusable skill-pack inspection, release-readiness judgment, edits, commits, and pushes with the orchestrator unless the human explicitly assigns that role elsewhere.
+- Prefer a fixture prompt template for pilot agents so role boundaries and assigned phase are not recreated from memory.
 - For Standard work, independent review is preferred when behavior, UI, tests, data, contracts, or multiple files changed.
 - For High-risk, repeated-failure, or disputed work, independent review is required when runtime support or a separate review pass is available.
 

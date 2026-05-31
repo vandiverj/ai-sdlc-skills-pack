@@ -324,6 +324,8 @@ For pilot workflows, keep roles explicit:
 - the orchestrator reviews and edits the reusable skill pack,
 - do not ask a fixture/test agent to inspect, judge release readiness for, push, merge, or edit the reusable skill-pack repository unless the human explicitly changes that role boundary.
 
+Use the pilot workflow template and fixture prompt template, when present, to keep the task intent, assigned phase, boundary table, evidence packet, and process findings consistent across runs.
+
 ## Risk signals
 Treat the work as higher risk when it touches:
 
