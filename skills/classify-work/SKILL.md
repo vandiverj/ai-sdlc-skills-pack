@@ -344,6 +344,7 @@ Treat the work as higher risk when it touches:
 - Do not use the full workflow for small work unless a risk signal is present.
 - Do not classify work as Micro or Tiny if it changes behavior across a public or shared boundary.
 - Do not classify exploratory work as complete production work.
+- Do not silently downgrade the approved work class in later phases. If implementation or review evidence shows the scope is smaller or larger than planned, explicitly reclassify, explain why, and preserve any already-approved evidence expectations unless they are no longer relevant.
 - Do not update artifacts whose dirty surfaces are false unless review finds they are stale.
 - Do not skip a gate without explaining which risk is unlikely or cheap enough to accept.
 - Do not continue on the original route after evidence shows the route is wrong.

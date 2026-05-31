@@ -367,6 +367,7 @@ Human decision needed:
 Pause and return to `classify-work` when:
 
 - The task is broader/narrower than expected.
+- A later phase would downgrade or upgrade the approved work class.
 - A new technical surface appears.
 - A missing or inadequate quality automation surface appears.
 - A missing, stale, risky, or unnecessary retrieval surface appears.
