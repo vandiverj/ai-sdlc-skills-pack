@@ -11,7 +11,8 @@ This reference is owned by `review-agent-work`. Load it when deciding which revi
 3. Run documentation sync checks before updating durable docs to match implementation.
 4. Add specialist reviews only for surfaces the slice actually touched.
 5. Treat missing or capped evidence as a review finding, not as proof of failure by itself.
-6. Keep independent reviewers read-only unless a separate fix route is approved.
+6. Distinguish evidence the reviewer personally ran from external evidence supplied by the orchestrator, CI, another agent, or a human.
+7. Keep independent reviewers read-only unless a separate fix route is approved.
 
 ## Core Review Stack
 
@@ -46,6 +47,7 @@ This reference is owned by `review-agent-work`. Load it when deciding which revi
 - Standard work needs spec or acceptance review plus relevant quality/specialist review for touched surfaces.
 - High-risk work needs independent review, threat or production review when relevant, and explicit human approval for accepted caps.
 - Fixture validation is useful evidence for SDLC behavior, but reusable skill-pack changes still need local skill-pack verification.
+- External review evidence may satisfy a specialist gap only when its source, freshness, scope, and cap are reported separately from the reviewer's own commands/tools.
 
 ## Stop Conditions
 
@@ -66,6 +68,8 @@ Why this route:
 Reviews run:
 Reviews intentionally skipped:
 Evidence inspected:
+Evidence personally run:
+External evidence accepted:
 Findings:
 Accepted caps:
 Required fixes:
