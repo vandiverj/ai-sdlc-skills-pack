@@ -30,6 +30,9 @@ Verification reported by worker/CI/tool:
 Rendered/browser/UI evidence:
 {{rendered_review_evidence}}
 
+Docs and artifact sync:
+{{docs_artifact_sync}}
+
 Evidence caps:
 {{evidence_caps}}
 
@@ -48,4 +51,5 @@ Recommended next phase:
 - Keep the packet compact enough to review.
 - Label evidence source clearly: orchestrator-run, worker-reported, CI/tool-reported, or human-provided.
 - Include failed, skipped, capped, or stale checks rather than smoothing them away.
+- State whether durable docs, code-local docs, contracts, generated artifacts, local-only policy, and context notes were inspected, updated, missing, not applicable, or intentionally deferred.
 - Do not include secrets, private prompts, or local-only scratch unless the downstream role needs the fact that they exist.
