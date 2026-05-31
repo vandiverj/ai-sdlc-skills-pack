@@ -28,6 +28,14 @@ Use when:
 - The plan has clear file ownership.
 - Work can be split without conflicting edits.
 
+### bundled implementation
+A worker may confirm the plan, implement a low-risk slice, run required checks, and return one handoff packet in a single prompt.
+
+Use when:
+- The slice is low-risk Standard or smaller.
+- Acceptance criteria and stop conditions are clear.
+- Bundling reduces handoff overhead without reducing required verification.
+
 ### parallel specialist review
 Specialists independently review security, contracts, tests, maintainability, docs, or production readiness.
 
@@ -40,6 +48,22 @@ A verifier runs commands and reports current-session evidence.
 Use when:
 - Completion depends on repeatable checks.
 - The implementer may be biased toward a completion claim.
+
+### release handoff
+A handoff worker performs final Git/status hygiene and publishes only when explicitly assigned.
+
+Use when:
+- The implementation has passed review gates.
+- Commit/push authority should be separated from implementation.
+- Local-only files, generated artifacts, or unrelated changes require careful staging boundaries.
+
+### process learning review
+A reviewer aggregates run evidence and recommends small process improvements without editing files.
+
+Use when:
+- Repeated friction or role-boundary confusion appears.
+- A fixture cycle may reveal a reusable SDLC gap.
+- The orchestrator needs to avoid overfitting one awkward run into permanent rules.
 
 ### consensus review
 Independent reviewers or model tiers examine a critical decision, then the orchestrator reconciles findings.

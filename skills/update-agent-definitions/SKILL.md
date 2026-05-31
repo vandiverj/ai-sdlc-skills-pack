@@ -20,10 +20,11 @@ Improve agent behavior deliberately without turning one-off anecdotes into perma
 
 ## Read first
 1. Portable role definitions in `.agents/agents/*.md` when working in the skills pack.
-2. Project-local `docs/agents/agent-catalog.md`, `model-tier-policy.md`, `delegation-patterns.md`, `runtime-adapters.md`, and `learning-loop.md`, when working in a downstream repository.
-3. Related `capture-process-event` entries, process-learning reviews, review-agent-strategy findings, and review-agent-work findings.
-4. Runtime-specific files such as `.augment/agents/*`, `.github/copilot-instructions.md`, `.github/instructions/*`, `.claude/agents/*`, and `AGENTS.md` when present.
-5. Current workflow docs and skills that reference the changed roles.
+2. `choose-agent-strategy` references for portable definition schema and runtime adapter rules.
+3. Project-local `docs/agents/agent-catalog.md`, `model-tier-policy.md`, `delegation-patterns.md`, `runtime-adapters.md`, and `learning-loop.md`, when working in a downstream repository.
+4. Related `capture-process-event` entries, process-learning reviews, review-agent-strategy findings, and review-agent-work findings.
+5. Runtime-specific files such as `.augment/agents/*`, `.github/copilot-instructions.md`, `.github/instructions/*`, `.claude/agents/*`, and `AGENTS.md` when present.
+6. Current workflow docs and skills that reference the changed roles.
 
 ## Required output
 

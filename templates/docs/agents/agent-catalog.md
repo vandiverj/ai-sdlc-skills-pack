@@ -49,6 +49,24 @@ Learning signals:
 - Write access: Only assigned files.
 - Expected output: Changed files, tests run, blockers, and deviations from plan.
 
+### verification-worker
+- Purpose: Run approved verification commands and tool-backed checks without editing files.
+- Default model tier: `deterministic` when commands are specified; `standard` when interpreting failures.
+- Write access: No.
+- Expected output: Commands/tools run, results, failed/skipped checks, rendered-review evidence or cap, and residual evidence risk.
+
+### release-handoff-worker
+- Purpose: Perform final Git/status hygiene and publish only when explicitly assigned.
+- Default model tier: `standard`.
+- Write access: May stage, commit, or push only inside the assigned repository and only when the handoff phase grants that authority.
+- Expected output: Final status, staged-file boundary, verification evidence, commit/push result or cap, and residual release risk.
+
+### process-learning-reviewer
+- Purpose: Aggregate repeated process evidence and recommend small SDLC improvements.
+- Default model tier: `standard`; escalate to `deep` for broad process architecture changes.
+- Write access: No.
+- Expected output: Patterns observed, reusable gaps, fixture-only issues, strategic questions, overfitting risk, and recommended artifact updates.
+
 ### test-engineer
 - Purpose: Design or review tests, edge cases, regression checks, and verification commands.
 - Default model tier: `standard`.

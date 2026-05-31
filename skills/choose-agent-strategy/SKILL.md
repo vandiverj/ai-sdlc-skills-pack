@@ -21,6 +21,8 @@ Make delegation intentional, portable, and reviewable. The SDLC decides roles, m
 
 Portable specialized agent definitions live in `.agents/agents/*.md`. When creating or reviewing those definitions, use the local reference `references/portable-agent-definition-schema.md`.
 
+When mapping portable roles into Codex, Pi, Copilot, Augment, Claude Code, or another runtime, use `references/runtime-adapter-rules.md` so runtime-specific files stay thin and do not become hidden policy.
+
 When a delegated role or Codex-direct role-separated phase needs a consistent prompt, have the orchestrator fill the matching template under `templates/prompts/sdlc/`. These templates are general-purpose and AI-authored; they are not user-facing intake forms.
 
 ## Read first
