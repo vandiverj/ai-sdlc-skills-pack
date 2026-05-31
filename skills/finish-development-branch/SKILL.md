@@ -12,6 +12,8 @@ Finish a development branch with verification, documentation checks, and an expl
 ## Purpose
 Avoid vague endings and preserve a clean GitHub workflow.
 
+For delegated final Git handoff, use the local reference `references/final-git-handoff.md`. Portable release/handoff agent definitions live in `.agents/agents/*.md`; runtime adapters should stay thin.
+
 ## Process
 1. Run verification-before-completion.
 2. Run health-check if appropriate.
