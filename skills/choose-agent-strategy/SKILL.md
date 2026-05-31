@@ -70,6 +70,7 @@ Use the smallest useful pattern:
 - `parallel specialist review`: specialists review security, contracts, tests, maintainability, docs, or production readiness.
 - `independent verification`: verifier runs commands and reports evidence without changing files.
 - `independent reviewer`: reviewer inspects the diff/evidence packet in a read-only posture and separates blocking from non-blocking findings.
+- `process learning review`: reviewer aggregates run evidence and recommends small SDLC improvements without editing files.
 - `consensus review`: two or more independent reviews for critical decisions, with the orchestrator reconciling findings.
 
 ## Default role rules
