@@ -27,6 +27,8 @@ Do not run the whole workflow by default. Run the smallest route that prevents t
 
 Use the route matrix from `classify-work`: Micro, Tiny, Standard, High-risk, Exploratory, Review-only, or Release/handoff. Treat the full SDLC as available capability, not a mandatory ladder.
 
+For skill-pack architecture, phase ownership, and future consolidation decisions, use the local reference `references/router-map.md`. Do not load that reference for every normal task; load it when route ownership, skill reachability, or skill-vs-reference-vs-agent placement matters.
+
 ## What this skill does
 1. Interpret the user request.
 2. Run or simulate `classify-work`.
