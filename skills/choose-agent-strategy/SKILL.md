@@ -19,6 +19,8 @@ Choose whether to use one agent or delegated specialist agents, and select the m
 ## Purpose
 Make delegation intentional, portable, and reviewable. The SDLC decides roles, model tiers, boundaries, and escalation triggers. Runtime adapters translate that strategy into the files or features a specific IDE/tool supports.
 
+Portable specialized agent definitions live in `.agents/agents/*.md`. When creating or reviewing those definitions, use the local reference `references/portable-agent-definition-schema.md`.
+
 ## Read first
 1. Work classification, risk level, dirty surfaces, and required evidence.
 2. Current request, issue, PRD, contract, application model, and context-state entries.
