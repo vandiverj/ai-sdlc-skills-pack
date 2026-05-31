@@ -25,6 +25,8 @@ The AI handles routing, context selection, artifact drafting, verification disci
 ## Core rule
 Do not run the whole workflow by default. Run the smallest route that prevents the most likely expensive failure.
 
+Use the route matrix from `classify-work`: Micro, Tiny, Standard, High-risk, Exploratory, Review-only, or Release/handoff. Treat the full SDLC as available capability, not a mandatory ladder.
+
 ## What this skill does
 1. Interpret the user request.
 2. Run or simulate `classify-work`.
@@ -45,6 +47,8 @@ Do not run the whole workflow by default. Run the smallest route that prevents t
     removed or marked inactive, slice-specific contracts are consolidated when
     stable, and backlog owns future work.
 16. Keep the user oriented with short progress summaries.
+17. Use compact evidence packets by default; reserve full reports for High-risk, release, audit-sensitive, cross-repo, or repeated-failure work.
+18. Route meaningful Standard, High-risk, repeated-failure, or disputed work through an independent reviewer role when useful and supported.
 
 ## What this skill does not do
 - Do not replace the specialized skills.
@@ -86,8 +90,10 @@ Fast-pass route:
 Immediate next skill:
 Human consent gates expected:
 Artifacts likely needed:
+Evidence packet level:
 Dirty surfaces likely:
 Verification expectation:
+Contextual caps to watch:
 Stop condition for this phase:
 ```
 
@@ -258,6 +264,7 @@ classify-work
 -> review-agent-work
 -> assert-doc-sync, if artifacts may disagree
 -> verification-before-completion, if evidence is missing
+-> independent reviewer role, when behavior/risk/evidence warrants separate critique
 ```
 
 Stop when findings require human decision or route mismatch requires reclassification.
@@ -390,6 +397,7 @@ rather than active context routing.
 - Do not choose or change stack/dependencies/services silently.
 - Do not use heavy gates for Micro/Tiny work unless risk appears.
 - Do not treat this skill as a mega-skill.
+- For Git-tracked code/text edits, include diff hygiene such as `git diff --check` in the verification expectation when available.
 - Do not claim completion without fresh verification evidence.
 
 ## Next skills

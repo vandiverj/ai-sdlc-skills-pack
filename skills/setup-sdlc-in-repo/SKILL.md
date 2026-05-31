@@ -40,7 +40,10 @@ Agent strategy installed:
 Skill pack expectations installed:
 Implementation patterns installed:
 Quality/retrieval/tool boundaries installed:
+Repository setup profile:
+Quality capability profile:
 Verification commands discovered:
+Improvement proposals:
 Follow-up decisions:
 Next skill:
 ```
@@ -92,12 +95,68 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 2. Inventory existing instruction, workflow, docs, command, CI, and agent runtime files.
 3. Identify which portable SDLC files are missing, stale, or project-specific.
 4. Identify IDE/tool runtimes to support. If unclear, create portable files first and record adapter decisions as follow-up.
-5. Draft changes without overwriting project-specific guidance.
-6. Merge existing instructions by linking to deeper docs and preserving local commands/conventions.
-7. Add `docs/patterns/README.md` and pattern templates when repeated project-specific implementation guidance should be captured.
-8. Add runtime adapters only for tools the project actually uses or explicitly wants.
-9. Run documentation verification checks and `git diff --check`.
-10. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
+5. Establish repository setup/profile locations before creating noisy artifacts.
+6. Review infrastructure and quality capabilities: install/build/run commands, formatter, linter, typecheck/compiler, unit/integration/contract/E2E tests, rendered UI tooling, accessibility checks, security/dependency scans, CI/local preflight, deployment/smoke checks, logs/debugging, QA/manual validation.
+7. Classify each capability as available/documented, available/undocumented, partial, missing but valuable, not applicable, or blocked by environment/security.
+8. Draft changes without overwriting project-specific guidance.
+9. Merge existing instructions by linking to deeper docs and preserving local commands/conventions.
+10. Add `docs/patterns/README.md` and pattern templates when repeated project-specific implementation guidance should be captured.
+11. Add runtime adapters only for tools the project actually uses or explicitly wants.
+12. Add evidence packet and independent-reviewer templates when the project will use local handoffs, local review packets, or agent review roles.
+13. Run documentation verification checks and `git diff --check`.
+14. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
+
+## Repository setup profile
+Prefer a Markdown-first setup profile while the fields are still evolving:
+
+```text
+.ai-local/repository-setup.md
+.ai-local/tool-capabilities.md
+.ai-local/quality-capabilities.md
+.ai-local/terminology.md
+docs/evidence/evidence-packet.md
+docs/agents/independent-reviewer.md
+```
+
+Use a checked-in template, such as `docs/ai-setup.example.md`, when shared repos need a discoverable setup shape without committing personal paths or noisy working history.
+
+Do not require `repo-setup.yaml` in the first pass. Keep YAML as a future machine-readable companion once fields stabilize or automation requires it.
+
+Minimum setup facts to capture:
+
+- repository name/path/source host,
+- personal/work/team classification,
+- active runtime and OS,
+- global `.agents` asset root and branch/version,
+- skills/agent-contract/tool/template paths,
+- context root,
+- implementation history location,
+- durable docs location,
+- ignored AI-local paths,
+- validation commands,
+- rendered-review tools,
+- approved/blocked tools and MCPs,
+- work/personal data boundary,
+- command style pitfalls.
+
+## Quality capability proposals
+When tooling or testing gaps exist, propose improvements; do not silently add dependencies or workflow changes.
+
+Use this justification shape:
+
+```text
+Capability gap:
+Observed evidence:
+Risk created by the gap:
+Suggested improvement:
+Smallest useful first step:
+Expected quality benefit:
+Cost / maintenance burden:
+Impact on other developers:
+Security or dependency concern:
+Approval needed:
+Recommended timing:
+```
 
 ## Merge rules
 - Existing project instructions outrank templates.

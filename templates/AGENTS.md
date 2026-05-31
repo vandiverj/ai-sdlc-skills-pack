@@ -28,11 +28,21 @@
 - Narrow check for small edits:
 - Broader check before completion:
 - Commands that are slow, flaky, or environment-dependent:
+- Rendered UI/app review path:
+- Evidence packet location:
+- Protected evidence surfaces:
+  - Tests:
+  - Snapshots/baselines:
+  - Validation scripts:
+  - CI/local preflight config:
 
 ## AI SDLC Workflow
 - Start with work classification.
+- Record the evidence packet level and any contextual caps before claiming completion.
 - Load the smallest safe context packet.
 - Use documented verification before claiming completion.
+- Treat tests, snapshots, generated baselines, validation commands, and CI config as protected evidence surfaces. If they change, record why and how the new evidence still protects behavior.
+- For UI or user-facing workflow changes, inspect the rendered browser/app/device surface when a runnable surface and approved tool are available; otherwise mark product-experience claims unverified.
 - Update context, docs, contracts, and agent instructions only when their surfaces changed.
 
 ## Agent Strategy

@@ -247,6 +247,8 @@ docs/
     <plan>.md
   workflows/
     <workflow>.md
+  evidence/
+    evidence-packet.md
   session-checkpoints/
     <date>-<topic>.md
   knowledge-graph/

@@ -64,6 +64,7 @@ Use the smallest useful pattern:
 - `bounded implementation`: worker edits only assigned files from an approved plan.
 - `parallel specialist review`: specialists review security, contracts, tests, maintainability, docs, or production readiness.
 - `independent verification`: verifier runs commands and reports evidence without changing files.
+- `independent reviewer`: reviewer inspects the diff/evidence packet in a read-only posture and separates blocking from non-blocking findings.
 - `consensus review`: two or more independent reviews for critical decisions, with the orchestrator reconciling findings.
 
 ## Default role rules
@@ -72,6 +73,8 @@ Use the smallest useful pattern:
 - Workers need file ownership, allowed commands, stop conditions, and verification expectations.
 - Specialists should receive narrow context packets and output findings, not broad rewrites.
 - Subagents should request escalation instead of expanding scope or spawning more agents by default.
+- For Standard work, independent review is preferred when behavior, UI, tests, data, contracts, or multiple files changed.
+- For High-risk, repeated-failure, or disputed work, independent review is required when runtime support or a separate review pass is available.
 
 ## Escalation triggers
 Escalate model tier or request a specialist when:
@@ -90,6 +93,7 @@ Escalate model tier or request a specialist when:
 - Do not allow subagents to change files outside their assigned ownership.
 - Do not let runtime-specific agent configs become the source of truth over `docs/agents/*`, skills, and `AGENTS.md`.
 - Do not let subagents recursively create more subagents unless the runtime is configured for that and the orchestrator explicitly allows it.
+- Do not let reviewer agents see implementer confidence as proof. Reviewers should inspect evidence before accepting claims.
 
 ## Next skills
 Usually `select-tools`, `select-context`, `write-implementation-plan`, `review-implementation-plan`, `execute-plan`, `review-agent-strategy`, `review-agent-work`, `verification-before-completion`, or `context-save`.

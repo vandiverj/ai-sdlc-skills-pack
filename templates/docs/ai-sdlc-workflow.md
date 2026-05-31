@@ -12,6 +12,8 @@ This document defines the project's AI-assisted development process.
 6. Context docs are part of Definition of Done.
 7. Agent roles, model tiers, and runtime adapters are optional execution aids; they must stay bounded and reviewable.
 8. Implementation patterns are evidence-backed project guidance, not duplicate tooling or universal laws.
+9. Confidence is limited by contextual caps when required evidence is missing.
+10. Product-experience claims require rendered review when a runnable UI/app surface and approved tool exist.
 
 ## Workflow
 See `SUMMARY.md` in the skills pack for the full baseline.
@@ -34,12 +36,26 @@ See `SUMMARY.md` in the skills pack for the full baseline.
 - Lint:
 - Format check:
 - Health:
+- Rendered UI/app review:
+
+## Evidence Rules
+- Use the smallest evidence packet that fits the work class.
+- Record changed files, validation run, skipped checks, contextual caps, and next action.
+- For Git-tracked code/text edits, run and record diff hygiene such as `git diff --check` before completion, commit, handoff, or evidence packet finalization when available.
+- For UI/user-facing workflow changes, include rendered browser/app/device evidence when available.
+- Treat tests, snapshots, generated baselines, validation scripts, thresholds, and CI/local preflight config as protected evidence surfaces. If any changed, record why the change was needed and how the new evidence still protects behavior.
+- If no automated tests exist, use the strongest available alternative evidence and state the test gap honestly.
 
 ## Definition of Done
 - [ ] Issue matches PRD.
 - [ ] PRD matches application model.
 - [ ] Tests added/updated.
+- [ ] Diff hygiene checked for Git-tracked code/text edits.
 - [ ] Verification run and recorded.
+- [ ] Evidence packet recorded at the route-appropriate level.
+- [ ] Contextual caps recorded or marked not applicable.
+- [ ] Rendered review recorded for UI/user-facing workflow changes, or explicitly marked unavailable/unverified.
+- [ ] Test/evidence surface changes justified.
 - [ ] Agent strategy, model-tier, or runtime adapter docs updated if they changed or should have changed.
 - [ ] Implementation pattern docs updated if pattern guidance, maturity, examples, or exceptions changed.
 - [ ] Feature context updated.

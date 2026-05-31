@@ -45,6 +45,8 @@ Skipped gates and reason:
 Required context:
 Required tools/MCPs:
 Required verification:
+Evidence packet level:
+Contextual caps:
 Context/documentation updates:
 Escalation triggers:
 Reclassification triggers:
@@ -72,6 +74,8 @@ classify-work
 -> verification-before-completion, smallest relevant check or documented inspection
 ```
 
+Evidence packet level: one-line summary.
+
 Escalate out of Micro if behavior, tests, public docs, generated artifacts, shared code, or more than one meaningful file changes.
 
 ### Tiny
@@ -93,6 +97,8 @@ classify-work
 ```
 
 Usually skip application modeling, PRD, issues, contract spec, implementation plan, outside voice, broad reviews, and branch finishing.
+
+Evidence packet level: compact summary.
 
 ### Standard
 Use for bounded feature work, moderate bug fixes, or multi-file changes with clear requirements.
@@ -120,6 +126,10 @@ classify-work
 
 For Standard work, spec compliance, artifact sync, and code quality can be performed as one concise review pass when risk is low and the dirty surfaces are narrow.
 
+Evidence packet level: compact evidence packet.
+
+Prefer an independent reviewer role when the change has meaningful behavior, UI, test, data, contract, or multi-file risk. If runtime support is unavailable, use a review-focused pass over the diff and evidence packet.
+
 ### High-risk
 Use when the change affects public contracts, data, security, auth, payments, privacy, permissions, migrations, infrastructure, external integrations, concurrency, irreversible operations, or broad architecture.
 
@@ -146,6 +156,8 @@ Usually required:
 - `assert-doc-sync`
 - context and release documentation updates only where dirty surfaces require them
 
+Evidence packet level: full evidence packet with waiver/status notes.
+
 ### Exploratory
 Use for spikes, prototypes, research, or uncertain feasibility work.
 
@@ -165,6 +177,39 @@ classify-work
 ```
 
 Exploratory work produces findings, options, risks, and a recommended next classification. It does not produce production completion claims.
+
+Evidence packet level: findings packet, not completion packet.
+
+### Review-only
+Use when inspecting a diff, artifact, prior agent session, or branch without approval to make code changes.
+
+Fast-pass route:
+```text
+classify-work
+-> select-context
+-> choose-agent-strategy, if independent review or specialist review is useful
+-> review-agent-work or review-spec-compliance/review-code-quality as applicable
+-> verification-before-completion, only if evidence is missing and commands can be run safely
+```
+
+Evidence packet level: findings packet.
+
+Do not edit code unless the user separately approves a fix route.
+
+### Release or handoff
+Use when preparing merge, deploy, QA, ticket update, or local review packet.
+
+Fast-pass route:
+```text
+classify-work
+-> verification-before-completion
+-> review-agent-work, production-readiness-review, or finish-development-branch as applicable
+-> context-save / update-context-docs, dirty surfaces only
+```
+
+Evidence packet level: release/handoff packet.
+
+For repositories without PRs, require a local review packet: task, changed files, diff summary, validation evidence, rendered review if relevant, risks, skipped checks, acceptance status, and next action.
 
 ## Context depth
 
@@ -242,6 +287,21 @@ Escalate when:
 - Any route -> `threat-model`: security, privacy, user data, untrusted input, dependency/supply-chain, external integration, public contract, AI/agent, tool-access, or abuse-case risk is present and not already addressed.
 - Any route -> `production-readiness-review`: Standard or High-risk work is intended for merge, release, deploy, or production handoff and needs Git reviewability, rollback, observability, or release confidence.
 - Any route -> select-tools: current external docs, reasoning scaffold, repo retrieval, or tool boundaries are needed.
+
+## Contextual caps
+Contextual caps limit completion confidence when required evidence is missing. Prefer these canonical caps over many custom numeric sub-scores:
+
+- `missing-context`: affected files, schemas, docs, tests, or runtime constraints were not inspected.
+- `missing-validation`: no relevant check was run and no waiver/handoff exists.
+- `weak-validation`: checks ran but do not cover the changed behavior.
+- `hidden-blast-radius`: shared behavior, cross-repo impact, production path, or downstream consumer impact is not mapped.
+- `rendered-experience-unverified`: UI/user-facing workflow changed but rendered surface was not inspected when tooling was available.
+- `security-data-uncertainty`: sensitive data, dependency, MCP/tool, auth, privacy, or production boundary is unresolved.
+- `review-conflict`: implementer, reviewer, tests, or requirements disagree.
+- `environment-mismatch`: validation ran in a meaningfully different OS/runtime/environment than the product requires.
+- `test-evidence-tampering-risk`: tests, snapshots, thresholds, validation scripts, generated baselines, or CI changed without an approved test/tooling scope.
+
+If a cap applies, record it in the execution contract and route to the smallest useful action: gather context, run verification, ask for approval, produce a handoff, or reclassify.
 
 ## Risk signals
 Treat the work as higher risk when it touches:

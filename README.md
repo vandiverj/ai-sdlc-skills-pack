@@ -9,6 +9,7 @@ The pack is designed to help coding agents preserve product intent, application 
 - `WORKFLOW.md` - ordered workflow, gates, context routing model, and skill groups.
 - `SUMMARY.md` - working baseline and development notes for the pack.
 - `skills/` - loader-compatible `SKILL.md` files for the workflow.
+- `agent-contracts/` - reusable role contracts for optional specialist or reviewer agents.
 - `scripts/` - repository maintenance checks for skill file format and related rails.
 - `templates/` - starter docs and feature context templates.
 
