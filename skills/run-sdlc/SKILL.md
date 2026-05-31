@@ -29,6 +29,8 @@ Use the route matrix from `classify-work`: Micro, Tiny, Standard, High-risk, Exp
 
 For skill-pack architecture, phase ownership, and future consolidation decisions, use the local reference `references/router-map.md`. Do not load that reference for every normal task; load it when route ownership, skill reachability, or skill-vs-reference-vs-agent placement matters.
 
+When delegating implementation, independent review, release handoff, or evidence-packet creation, the orchestrator may fill the general templates in `templates/prompts/sdlc/`. These templates are internal prompt-generation aids for the AI; do not require the human to provide prompts in that format.
+
 ## What this skill does
 1. Interpret the user request.
 2. Run or simulate `classify-work`.
