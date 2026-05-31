@@ -1,6 +1,6 @@
 # SDLC Prompt Template: Independent Reviewer
 
-Purpose: help the orchestrator create a consistent read-only independent review prompt from a diff, commit, evidence packet, or handoff.
+Purpose: help the orchestrator create a consistent read-only independent review prompt or internal phase packet from a diff, commit, evidence packet, or handoff.
 
 This is an AI-filled template, not a user form. The human should not need to provide information in this shape.
 

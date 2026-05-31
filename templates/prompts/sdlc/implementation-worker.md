@@ -1,6 +1,6 @@
 # SDLC Prompt Template: Implementation Worker
 
-Purpose: help the orchestrator create a consistent delegated implementation prompt from normal human intent, classification output, and planning artifacts.
+Purpose: help the orchestrator create a consistent implementation-worker prompt or internal phase packet from normal human intent, classification output, and planning artifacts.
 
 This is an AI-filled template, not a user form. The human should not need to provide information in this shape.
 

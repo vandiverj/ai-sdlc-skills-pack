@@ -1,6 +1,6 @@
 # SDLC Prompt Template: Release Handoff Worker
 
-Purpose: help the orchestrator create a consistent final Git handoff prompt after implementation and review evidence exists.
+Purpose: help the orchestrator create a consistent final Git handoff prompt or internal phase packet after implementation and review evidence exists.
 
 This is an AI-filled template, not a user form. The human should not need to provide information in this shape.
 
