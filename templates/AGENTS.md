@@ -27,6 +27,7 @@
 ## Verification Guidance
 - Narrow check for small edits:
 - Broader check before completion:
+- Command flag policy:
 - Commands that are slow, flaky, or environment-dependent:
 - Rendered UI/app review path:
 - Evidence packet location:

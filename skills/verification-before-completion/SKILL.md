@@ -128,6 +128,8 @@ Common places to look:
 
 Prefer the narrowest command that proves the changed behavior, then broader checks when appropriate.
 
+Run discovered project commands as written unless project docs, scripts, runner config, or a prior successful local pattern shows required flags. Do not append framework-specific flags from another ecosystem, such as Jest-only flags on a Vitest project, without local evidence.
+
 If expected quality automation is missing, stale, too noisy, or undocumented, route to `choose-quality-automation` or record the gap before claiming broad confidence.
 
 If no automated tests exist, use the strongest available alternative evidence, such as build/compile, smoke checks, runtime logs, manual QA steps, focused characterization tests near touched code, rendered review, or a local review packet. Record the test gap honestly and do not claim stronger confidence than the evidence supports.
