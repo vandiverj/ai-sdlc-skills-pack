@@ -195,7 +195,8 @@ Memory Bank files summarize current state, pending work, and routing. They do no
 - `decisionIndex.md`: concise index of decisions with links to ADRs. ADRs own full rationale.
 - `contextIndex.md`: map of PRDs, feature contexts, model sections, workflows, contracts, documented source surfaces, and when to load them.
 - `docs/context-state.md`: uncertainty ledger: assumptions, open questions, deferred decisions, blocked items, affected artifacts, and revisit triggers.
-- `docs/agents/*`: portable agent strategy, model tiers, specialist roles, delegation patterns, runtime adapter mappings, and reviewed learning loop.
+- `.agents/agents/*.md`: portable specialist, worker, reviewer, and handoff role definitions for this skills pack.
+- `docs/agents/*`: downstream project-local agent strategy, model tiers, delegation patterns, runtime adapter mappings, and reviewed learning loop.
 - `docs/patterns/*`: project-specific implementation patterns, maturity, canonical examples, exceptions, deprecated patterns, and change triggers.
 
 Do not duplicate full requirements, architecture, issue details, contract details, code-local API docs, completed-work history, or ADR rationale into Memory Bank files. Link to the authoritative artifact instead.
@@ -230,7 +231,7 @@ Projects using this workflow should maintain `AGENTS.md` when possible. It shoul
 
 Use `setup-sdlc-in-repo` to install or refresh the portable SDLC files and runtime-specific adapter files in downstream projects. Use `choose-agent-strategy` when Standard, High-risk, Exploratory, review, release, or cross-cutting work may benefit from delegation, specialist review, independent verification, or model-tier selection.
 
-Portable strategy belongs in `docs/agents/*`. Runtime-specific files for Codex, VS Code/Copilot, Augment, Claude Code, or other tools are adapters. They should stay thin, point back to portable docs, and never outrank source artifacts, skills, or `AGENTS.md`.
+Portable skills-pack role definitions belong in `.agents/agents/*.md`. Downstream project strategy belongs in `docs/agents/*`. Runtime-specific files for Codex, VS Code/Copilot, Augment, Claude Code, or other tools are adapters. They should stay thin, point back to portable docs, and never outrank source artifacts, skills, or `AGENTS.md`.
 
 Use the least powerful model and fewest agents that can satisfy the evidence requirement. Escalate when confidence is low, verification fails, artifacts conflict, risk surfaces appear, edit scope expands, or the current agent cannot produce a testable plan, reviewable diff, or fresh evidence.
 

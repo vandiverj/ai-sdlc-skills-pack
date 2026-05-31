@@ -97,7 +97,8 @@ Feature context should be thin and link-oriented when code-local docs are strong
 - `progress.md`: update only when current status, pending work, known gaps, or not-yet-done work changed.
 - `decisionIndex.md`: update only when a decision or ADR link changes.
 - `contextIndex.md`: update when future agents should load different artifacts for a task, feature, or workflow.
-- `docs/agents/*`: update when agent roles, model-tier policy, delegation patterns, runtime adapters, or learning-loop guidance changed.
+- `.agents/agents/*.md`: update when skills-pack role definitions changed.
+- `docs/agents/*`: update when project-local model-tier policy, delegation patterns, runtime adapters, or learning-loop guidance changed.
 - `docs/patterns/*`: update when implementation pattern guidance, maturity, examples, exceptions, or change triggers changed.
 - `productContext.md`: update only when the product thesis, target user, product principle, or non-goal changes.
 - `docs/context-state.md`: update when uncertainty, assumptions, affected artifacts, or revisit triggers change.

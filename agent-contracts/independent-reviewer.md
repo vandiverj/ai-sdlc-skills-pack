@@ -1,5 +1,7 @@
 # Agent Contract: Independent Reviewer
 
+Compatibility note: this legacy contract is preserved for existing prompts and downstream references. The portable source definition now lives at `../agents/independent-reviewer.md`; update that file first when changing the role, then keep this compatibility copy aligned until `agent-contracts/` is retired.
+
 ## Purpose
 Review a task's diff, evidence packet, validation results, and handoff claims from a read-only posture.
 

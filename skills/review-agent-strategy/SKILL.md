@@ -21,7 +21,7 @@ Prevent delegation from becoming hidden complexity. The review checks that agent
 ## Read first
 1. Work classification and selected agent strategy.
 2. Agent outputs, handoffs, changed files, recent commits, and verification evidence.
-3. `docs/agents/*`, runtime adapters, AGENTS.md, and safe-edit boundaries.
+3. Portable `.agents/agents/*.md` definitions when working in the skills pack; project `docs/agents/*`, runtime adapters, AGENTS.md, and safe-edit boundaries when working in a downstream repository.
 4. Relevant PRD, contract, application model, implementation plan, threat model, and production-readiness review.
 
 ## Required output
@@ -50,7 +50,7 @@ Next skill:
 - Did write-capable agents stay within assigned files and commands?
 - Did handoffs include evidence, uncertainty, and next steps rather than raw context dumps?
 - Did the strategy preserve a reviewable Git diff and intentional commit boundary?
-- Did runtime adapter behavior match the portable `docs/agents/*` source of truth?
+- Did runtime adapter behavior match the portable `.agents/agents/*.md` role definitions and project `docs/agents/*` strategy?
 
 ## Hard rules
 - Do not approve a strategy that hides accountability behind many agent outputs.

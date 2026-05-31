@@ -21,7 +21,7 @@ Session checkpoints may contain historical handoff detail. Memory Bank files mus
 - `docs/memory-bank/decisionIndex.md`, when decisions or ADR links changed.
 - `docs/memory-bank/contextIndex.md`, when future context selection guidance changed.
 - `docs/context-state.md`, when assumptions, open questions, deferred decisions, blocked items, or affected artifacts changed.
-- `docs/agents/*`, when agent roles, model-tier policy, delegation patterns, runtime adapters, or learning-loop guidance changed.
+- `.agents/agents/*.md` when skills-pack role definitions changed; `docs/agents/*` when project-local model-tier policy, delegation patterns, runtime adapters, or learning-loop guidance changed.
 - `docs/patterns/*`, when implementation pattern guidance, maturity, examples, exceptions, or change triggers changed.
 - `docs/process-improvement/events.jsonl`, when real work exposed process friction, gaps, corrections, near misses, or useful successes worth later review.
 

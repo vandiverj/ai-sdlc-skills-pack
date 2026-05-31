@@ -19,10 +19,11 @@ Update portable agent definitions, model-tier policy, delegation patterns, or ru
 Improve agent behavior deliberately without turning one-off anecdotes into permanent process. Agent definitions are part of the SDLC and should change through normal reviewable commits.
 
 ## Read first
-1. `docs/agents/agent-catalog.md`, `model-tier-policy.md`, `delegation-patterns.md`, `runtime-adapters.md`, and `learning-loop.md`.
-2. Related `capture-process-event` entries, process-learning reviews, review-agent-strategy findings, and review-agent-work findings.
-3. Runtime-specific files such as `.augment/agents/*`, `.github/copilot-instructions.md`, `.github/instructions/*`, `.claude/agents/*`, and `AGENTS.md` when present.
-4. Current workflow docs and skills that reference the changed roles.
+1. Portable role definitions in `.agents/agents/*.md` when working in the skills pack.
+2. Project-local `docs/agents/agent-catalog.md`, `model-tier-policy.md`, `delegation-patterns.md`, `runtime-adapters.md`, and `learning-loop.md`, when working in a downstream repository.
+3. Related `capture-process-event` entries, process-learning reviews, review-agent-strategy findings, and review-agent-work findings.
+4. Runtime-specific files such as `.augment/agents/*`, `.github/copilot-instructions.md`, `.github/instructions/*`, `.claude/agents/*`, and `AGENTS.md` when present.
+5. Current workflow docs and skills that reference the changed roles.
 
 ## Required output
 
@@ -45,6 +46,7 @@ Next skill:
 - Prefer tightening an existing role before adding a new specialist.
 - Prefer abstract model tiers over vendor-specific model names in portable docs.
 - Keep runtime-specific files thin and derived from the portable strategy.
+- In the skills pack, update `.agents/agents/*.md` before compatibility copies or runtime adapters.
 - Record why a change improves quality, reviewability, cost, or safety.
 - Preserve human Git review: make small scoped commits with intentional messages.
 - If the change affects downstream setup, update `setup-sdlc-in-repo` guidance.
@@ -55,7 +57,7 @@ This skill owns agent roles, model-tier policy, delegation patterns, and runtime
 ## Hard rules
 - Do not auto-update agent definitions from raw logs or one failed session.
 - Do not encode secrets, private prompts, private customer data, or local-only preferences.
-- Do not let runtime adapters diverge from portable `docs/agents/*` without recording the reason.
+- Do not let runtime adapters diverge from portable `.agents/agents/*.md` or project `docs/agents/*` without recording the reason.
 - Do not add specialists that have no clear use case, output contract, or escalation trigger.
 
 ## Next skills

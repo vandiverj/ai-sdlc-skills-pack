@@ -97,7 +97,7 @@ Escalate model tier or request a specialist when:
 - Do not use a heavier model when a lower tier can satisfy the evidence requirement.
 - Do not use a lower tier for high-risk decisions if it cannot reason about the relevant failure modes.
 - Do not allow subagents to change files outside their assigned ownership.
-- Do not let runtime-specific agent configs become the source of truth over `docs/agents/*`, skills, and `AGENTS.md`.
+- Do not let runtime-specific agent configs become the source of truth over `.agents/agents/*.md`, project `docs/agents/*`, skills, and `AGENTS.md`.
 - Do not let subagents recursively create more subagents unless the runtime is configured for that and the orchestrator explicitly allows it.
 - Do not let reviewer agents see implementer confidence as proof. Reviewers should inspect evidence before accepting claims.
 - Do not accept a bundled implementation handoff that claims completion without fresh verification evidence for the selected gates.

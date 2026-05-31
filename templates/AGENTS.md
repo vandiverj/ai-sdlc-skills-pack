@@ -51,7 +51,7 @@
 - Keep personal or pilot scratch notes out of commits unless explicitly intended; decide whether `.ai-local/` belongs in `.git/info/exclude` or project `.gitignore`.
 
 ## Agent Strategy
-- Agent policy source of truth: `docs/agents/`.
+- Project agent strategy source of truth: `docs/agents/`.
 - Runtime adapter files:
   - Codex: `AGENTS.md`
   - VS Code/Copilot:

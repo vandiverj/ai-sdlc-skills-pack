@@ -62,7 +62,7 @@ Always include the current request, work class, issue, acceptance criteria, curr
 Usually include relevant sections of `docs/application-model.md`, related PRD, contract spec, relevant feature `context.md`, related ADRs, `progress.md`, or `decisionIndex.md` when they are directly relevant.
 
 ### Agent strategy context
-Load only the relevant `docs/agents/*` files when delegation, specialist roles, model tiers, runtime adapters, or agent learning-loop behavior affects the task.
+Load only the relevant `.agents/agents/*.md` definitions when skills-pack specialist roles matter, and only the relevant project `docs/agents/*` files when delegation, model tiers, runtime adapters, or agent learning-loop behavior affects a downstream task.
 
 ### Implementation pattern context
 Load only the relevant `docs/patterns/*` files and canonical examples when forms, tables, API handlers, data fetching, errors, tests, layouts, feature modules, or another repeated project-specific pattern affects the task.

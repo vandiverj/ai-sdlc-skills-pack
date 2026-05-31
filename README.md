@@ -9,7 +9,8 @@ The pack is designed to help coding agents preserve product intent, application 
 - `WORKFLOW.md` - ordered workflow, gates, context routing model, and skill groups.
 - `SUMMARY.md` - working baseline and development notes for the pack.
 - `skills/` - loader-compatible `SKILL.md` files for the workflow.
-- `agent-contracts/` - reusable role contracts for optional specialist or reviewer agents.
+- `agents/` - portable Markdown definitions for optional specialist, worker, reviewer, and handoff agents.
+- `agent-contracts/` - legacy compatibility role contracts kept until downstream references move to `agents/`.
 - `scripts/` - repository maintenance checks for skill file format and related rails.
 - `templates/` - starter docs and feature context templates.
 
@@ -67,7 +68,7 @@ Memory Bank files summarize current state, pending work, and routing. They do no
 - `docs/prds/` owns requirements.
 - `docs/contracts/` owns public and cross-boundary contract specs when needed.
 - `docs/decisions/` owns full ADR rationale.
-- `docs/agents/` owns portable agent roles, model-tier policy, delegation patterns, runtime adapters, and learning loop guidance.
+- `.agents/agents/` owns skills-pack portable agent role definitions; downstream `docs/agents/` owns project-local model-tier policy, delegation patterns, runtime adapters, and learning loop guidance.
 - `docs/patterns/` owns project-specific implementation pattern guidance, maturity, examples, exceptions, and change triggers.
 - `src/features/<feature>/context.md` owns feature-level maps and loading guidance.
 - `docs/context-state.md` owns uncertainty, assumptions, affected artifacts, and revisit triggers.
@@ -90,7 +91,7 @@ MCPs and tools are optional infrastructure. Use select-tools when external/curre
 
 Use `choose-agent-strategy` when Standard, High-risk, Exploratory, review, release, or cross-cutting work may benefit from delegation, specialist review, independent verification, or model-tier selection.
 
-The portable SDLC defines roles and model tiers in `docs/agents/*`; runtime-specific files for Codex, VS Code/Copilot, Augment, Claude Code, or other tools are adapters. Keep adapters thin and do not let them outrank `AGENTS.md`, workflow docs, skills, or source-of-truth artifacts.
+The skills pack defines portable specialist roles in `.agents/agents/*.md`. Downstream projects define project-local agent strategy and model tiers in `docs/agents/*`; runtime-specific files for Codex, VS Code/Copilot, Augment, Claude Code, or other tools are adapters. Keep adapters thin and do not let them outrank `AGENTS.md`, workflow docs, skills, portable agent definitions, or source-of-truth artifacts.
 
 Use the minimum model tier and fewest agents that can satisfy the evidence requirement. Escalate by concrete triggers such as low confidence, failed verification, conflicting artifacts, risky surfaces, or an inability to produce a testable plan or reviewable diff.
 

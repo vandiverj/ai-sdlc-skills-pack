@@ -79,7 +79,7 @@ Create PRD, contract, decision, issue, implementation-plan, release, concrete pa
 ## Runtime adapters
 Adapters are optional and should stay thin:
 
-- Codex: root `AGENTS.md` plus portable `docs/agents/*` and skills guidance.
+- Codex: root `AGENTS.md` plus project-local `docs/agents/*` and portable skills guidance.
 - VS Code/Copilot: `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md` when the project uses Copilot customization.
 - Augment: `.augment/agents/*.md` when the project uses Augment/Auggie subagents.
 - Claude Code: `.claude/agents/*.md` when the project uses Claude Code project agents.
@@ -180,7 +180,7 @@ Recommended timing:
 - Do not duplicate full PRDs, application models, contracts, agent catalog entries, or skills inside runtime adapters.
 - Do not turn implementation patterns into duplicate lint, format, typecheck, schema, accessibility, or CI rules.
 - If a file exists and the merge is ambiguous, produce a proposed patch or mark it `Needs Review`.
-- Keep IDE/tool files concise enough that future changes happen in portable docs, not in several divergent adapters.
+- Keep IDE/tool files concise enough that future changes happen in portable docs or `.agents/agents/*.md`, not in several divergent adapters.
 
 ## Agent strategy installation
 Install or update:
@@ -191,6 +191,8 @@ Install or update:
 - `docs/agents/delegation-patterns.md` for single-agent, read-only exploration, bounded worker, specialist review, independent verification, and consensus review.
 - `docs/agents/runtime-adapters.md` for Codex, VS Code/Copilot, Augment, Claude Code, and other runtime mappings.
 - `docs/agents/learning-loop.md` for how process-learning events can improve agent definitions through human-reviewed commits.
+
+When this skills pack has portable role definitions in `.agents/agents/*.md`, use them as source material for project-local `docs/agents/*` and runtime adapters. Do not copy every portable role into a downstream repository unless the project will actually use it.
 
 ## Implementation pattern installation
 Install or update:
@@ -206,7 +208,7 @@ Create concrete pattern files only when the project has evidence, examples, or t
 - Keep runtime-owned system skills separate from portable project/SDLC skills.
 
 ## Hard rules
-- Do not make runtime-specific files the source of truth over portable SDLC docs.
+- Do not make runtime-specific files the source of truth over portable SDLC docs or `.agents/agents/*.md`.
 - Do not overwrite existing project instructions without review.
 - Do not install every adapter by default.
 - Do not hard-code model names in portable docs unless the project explicitly wants local mappings.

@@ -82,7 +82,7 @@ Dirty surfaces route artifact updates:
 - `docsContextSurfaceChanged` -> code-local docs, feature context, Memory Bank routing, context index, release/developer docs.
 - `riskSurfaceChanged` -> security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review.
 - `agentOpsSurfaceChanged` -> AGENTS.md, setup commands, verification commands, workflow guidance.
-- `agentStrategyChanged` -> docs/agents, model-tier policy, delegation patterns, runtime adapters, AGENTS.md, context-state.
+- `agentStrategyChanged` -> `.agents/agents` when skills-pack role definitions changed; otherwise downstream docs/agents, model-tier policy, delegation patterns, runtime adapters, AGENTS.md, context-state.
 - `implementationPatternChanged` -> docs/patterns, pattern maturity, canonical/deprecated examples, feature context, AGENTS.md, context-state.
 - `uncertaintyChanged` -> context-state.
 
@@ -153,7 +153,7 @@ Projects should maintain `AGENTS.md` when practical. It owns concise agent-facin
 
 ## Agent strategy
 
-For projects that use Codex, VS Code/Copilot, Augment, Claude Code, or other agent runtimes, keep a portable agent strategy in `docs/agents/*` and use runtime-specific files as thin adapters. Use `setup-sdlc-in-repo` to install or refresh the SDLC and adapter files in downstream projects.
+For projects that use Codex, VS Code/Copilot, Augment, Claude Code, or other agent runtimes, use this pack's `.agents/agents/*.md` files as portable role definitions, keep project-local agent strategy in `docs/agents/*`, and use runtime-specific files as thin adapters. Use `setup-sdlc-in-repo` to install or refresh the SDLC and adapter files in downstream projects.
 
 Use `choose-agent-strategy` when Standard, High-risk, Exploratory, review, release, or cross-cutting work may benefit from delegation, specialist review, independent verification, or model-tier selection. Use abstract model tiers such as `deterministic`, `fast`, `standard`, `deep`, and `consensus`; map those tiers to concrete model names only in project-local adapter guidance.
 
