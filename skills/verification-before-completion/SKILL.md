@@ -93,7 +93,7 @@ Use the category that best describes the evidence:
 - If the threat model includes mitigation checks or abuse-case tests, run or explicitly account for them.
 - If production readiness is in scope, state whether the Git diff/commit boundary is reviewable and whether rollback, migration, observability, and release evidence are sufficient for the work class.
 - If only partial verification was possible, state the residual risk.
-- If code or other whitespace-sensitive text changed in a Git repository, run a diff hygiene check such as `git diff --check` before completion, commit, handoff, or evidence packet finalization. If unavailable or not applicable, state why.
+- If code or other whitespace-sensitive text changed in a Git repository, run a diff hygiene check before completion, commit, handoff, or evidence packet finalization. Use `git diff --check` for uncommitted work, and use `git show --check HEAD` or `git diff --check <base>..HEAD` when reviewing already-committed work. If unavailable or not applicable, state why.
 - If UI or user-facing workflow changed, inspect the rendered browser/app/device surface when a runnable surface and approved tool are available. If skipped, state why and mark product-experience claims as unverified.
 - If verification reveals unclear requirements, route back to the relevant model, PRD, contract, issue, plan, or context-state artifact.
 - If verification shows the original work class or dirty surfaces were wrong, pause and return to `classify-work` before claiming completion.
@@ -144,7 +144,7 @@ If implementation pattern evidence is missing for a repeated project-specific su
 - Do not infer success from old terminal output, prior sessions, CI badges, memory, or unverified tool output.
 - Do not say "all tests pass" unless the relevant test command was run and passed in the current session.
 - Do not hide failed commands in a summary. Report them with exit code and relevant output.
-- Do not omit diff hygiene evidence for Git-tracked code/text edits when a diff hygiene command is available.
+- Do not omit diff hygiene evidence for Git-tracked code/text edits when a diff hygiene command is available, including committed-range hygiene for post-commit reviews.
 - Do not proceed to final completion, branch finishing, or release documentation without recording verification status.
 - Do not use a Standard or High-risk completion claim when only Micro/Tiny evidence was collected.
 - Do not claim risky work is safe or production-ready without current evidence for the relevant mitigations and readiness checks.

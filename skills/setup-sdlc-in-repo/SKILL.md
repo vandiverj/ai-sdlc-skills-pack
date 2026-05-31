@@ -96,15 +96,17 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 3. Identify which portable SDLC files are missing, stale, or project-specific.
 4. Identify IDE/tool runtimes to support. If unclear, create portable files first and record adapter decisions as follow-up.
 5. Establish repository setup/profile locations before creating noisy artifacts.
-6. Review infrastructure and quality capabilities: install/build/run commands, formatter, linter, typecheck/compiler, unit/integration/contract/E2E tests, rendered UI tooling, accessibility checks, security/dependency scans, CI/local preflight, deployment/smoke checks, logs/debugging, QA/manual validation.
-7. Classify each capability as available/documented, available/undocumented, partial, missing but valuable, not applicable, or blocked by environment/security.
-8. Draft changes without overwriting project-specific guidance.
-9. Merge existing instructions by linking to deeper docs and preserving local commands/conventions.
-10. Add `docs/patterns/README.md` and pattern templates when repeated project-specific implementation guidance should be captured.
-11. Add runtime adapters only for tools the project actually uses or explicitly wants.
-12. Add evidence packet and independent-reviewer templates when the project will use local handoffs, local review packets, or agent review roles.
-13. Run documentation verification checks and `git diff --check`.
-14. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
+6. Decide the local AI notes policy: tracked shared docs belong under `docs/`; personal or pilot scratch notes belong under `.ai-local/` and should be ignored via `.git/info/exclude` or project `.gitignore` by explicit choice.
+7. Check Git identity and privacy expectations before public or shared publication: `git config user.name`, `git config user.email`, whether a noreply email is desired, and how to verify author/committer with `git log --format=fuller -1`.
+8. Review infrastructure and quality capabilities: install/build/run commands, formatter, linter, typecheck/compiler, unit/integration/contract/E2E tests, rendered UI tooling, accessibility checks, security/dependency scans, CI/local preflight, deployment/smoke checks, logs/debugging, QA/manual validation.
+9. Classify each capability as available/documented, available/undocumented, partial, missing but valuable, not applicable, or blocked by environment/security.
+10. Draft changes without overwriting project-specific guidance.
+11. Merge existing instructions by linking to deeper docs and preserving local commands/conventions.
+12. Add `docs/patterns/README.md` and pattern templates when repeated project-specific implementation guidance should be captured.
+13. Add runtime adapters only for tools the project actually uses or explicitly wants.
+14. Add evidence packet and independent-reviewer templates when the project will use local handoffs, local review packets, or agent review roles.
+15. Run documentation verification checks and `git diff --check`.
+16. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
 
 ## Repository setup profile
 Prefer a Markdown-first setup profile while the fields are still evolving:
@@ -133,6 +135,7 @@ Minimum setup facts to capture:
 - implementation history location,
 - durable docs location,
 - ignored AI-local paths,
+- Git author/committer privacy policy,
 - validation commands,
 - rendered-review tools,
 - approved/blocked tools and MCPs,

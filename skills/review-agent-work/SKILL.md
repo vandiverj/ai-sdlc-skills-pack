@@ -50,9 +50,10 @@ Next skill:
 - Were required gates run for that work class and dirty surfaces?
 - Were skipped gates justified?
 - Does fresh verification evidence exist and match the completion claim?
-- For Git-tracked code/text edits, was diff hygiene checked with `git diff --check` or an equivalent command before completion, commit, handoff, or evidence packet finalization?
+- For Git-tracked code/text edits, was diff hygiene checked with `git diff --check` for uncommitted work, or `git show --check HEAD` / `git diff --check <base>..HEAD` for already-committed work?
 - Do applicable contextual caps appear: missing context, missing validation, weak validation, hidden blast radius, rendered experience unverified, security/data uncertainty, review conflict, environment mismatch, or test/evidence tampering risk?
 - Are the Git diff and recent commits reviewable, scoped to the task, and described by intentional commit messages?
+- Are author and committer identity appropriate for the repository privacy/publication boundary before push or PR?
 - Does any commit span unrelated tasks that should be split before merge?
 - Did code, tests, contracts, docs, Memory Bank routing, and context-state stay aligned?
 - Were docs updated only after confirming implementation correctness?

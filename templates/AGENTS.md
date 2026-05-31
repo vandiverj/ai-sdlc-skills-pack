@@ -30,6 +30,9 @@
 - Commands that are slow, flaky, or environment-dependent:
 - Rendered UI/app review path:
 - Evidence packet location:
+- Diff hygiene:
+  - Uncommitted work:
+  - Committed/reviewed work:
 - Protected evidence surfaces:
   - Tests:
   - Snapshots/baselines:
@@ -44,6 +47,7 @@
 - Treat tests, snapshots, generated baselines, validation commands, and CI config as protected evidence surfaces. If they change, record why and how the new evidence still protects behavior.
 - For UI or user-facing workflow changes, inspect the rendered browser/app/device surface when a runnable surface and approved tool are available; otherwise mark product-experience claims unverified.
 - Update context, docs, contracts, and agent instructions only when their surfaces changed.
+- Keep personal or pilot scratch notes out of commits unless explicitly intended; decide whether `.ai-local/` belongs in `.git/info/exclude` or project `.gitignore`.
 
 ## Agent Strategy
 - Agent policy source of truth: `docs/agents/`.
@@ -88,6 +92,9 @@
 
 ## Branch, Commit, and PR Guidance
 - Branch naming:
+- Git identity/privacy:
+- Local-only files:
+- Public push/PR checks:
 - Commit expectations:
 - Keep commits scoped to one coherent task, gate, or mechanical change.
 - Do not bundle unrelated feature, docs, dependency, generated, and adapter changes unless explicitly approved.

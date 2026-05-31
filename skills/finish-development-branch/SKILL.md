@@ -15,16 +15,20 @@ Avoid vague endings and preserve a clean GitHub workflow.
 ## Process
 1. Run verification-before-completion.
 2. Run health-check if appropriate.
-3. Summarize changed files.
-4. Confirm docs/context updates.
-5. Provide commit message.
-6. Present finish options:
+3. Confirm Git status is reviewable and local-only notes are not staged accidentally.
+4. For committed work, run committed-range diff hygiene such as `git show --check HEAD` or `git diff --check <base>..HEAD`.
+5. Before public push or PR, verify latest commit author/committer identity with `git log --format=fuller -1`.
+6. Summarize changed files.
+7. Confirm docs/context updates.
+8. Provide commit message.
+9. Present finish options:
    - push/create PR
    - merge locally
    - keep branch
    - discard branch
-7. Save context checkpoint.
+10. Save context checkpoint.
 
 ## Do not
 - Claim the branch is done without verification evidence.
 - Push or merge without an explicit user instruction or configured workflow.
+- Push public/shared work without checking Git identity and local-only files.

@@ -92,6 +92,7 @@ Human consent gates expected:
 Artifacts likely needed:
 Evidence packet level:
 Dirty surfaces likely:
+Repository boundaries, if multiple repos are involved:
 Verification expectation:
 Contextual caps to watch:
 Stop condition for this phase:
@@ -397,6 +398,7 @@ rather than active context routing.
 - Do not choose or change stack/dependencies/services silently.
 - Do not use heavy gates for Micro/Tiny work unless risk appears.
 - Do not treat this skill as a mega-skill.
+- When work spans fixture, product, and reusable-skill repositories, state which repos are editable, read-only, test fixtures, and push-allowed before acting.
 - For Git-tracked code/text edits, include diff hygiene such as `git diff --check` in the verification expectation when available.
 - Do not claim completion without fresh verification evidence.
 

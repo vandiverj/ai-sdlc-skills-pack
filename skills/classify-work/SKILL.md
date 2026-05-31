@@ -47,6 +47,7 @@ Required tools/MCPs:
 Required verification:
 Evidence packet level:
 Contextual caps:
+Repository boundaries, if multiple repos are involved:
 Context/documentation updates:
 Escalation triggers:
 Reclassification triggers:
@@ -302,6 +303,20 @@ Contextual caps limit completion confidence when required evidence is missing. P
 - `test-evidence-tampering-risk`: tests, snapshots, thresholds, validation scripts, generated baselines, or CI changed without an approved test/tooling scope.
 
 If a cap applies, record it in the execution contract and route to the smallest useful action: gather context, run verification, ask for approval, produce a handoff, or reclassify.
+
+## Multi-repository boundaries
+When a task spans more than one repository, include a compact boundary table before implementation, verification, push, or handoff:
+
+```text
+Repository:
+Role: fixture / product / reusable-skill-pack / docs / other
+Branch expected:
+Edit permission: editable / read-only
+Push permission: allowed / not allowed / needs approval
+Local-only paths:
+```
+
+Use this especially for SDLC pilots where a fixture repository tests reusable skill changes. Keep fixture behavior, reusable skill edits, and local handoff notes separate unless the user explicitly asks to bridge them.
 
 ## Risk signals
 Treat the work as higher risk when it touches:
