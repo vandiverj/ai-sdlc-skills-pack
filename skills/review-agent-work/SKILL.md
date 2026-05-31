@@ -18,6 +18,8 @@ Review completed or in-progress AI agent work for workflow adherence, artifact a
 ## Purpose
 Provide a human-facing review path that checks whether the SDLC process was followed enough for the work class and dirty surfaces, using the Git diff and recent commits as the main review surface.
 
+For selecting the minimum review stack, use the local reference `references/review-router-map.md`. Do not run every review skill by default; route by work class, dirty surfaces, and evidence gaps.
+
 ## Read first
 1. User request, issue, PRD, contract, or implementation plan that initiated the work.
 2. Git diff, changed files, and recent commits if available.
