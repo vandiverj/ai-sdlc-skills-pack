@@ -62,6 +62,7 @@ Use the smallest useful pattern:
 - `single-agent`: default for Micro/Tiny work and narrow Standard work.
 - `read-only exploration`: explorer gathers context, relationships, risks, or options without editing.
 - `bounded implementation`: worker edits only assigned files from an approved plan.
+- `bundled implementation`: for low-risk Standard slices only, one worker prompt may include plan confirmation, bounded implementation, required verification, and a handoff packet when this reduces handoff overhead without reducing evidence.
 - `parallel specialist review`: specialists review security, contracts, tests, maintainability, docs, or production readiness.
 - `independent verification`: verifier runs commands and reports evidence without changing files.
 - `independent reviewer`: reviewer inspects the diff/evidence packet in a read-only posture and separates blocking from non-blocking findings.
@@ -75,6 +76,7 @@ Use the smallest useful pattern:
 - Subagents should request escalation instead of expanding scope or spawning more agents by default.
 - In SDLC pilot work, assign fixture agents only to the fixture repository. Keep reusable skill-pack inspection, release-readiness judgment, edits, commits, and pushes with the orchestrator unless the human explicitly assigns that role elsewhere.
 - Prefer a fixture prompt template for pilot agents so role boundaries and assigned phase are not recreated from memory.
+- Bundled implementation reduces the number of handoffs, not the number of checks. The worker must return actual evidence for each required gate, or explicitly cap the result when a required command/tool such as browser review is unavailable.
 - For Standard work, independent review is preferred when behavior, UI, tests, data, contracts, or multiple files changed.
 - For High-risk, repeated-failure, or disputed work, independent review is required when runtime support or a separate review pass is available.
 
@@ -96,6 +98,7 @@ Escalate model tier or request a specialist when:
 - Do not let runtime-specific agent configs become the source of truth over `docs/agents/*`, skills, and `AGENTS.md`.
 - Do not let subagents recursively create more subagents unless the runtime is configured for that and the orchestrator explicitly allows it.
 - Do not let reviewer agents see implementer confidence as proof. Reviewers should inspect evidence before accepting claims.
+- Do not accept a bundled implementation handoff that claims completion without fresh verification evidence for the selected gates.
 
 ## Next skills
 Usually `select-tools`, `select-context`, `write-implementation-plan`, `review-implementation-plan`, `execute-plan`, `review-agent-strategy`, `review-agent-work`, `verification-before-completion`, or `context-save`.

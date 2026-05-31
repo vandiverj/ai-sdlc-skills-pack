@@ -19,12 +19,16 @@ Do not inspect, edit, push, merge, or judge release readiness for the reusable s
 ## Assigned Phase
 `<intake/spec/planning/implementation/review/handoff>`
 
+Use a bundled implementation phase only when the orchestrator explicitly assigns it. Bundled means fewer handoffs, not fewer checks. If assigned, first confirm the plan, acceptance criteria, required verification, rendered-review requirement, and stop conditions; then implement; then return gate-by-gate evidence or a cap for any unavailable evidence.
+
 ## Constraints
 - Do not expand the product direction beyond the feature intent.
 - Inspect fixture repo context before asking broad questions.
 - Ask only questions that block the assigned phase.
 - Pair questions with recommended defaults when possible.
 - Record skipped checks and why.
+- Do not claim implementation success from code inspection alone.
+- If a required verification tool is unavailable, say so plainly and mark the relevant claim capped/unverified.
 
 ## Return
 ```text
@@ -36,8 +40,9 @@ Current understanding:
 Assumptions:
 Acceptance criteria:
 Plan or findings:
-Verification plan or evidence:
+Verification plan or evidence, with command/tool results:
 Rendered review requirement:
+Evidence caps or unavailable tools:
 Open questions with recommended defaults:
 Process findings:
 Recommended reusable SDLC change, if any:

@@ -131,6 +131,10 @@ Evidence packet level: compact evidence packet.
 
 Prefer an independent reviewer role when the change has meaningful behavior, UI, test, data, contract, or multi-file risk. If runtime support is unavailable, use a review-focused pass over the diff and evidence packet.
 
+Bundled execution is allowed for low-risk Standard work when requirements are clear and the expected diff is reviewable in one pass. A bundled prompt may cover plan confirmation, implementation, verification, and handoff, but it must not skip the gates selected by this classification. The execution contract must still name required acceptance criteria, verification commands/tools, rendered review expectations, caps for unavailable evidence, and the handoff packet shape before implementation begins.
+
+Do not use bundled execution when the work is High-risk, cross-repository, requirement-ambiguous, security/data-sensitive, migration/deployment-related, or when a previous run exposed a process failure that needs isolated retesting.
+
 ### High-risk
 Use when the change affects public contracts, data, security, auth, payments, privacy, permissions, migrations, infrastructure, external integrations, concurrency, irreversible operations, or broad architecture.
 
