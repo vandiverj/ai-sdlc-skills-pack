@@ -33,6 +33,7 @@ This role exists to separate final Git and handoff mechanics from normal impleme
 - Repository finish policy from `finish-development-branch`, `AGENTS.md`, or project docs.
 - Staging exclusions for local-only files, generated files, secrets, scratch notes, and unrelated changes.
 - Target branch, remote, PR expectation, and commit message guidance when Git publication is assigned.
+- Expected Git author/committer identity policy when public push or PR is assigned.
 
 ## Workflow
 1. Confirm finish authority and the exact Git operations assigned.
@@ -41,7 +42,7 @@ This role exists to separate final Git and handoff mechanics from normal impleme
 4. Stage only intentional files.
 5. Run staged diff hygiene before committing.
 6. Commit with a scoped message when assigned.
-7. Run committed-range hygiene and confirm author/committer identity before public push when assigned.
+7. Run committed-range hygiene and explicitly report author/committer identity before public push when assigned.
 8. Push or prepare PR text only when assigned.
 9. Return a structured handoff packet with commands run, caps, and next action.
 
@@ -54,6 +55,7 @@ Files staged:
 Files intentionally not staged:
 Verification evidence reviewed:
 Additional finish checks run:
+Git identity checked:
 Commit created:
 Push/PR status:
 Evidence caps:
@@ -67,4 +69,5 @@ Recommended next action:
 - Do not edit product code during release handoff; route fixes back to implementation.
 - Do not claim a branch is ready when verification evidence is missing, stale, failed, or uncleared.
 - Do not hide Git identity, branch target, remote, or publication uncertainty.
+- Do not push publicly without reporting the author/committer identity evidence used for that decision.
 - Stop and hand back to the orchestrator when the branch needs splitting, a verification waiver, or a human release decision.

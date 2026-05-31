@@ -22,6 +22,7 @@ Git handoff belongs to:
 - Staged files are intentionally selected.
 - Diff hygiene is clean before commit.
 - Commit author/committer identity is checked before public push or PR.
+- The handoff packet reports the identity evidence, such as `git log --format=fuller -1` after commit or the repository's configured author before commit when publication happens in the same step.
 - The target branch, remote, and PR expectation are known.
 
 ## Delegation Prompt Requirements
@@ -38,6 +39,7 @@ Required verification evidence to inspect:
 Commit message guidance:
 Target branch/remote:
 Push/PR expectation:
+Git identity check expectation:
 Stop conditions:
 Expected handoff format:
 ```
@@ -50,6 +52,7 @@ Stop and return to the orchestrator when:
 - unrelated changes are mixed into the diff,
 - local-only notes, secrets, or scratch files might be staged,
 - the branch target or remote is unclear,
+- Git author/committer identity cannot be verified before public push or PR,
 - the work needs a PR but no PR policy is known,
 - a fix is needed before finish,
 - the operation would publish sensitive or unreviewed material.
@@ -60,5 +63,6 @@ Stop and return to the orchestrator when:
 - The release/handoff worker did not perform implementation fixes.
 - Staging was file-specific and reviewable.
 - Commit message matches the scoped change.
+- Author/committer identity was checked and reported before public push or PR.
 - Push or PR state matches the assignment.
 - Caps and residual risks are visible in the handoff.
