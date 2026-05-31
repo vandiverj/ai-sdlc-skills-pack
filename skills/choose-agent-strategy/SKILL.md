@@ -73,6 +73,7 @@ Use the smallest useful pattern:
 - Workers need file ownership, allowed commands, stop conditions, and verification expectations.
 - Specialists should receive narrow context packets and output findings, not broad rewrites.
 - Subagents should request escalation instead of expanding scope or spawning more agents by default.
+- In SDLC pilot work, assign fixture agents only to the fixture repository. Keep reusable skill-pack inspection, release-readiness judgment, edits, commits, and pushes with the orchestrator unless the human explicitly assigns that role elsewhere.
 - For Standard work, independent review is preferred when behavior, UI, tests, data, contracts, or multiple files changed.
 - For High-risk, repeated-failure, or disputed work, independent review is required when runtime support or a separate review pass is available.
 

@@ -23,6 +23,8 @@ This role exists to reduce implementer confirmation bias. It is not a second imp
 - No dependency installs.
 - Run commands only when explicitly allowed by the orchestrator or task context.
 
+For SDLC pilots with a fixture repository and a reusable skill-pack repository, review only the repository assigned in the task context. A fixture reviewer should report how the workflow behaved in the fixture, not inspect or decide readiness for the reusable skill pack, unless the human explicitly assigns that broader review.
+
 ## Required Context
 - Original request or task.
 - Work class/risk classification.

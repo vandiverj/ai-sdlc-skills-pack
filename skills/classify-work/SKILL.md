@@ -318,6 +318,12 @@ Local-only paths:
 
 Use this especially for SDLC pilots where a fixture repository tests reusable skill changes. Keep fixture behavior, reusable skill edits, and local handoff notes separate unless the user explicitly asks to bridge them.
 
+For pilot workflows, keep roles explicit:
+
+- fixture/test agents work only inside the fixture repository and report whether the SDLC guidance worked in practice,
+- the orchestrator reviews and edits the reusable skill pack,
+- do not ask a fixture/test agent to inspect, judge release readiness for, push, merge, or edit the reusable skill-pack repository unless the human explicitly changes that role boundary.
+
 ## Risk signals
 Treat the work as higher risk when it touches:
 

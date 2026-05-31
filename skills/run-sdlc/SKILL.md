@@ -398,7 +398,7 @@ rather than active context routing.
 - Do not choose or change stack/dependencies/services silently.
 - Do not use heavy gates for Micro/Tiny work unless risk appears.
 - Do not treat this skill as a mega-skill.
-- When work spans fixture, product, and reusable-skill repositories, state which repos are editable, read-only, test fixtures, and push-allowed before acting.
+- When work spans fixture, product, and reusable-skill repositories, state which repos are editable, read-only, test fixtures, and push-allowed before acting. In SDLC pilots, fixture agents should test the workflow in the fixture repo; the orchestrator owns reusable skill-pack review and edits unless the human explicitly changes that boundary.
 - For Git-tracked code/text edits, include diff hygiene such as `git diff --check` in the verification expectation when available.
 - Do not claim completion without fresh verification evidence.
 
