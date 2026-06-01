@@ -26,12 +26,14 @@ async function main(argv) {
 
   if (area === 'help' && (action === 'prompts' || action === 'prompt')) return helpPrompts();
   if (area === 'help' && action === 'workflow') return helpWorkflow();
+  if (area === 'help' && (action === 'onboarding' || action === 'start')) return helpOnboarding();
   if (area === 'profile' && action === 'show') return profileShow(repo);
   if (area === 'profile' && action === 'init') return profileInit(repo, options);
   if (area === 'context' && action === 'restore') return contextRestore(repo, options);
   if (area === 'context' && action === 'pack') return contextPack(repo, options);
   if (area === 'context' && action === 'audit') return contextAudit(repo, options);
   if (area === 'context' && action === 'freshness') return contextFreshness(repo, options);
+  if (area === 'context' && action === 'conflict-check') return contextConflictCheck(repo, options);
   if (area === 'context' && (action === 'contradictions' || action === 'check')) return contextContradictions(repo, options);
   if (area === 'context' && action === 'inventory') return contextInventory(repo, options);
   if (area === 'context' && action === 'bucket-check') return contextBucketCheck(repo, options);
@@ -60,6 +62,11 @@ async function main(argv) {
   if (area === 'route' && action === 'retire') return routeRetire(repo, options);
   if (area === 'packet' && action === 'status') return packetStatus(repo, options);
   if (area === 'done' && action === 'check') return doneCheck(repo, options);
+  if (area === 'run' && action === 'plan') return runPlan(repo, options);
+  if (area === 'run' && action === 'status') return runStatus(repo, options);
+  if (area === 'run' && action === 'next') return runNext(repo, options);
+  if (area === 'run' && action === 'resume') return runResume(repo, options);
+  if (area === 'run' && action === 'dashboard') return runDashboard(repo, options);
   if (area === 'run' && action === 'start') return runStart(repo, options);
   if (area === 'run' && action === 'finish') return runFinish(repo, options);
   if (area === 'workspace' && action === 'status') return workspaceStatus(repo, options);
@@ -67,6 +74,7 @@ async function main(argv) {
   if (area === 'workspace' && action === 'doctor') return workspaceDoctor(repo, options);
   if (area === 'workspace' && action === 'packet') return workspacePacket(repo, options);
   if (area === 'workspace' && action === 'map') return workspaceMap(repo, options);
+  if (area === 'workspace' && action === 'ledger') return workspaceLedger(repo, options);
   if (area === 'workmode' && action === 'detect') return workmodeDetect(repo, options);
   if (area === 'surface' && (action === 'list' || action === 'taxonomy')) return surfaceList();
   if (area === 'surface' && action === 'detect') return surfaceDetect(repo, options);
@@ -82,6 +90,7 @@ async function main(argv) {
   if (area === 'release' && action === 'packet') return releasePacket(repo, options);
   if (area === 'release' && action === 'complete') return releaseComplete(repo, options);
   if (area === 'qa' && (action === 'script' || action === 'packet')) return qaScript(repo, options);
+  if (area === 'qa' && action === 'scenarios') return qaScenarios(repo, rest[0] || options.command || 'list', options);
   if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi'].includes(action)) return qaModeCommand(repo, action, options, rest);
   if (area === 'qa' && action === 'complete') return qaComplete(repo, options);
   if (area === 'qa' && action === 'review') return qaReview(repo, options);
@@ -104,6 +113,16 @@ async function main(argv) {
   if (area === 'automation' && action === 'budget') return automationBudget(repo, options);
   if (area === 'event' && ['prompt-submit', 'post-edit', 'pre-stop', 'approval-request'].includes(action)) return sdlcEvent(repo, action, options);
   if (area === 'hooks' && action === 'plan') return hooksPlan(repo, options);
+  if (area === 'onboarding' && action === 'pilot') return onboardingPilot(repo, options);
+  if (area === 'feedback' && action === 'quick') return feedbackQuick(repo, options);
+  if (area === 'feedback' && action === 'capture') return feedbackCapture(repo, options);
+  if (area === 'feedback' && action === 'review') return feedbackReview(repo, options);
+  if (area === 'feedback' && action === 'summary') return feedbackSummary(repo, options);
+  if (area === 'trace' && action === 'start') return traceStart(repo, options);
+  if (area === 'trace' && action === 'event') return traceEvent(repo, options);
+  if (area === 'trace' && action === 'finish') return traceFinish(repo, options);
+  if (area === 'scorecard' && action === 'task') return scorecardTask(repo, options);
+  if (area === 'scorecard' && action === 'summary') return scorecardSummary(repo, options);
   if (area === 'artifact' && action === 'budget') return artifactBudget(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
   if (area === 'verify' && action === 'packet') return verifyPacket(repo, options);
@@ -128,6 +147,8 @@ async function main(argv) {
   if (area === 'learn' && action === 'route') return learnRoute(repo, options);
   if (area === 'learn' && action === 'summary') return learnSummary(repo, options);
   if (area === 'learn' && action === 'review') return learnReview(repo, options);
+  if (area === 'learn' && action === 'promote-check') return learnPromoteCheck(repo, options);
+  if (area === 'learn' && action === 'candidates') return learnCandidates(repo, options);
   if (area === 'learn' && action === 'promote') return learnPromote(repo, options);
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'setup' && action === 'doctor') return setupDoctor(repo, options);
@@ -142,6 +163,8 @@ async function main(argv) {
   if (area === 'release' && action === 'note') return releaseOrderNote(repo, options);
   if (area === 'security' && (action === 'permissions' || action === 'policy')) return permissionPolicyPacket(repo, options);
   if (area === 'security' && (action === 'audit' || action === 'tool-audit')) return toolAuditPacket(repo, options);
+  if (area === 'safety' && action === 'preflight') return safetyPreflight(repo, options);
+  if (area === 'safety' && action === 'finish') return safetyFinish(repo, options);
   if (area === 'risk' && action === 'agentic') return riskAgentic(repo, options);
   if (area === 'scenario' && action === 'list') return scenarioList();
   if (area === 'scenario' && action === 'show') return scenarioShow(rest[0] || options.name);
@@ -159,11 +182,13 @@ Usage:
   sdlc profile show [--repo <path>]
   sdlc help prompts
   sdlc help workflow
+  sdlc help onboarding
   sdlc profile init [--repo <path>] [--shared-context-root <path>]
   sdlc context restore [--repo <path>] [--include-related-repos]
   sdlc context pack --task "..." [--repo <path>] [--out <path>]
   sdlc context audit [--repo <path>] [--out <path>]
   sdlc context freshness --task "..." [--repo <path>] [--days <number>] [--out <path>]
+  sdlc context conflict-check --task "..." [--repo <path>] [--out <path>]
   sdlc context contradictions --task "..." [--repo <path>] [--out <path>]
   sdlc context inventory [--repo <path>] [--out <path>]
   sdlc context bucket-check --task "..." [--repo <path>] [--out <path>]
@@ -194,6 +219,11 @@ Usage:
   sdlc route retire --old <pattern> --new <pattern> --task "..." [--scope <path>] [--repo <path>] [--out <path>]
   sdlc packet status [--repo <path>]
   sdlc done check --route <route> [--repo <path>] [--packet <path>]
+  sdlc run plan --task "..." [--repo <path>] [--out <path>]
+  sdlc run status --task "..." [--repo <path>]
+  sdlc run next --task "..." [--repo <path>]
+  sdlc run resume --task "..." [--repo <path>]
+  sdlc run dashboard --task "..." [--repo <path>] [--out <path>]
   sdlc run start --task "..." [--repo <path>]
   sdlc run finish --route <route> [--repo <path>] [--packet <path>]
   sdlc workspace status [--repo <path>] [--workspace <path>]
@@ -201,6 +231,7 @@ Usage:
   sdlc workspace doctor [--repo <path>]
   sdlc workspace packet --task "..." [--repo <path>] [--out <path>]
   sdlc workspace map --task "..." [--repo <path>] [--out <path>]
+  sdlc workspace ledger --task "..." [--repo <path>] [--out <path>] [--refresh]
   sdlc workmode detect [--task "..."] [--repo <path>]
   sdlc surface list
   sdlc surface detect [--task "..."] [--repo <path>] [--files "a,b"]
@@ -216,6 +247,7 @@ Usage:
   sdlc release packet [--task "..."] [--repo <path>] [--out <path>]
   sdlc release complete --packet <path> --action "none|commit|push|handoff" [--verdict "..."] [--checks "..."] [--caps "..."]
   sdlc qa script --task "..." [--repo <path>] [--out <path>]
+  sdlc qa scenarios init|list|match [--task "..."] [--repo <path>]
   sdlc qa ui|api|data|integration|scenario|multi --task "..." [--repo <path>] [--scenario <id>] [--out <path>]
   sdlc qa complete --packet <path> --status "draft|ready|blocked" [--caps "..."]
   sdlc qa review --packet <path> [--repo <path>]
@@ -238,6 +270,16 @@ Usage:
   sdlc automation budget --route <route> [--repo <path>]
   sdlc event prompt-submit|post-edit|pre-stop|approval-request [--task "..."] [--repo <path>]
   sdlc hooks plan --runtime claude|codex|auggie|augment|generic [--repo <path>] [--out <path>]
+  sdlc onboarding pilot [--repo <path>]
+  sdlc feedback quick --task "..." [--friction "..."] [--note "..."] [--repo <path>]
+  sdlc feedback capture --task "..." --source developer|self|fixture [--repo <path>]
+  sdlc feedback review [--since YYYY-MM-DD] [--repo <path>] [--out <path>]
+  sdlc feedback summary [--since YYYY-MM-DD] [--repo <path>] [--out <path>]
+  sdlc trace start --task "..." [--repo <path>]
+  sdlc trace event --type <type> --summary "..." [--repo <path>]
+  sdlc trace finish --task "..." [--repo <path>]
+  sdlc scorecard task --trace <path> [--repo <path>]
+  sdlc scorecard summary [--since YYYY-MM-DD] [--repo <path>]
   sdlc artifact budget --route <route> [--repo <path>]
   sdlc evidence init --route <route> [--repo <path>] [--out <path>]
   sdlc verify packet --task "..." [--repo <path>] [--out <path>]
@@ -262,6 +304,8 @@ Usage:
   sdlc learn route --packet <path> [--repo <path>]
   sdlc learn summary [--repo <path>] [--out <path>]
   sdlc learn review --packet <path> [--repo <path>]
+  sdlc learn promote-check --packet <path> [--repo <path>]
+  sdlc learn candidates [--since YYYY-MM-DD] [--repo <path>]
   sdlc learn promote --packet <path> --target "process|template|route|context" [--repo <path>] [--out <path>]
   sdlc readiness [--repo <path>]
   sdlc health [--repo <path>]
@@ -276,6 +320,8 @@ Usage:
   sdlc release note --task "..." [--repo <path>] [--out <path>]
   sdlc security permissions [--task "..."] [--repo <path>] [--out <path>]
   sdlc security audit [--task "..."] [--repo <path>] [--out <path>]
+  sdlc safety preflight --task "..." [--repo <path>] [--out <path>]
+  sdlc safety finish --task "..." [--repo <path>] [--out <path>]
   sdlc risk agentic --task "..." [--repo <path>] [--out <path>]
   sdlc scenario list
   sdlc scenario show <name>
@@ -326,6 +372,40 @@ function helpWorkflow() {
 6. Git decision: \`sdlc git packet\`, then human chooses no action / commit only / commit and push.
 
 The SDLC never merges, deploys, releases, creates MR/PRs, triggers pipelines, moves branches, or moves files between environments by default.`);
+}
+
+function helpOnboarding() {
+  console.log(`# SDLC First-Use Onboarding
+
+Use the chat prompt first. The helper CLI exists so the agent can make setup, evidence, QA, and finish checks concrete.
+
+## What To Type
+
+\`\`\`text
+Use SDLC to set up this repository for AI-assisted work. Explain what files you propose to create or update before changing them.
+\`\`\`
+
+\`\`\`text
+Use SDLC for this task: <task>. Determine the scope, implement, verify, generate QA Markdown if needed, and stop at the finish decision before commit or push.
+\`\`\`
+
+\`\`\`text
+Use SDLC to review the current completion state of this task: <task>. Tell me what evidence exists, what is missing, whether QA is ready, and what you recommend next.
+\`\`\`
+
+## First Pilot
+
+1. Run \`sdlc onboarding pilot\`.
+2. Ask the agent to run setup on a small repo or workspace.
+3. Run one tiny safe task.
+4. Ask for completion review.
+5. Capture feedback with \`sdlc feedback quick --task "..."\`.
+
+## Boundaries
+
+- Commit and push require explicit human approval.
+- Merge, deploy, release, MR/PR creation, pipeline triggers, and manual file movement stay outside default automation.
+- Feedback is local/sanitized by default and is for improving the SDLC, not measuring individual developers.`);
 }
 
 function parseOptions(tokens) {
@@ -664,6 +744,53 @@ ${formatList(contextFreshnessRecommendations(existingRows, staleRows, profile.va
   } else {
     console.log(content.trimEnd());
   }
+}
+
+function contextConflictCheck(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so context conflict check can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const docs = contextDocCandidates(repo, profile.values);
+  const rows = docs.map((item) => contextFreshnessRow(repo, item, Number(options.days || 60)));
+  const stale = rows.filter((row) => row.status === 'stale');
+  const missing = rows.filter((row) => row.status === 'missing');
+  const contradictions = detectContextContradictions(repo, profile, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json'))), docs, splitList(profile.values.relatedRepositories));
+  const severity = contextConflictSeverity({ stale, missing, contradictions, profile: profile.values });
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Context Conflict Check
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Severity: ${severity}
+
+## Freshness And Ownership
+
+| Document | Status | Age days | Path |
+| --- | --- | --- | --- |
+${rows.map((row) => `| ${escapeCell(row.label)} | ${row.status} | ${row.ageDays} | ${escapeCell(row.path)} |`).join('\n')}
+
+## Contradiction Signals
+
+${formatList(contradictions)}
+
+## Required Agent Behavior
+
+- Treat source code, tests, logs, and current command output as stronger than stale context docs.
+- Use context docs as routing memory, not proof.
+- If stale context affected implementation or QA, record a context update plan or cap before finish.
+- Product-sensitive facts stay in repo/unit/shared context, not global process learning.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+  if (severity === 'stale-and-risky' || severity === 'conflicting-sources') process.exitCode = 1;
 }
 
 function contextContradictions(repo, options = {}) {
@@ -3706,6 +3833,418 @@ sdlc gates --task "<task>"
   }
 }
 
+function onboardingPilot(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const content = `# SDLC First-Use Pilot
+
+Repository: ${repo}
+Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
+Branch: ${git.branch || 'unknown'}
+
+## Goal
+
+Prove the SDLC can set up a repository, run one tiny safe task, review completion, and capture feedback without relying on private chat history.
+
+## Prompt 1: Setup
+
+\`\`\`text
+Use SDLC to set up this repository for AI-assisted work. Explain what files you propose to create or update before changing them.
+\`\`\`
+
+Expected output:
+- repository/profile gaps,
+- local context/evidence location,
+- commands and verification maturity,
+- human approval boundaries.
+
+## Prompt 2: Tiny Safe Task
+
+\`\`\`text
+Use SDLC for this tiny safe task: <small docs or low-risk code change>. Determine scope, implement, verify, and stop at the finish decision before commit or push.
+\`\`\`
+
+Expected output:
+- route,
+- changed files,
+- one verification path or cap,
+- QA need or not-needed rationale,
+- finish decision.
+
+## Prompt 3: Completion Review
+
+\`\`\`text
+Use SDLC to review the current completion state of this task: <task>. Tell me what evidence exists, what is missing, whether QA is ready, and what you recommend next.
+\`\`\`
+
+## Prompt 4: Feedback
+
+\`\`\`text
+Use SDLC to capture feedback on this SDLC run. Keep it sanitized and local unless I approve sharing.
+\`\`\`
+
+CLI shortcut:
+
+\`\`\`bash
+sdlc feedback quick --task "<task>" --friction "<category>" --note "<sanitized note>"
+\`\`\`
+
+## Boundaries
+
+- Commit/push require explicit human approval.
+- Merge/deploy/release/MR/PR/pipeline/manual file movement are not automatic.
+- Feedback is about improving the SDLC, not measuring the developer.
+`;
+  console.log(content.trimEnd());
+}
+
+function feedbackQuick(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so feedback can be tied to a run.');
+  const row = feedbackRow(repo, {
+    ...options,
+    source: options.source || 'developer',
+    task,
+    friction: options.friction || options.category || 'other',
+    note: options.note || options.summary || '',
+  });
+  appendFeedbackRow(repo, row);
+  printObject({
+    repository: repo,
+    feedback: 'captured locally',
+    friction: row.friction,
+    shareStatus: row.shareStatus,
+    nextCommand: 'sdlc feedback review --since ' + row.timestamp.slice(0, 10),
+  });
+}
+
+function feedbackCapture(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so feedback can be tied to a run.');
+  const row = feedbackRow(repo, options);
+  appendFeedbackRow(repo, row);
+  const outPath = join(defaultRunsDir(repo), `${stamp()}-feedback-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, renderFeedbackPacket(row), 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function feedbackReview(repo, options = {}) {
+  const rows = readFeedbackRows(repo, options);
+  const since = options.since || '';
+  const filtered = filterSince(rows, since);
+  const groups = groupCounts(filtered.map((row) => row.friction || 'other'));
+  const owners = groupCounts(filtered.map(feedbackOwner));
+  const highSeverity = filtered.filter((row) => ['blocked', 'unsafe', 'data-risk', 'wrong-route'].includes(String(row.friction || '').toLowerCase()));
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Feedback Review
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Since: ${since || 'all'}
+Rows reviewed: ${filtered.length}
+
+## Friction Categories
+
+${formatCounts(groups)}
+
+## Proposed Owners
+
+${formatCounts(owners)}
+
+## High-Severity Events
+
+${formatList(highSeverity.map((row) => `${row.timestamp}: ${row.friction} - ${row.note || row.suggestedImprovement || 'no note'}`))}
+
+## Improvement Candidates
+
+${formatList(feedbackImprovementCandidates(filtered))}
+
+## Privacy Rule
+
+- Do not promote raw prompts, source snippets, production logs, private URLs, customer/client names, credentials, or secrets.
+- Promote only sanitized summaries into shared learnings.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
+function feedbackSummary(repo, options = {}) {
+  const rows = filterSince(readFeedbackRows(repo, options), options.since || '');
+  printObject({
+    repository: repo,
+    rows: rows.length,
+    setupCompleted: countTruthy(rows, 'setupCompleted'),
+    finishReached: countTruthy(rows, 'finishReached'),
+    evidenceUnderstood: countTruthy(rows, 'evidenceUnderstood'),
+    qaUseful: rows.filter((row) => row.qaScriptUseful === 'yes').length,
+    topFriction: groupCounts(rows.map((row) => row.friction || 'other'))[0]?.join(': ') || 'none',
+  });
+  console.log('\n## Friction\n');
+  console.log(formatCounts(groupCounts(rows.map((row) => row.friction || 'other'))));
+  console.log('\n## Suggested Improvements\n');
+  console.log(formatList(feedbackImprovementCandidates(rows)));
+}
+
+function runPlan(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the run can be planned.');
+  const state = buildRunState(repo, task, options);
+  const outPath = options.out ? resolve(repo, options.out) : runStatePath(repo, task);
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(state, null, 2), 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function runStatus(repo, options = {}) {
+  const task = options.task || '';
+  const state = loadRunState(repo, task);
+  const git = getGitInfo(repo);
+  printObject({
+    repository: repo,
+    task: state.task || task || 'not provided',
+    route: state.route || 'unknown',
+    runState: state.path ? relative(repo, state.path) : 'not found',
+    changedFiles: git.changedFiles.length,
+    nextAction: runNextAction(repo, state, git),
+  });
+}
+
+function runNext(repo, options = {}) {
+  const state = loadRunState(repo, options.task || '');
+  const git = getGitInfo(repo);
+  console.log(runNextAction(repo, state, git));
+}
+
+function runResume(repo, options = {}) {
+  const state = loadRunState(repo, options.task || '');
+  if (!state.path) fail('No run state found. Use `sdlc run plan --task "..."` first.');
+  runDashboard(repo, { ...options, task: state.task, out: options.out });
+}
+
+function runDashboard(repo, options = {}) {
+  const task = options.task || '';
+  const state = loadRunState(repo, task);
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const route = state.route || inferRouteFromTask(task, git, profile.values);
+  const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
+  const surfaces = inferTestingSurfaces(repo, task || state.task || '', git.changedFiles, profile);
+  const open = finalGateOpenItems(repo, task || state.task || '', git, packets);
+  const content = `# SDLC Run Dashboard
+
+Task: ${task || state.task || 'not provided'}
+Repository: ${repo}
+Route: ${route}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+
+## Scope
+
+- Changed files: ${git.changedFiles.length}
+- Affected units: ${formatInlineList(units.map((unit) => unit.name))}
+- Context buckets: ${formatInlineList(dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)))}
+- Test surfaces: ${formatInlineList(surfaces)}
+
+## Evidence
+
+${formatList(taskEvidenceSummary(repo, packets))}
+
+## Open Gates
+
+${formatList(open)}
+
+## QA
+
+- QA script: ${packets.some((packet) => packet.kind === 'qa-script') ? 'present' : 'missing or not needed'}
+- Recommended QA command: sdlc qa script --task "${escapeCommandArg(task || state.task || 'current task')}"
+
+## Finish
+
+- Commit: ${open.length ? 'not ready' : 'ready only with explicit human approval'}
+- Push: ${open.length ? 'not ready' : 'only with explicit human approval'}
+- Merge/deploy/release: not automatic
+- Next safe action: ${runNextAction(repo, state, git)}
+`;
+  if (options.out) {
+    const outPath = resolve(repo, options.out);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
+function workspaceLedger(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the workspace ledger can be scoped.');
+  const repos = workspaceRepos(repo, options);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-workspace-ledger.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const rows = repos.flatMap((item) => {
+    const profile = loadProfile(item.path);
+    const info = getGitInfo(item.path);
+    const units = affectedUnits(item.path, info.changedFiles, profile, options.unit);
+    const surfaces = inferTestingSurfaces(item.path, task, info.changedFiles, profile);
+    return `| ${escapeCell(item.label)} | ${escapeCell(info.branch || 'unavailable')} | ${escapeCell(units.map((unit) => unit.name).join(', ') || 'default')} | ${escapeCell(info.changedFiles.join(', ') || 'none')} | ${escapeCell(surfaces.join(', ') || 'service-behavior')} | ${info.changedFiles.length ? 'needed' : 'not changed'} | ${info.changedFiles.length ? 'review' : 'none'} | ${info.ahead ? 'unpushed commits' : 'human decision'} |`;
+  });
+  const content = `# SDLC Workspace Ledger
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Workspace root: ${repo}
+
+| Repository | Branch | Units | Changed files | Test surfaces | Validation | QA impact | Commit/push |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+${rows.join('\n')}
+
+## Rules
+
+- Track each affected repo/unit separately.
+- QA should follow tester-visible workflow, API/developer surface, data check, or integration check as appropriate.
+- Commit/push remain explicit human decisions per repository.
+- Merge/deploy/release/pipeline/manual movement are outside default automation.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function qaScenarios(repo, command, options = {}) {
+  if (command === 'init') return qaScenariosInit(repo, options);
+  if (command === 'match') return qaScenariosMatch(repo, options);
+  return qaScenarioList(repo, options);
+}
+
+function qaScenariosInit(repo, options = {}) {
+  const outPath = options.out ? resolve(repo, options.out) : join(repo, '.ai-local', 'qa-scenarios.md');
+  if (existsSync(outPath) && !options.force) fail(`${relative(repo, outPath)} already exists. Pass --force to overwrite.`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# QA Scenario Library
+
+Purpose: local scenario library for human QA Markdown generation. Keep product/client-sensitive scenarios local or external unless the repo approves a sanitized checked-in version.
+
+## Primary Changed Workflow
+
+ID: primary-changed-workflow
+Unit:
+Surface: ui/api/data/integration/scenario
+Setup data:
+
+Steps:
+1. Open or invoke the affected workflow in QA.
+2. Perform the changed action.
+3. Confirm the expected result and one nearby regression path.
+
+Expected result:
+- Changed behavior works.
+- Nearby existing behavior still works.
+
+Regression risks:
+- Unknown until task impact is known.
+
+Environment notes:
+- QA environment and test account/data required.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function qaScenariosMatch(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so scenarios can be matched.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const surfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const scenarios = qaScenarioRecords(repo, options);
+  const matches = scenarios.filter((scenario) => {
+    const haystack = `${scenario.title} ${scenario.surface} ${scenario.unit} ${scenario.body}`.toLowerCase();
+    return surfaces.some((surface) => haystack.includes(surface.split('-')[0])) || task.toLowerCase().split(/\s+/).some((word) => word.length > 4 && haystack.includes(word));
+  });
+  printObject({
+    repository: repo,
+    task,
+    testingSurfaces: surfaces.join(', ') || 'service-behavior',
+    matches: matches.length,
+  });
+  console.log('\n| ID | Title | Surface |');
+  console.log('| --- | --- | --- |');
+  for (const scenario of matches) console.log(`| ${escapeCell(scenario.id)} | ${escapeCell(scenario.title)} | ${escapeCell(scenario.surface)} |`);
+}
+
+function traceStart(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the trace can be scoped.');
+  const tracePath = options.out ? resolve(repo, options.out) : defaultTracePath(repo, task);
+  mkdirSync(dirname(tracePath), { recursive: true });
+  appendFileSync(tracePath, `${JSON.stringify(traceRow(repo, { type: 'start', task, summary: 'SDLC run started', route: inferRouteFromTask(task, getGitInfo(repo), loadProfile(repo).values) }))}\n`, 'utf8');
+  console.log(relative(repo, tracePath));
+}
+
+function traceEvent(repo, options = {}) {
+  const type = options.type || '';
+  const summary = options.summary || '';
+  if (!type || !summary) fail('Pass --type <type> and --summary "...".');
+  const task = options.task || '';
+  const tracePath = options.trace ? resolve(repo, options.trace) : defaultTracePath(repo, task || 'current-task');
+  mkdirSync(dirname(tracePath), { recursive: true });
+  appendFileSync(tracePath, `${JSON.stringify(traceRow(repo, { ...options, type, summary }))}\n`, 'utf8');
+  console.log(relative(repo, tracePath));
+}
+
+function traceFinish(repo, options = {}) {
+  const task = options.task || '';
+  const tracePath = options.trace ? resolve(repo, options.trace) : defaultTracePath(repo, task || 'current-task');
+  mkdirSync(dirname(tracePath), { recursive: true });
+  appendFileSync(tracePath, `${JSON.stringify(traceRow(repo, { ...options, type: 'finish', summary: options.summary || 'SDLC run finished' }))}\n`, 'utf8');
+  console.log(relative(repo, tracePath));
+}
+
+function scorecardTask(repo, options = {}) {
+  const tracePath = resolvePacketPath(repo, options.trace);
+  const rows = readJsonLines(tracePath);
+  const score = scoreTraceRows(rows);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-scorecard.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Task Scorecard
+
+Date: ${new Date().toISOString()}
+Trace: ${relative(repo, tracePath)}
+
+## Scores
+
+${formatList(Object.entries(score).map(([key, value]) => `${humanize(key)}: ${value}`))}
+
+## Interpretation
+
+- Process quality is about route clarity, evidence, verification, low rework, and safe finish state.
+- Passing tests do not prove a good trajectory if exploration, verification, or safety gates were skipped.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function scorecardSummary(repo, options = {}) {
+  const traces = findTraceFiles(repo);
+  const rows = traces.flatMap((file) => readJsonLines(file));
+  const score = scoreTraceRows(filterSince(rows, options.since || ''));
+  printObject({
+    repository: repo,
+    traces: traces.length,
+    events: rows.length,
+    processQuality: score.processQuality,
+    evidenceCompleteness: score.evidenceCompleteness,
+    reworkCount: score.reworkCount,
+    safetyInterventions: score.safetyInterventions,
+  });
+}
+
 function verify(repo, options = {}) {
   const profile = loadProfile(repo);
   const packageJson = readJsonIfExists(join(repo, 'package.json'));
@@ -4224,6 +4763,37 @@ function learnReview(repo, options = {}) {
   });
   console.log('\n## Findings\n');
   console.log(formatList(findings));
+}
+
+function learnPromoteCheck(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const text = readFileSync(packetPath, 'utf8');
+  const findings = learningReviewFindings(text);
+  const promotion = learningPromotionFindings(text);
+  const all = [...findings, ...promotion];
+  printObject({
+    repository: repo,
+    packet: relative(repo, packetPath),
+    result: all.length ? 'blocked-or-needs-review' : 'ready-for-human-promotion-review',
+  });
+  console.log('\n## Checks\n');
+  console.log(formatList(all.length ? all : ['Sanitized summary, target bucket, evidence source, and review fields look present.']));
+  if (all.length) process.exitCode = 1;
+}
+
+function learnCandidates(repo, options = {}) {
+  const dir = options.dir ? resolve(repo, options.dir) : join(agentsRoot, 'learnings');
+  const files = existsSync(dir) ? readdirSync(dir).filter((file) => file.endsWith('.md')).map((file) => join(dir, file)) : [];
+  const rows = files
+    .map((file) => ({ file, text: readFileSync(file, 'utf8') }))
+    .filter((item) => !options.since || item.text.includes(options.since) || basename(item.file) >= options.since)
+    .map((item) => {
+      const findings = [...learningReviewFindings(item.text), ...learningPromotionFindings(item.text)];
+      return `| ${escapeCell(relative(agentsRoot, item.file))} | ${findings.length ? 'needs review' : 'candidate'} | ${escapeCell(firstMatch(item.text, /^Candidate Owner\s*-?\s*(.+)$/m) || firstMatch(item.text, /^Case:\s*(.+)$/m) || '')} |`;
+    });
+  console.log('| Learning | State | Owner/Case |');
+  console.log('| --- | --- | --- |');
+  console.log(rows.join('\n') || '| none |  |  |');
 }
 
 function learnPromote(repo, options = {}) {
@@ -5111,6 +5681,48 @@ ${formatList(risks.filter((item) => item.status !== 'low').map((item) => `${item
   }
 }
 
+function safetyPreflight(repo, options = {}) {
+  return safetyPacket(repo, options, 'preflight');
+}
+
+function safetyFinish(repo, options = {}) {
+  return safetyPacket(repo, options, 'finish');
+}
+
+function safetyPacket(repo, options = {}, phase = 'preflight') {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the safety gate can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const risks = safetyRiskRows(repo, task, profile.values, git);
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Safety ${humanize(phase)}
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Phase: ${phase}
+
+| Risk | Status | Detail | Gate |
+| --- | --- | --- | --- |
+${risks.map((item) => `| ${escapeCell(item.risk)} | ${item.status} | ${escapeCell(item.detail)} | ${escapeCell(item.gate)} |`).join('\n')}
+
+## Default Boundary
+
+- Normal local coding should continue when risks are low.
+- Ask before destructive commands, external/credentialed writes, dependency installs, sensitive file reads/summaries, and learning promotion.
+- Never automatically merge, deploy, release, create MR/PR, trigger pipelines, or move files between environments.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+  if (risks.some((item) => item.status === 'high')) process.exitCode = 1;
+}
+
 function loadProfile(repo) {
   const candidates = [
     join(repo, '.sdlc', 'profile.json'),
@@ -5984,6 +6596,36 @@ function scenarioRegressionCases() {
       task: 'plan optional hooks that call portable sdlc event commands without requiring runtime-specific support',
       expectedRoute: 'standard',
     },
+    {
+      name: 'api only openapi service',
+      task: 'change an API-only service with Swagger OpenAPI developer testing and no rendered product UI',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'multi project repository',
+      task: 'change one deployable API codebase inside a repository that contains seven separately deployed projects',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'multi repo shared qa',
+      task: 'finish a feature spanning five repositories and produce one human QA Markdown script for the visible workflow',
+      expectedRoute: 'multi-repo-integration',
+    },
+    {
+      name: 'legacy route replacement',
+      task: 'replace a legacy ASP Classic route with a .NET API route and verify old active callers are retired',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'live bug sanitized log',
+      task: 'fix a production issue using sanitized staging logs and exact reproduction evidence',
+      expectedRoute: 'bugfix-live-system',
+    },
+    {
+      name: 'no test legacy manual qa',
+      task: 'implement a legacy site fix where no automated tests exist and create a Markdown QA script for YouTrack',
+      expectedRoute: 'weak-test-legacy',
+    },
   ];
 }
 
@@ -6229,12 +6871,14 @@ function inferLikelyRoute(gitInfo) {
 
 function inferRouteFromTask(task, gitInfo, profile = {}) {
   const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();
+  const explicitNonUiApi = matchesAny(text, ['api-only', 'api only', 'swagger', 'openapi', 'developer testing']) && matchesAny(text, ['no rendered product ui', 'not rendered product ui', 'no browser ui', 'no user interface', 'without ui']);
   if (matchesAny(text, ['review', 'inspect', 'audit']) && matchesAny(text, ['without edit', 'without making edit', 'no edit', 'read-only', 'read only'])) return 'review-only';
-  if (matchesAny(text, ['multi-repo', 'multi repo', 'cross repo', 'multiple service', 'multiple repo', 'multiple repositories', 'workspace', 'release order'])) return 'multi-repo-integration';
+  if (matchesAny(text, ['multi-repo', 'multi repo', 'cross repo', 'multiple service', 'multiple repo', 'multiple repositories', 'five repositories', 'several repositories', 'workspace', 'release order'])) return 'multi-repo-integration';
   if (matchesAny(text, ['contract', 'interface', 'public api', 'sdk', 'cli flag', 'config format', 'event schema', 'message schema'])) return 'contract-first';
-  if (matchesAny(text, ['release', 'push', 'deploy', 'merge']) || (text.includes('handoff') && !matchesAny(text, ['qa handoff', 'manual qa', 'test script']))) return 'release-push';
+  if (!matchesAny(text, ['separately deployed', 'deployable codebase', 'deployable api', 'deployable project']) && (matchesAny(text, ['release', 'push', 'deploy', 'merge']) || (text.includes('handoff') && !matchesAny(text, ['qa handoff', 'manual qa', 'test script'])))) return 'release-push';
   if (matchesAny(text, ['review', 'inspect', 'audit'])) return 'review-only';
-  if (matchesAny(text, ['swagger', 'openapi', 'api-only', 'api only', 'developer testing']) && !matchesAny(text, ['user interface', 'visible ui', 'rendered product ui'])) return 'standard';
+  if (explicitNonUiApi || (matchesAny(text, ['swagger', 'openapi', 'api-only', 'api only', 'developer testing']) && !matchesAny(text, ['user interface', 'visible ui', 'rendered product ui']))) return 'standard';
+  if (matchesAny(text, ['multi-project repository', 'multiple projects', 'multiple codebases', 'multiple code bases', 'deployable codebase', 'deployable api codebase'])) return 'standard';
   if (matchesAny(text, ['user interface', 'rendered product ui', 'visible ui', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'board', 'placement', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
   if (matchesAny(text, ['staging log', 'production log', 'sql log', 'foreign key', 'fk ', 'live-connected', 'live connected'])) return 'bugfix-live-system';
   if (matchesAny(text, ['weak test', 'coverage', 'missing test']) || (text.includes('legacy') && matchesAny(text, ['test', 'coverage', 'regression']))) return 'weak-test-legacy';
@@ -6401,6 +7045,270 @@ ${formatList(evidence.screenshots)}
 - Result: not run by render smoke.
 - Cap: record as "accessibility not run" only when relevant to the task or required by profile.
 `;
+}
+
+function contextConflictSeverity({ stale, missing, contradictions, profile }) {
+  const realContradictions = contradictions.filter((item) => !String(item).toLowerCase().includes('no obvious context contradictions detected'));
+  const contradictionText = realContradictions.join(' ').toLowerCase();
+  if (contradictionText.includes('contradict') || contradictionText.includes('configured but missing')) return 'conflicting-sources';
+  if (stale.length && (profile.sharedContextRoot || profile.productContext || profile.repoContext)) return 'stale-but-usable';
+  if (stale.length > 2) return 'stale-and-risky';
+  if (missing.length > 5) return 'missing-owner';
+  return 'current-or-low-risk';
+}
+
+function feedbackRow(repo, options = {}) {
+  const gitInfo = getGitInfo(repo);
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  return {
+    timestamp: new Date().toISOString(),
+    repo: basename(repo),
+    repoPath: repo,
+    agentsVersion: git(agentsRoot, ['rev-parse', '--short', 'HEAD']) || 'unknown',
+    runtime: options.runtime || options.tool || 'unknown',
+    source: options.source || 'developer',
+    repoProfileType: profile.path ? relative(repo, profile.path) : 'none',
+    task,
+    route: options.route || inferRouteFromTask(task, gitInfo, profile.values),
+    setupCompleted: boolText(options.setupCompleted),
+    finishReached: boolText(options.finishReached),
+    evidenceUnderstood: boolText(options.evidenceUnderstood),
+    qaScriptUseful: options.qaScriptUseful || 'not-applicable',
+    friction: options.friction || options.category || 'other',
+    note: sanitizeOneLine(options.note || options.summary || ''),
+    suggestedImprovement: sanitizeOneLine(options.suggestedImprovement || options.improvement || ''),
+    shareStatus: options.shareStatus || 'local-only',
+  };
+}
+
+function appendFeedbackRow(repo, row) {
+  const outPath = defaultFeedbackPath(repo);
+  mkdirSync(dirname(outPath), { recursive: true });
+  appendFileSync(outPath, `${JSON.stringify(row)}\n`, 'utf8');
+}
+
+function renderFeedbackPacket(row) {
+  return `# SDLC Developer Feedback Packet
+
+Date: ${row.timestamp}
+Task: ${row.task}
+Route: ${row.route}
+Runtime: ${row.runtime}
+Agents version: ${row.agentsVersion}
+Share status: ${row.shareStatus}
+
+## Outcome
+
+- Setup completed: ${row.setupCompleted}
+- Finish reached: ${row.finishReached}
+- Evidence understood: ${row.evidenceUnderstood}
+- QA script useful: ${row.qaScriptUseful}
+
+## Friction
+
+- Category: ${row.friction}
+- Note: ${row.note || 'not provided'}
+- Suggested improvement: ${row.suggestedImprovement || 'not provided'}
+
+## Privacy
+
+- Local by default.
+- Do not include raw prompts, source snippets, production logs, private URLs, customer/client names, credentials, or secrets.
+`;
+}
+
+function readFeedbackRows(repo, options = {}) {
+  const path = options.in ? resolve(repo, options.in) : defaultFeedbackPath(repo);
+  if (!existsSync(path)) return [];
+  return readJsonLines(path);
+}
+
+function filterSince(rows, since) {
+  if (!since) return rows;
+  return rows.filter((row) => String(row.timestamp || '').slice(0, 10) >= since);
+}
+
+function feedbackOwner(row) {
+  const category = String(row.friction || '').toLowerCase();
+  if (category.includes('install') || category.includes('setup')) return 'setup';
+  if (category.includes('type') || category.includes('guidance')) return 'README/onboarding';
+  if (category.includes('route')) return 'run-sdlc';
+  if (category.includes('context')) return 'context';
+  if (category.includes('verification')) return 'quality/verification';
+  if (category.includes('qa')) return 'QA';
+  if (category.includes('safety') || category.includes('approval')) return 'safety/release';
+  if (category.includes('runtime')) return 'runtime adapters';
+  if (category.includes('completion')) return 'run dashboard/final gate';
+  return 'triage';
+}
+
+function feedbackImprovementCandidates(rows) {
+  const candidates = [];
+  for (const [category, count] of groupCounts(rows.map((row) => row.friction || 'other')).filter(([, count]) => count >= 2)) {
+    candidates.push(`Repeated friction "${category}" appeared ${count} times; owner: ${feedbackOwner({ friction: category })}.`);
+  }
+  for (const row of rows.filter((item) => ['blocked', 'unsafe', 'data-risk', 'wrong-route'].includes(String(item.friction || '').toLowerCase()))) {
+    candidates.push(`High-severity event ${row.friction}: ${row.note || row.suggestedImprovement || 'review needed'}.`);
+  }
+  if (!candidates.length) candidates.push('No feedback signal has crossed the improvement threshold yet.');
+  return candidates;
+}
+
+function countTruthy(rows, key) {
+  return rows.filter((row) => ['yes', 'true', true].includes(row[key])).length;
+}
+
+function buildRunState(repo, task, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const files = optionFiles(options, git.changedFiles);
+  const units = affectedUnits(repo, files, profile, options.unit);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  return {
+    timestamp: new Date().toISOString(),
+    task,
+    repo,
+    branch: git.branch,
+    route,
+    affectedUnits: units.map((unit) => unit.name),
+    contextBuckets: dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)),
+    testingSurfaces: surfaces,
+    qaMode: qaModeForSurfaces(surfaces, task),
+    artifactBudget: artifactBudgetForRoute(route).name,
+    nextAction: `sdlc run dashboard --task "${escapeCommandArg(task)}"`,
+  };
+}
+
+function runStatePath(repo, task) {
+  return join(defaultRunsDir(repo), `${slug(task || 'current-task')}-run-state.json`);
+}
+
+function loadRunState(repo, task) {
+  const explicit = task ? runStatePath(repo, task) : '';
+  if (explicit && existsSync(explicit)) return { ...readJsonIfExists(explicit), path: explicit };
+  const dir = defaultRunsDir(repo);
+  if (!existsSync(dir)) return {};
+  const files = readdirSync(dir).filter((file) => file.endsWith('-run-state.json')).map((file) => join(dir, file));
+  if (!files.length) return {};
+  files.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
+  return { ...readJsonIfExists(files[0]), path: files[0] };
+}
+
+function runNextAction(repo, state, git) {
+  const task = state.task || '';
+  if (!state.path) return task ? `sdlc run plan --task "${escapeCommandArg(task)}"` : 'sdlc run plan --task "..."';
+  const packets = findPackets(repo, {});
+  const open = finalGateOpenItems(repo, task, git, packets);
+  if (!packets.some((packet) => packet.kind === 'task-preflight')) return `sdlc task preflight --task "${escapeCommandArg(task)}" --lock`;
+  if (git.changedFiles.length && !packets.some((packet) => packet.kind === 'touched')) return 'sdlc touched packet';
+  if (!packets.some((packet) => packet.kind === 'developer-verification')) return `sdlc verify packet --task "${escapeCommandArg(task)}"`;
+  if (open.length) return suggestedFinalGateCommand(open[0], task);
+  return `sdlc task finish --task "${escapeCommandArg(task)}"`;
+}
+
+function defaultTracePath(repo, task) {
+  return join(defaultRunsDir(repo), `${slug(task || 'current-task')}-trace.jsonl`);
+}
+
+function traceRow(repo, options = {}) {
+  const git = getGitInfo(repo);
+  return {
+    timestamp: new Date().toISOString(),
+    type: options.type || 'event',
+    task: options.task || '',
+    route: options.route || '',
+    summary: sanitizeOneLine(options.summary || ''),
+    command: sanitizeOneLine(options.command || ''),
+    status: options.status || '',
+    filesChanged: git.changedFiles.length,
+    branch: git.branch || '',
+    safety: options.safety || '',
+  };
+}
+
+function readJsonLines(path) {
+  if (!existsSync(path)) return [];
+  return readFileSync(path, 'utf8')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return { parseError: line };
+      }
+    });
+}
+
+function scoreTraceRows(rows) {
+  const valid = rows.filter((row) => !row.parseError);
+  const types = new Set(valid.map((row) => row.type));
+  const commandFailures = valid.filter((row) => Number(row.status) > 0 || /fail|blocked/i.test(row.summary || '')).length;
+  const reworkCount = valid.filter((row) => /rework|retry|rerun|again/i.test(`${row.type} ${row.summary}`)).length;
+  const safetyInterventions = valid.filter((row) => /safety|approval|permission|secret|credential|destructive/i.test(`${row.type} ${row.summary} ${row.safety}`)).length;
+  const evidenceCompleteness = ['start', 'finish'].every((type) => types.has(type)) && valid.some((row) => /verify|evidence|test|qa/i.test(`${row.type} ${row.summary}`)) ? 'good' : 'partial';
+  const processQuality = commandFailures > 2 || reworkCount > 3 ? 'needs review' : evidenceCompleteness === 'good' ? 'good' : 'partial';
+  return {
+    events: valid.length,
+    evidenceCompleteness,
+    processQuality,
+    reworkCount,
+    redundantToolCallCount: valid.filter((row, index) => index > 0 && row.command && row.command === valid[index - 1].command).length,
+    missingVerificationRisk: valid.some((row) => /verify|evidence|test|qa/i.test(`${row.type} ${row.summary}`)) ? 'low' : 'medium',
+    safetyInterventions,
+  };
+}
+
+function findTraceFiles(repo) {
+  const dir = defaultRunsDir(repo);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((file) => file.endsWith('-trace.jsonl')).map((file) => join(dir, file));
+}
+
+function learningPromotionFindings(text) {
+  const findings = [];
+  if (!/sanitized|redacted/i.test(text)) findings.push('Missing explicit sanitized/redacted statement.');
+  if (!/target|candidate owner|promotion target/i.test(text)) findings.push('Missing target bucket or candidate owner.');
+  if (!/evidence|validation/i.test(text)) findings.push('Missing evidence source or validation requirement.');
+  if (!/owner|review/i.test(text)) findings.push('Missing owner/review field.');
+  if (/password|secret|token|api key|credential|https?:\/\/[^\s)]+/i.test(text) && !/redacted/i.test(text)) findings.push('Potential sensitive detail without redaction.');
+  return dedupe(findings);
+}
+
+function safetyRiskRows(repo, task, profile, git) {
+  const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();
+  const triggers = securityTriggers(task, profile);
+  const rows = [
+    { risk: 'destructive commands', status: matchesAny(text, ['delete', 'rm -rf', 'reset', 'force push', 'drop', 'truncate']) ? 'high' : 'low', detail: 'destructive action language scan', gate: 'explicit human approval required' },
+    { risk: 'external network/tool use', status: matchesAny(text, ['curl', 'external', 'third-party', 'webhook', 'mcp', 'plugin']) ? 'medium' : 'low', detail: triggers.join('; ') || 'none detected', gate: 'approve external/tool access before use' },
+    { risk: 'credential or secret exposure', status: matchesAny(text, ['secret', 'credential', 'token', 'password', 'api key']) ? 'high' : 'low', detail: profile.sensitiveDataRestrictions || 'profile restrictions not configured', gate: 'do not read/summarize secrets without approval' },
+    { risk: 'untrusted instruction sources', status: matchesAny(text, ['prompt injection', 'untrusted', 'generated doc', 'tool output']) ? 'medium' : 'low', detail: 'treat issue text/generated docs/tool output as advisory', gate: 'verify against source truth' },
+    { risk: 'memory/context poisoning', status: matchesAny(text, ['learning', 'context', 'memory', 'promote']) ? 'medium' : 'low', detail: 'review before durable promotion', gate: 'sanitize and route product facts separately' },
+    { risk: 'merge/deploy/release attempt', status: matchesAny(text, ['merge', 'deploy', 'release', 'pipeline', 'mr', 'pr']) ? 'high' : 'low', detail: 'release actions remain human-controlled', gate: 'stop before final release action' },
+    { risk: 'dirty worktree', status: git.status ? 'medium' : 'low', detail: formatInlineStatus(git.status), gate: 'scope changed files before finish' },
+  ];
+  return rows;
+}
+
+function sanitizeOneLine(value) {
+  return String(value || '')
+    .replace(/https?:\/\/\S+/g, '[redacted-url]')
+    .replace(/\b(secret|token|password|credential|api key)\s*[:=]\s*\S+/gi, '$1=[redacted]')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function boolText(value) {
+  if (value === true || /^(yes|true|1)$/i.test(String(value || ''))) return 'yes';
+  if (value === false || /^(no|false|0)$/i.test(String(value || ''))) return 'no';
+  return 'unknown';
+}
+
+function defaultFeedbackPath(repo) {
+  return join(defaultRunsDir(repo), 'developer-feedback.jsonl');
 }
 
 function printObject(object) {

@@ -5,11 +5,19 @@ Small dependency-free helper for repetitive SDLC mechanics.
 Run from a repository:
 
 ```bash
+sdlc help onboarding
+sdlc onboarding pilot
+sdlc feedback quick --task "first SDLC pilot" --friction "what do I type?" --note "sanitized note"
+sdlc feedback review
+sdlc run plan --task "fix payment webhook contract"
+sdlc run dashboard --task "fix payment webhook contract"
+sdlc run next --task "fix payment webhook contract"
 sdlc readiness
 sdlc health
 sdlc context restore
 sdlc context pack --task "fix payment webhook contract"
 sdlc context audit
+sdlc context conflict-check --task "fix payment webhook contract"
 sdlc context update-plan --task "fix payment webhook contract"
 sdlc context resolve --path MainsiteCoreAPI/LegacyApi --task "save durable workflow learning"
 sdlc context final-check --task "replace legacy signed-form route"
@@ -20,6 +28,7 @@ sdlc run start --task "fix payment webhook contract"
 sdlc run finish --route multi-repo-integration
 sdlc workspace status
 sdlc workspace packet --task "fix payment webhook contract"
+sdlc workspace ledger --task "fix payment webhook contract"
 sdlc workmode detect --task "fix payment webhook contract"
 sdlc packet status
 sdlc gates --task "fix payment webhook contract"
@@ -33,6 +42,8 @@ sdlc done check --route multi-repo-integration --packet .ai-local/sdlc-runs/<pac
 sdlc verify packet --task "fix payment webhook contract"
 sdlc verify complete --packet .ai-local/sdlc-runs/<packet>.md --checks "npm run test" --caps "manual QA required"
 sdlc qa script --task "fix payment webhook contract"
+sdlc qa scenarios init
+sdlc qa scenarios match --task "fix payment webhook contract"
 sdlc qa script --task "fix payment webhook contract" --from-impact .ai-local/sdlc-runs/<impact>.md --from-touched .ai-local/sdlc-runs/<touched>.md
 sdlc qa complete --packet .ai-local/sdlc-runs/<packet>.md --status ready
 sdlc final gate --task "fix payment webhook contract"
@@ -57,13 +68,21 @@ sdlc scenario list
 sdlc scenario test
 sdlc scenario validate ui-rendered-issue --task "add animation to the computer turn"
 sdlc automation budget --route bugfix-live-system
+sdlc trace start --task "fix payment webhook contract"
+sdlc trace event --type verification --summary "ran focused test"
+sdlc trace finish --task "fix payment webhook contract"
+sdlc scorecard task --trace .ai-local/sdlc-runs/<trace>.jsonl
 sdlc hooks plan --runtime generic
 sdlc event pre-stop --task "fix payment webhook contract"
 sdlc learn quick --summary "active route search needed classification" --case LC_24 --source work
 sdlc learn sanitize --packet .agents/learnings/<learning>.md
+sdlc learn promote-check --packet .agents/learnings/<learning>.md
+sdlc learn candidates
 sdlc learn sync-check
 sdlc learn review-cycle --since 2026-06-01
 sdlc render smoke --url http://127.0.0.1:5173/
+sdlc safety preflight --task "fix payment webhook contract"
+sdlc safety finish --task "fix payment webhook contract"
 sdlc evidence init --route standard
 sdlc verify --commands test,build
 sdlc calibrate add --route standard --outcome pass --route-fit right

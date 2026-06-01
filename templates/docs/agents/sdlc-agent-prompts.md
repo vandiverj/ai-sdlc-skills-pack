@@ -8,6 +8,18 @@ Purpose: give humans simple chat prompts for using the SDLC through Augment, Cod
 Use SDLC for this task: <task>. Determine the scope, gather context, implement, verify, generate QA Markdown if needed, and stop at the finish decision before any commit or push.
 ```
 
+## First-Time Setup
+
+```text
+Use SDLC to set up this repository for AI-assisted work. Explain the local files you propose to create or update, detect repositories and deployable units, and keep product-specific context local.
+```
+
+## First Pilot
+
+```text
+Use SDLC and guide me through my first small pilot task in this repository. Tell me what to type, what you will check, what local files you create, and how to capture sanitized feedback afterward.
+```
+
 ## Review Completion
 
 ```text
@@ -24,6 +36,18 @@ Use SDLC and resume the current task. Find the latest task ledger/evidence, revi
 
 ```text
 Use SDLC and generate the human QA Markdown script for this task: <task>. The QA tester will not use AI and the output should be suitable for YouTrack.
+```
+
+## API-Only Or Non-UI Work
+
+```text
+Use SDLC for this API-only task: <task>. Treat Swagger/OpenAPI, API clients, logs, and contract checks as test surfaces, but do not require rendered product UI evidence unless an actual UI changed.
+```
+
+## Multi-Repo Or Multi-Project Work
+
+```text
+Use SDLC for this task across the current workspace: <task>. Build the workspace ledger, identify affected deployable units and context buckets, and produce one QA Markdown script for the tester-visible workflow.
 ```
 
 ## Finish Decision
@@ -52,9 +76,13 @@ Use SDLC and prepare a no-commit handoff for this task: <task>. Generate the QA 
 
 ## Suggested CLI Mapping
 
-- Start: `sdlc task open --task "..."`
+- Onboarding: `sdlc help onboarding` then `sdlc onboarding pilot`
+- Start: `sdlc run plan --task "..."` then `sdlc task open --task "..."`
+- Dashboard: `sdlc run dashboard --task "..."` and `sdlc run next --task "..."`
 - Bundle evidence: `sdlc task bundle --task "..."`
 - Current task: `sdlc task current`
 - Checkpoint/review: `sdlc task review --task "..."`
 - QA: `sdlc task qa --task "..."` then `sdlc qa script --task "..."`
-- Finish: `sdlc task finish --task "..."` then `sdlc git packet`
+- Trace/scorecard: `sdlc trace start --task "..."`, `sdlc trace finish --task "..."`, then `sdlc scorecard task --trace <trace>`
+- Finish: `sdlc safety finish --task "..."`, `sdlc task finish --task "..."`, then `sdlc git packet`
+- Feedback: `sdlc feedback quick --task "..." --friction "..." --note "..."`
