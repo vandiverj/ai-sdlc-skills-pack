@@ -63,10 +63,13 @@ sdlc run start --task "<human task>"
 For day-to-day implementation work, prefer the task wrapper as the human-facing spine:
 
 ```bash
+sdlc task preflight --task "<human task>"
 sdlc task open --task "<human task>"
 sdlc task bundle --task "<human task>"
 sdlc task review --task "<human task>"
 ```
+
+Use `sdlc task fast-pass --task "<human task>"` when the work is clearly micro/tiny: one repo, one obvious unit or docs-only scope, no security/data/release trigger, no multi-context ambiguity, and no irreversible action. Fast-pass still needs changed-files awareness, one relevant verification path or explicit cap, and a final confidence block.
 
 At closeout, use the relevant verification and calibration helpers when commands are available:
 
@@ -86,9 +89,13 @@ For implementation or bugfix work that needs QA handoff, generate the universal 
 
 ```bash
 sdlc workspace status
+sdlc workspace doctor
+sdlc task preflight --task "<human task>"
 sdlc surface detect --task "<human task>"
 sdlc unit detect --task "<human task>"
+sdlc unit doctor
 sdlc context inventory
+sdlc context bucket-check --task "<human task>"
 sdlc context freshness --task "<human task>"
 sdlc context contradictions --task "<human task>"
 sdlc change graph --task "<human task>"
@@ -98,10 +105,19 @@ sdlc impact packet --task "<human task>"
 sdlc verify packet --task "<human task>"
 sdlc smoke packet --task "<human task>"
 sdlc qa script --task "<human task>"
+sdlc artifact budget --route <route>
 sdlc qa review --packet <qa-packet>
 sdlc test suggest --task "<human task>"
 sdlc bug evidence --task "<human task>"
+sdlc bug reproduce --task "<human task>"
+sdlc bug diagnose --task "<human task>"
+sdlc bug fix-plan --task "<human task>"
+sdlc bug verify --task "<human task>"
+sdlc bug qa --task "<human task>"
 sdlc render plan --task "<human task>"
+sdlc risk agentic --task "<human task>"
+sdlc learn route --packet <learning-packet>
+sdlc learn summary
 sdlc learn capture --summary "<sanitized lesson>"
 sdlc task finish --task "<human task>"
 ```
@@ -112,6 +128,8 @@ Use additional packets when the work shape calls for them:
 sdlc test plan --task "<human task>"
 sdlc data packet --task "<human task>"
 sdlc integration packet --task "<human task>"
+sdlc workspace init
+sdlc workspace doctor
 sdlc workspace packet --task "<human task>"
 sdlc workspace map --task "<human task>"
 sdlc unit map
@@ -139,7 +157,9 @@ sdlc done check --route <route> --packet <packet>
 sdlc run finish --route <route> --packet <packet>
 ```
 
-Done checks are route-specific. Treat open checks as unresolved gates unless the human explicitly accepts the cap. The helper checks evidence shape for review-only, release-push, standard, ui-rendered-review, bugfix-regression, weak-test-legacy, multi-repo-integration, contract-first, and tiny-docs routes; it does not replace source review or judgment.
+Done checks are route-specific. Treat open checks as unresolved gates unless the human explicitly accepts the cap. The helper checks evidence shape for review-only, release-push, standard, ui-rendered-review, bugfix-regression, bugfix-live-system, weak-test-legacy, multi-repo-integration, contract-first, and tiny-docs routes; it does not replace source review or judgment.
+
+Every route, including fast-pass, keeps the quality floor: changed-files awareness, at least one verification path or explicit cap, surface-correct evidence, context placement decision when durable knowledge changed, human QA Markdown when testers are involved, developer-controlled finish, and a final confidence summary that separates proved facts, inferred facts, remaining human judgment, and safe next action.
 
 For context, multi-repo, contract, health, and calibration improvement work, use the dedicated helpers:
 

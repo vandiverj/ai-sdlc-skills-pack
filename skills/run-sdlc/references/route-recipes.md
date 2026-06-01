@@ -25,13 +25,15 @@ Use `sdlc done check --route <route> --packet <packet>` before final completion 
 
 For implementation, bugfix, maintenance, optimization, or release-facing work that needs human QA or handoff, prefer the universal evidence set:
 
+- `sdlc task preflight --task "..."` for a one-screen route/unit/surface/context/QA/artifact/confidence decision before editing,
+- `sdlc task fast-pass --task "..."` for micro/tiny work that can stay inline while preserving the quality floor,
 - `sdlc task start --task "..."` for the normalized task contract,
 - `sdlc task open --task "..."` for start + context freshness + context contradiction check + change graph + ledger in one checkpoint,
 - `sdlc task current`, `sdlc task id --task "..."`, and `sdlc task bundle --task "..."` when multiple task runs or packet grouping could make latest-packet selection ambiguous,
 - `sdlc task ledger --task "..."` for the evidence index,
 - `sdlc task review --task "..."` or `sdlc task checkpoint --task "..."` for current completion state,
 - `sdlc surface detect --task "..."` and `sdlc unit detect --task "..."` before choosing rendered UI, API-contract, service, data, integration, background-job, package/tooling, or docs/process evidence,
-- `sdlc context inventory`, `sdlc context place --fact "..."`, `sdlc context freshness --task "..."`, `sdlc context contradictions --task "..."`, and `sdlc change graph --task "..."` for context placement, confidence, contradiction checks, and impact graph-lite,
+- `sdlc context inventory`, `sdlc context bucket-check --task "..."`, `sdlc context place --fact "..."`, `sdlc context freshness --task "..."`, `sdlc context contradictions --task "..."`, and `sdlc change graph --task "..."` for context placement, confidence, contradiction checks, and impact graph-lite,
 - `sdlc touched packet` for changed technical surfaces,
 - `sdlc impact packet --task "..."` for user/system impact,
 - `sdlc verify packet --task "..."` for developer/agent verification,
@@ -39,14 +41,17 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc qa script --task "..."` for Markdown manual QA test scripts that can be pasted into YouTrack,
 - `sdlc qa review --packet <path>` for YouTrack/human-tester readiness checks,
 - `sdlc final gate --task "..."` and `sdlc git packet` for human-approved final action decisions.
-- `sdlc workspace status`, `sdlc workspace map --task "..."`, `sdlc workspace packet --task "..."`, and `sdlc multi ledger --task "..."` when multiple repositories may be open or affected.
-- `sdlc unit map` when one repository contains multiple deployable/codebase units with different context buckets, test surfaces, commands, or deploy methods.
+- `sdlc workspace status`, `sdlc workspace init`, `sdlc workspace doctor`, `sdlc workspace map --task "..."`, `sdlc workspace packet --task "..."`, and `sdlc multi ledger --task "..."` when multiple repositories may be open or affected.
+- `sdlc unit map` and `sdlc unit doctor` when one repository contains multiple deployable/codebase units with different context buckets, test surfaces, commands, or deploy methods.
 - `sdlc workmode detect --task "..."` to surface product/repo/task modifiers such as legacy, modern web, API/service, manual-QA-heavy, no-tests, integration-heavy, or multi-repo.
 - `sdlc test plan --task "..."` when automated coverage is missing or should grow from the active task.
 - `sdlc test suggest --task "..."` when the repo has weak/no tests or a dependency/package upgrade.
 - `sdlc data packet --task "..."` and `sdlc integration packet --task "..."` when data/storage or third-party/cross-system behavior is affected.
 - `sdlc bug evidence --task "..."` for live-connected staging/production-safe bug investigations that need exact logs, failing SQL/API/contract evidence, minimal fix discipline, targeted regression, and QA scenario retest.
-- `sdlc learn capture`, `sdlc learn review`, and `sdlc learn promote` for sanitized process-learning candidates; keep product/client facts in repo/unit/shared context unless redacted and generalized.
+- `sdlc bug reproduce`, `sdlc bug diagnose`, `sdlc bug fix-plan`, `sdlc bug verify`, and `sdlc bug qa` when a live-system bug needs stepwise evidence-first handling.
+- `sdlc artifact budget --route <route>` for proportional evidence expectations.
+- `sdlc risk agentic --task "..."` when tool authority, identity, memory/context, untrusted input, cascading actions, release authority, or sensitive data needs explicit gates.
+- `sdlc learn capture`, `sdlc learn route`, `sdlc learn summary`, `sdlc learn review`, and `sdlc learn promote` for sanitized process-learning candidates; keep product/client facts in repo/unit/shared context unless redacted and generalized.
 - `sdlc gates --task "..."` for the open-gate dashboard.
 - `sdlc handoff draft --task "..."` for MR/release/QA/deployment text drafts without creating or triggering anything.
 - `sdlc render plan --task "..."` or `sdlc render evidence --task "..."` for visible UI work when tooling is available or caps must be explicit.
@@ -55,6 +60,18 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc task finish --task "..."` for the final human approval decision screen.
 
 The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines. Commit and push require explicit human approval.
+
+## Quality Floor
+
+Every route, including micro/tiny fast-pass work, must keep:
+
+- changed-files awareness,
+- at least one verification path or explicit cap,
+- surface-correct evidence,
+- context placement decision when durable knowledge changed,
+- human QA Markdown when testers are involved,
+- developer-controlled finish for commit/push,
+- final confidence summary separating proved facts, inferred facts, human judgment, and safe next action.
 
 ## Security Trigger Overlay
 
