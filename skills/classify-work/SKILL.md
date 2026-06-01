@@ -59,6 +59,11 @@ Prefer short, decisive answers. The execution contract should be small enough fo
 ## Fast-pass principle
 The workflow is a dependency graph, not a mandatory ladder. A skipped gate is acceptable only when the classification explains why the failure it prevents is unlikely or cheap.
 
+## Security trigger overlay
+Before finalizing the route, check `references/security-route-triggers.md`.
+
+Security/tool triggers add required gates and evidence to the selected base route. They may escalate the work to High-risk when secrets, production, users, data, dependencies, tool permissions, prompt/tool injection, external integrations, or irreversible state can be affected.
+
 ## Work classes and fast-pass routes
 
 ### Micro

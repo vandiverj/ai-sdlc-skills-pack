@@ -44,6 +44,12 @@ Purpose: first-run and machine/runtime setup profile for the AI SDLC. Keep this 
 - Shared local context root:
 - Product context:
 - Repo context:
+- Product context index:
+- Repo context index:
+- Service map:
+- Workflow map:
+- Release order:
+- Known failure modes:
 - Generated artifacts:
 
 ## Capability Profile

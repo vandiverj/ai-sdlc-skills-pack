@@ -21,6 +21,10 @@ Each recipe defines:
 - stop gates,
 - done criteria.
 
+## Security Trigger Overlay
+
+Apply `classify-work/references/security-route-triggers.md` before starting any route. Security/tool triggers add consent gates, threat-model/security review expectations, and evidence fields to the base route. They may escalate risk while preserving the selected route name.
+
 ### tiny-docs
 
 Trigger: typo, wording, link, or tiny documentation routing update.

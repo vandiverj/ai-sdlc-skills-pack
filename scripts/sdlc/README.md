@@ -5,10 +5,14 @@ Small dependency-free helper for repetitive SDLC mechanics.
 Run from a repository:
 
 ```bash
-node /path/to/.agents/scripts/sdlc/sdlc.mjs context restore
-node /path/to/.agents/scripts/sdlc/sdlc.mjs evidence init --route standard
-node /path/to/.agents/scripts/sdlc/sdlc.mjs verify --commands test,build
-node /path/to/.agents/scripts/sdlc/sdlc.mjs calibrate add --route standard
+sdlc readiness
+sdlc context restore
+sdlc context pack --task "fix payment webhook contract"
+sdlc route start multi-repo-integration --task "fix payment webhook contract"
+sdlc evidence init --route standard
+sdlc verify --commands test,build
+sdlc calibrate add --route standard --outcome pass --route-fit right
+sdlc calibrate summary
 ```
 
 The CLI is an affordance over the Markdown SDLC. It does not replace agent judgment, human approval gates, source review, or route-specific skill guidance.

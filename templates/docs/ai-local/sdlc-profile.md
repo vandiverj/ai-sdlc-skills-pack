@@ -15,6 +15,12 @@ Purpose: local repository profile for SDLC helper automation. Keep this file ign
 - Shared context root:
 - Product context:
 - Repo context:
+- Product context index:
+- Repo context index:
+- Service map:
+- Workflow map:
+- Release order:
+- Known failure modes:
 - Durable docs:
 - Agent-local docs: .ai-local/
 - Evidence output location: .ai-local/sdlc-runs/

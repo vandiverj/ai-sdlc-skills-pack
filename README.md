@@ -12,8 +12,8 @@ The pack is designed to help coding agents preserve product intent, application 
 - `agents/` - portable Markdown definitions for optional specialist, worker, reviewer, and handoff agents.
 - `agent-contracts/` - legacy compatibility role contracts kept until downstream references move to `agents/`.
 - `scripts/` - repository maintenance checks for skill file format and related rails.
-- `scripts/sdlc/` - small dependency-free helper CLI for profile, context restore, evidence, verification, calibration, and handoff mechanics.
-- `templates/` - starter docs and feature context templates.
+- `bin/sdlc` and `scripts/sdlc/` - small dependency-free helper CLI for readiness, profile, context restore, context packs, route packets, evidence, verification, calibration, and handoff mechanics.
+- `templates/` - starter docs, external context-root templates, SDLC scenarios, and feature context templates.
 
 ## First principle
 

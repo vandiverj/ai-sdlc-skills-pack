@@ -95,7 +95,7 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 2. Inventory existing instruction, workflow, docs, command, CI, and agent runtime files.
 3. Identify which portable SDLC files are missing, stale, or project-specific.
 4. Identify IDE/tool runtimes to support. If unclear, create portable files first and record adapter decisions as follow-up.
-5. Establish repository setup/profile locations before creating noisy artifacts.
+5. Establish repository setup/profile locations before creating noisy artifacts. Prefer `sdlc readiness` first when the helper CLI is available, then `sdlc profile init --shared-context-root <path>` when a local profile is missing.
 6. Decide the local AI notes policy: tracked shared docs belong under `docs/`; personal or pilot scratch notes belong under `.ai-local/` and should be ignored via `.git/info/exclude` or project `.gitignore` by explicit choice. Inspect `git status --short --untracked-files=all`, `git check-ignore -v .ai-local .ai-local/*`, and `.git/info/exclude` when `.ai-local/` exists.
 7. Check Git identity and privacy expectations before public or shared publication: `git config user.name`, `git config user.email`, whether a noreply email is desired, and how to verify author/committer with `git log --format=fuller -1`.
 8. Review infrastructure and quality capabilities: install/build/run commands, formatter, linter, typecheck/compiler, unit/integration/contract/E2E tests, rendered UI tooling, accessibility checks, security/dependency scans, CI/local preflight, deployment/smoke checks, logs/debugging, QA/manual validation.
@@ -106,7 +106,30 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 13. Add runtime adapters only for tools the project actually uses or explicitly wants.
 14. Add evidence packet and independent-reviewer templates when the project will use local handoffs, local review packets, or agent review roles.
 15. Run documentation verification checks and `git diff --check`.
-16. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
+16. Run `sdlc readiness` again when available and report remaining setup gaps.
+17. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
+
+## Helper CLI setup flow
+When the SDLC helper is available, use it to make setup concrete:
+
+```bash
+sdlc readiness
+sdlc profile init --shared-context-root <external-context-root>
+sdlc context restore
+```
+
+If the project is part of a larger product/system, create or update shared context-root docs outside the application repository using `templates/docs/context-root/`:
+
+```text
+product-context-index.md
+service-map.md
+workflow-map.md
+release-order.md
+known-failure-modes.md
+repo-context-index.md
+```
+
+Then record pointers to those docs in `.ai-local/sdlc-profile.md` or `.ai-local/repository-setup.md`. Do not commit personal paths or raw AI working memory unless the repository explicitly approves a sanitized variant.
 
 ## Repository setup profile
 Prefer a Markdown-first setup profile while the fields are still evolving:
