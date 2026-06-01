@@ -201,3 +201,69 @@ For cross-repo legacy/current API route fixes:
 - TSA users are not expected to download these admin signed forms.
 - Final active-page review found no remaining active `DownloadSignedForm`, `AdminDownloadSignedForm`, or `NatacsMain/PrintProcess/*Download*` references in `www_dev`.
 - Remaining old references are archived only.
+
+---
+
+# SDLC Learning: LC_24 EF Core Trigger-Backed Table Mapping
+
+Date: 2026-06-01
+Case: LC_24
+Scope: EF Core SQL Server save behavior in legacy API contexts
+
+## Summary
+
+A later LC_24 staging issue showed that an EF Core save can fail after a framework upgrade when SQL Server tables have enabled DML triggers but the EF model does not declare those triggers. The root fix was not a workflow change or schema change; it was aligning DbContext metadata with the database's trigger-backed tables.
+
+## Key Process Learnings
+
+### 1. Treat SQL Server `OUTPUT` + trigger errors as model-metadata drift first
+
+When logs say SQL Server rejected a DML statement because the target table has triggers and the statement contains an `OUTPUT` clause, first check EF Core table metadata.
+
+Process improvement:
+- Identify the exact table named by SQL Server in the log.
+- Confirm whether the DbContext maps that table.
+- Confirm whether the mapped entity declares trigger metadata or explicitly disables SQL output behavior.
+- Prefer a metadata fix before considering save-order, raw SQL, trigger disabling, or schema changes.
+
+### 2. Compare the authoritative trigger list with mapped entities, not only the first failing table
+
+The first failing table is useful evidence, but it may only be the first missing mapping in a broader set.
+
+Process improvement:
+- Ask for or query the authoritative list of trigger-backed tables for the affected database.
+- Intersect that list with entities actually mapped in the affected DbContext.
+- Update all mapped trigger-backed tables in that DbContext together.
+- Do not introduce new entity mappings just to represent unmapped trigger-backed tables unless the task requires that broader change.
+
+### 3. Add metadata-level regression tests for provider configuration
+
+In-memory tests cannot reproduce SQL Server's `OUTPUT`/trigger runtime failure, but they can assert that the EF model contains the required trigger declarations.
+
+Process improvement:
+- Add focused tests that inspect EF model metadata for configured trigger-backed entities.
+- Keep those tests close to existing domain tests for the affected workflow.
+- Document any remaining manual database smoke test separately because metadata tests do not prove real SQL Server execution.
+
+### 4. Keep product facts and portable process lessons separate
+
+The durable product fact belongs in engineering context for the affected repo/workflow. The reusable lesson belongs in process learning without customer, manifest, or environment-specific details.
+
+Process improvement:
+- Product context should name the affected workflow, code path, tables, and regression coverage.
+- Process learning should describe the generic diagnostic pattern and checklist.
+- Final handoff should mention both context updates when both were changed.
+
+## Suggested run-sdlc Checklist Addition
+
+For EF Core SQL Server save failures involving triggers:
+
+1. Capture the generated SQL/log excerpt and identify the target table.
+2. Check official/provider guidance for version-specific save behavior.
+3. Get the authoritative trigger-backed table list for the affected database.
+4. Intersect trigger-backed tables with the affected DbContext's mapped entities.
+5. Add trigger metadata or output-clause opt-out for all mapped trigger-backed tables.
+6. Do not map unrelated database tables as part of the fix unless explicitly required.
+7. Add model-metadata regression coverage.
+8. Run targeted tests/build and record manual SQL Server smoke expectations.
+9. Update product context and process learning separately.
