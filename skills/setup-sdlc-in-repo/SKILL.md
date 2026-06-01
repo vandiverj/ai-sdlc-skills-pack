@@ -113,6 +113,7 @@ Prefer a Markdown-first setup profile while the fields are still evolving:
 
 ```text
 .ai-local/repository-setup.md
+.ai-local/sdlc-profile.md
 .ai-local/tool-capabilities.md
 .ai-local/quality-capabilities.md
 .ai-local/terminology.md
@@ -140,6 +141,9 @@ Minimum setup facts to capture:
 - global `.agents` asset root and branch/version,
 - skills/agent-contract/tool/template paths,
 - context root,
+- shared local context root for multi-repo context when used,
+- product/system context path when work spans repositories,
+- repo-specific external context path when local docs live outside the repo,
 - implementation history location,
 - durable docs location,
 - ignored AI-local paths,
@@ -157,6 +161,7 @@ Use this default decision matrix:
 Raw personal/pilot notes with local paths, transcripts, prompts, outputs, or handoff history -> `.git/info/exclude`.
 Repo-wide local scratch convention that should protect every clone -> project `.gitignore`.
 Sanitized reusable examples, evidence packets, or process docs -> tracked `docs/`.
+Shared multi-repo software memory that should stay outside application repos -> ignored local pointer to the external context root.
 ```
 
 Never track raw transcripts, private paths, local handoffs, prompt/output logs, secrets, customer data, or provider/tool credentials by default.

@@ -12,6 +12,7 @@ The pack is designed to help coding agents preserve product intent, application 
 - `agents/` - portable Markdown definitions for optional specialist, worker, reviewer, and handoff agents.
 - `agent-contracts/` - legacy compatibility role contracts kept until downstream references move to `agents/`.
 - `scripts/` - repository maintenance checks for skill file format and related rails.
+- `scripts/sdlc/` - small dependency-free helper CLI for profile, context restore, evidence, verification, calibration, and handoff mechanics.
 - `templates/` - starter docs and feature context templates.
 
 ## First principle
@@ -81,7 +82,7 @@ docs/process-improvement/
   friction-log.md
 ```
 
-Use `capture-process-event` to record small observations about friction, gaps, corrections, near misses, and useful workflow successes during project work. Use `review-process-learning` to aggregate those events across projects and propose evidence-backed improvements to project guidance, templates, tooling, retrieval, or the skills pack.
+Use the `process-learning` router to record small observations about friction, gaps, corrections, near misses, and useful workflow successes during project work, then aggregate those events across projects and propose evidence-backed improvements to project guidance, templates, tooling, retrieval, or the skills pack.
 
 ## Tool and MCP use
 
@@ -89,7 +90,7 @@ MCPs and tools are optional infrastructure. Use select-tools when external/curre
 
 ## Agent strategy
 
-Use `choose-agent-strategy` when Standard, High-risk, Exploratory, review, release, or cross-cutting work may benefit from delegation, specialist review, independent verification, or model-tier selection.
+Use the `agents` router when Standard, High-risk, Exploratory, review, release, or cross-cutting work may benefit from delegation, specialist review, independent verification, or model-tier selection.
 
 The skills pack defines portable specialist roles in `.agents/agents/*.md`. Downstream projects define project-local agent strategy and model tiers in `docs/agents/*`; runtime-specific files for Codex, VS Code/Copilot, Augment, Claude Code, or other tools are adapters. Keep adapters thin and do not let them outrank `AGENTS.md`, workflow docs, skills, portable agent definitions, or source-of-truth artifacts.
 
@@ -97,7 +98,7 @@ Use the minimum model tier and fewest agents that can satisfy the evidence requi
 
 ## Implementation patterns
 
-Use `choose-implementation-pattern` when work touches repeated project-specific surfaces such as forms, tables, modals, data fetching, API handlers, error handling, tests, layouts, or feature module structure.
+Use the `implementation` router when work touches repeated project-specific surfaces such as forms, tables, modals, data fetching, API handlers, error handling, tests, layouts, or feature module structure.
 
 Implementation patterns live in `docs/patterns/*`. They capture project-specific guidance that deterministic tools cannot express. They start as Emerging, harden through reviewed evidence, and can be deprecated or superseded when requirements, design systems, frameworks, accessibility, security, or performance constraints change.
 
@@ -105,17 +106,17 @@ Do not use pattern docs to duplicate formatter, linter, typechecker, schema, acc
 
 ## Technical approach gate
 
-When starting a project or changing meaningful technical surfaces, use `choose-technical-approach` to propose and approve stack, architecture, runtime, persistence, deployment, testing, operations, and dependency policy before deep modeling or implementation planning depends on those choices.
+When starting a project or changing meaningful technical surfaces, use the `implementation` router's technical approach reference to propose and approve stack, architecture, runtime, persistence, deployment, testing, operations, and dependency policy before deep modeling or implementation planning depends on those choices.
 
 ## Quality automation gate
 
-Use `choose-quality-automation` when a project needs explicit decisions about formatter, linter, typecheck, test, build, contract, accessibility, security, dependency, license, generated artifact, documentation, or CI/local preflight checks.
+Use the `quality` router when a project needs explicit decisions about formatter, linter, typecheck, test, build, contract, accessibility, security, dependency, license, generated artifact, documentation, or CI/local preflight checks.
 
 The goal is to let deterministic tools catch repeatable problems so agents reserve judgment for product intent, architecture, contracts, usability, maintainability, and risk.
 
 ## Retrieval approach gate
 
-Use `choose-retrieval-approach` when a project may need optional RAG, embeddings, vector search, graph indexing, repo retrieval, Obsidian-like navigation, or another retrieval layer to find source artifacts reliably.
+Use the `tools` router when a project may need optional RAG, embeddings, vector search, graph indexing, repo retrieval, Obsidian-like navigation, or another retrieval layer to find source artifacts reliably.
 
 Retrieval output is a pointer, not proof. It should help agents load authoritative code, tests, PRDs, contracts, ADRs, application models, feature context, AGENTS.md, context-state, and Memory Bank routing files.
 
@@ -135,18 +136,17 @@ To install or refresh the SDLC in a downstream repository, use:
 
 ```text
 setup-sdlc-in-repo
-setup-agent-instructions, if AGENTS.md is missing or stale
-choose-agent-strategy, if agent roles, model tiers, or runtime adapters are needed
-choose-implementation-pattern, if project-specific pattern guidance is needed
+agents, if AGENTS.md, agent roles, model tiers, or runtime adapters are needed
+implementation, if technical approach or project-specific pattern guidance is needed
+quality, if verification or quality rails are missing or changing
+tools, if retrieval or tool boundaries are needed
 ```
 
 For lower-level manual routing, begin with context:
 
 ```text
 classify-work
-context-restore
-select-context
-manage-context-state
+context
 ```
 
 For new product or feature design, continue with:
@@ -154,46 +154,35 @@ For new product or feature design, continue with:
 ```text
 product-reframe
 define-application
-choose-technical-approach, when starting a project or changing technical surfaces
-choose-quality-automation, when quality rails are missing or changing
-choose-retrieval-approach, when retrieval/RAG/indexing may be justified
-choose-agent-strategy, when delegation, specialists, or model tiers may matter
-choose-implementation-pattern, when repeated project-specific implementation patterns may matter
+implementation, when starting a project or changing technical surfaces
+quality, when quality rails are missing or changing
+tools, when retrieval/RAG/indexing may be justified
+agents, when delegation, specialists, or model tiers may matter
 grill-me
-model-application
-review-application-model
-to-prd
-to-issues
+planning
+review
 ```
 
 For implementation, use:
 
 ```text
-write-contract-spec / review-contract-spec, when public contracts change
-choose-quality-automation, when verification or tooling rails are missing or changing
-choose-retrieval-approach, when context selection or retrieval rails are missing or changing
-choose-agent-strategy, when delegation, specialist review, or independent verification would reduce risk
-choose-implementation-pattern, when forms, tables, APIs, tests, layouts, or feature patterns apply
-write-implementation-plan
-review-implementation-plan
-create-work-branch
-safe-edit-boundary
-execute-plan / tdd
-verification-before-completion
-review-spec-compliance
-review-code-quality
-update-context-docs
-finish-development-branch
-context-save
+planning, including contract specs and implementation plans
+quality, when verification or tooling rails are missing or changing
+tools, when context selection or retrieval rails are missing or changing
+agents, when delegation, specialist review, or independent verification would reduce risk
+implementation, for safe edit boundary, execution, TDD, technical approach, and patterns
+quality, for verification before completion
+review, for spec compliance, code quality, threat, design, planning, and release review
+context, for durable docs/context updates and save
+release, for branch finish, handoff, commit, push, or publication guidance
 ```
 
 For process improvement across projects, use:
 
 ```text
-capture-process-event, when real work exposes process friction, gaps, corrections, near misses, or useful successes
-review-process-learning, periodically across project event logs
-update-agent-definitions, when reviewed evidence shows agent roles, model tiers, or adapters should change
-update-implementation-patterns, when reviewed evidence shows project patterns should emerge, harden, deprecate, or change
+process-learning, when real work exposes process friction, gaps, corrections, near misses, useful successes, or repeated lessons
+agents, when reviewed evidence shows agent roles, model tiers, or adapters should change
+implementation, when reviewed evidence shows project patterns should emerge, harden, deprecate, or change
 ```
 
 ## Non-negotiable gates
@@ -216,7 +205,7 @@ update-implementation-patterns, when reviewed evidence shows project patterns sh
 
 ## Optional retrieval layer
 
-Retrieval/index tooling such as Graphify, embeddings, vector search, repo retrieval, or Obsidian-style navigation can be added later as an accelerator for larger projects. Use `choose-retrieval-approach` before adding it. It should not be required for the core workflow and must not replace code, tests, code-local docs, PRDs, contracts, ADRs, application models, feature context files, AGENTS.md, or Memory Bank routing files as sources of truth.
+Retrieval/index tooling such as Graphify, embeddings, vector search, repo retrieval, or Obsidian-style navigation can be added later as an accelerator for larger projects. Use the `tools` router before adding it. It should not be required for the core workflow and must not replace code, tests, code-local docs, PRDs, contracts, ADRs, application models, feature context files, AGENTS.md, or Memory Bank routing files as sources of truth.
 ## Repository scope
 
 This repository is the reusable AI SDLC skills pack itself. It is not an application template and should stay independent from product repositories.

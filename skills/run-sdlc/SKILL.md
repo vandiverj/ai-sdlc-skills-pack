@@ -29,6 +29,10 @@ Use the route matrix from `classify-work`: Micro, Tiny, Standard, High-risk, Exp
 
 For skill-pack architecture, phase ownership, and future consolidation decisions, use the local reference `references/router-map.md`. Do not load that reference for every normal task; load it when route ownership, skill reachability, or skill-vs-reference-vs-agent placement matters.
 
+For concrete route recipes, use `references/route-recipes.md`. Load it when the agent or SDLC helper CLI needs required context packets, checks, evidence shape, stop gates, or completion criteria for common routes.
+
+When available, the helper CLI in `scripts/sdlc/sdlc.mjs` may automate mechanical profile, context restore, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
+
 When delegating implementation, verification, independent review, release handoff, process learning, or evidence-packet creation, or when running those roles as separate Codex-direct phases, the orchestrator may fill the general templates in `templates/prompts/sdlc/`. These templates are internal prompt-generation aids for the AI; do not require the human to provide prompts in that format.
 
 ## What this skill does

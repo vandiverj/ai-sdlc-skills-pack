@@ -41,6 +41,9 @@ Purpose: first-run and machine/runtime setup profile for the AI SDLC. Keep this 
 - Sanitized evidence/docs path:
 - Implementation history:
 - External context root:
+- Shared local context root:
+- Product context:
+- Repo context:
 - Generated artifacts:
 
 ## Capability Profile
