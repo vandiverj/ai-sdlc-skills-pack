@@ -47,6 +47,8 @@ async function main(argv) {
   if (area === 'release' && action === 'complete') return releaseComplete(repo, options);
   if (area === 'qa' && (action === 'script' || action === 'packet')) return qaScript(repo, options);
   if (area === 'qa' && action === 'complete') return qaComplete(repo, options);
+  if (area === 'smoke' && action === 'packet') return smokePacket(repo, options);
+  if (area === 'smoke' && action === 'complete') return smokeComplete(repo, options);
   if (area === 'multi' && action === 'status') return multiStatus(repo, options);
   if (area === 'multi' && action === 'packet') return multiPacket(repo, options);
   if (area === 'contract' && action === 'packet') return contractPacket(repo, options);
@@ -106,6 +108,8 @@ Usage:
   sdlc release complete --packet <path> --action "none|commit|push|handoff" [--verdict "..."] [--checks "..."] [--caps "..."]
   sdlc qa script --task "..." [--repo <path>] [--out <path>]
   sdlc qa complete --packet <path> --status "draft|ready|blocked" [--caps "..."]
+  sdlc smoke packet --task "..." [--repo <path>] [--out <path>]
+  sdlc smoke complete --packet <path> --status "pass|fail|blocked" [--steps "..."] [--caps "..."]
   sdlc multi status [--repo <path>]
   sdlc multi packet --task "..." [--repo <path>] [--out <path>]
   sdlc contract packet --task "..." [--repo <path>] [--out <path>]
@@ -533,10 +537,11 @@ sdlc calibrate add --route ${route} --checks "" --caps "" --outcome "" --route-f
 
 function packetStatus(repo, options = {}) {
   const packets = findPackets(repo, options);
+  const trackedKinds = completionTrackedPacketKinds();
   const rows = packets.map((packet) => ({
     file: relative(repo, packet.path),
     kind: packet.kind,
-    completed: packet.completed ? 'yes' : 'no',
+    completed: trackedKinds.includes(packet.kind) ? (packet.completed ? 'yes' : 'no') : 'n/a',
     verdict: packet.verdict || '',
     action: packet.action || '',
     head: packet.head || '',
@@ -818,7 +823,7 @@ ${formatList(impactAreas(task, files, profile.values))}
 
 ## QA Coverage Areas
 
-${formatList(scopeItems)}
+${formatList(qaAreas(task, files))}
 
 ## Risks, Unknowns, And Caps
 
@@ -1371,6 +1376,100 @@ ${formatOptionList(options.caps)}
 - Impact packet: ${options.impact || ''}
 - Touched packet: ${options.touched || ''}
 - Developer verification packet: ${options.verify || ''}
+
+### Notes
+
+${options.notes || ''}
+`;
+
+  appendPacketCompletion(packetPath, entry);
+  console.log(relative(repo, packetPath));
+}
+
+function smokePacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the manual smoke packet can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = git.changedFiles;
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-manual-smoke-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Manual Smoke Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Head: ${git.head || 'unknown'}
+Status: ${git.status || 'clean'}
+Verification maturity: ${profile.values.verificationMaturity || 'not configured'}
+
+## Purpose
+
+Record developer/agent smoke evidence for the changed behavior before completion, commit, push, or QA handoff. This is separate from the human QA Markdown script.
+
+## Changed Surfaces
+
+${formatList(dedupe(files.map(classifyTouchedSurface)))}
+
+## Suggested Smoke Steps
+
+${formatList(smokeStepSuggestions(task, files))}
+
+## Environment
+
+- Local/QA URL:
+- Browser/device:
+- User role/test account:
+- Data/config needed:
+
+## Expected Result
+
+- Changed behavior is visible or callable.
+- Nearby existing behavior still works.
+- No obvious console, page, API, or integration errors appear in the smoke path.
+
+## Actual Result
+
+- Status:
+- Notes:
+- Screenshots/logs:
+
+## Caps
+
+- Automated tests unavailable:
+- Render/browser unavailable:
+- External service/data unavailable:
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function smokeComplete(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const status = options.status || '';
+  if (!status) fail('Pass --status "pass|fail|blocked" so manual smoke outcome is explicit.');
+  if (!['pass', 'fail', 'blocked'].includes(status)) fail('Use --status "pass", "fail", or "blocked".');
+
+  const entry = `## Manual Smoke Completion
+
+Completed: ${new Date().toISOString()}
+Status: ${status}
+
+### Steps Run
+
+${formatOptionList(options.steps)}
+
+### Result / Evidence
+
+${formatOptionList(options.evidence || options.result)}
+
+### Remaining Gaps / Caps
+
+${formatOptionList(options.caps)}
 
 ### Notes
 
@@ -1985,6 +2084,10 @@ function setupDoctor(repo, options = {}) {
   const gaps = checks.filter((item) => item.status !== 'ready');
   const profilePath = profile.path ? relative(repo, profile.path) : '.ai-local/sdlc-profile.md';
   const stack = detectStack(repo);
+  const packageManager = detectPackageManager(repo);
+  const testFrameworks = detectTestFrameworks(repo, packageJson);
+  const ciSystems = detectCiSystems(repo);
+  const deploySystems = detectDeploySystems(repo);
 
   const lines = [
     '# SDLC Setup Doctor',
@@ -1992,6 +2095,10 @@ function setupDoctor(repo, options = {}) {
     `Repository: ${repo}`,
     `Profile: ${profilePath}`,
     `Detected stack: ${stack.join(', ') || 'generic'}`,
+    `Package manager: ${packageManager || 'not detected'}`,
+    `Test framework hints: ${testFrameworks.join(', ') || 'not detected'}`,
+    `CI hints: ${ciSystems.join(', ') || 'not detected'}`,
+    `Deployment hints: ${deploySystems.join(', ') || 'not detected'}`,
     '',
     '## Readiness Gaps',
     '',
@@ -2017,6 +2124,16 @@ function setupDoctor(repo, options = {}) {
     '',
     ...stack.map((item) => `- ${item}`),
     ...(stack.length ? [] : ['- generic / no known stack markers detected']),
+    '',
+    '## Tooling Detection',
+    '',
+    `- Package manager: ${packageManager || 'not detected'}`,
+    ...testFrameworks.map((item) => `- Test framework: ${item}`),
+    ...(testFrameworks.length ? [] : ['- Test framework: not detected']),
+    ...ciSystems.map((item) => `- CI: ${item}`),
+    ...(ciSystems.length ? [] : ['- CI: not detected']),
+    ...deploySystems.map((item) => `- Deploy/release indicator: ${item}`),
+    ...(deploySystems.length ? [] : ['- Deploy/release indicator: not detected']),
     '',
     '## Useful Commands',
     '',
@@ -2246,7 +2363,7 @@ function gates(repo, options = {}) {
   const gitInfo = getGitInfo(repo);
   const packets = findPackets(repo, {});
   const open = finalGateOpenItems(repo, task, gitInfo, packets);
-  const openPackets = packets.filter((packet) => !packet.completed && ['review', 'release', 'developer-verification', 'qa-script'].includes(packet.kind));
+  const openPackets = packets.filter((packet) => !packet.completed && completionTrackedPacketKinds().includes(packet.kind));
 
   printObject({
     repository: repo,
@@ -2301,6 +2418,57 @@ ${formatList(packets.slice(0, 12).map((packet) => `${packet.kind}: ${relative(re
 - Project-specific release, MR, AWS pipeline, manual compile, or manual file move processes remain human-controlled.
 
 ## Draft Text For MR / Handoff / Release Notes
+
+### GitLab Merge Request Draft
+
+**Summary**
+-
+
+**Verification**
+-
+
+**QA notes**
+-
+
+**Risk/caps**
+-
+
+> Do not create or merge the MR automatically. Paste/adapt only after human approval and project-specific branch policy review.
+
+### QA Handoff Draft
+
+Use this section for human QA testers. Keep it source-code-free and pasteable into the tracking ticket.
+
+- Build/branch:
+- Environment:
+- Primary QA script:
+- Regression areas:
+- Test data/accounts:
+- Known caps:
+
+### Release Branch Note
+
+- Target branch/process:
+- Required approvals:
+- Included repositories:
+- Release order:
+- Human-controlled merge/deploy step:
+
+### AWS CodePipeline / CI Note
+
+- Pipeline/job:
+- Trigger policy:
+- Expected artifact/build:
+- Human-controlled trigger/deploy step:
+- Rollback/contact:
+
+### Manual Compile / File Move Note
+
+- Compile/build command:
+- Output/artifacts:
+- Destination:
+- Human-controlled copy/move step:
+- Smoke check after move:
 
 ### What Changed
 
@@ -2502,6 +2670,22 @@ function scenarioRegressionCases() {
       expectedRoute: 'standard',
     },
     {
+      name: 'manual smoke packet',
+      task: 'manual smoke the changed checkout workflow before QA handoff',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'data packet needed',
+      task: 'update SQL data storage behavior and capture a data packet',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'integration packet needed',
+      task: 'update third-party webhook behavior and capture integration evidence',
+      expectedRoute: 'standard',
+      expectedSecurityOverlay: true,
+    },
+    {
       name: 'no automatic merge deploy',
       task: 'prepare final gate but do not merge deploy release or move code between branches',
       expectedRoute: 'release-push',
@@ -2662,7 +2846,7 @@ function inferRouteFromTask(task, gitInfo, profile = {}) {
   if (matchesAny(text, ['review', 'inspect', 'audit']) && matchesAny(text, ['without edit', 'without making edit', 'no edit', 'read-only', 'read only'])) return 'review-only';
   if (matchesAny(text, ['multi-repo', 'multi repo', 'cross repo', 'multiple service', 'multiple repo', 'multiple repositories', 'workspace', 'release order'])) return 'multi-repo-integration';
   if (matchesAny(text, ['contract', 'interface', 'public api', 'sdk', 'cli flag', 'config format', 'event schema', 'message schema'])) return 'contract-first';
-  if (matchesAny(text, ['release', 'push', 'deploy', 'merge', 'handoff'])) return 'release-push';
+  if (matchesAny(text, ['release', 'push', 'deploy', 'merge']) || (text.includes('handoff') && !matchesAny(text, ['qa handoff', 'manual qa', 'test script']))) return 'release-push';
   if (matchesAny(text, ['review', 'inspect', 'audit'])) return 'review-only';
   if (matchesAny(text, ['user interface', 'render', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
   if (matchesAny(text, ['weak test', 'legacy', 'coverage', 'missing test'])) return 'weak-test-legacy';
@@ -2866,7 +3050,7 @@ function readPacket(repo, path) {
     path,
     kind,
     route: packetRoute(text, kind),
-    completed: /## (Review|Release|Developer Verification|QA Script) Completion/.test(text),
+    completed: /## (Review|Release|Developer Verification|QA Script|Manual Smoke) Completion/.test(text),
     verdict: firstMatch(text, /^Verdict:\s*(.+)$/m),
     action: firstMatch(text, /^Action:\s*(.+)$/m),
     head: firstMatch(text, /^Head:\s*(.+)$/m),
@@ -2882,9 +3066,15 @@ function packetKind(text) {
   if (text.includes('# SDLC Impact Packet')) return 'impact';
   if (text.includes('# SDLC Developer Verification Packet')) return 'developer-verification';
   if (text.includes('# QA Test Script:')) return 'qa-script';
+  if (text.includes('# SDLC Manual Smoke Packet')) return 'manual-smoke';
   if (text.includes('# SDLC Git Action Packet')) return 'git-action';
   if (text.includes('# SDLC Multi-Repo Packet')) return 'multi-repo';
   if (text.includes('# SDLC Contract Packet')) return 'contract';
+  if (text.includes('# SDLC Data / Storage Packet')) return 'data';
+  if (text.includes('# SDLC Integration Packet')) return 'integration';
+  if (text.includes('# SDLC Test Introduction Plan')) return 'test-plan';
+  if (text.includes('# SDLC Workspace Packet')) return 'workspace';
+  if (text.includes('# SDLC Handoff Draft')) return 'handoff';
   if (text.includes('# SDLC Route Packet')) return 'route';
   if (text.includes('# SDLC Evidence Packet')) return 'evidence';
   return 'other';
@@ -2899,6 +3089,7 @@ function packetRoute(text, kind) {
   if (kind === 'contract') return 'contract-first';
   if (kind === 'developer-verification') return 'verification';
   if (kind === 'qa-script') return 'qa-script';
+  if (kind === 'manual-smoke') return 'manual-smoke';
   return kind;
 }
 
@@ -3067,17 +3258,37 @@ function suggestedFinalGateCommand(gate, task) {
   if (gate.includes('impact')) return `sdlc impact packet --task "${escapeCommandArg(task || 'current task')}"`;
   if (gate.includes('verification')) return `sdlc verify packet --task "${escapeCommandArg(task || 'current task')}"`;
   if (gate.includes('QA')) return `sdlc qa script --task "${escapeCommandArg(task || 'current task')}"`;
+  if (gate.includes('smoke')) return `sdlc smoke packet --task "${escapeCommandArg(task || 'current task')}"`;
+  if (gate.includes('data')) return `sdlc data packet --task "${escapeCommandArg(task || 'current task')}"`;
+  if (gate.includes('integration')) return `sdlc integration packet --task "${escapeCommandArg(task || 'current task')}"`;
+  if (gate.includes('test introduction')) return `sdlc test plan --task "${escapeCommandArg(task || 'current task')}"`;
   return 'sdlc packet status';
 }
 
 function finalGateOpenItems(repo, task, gitInfo, packets) {
   const profile = loadProfile(repo);
-  const maturity = verificationMaturity(profile.values, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json'))));
+  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
+  const maturity = verificationMaturity(profile.values, commands);
+  const modes = detectWorkModes(repo, task, profile.values, gitInfo.changedFiles);
+  const surfaces = dedupe(gitInfo.changedFiles.map(classifyTouchedSurface));
+  const taskText = String(task || '').toLowerCase();
   const hasTouched = packets.some((packet) => packet.kind === 'touched');
   const hasImpact = packets.some((packet) => packet.kind === 'impact');
   const hasVerify = packets.some((packet) => packet.kind === 'developer-verification' && packet.completed);
   const hasQa = packets.some((packet) => packet.kind === 'qa-script');
+  const hasSmoke = packets.some((packet) => packet.kind === 'manual-smoke' && packet.completed);
+  const hasData = packets.some((packet) => packet.kind === 'data');
+  const hasIntegration = packets.some((packet) => packet.kind === 'integration');
+  const hasTestPlan = packets.some((packet) => packet.kind === 'test-plan');
   const manualQaMaturity = ['manual qa only', 'no automated tests'].some((item) => maturity.toLowerCase().includes(item));
+  const requiresSmoke =
+    manualQaMaturity ||
+    surfaces.includes('frontend/UI') ||
+    modes.includes('manual-QA-heavy') ||
+    matchesAny(taskText, ['manual smoke', 'smoke test', 'no automated tests', 'manual qa']);
+  const requiresData = surfaces.includes('database/storage') || modes.includes('database-heavy') || matchesAny(taskText, ['database', 'sql', 'data storage', 'migration']);
+  const requiresIntegration = surfaces.includes('external integration') || modes.includes('integration-heavy') || matchesAny(taskText, ['third-party', 'third party', 'webhook', 'integration', 'external system']);
+  const requiresTestPlan = manualQaMaturity || surfaces.includes('dependencies') || matchesAny(taskText, ['package', 'dependency', 'upgrade', 'no automated tests', 'missing tests']);
   const open = [];
   if (gitInfo.status && !hasTouched) open.push('touched packet missing for dirty work');
   if (task && !hasImpact) open.push('impact packet missing for scoped task');
@@ -3085,6 +3296,10 @@ function finalGateOpenItems(repo, task, gitInfo, packets) {
   if (manualQaMaturity && !hasQa) open.push('human QA Markdown script missing for manual-QA/no-tests workflow');
   if (!hasVerify) open.push('developer verification packet completion missing or capped');
   if (!hasQa && !manualQaMaturity) open.push('human QA Markdown script missing or explicitly not needed');
+  if (requiresSmoke && !hasSmoke) open.push('manual smoke packet completion missing or capped');
+  if (requiresData && !hasData) open.push('data packet missing for data/storage workflow');
+  if (requiresIntegration && !hasIntegration) open.push('integration packet missing for external integration workflow');
+  if (requiresTestPlan && !hasTestPlan) open.push('test introduction plan missing for no-tests/dependency workflow');
   return dedupe(open);
 }
 
@@ -3152,6 +3367,78 @@ function detectStack(repo) {
     [existsAny(repo, ['Dockerfile', 'docker-compose.yml']) || existsSync(join(repo, '.github')), 'CI/deployment'],
   ];
   return markers.filter(([present]) => present).map(([, label]) => label);
+}
+
+function detectPackageManager(repo) {
+  if (existsAny(repo, ['pnpm-lock.yaml'])) return 'pnpm';
+  if (existsAny(repo, ['yarn.lock'])) return 'yarn';
+  if (existsAny(repo, ['package-lock.json'])) return 'npm';
+  if (existsAny(repo, ['deno.json', 'deno.jsonc'])) return 'deno';
+  if (existsAny(repo, ['bun.lockb', 'bun.lock'])) return 'bun';
+  if (existsAny(repo, ['packages.lock.json'])) return 'nuget';
+  return '';
+}
+
+function detectTestFrameworks(repo, packageJson) {
+  const deps = {
+    ...(packageJson?.dependencies || {}),
+    ...(packageJson?.devDependencies || {}),
+  };
+  const names = Object.keys(deps);
+  const frameworks = [];
+  if (names.includes('vitest')) frameworks.push('Vitest');
+  if (names.includes('jest') || names.includes('@types/jest')) frameworks.push('Jest');
+  if (names.includes('@playwright/test') || existsAny(repo, ['playwright.config.ts', 'playwright.config.js'])) frameworks.push('Playwright');
+  if (names.includes('cypress') || existsAny(repo, ['cypress.config.ts', 'cypress.config.js'])) frameworks.push('Cypress');
+  if (hasFileExt(repo, ['.csproj']) && projectFilesContain(repo, ['xunit', 'nunit', 'mstest'])) frameworks.push('.NET test project');
+  if (existsAny(repo, ['deno.json', 'deno.jsonc'])) frameworks.push('Deno test');
+  return dedupe(frameworks);
+}
+
+function detectCiSystems(repo) {
+  const systems = [];
+  if (existsSync(join(repo, '.github', 'workflows'))) systems.push('GitHub Actions');
+  if (existsAny(repo, ['.gitlab-ci.yml'])) systems.push('GitLab CI');
+  if (existsAny(repo, ['azure-pipelines.yml'])) systems.push('Azure Pipelines');
+  if (existsAny(repo, ['buildspec.yml'])) systems.push('AWS CodeBuild/CodePipeline');
+  if (existsAny(repo, ['Jenkinsfile'])) systems.push('Jenkins');
+  return systems;
+}
+
+function detectDeploySystems(repo) {
+  const systems = [];
+  if (existsAny(repo, ['Dockerfile', 'docker-compose.yml', 'docker-compose.yaml'])) systems.push('containerized deploy');
+  if (existsAny(repo, ['buildspec.yml'])) systems.push('AWS build/deploy pipeline');
+  if (existsAny(repo, ['serverless.yml', 'serverless.ts'])) systems.push('Serverless');
+  if (existsAny(repo, ['vercel.json'])) systems.push('Vercel');
+  if (existsAny(repo, ['netlify.toml'])) systems.push('Netlify');
+  if (existsSync(join(repo, '.ebextensions'))) systems.push('Elastic Beanstalk');
+  return systems;
+}
+
+function projectFilesContain(repo, needles) {
+  let scanned = 0;
+  const lowerNeedles = needles.map((needle) => needle.toLowerCase());
+  const visit = (dir, depth = 0) => {
+    if (depth > 4 || scanned > 200) return false;
+    let entries = [];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+    for (const entry of entries) {
+      if (['.git', 'node_modules', 'dist', 'build', '.next'].includes(entry.name)) continue;
+      const path = join(dir, entry.name);
+      if (entry.isDirectory() && visit(path, depth + 1)) return true;
+      if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.csproj')) continue;
+      scanned++;
+      const text = readFileSync(path, 'utf8').toLowerCase();
+      if (lowerNeedles.some((needle) => text.includes(needle))) return true;
+    }
+    return false;
+  };
+  return visit(repo);
 }
 
 function detectWorkModes(repo, task, profile = {}, files = []) {
@@ -3285,7 +3572,7 @@ function processProposals(caps, routeFit, contextMissing, verificationMissing, f
 }
 
 function completionTrackedPacketKinds() {
-  return ['review', 'release', 'developer-verification', 'qa-script'];
+  return ['review', 'release', 'developer-verification', 'qa-script', 'manual-smoke'];
 }
 
 function appendPacketCompletion(packetPath, entry) {
@@ -3423,6 +3710,20 @@ function qaAreas(task, files) {
   if (files.some((file) => classifyTouchedSurface(file) === 'dependencies')) checks.push('Run a regression smoke path for dependency/package upgrade side effects.');
   if (!checks.length) checks.push('Validate the changed behavior described in the task.');
   return dedupe(checks);
+}
+
+function smokeStepSuggestions(task, files) {
+  const surfaces = dedupe(files.map(classifyTouchedSurface));
+  const steps = ['Open or invoke the primary changed workflow and confirm the intended behavior.'];
+  if (surfaces.includes('frontend/UI') || matchesAny(task.toLowerCase(), ['ui', 'screen', 'page', 'animation', 'game'])) {
+    steps.push('Render the affected UI locally and inspect the changed state on desktop and a narrow/mobile viewport when practical.');
+  }
+  if (surfaces.includes('backend/API')) steps.push('Exercise the affected API/service path with the smallest available local or QA-safe request.');
+  if (surfaces.includes('database/storage')) steps.push('Confirm changed data reads/writes with safe test data and record any migration/backfill cap.');
+  if (surfaces.includes('external integration')) steps.push('Use a sandbox/mock path or record the exact external integration cap.');
+  if (surfaces.includes('dependencies')) steps.push('Run the closest startup/build/test path to catch dependency upgrade regressions.');
+  steps.push('Check the nearest unchanged workflow so QA receives one regression path, not only the happy path.');
+  return dedupe(steps);
 }
 
 function inferVerificationMaturity(commands) {

@@ -66,6 +66,7 @@ docs/agents/agent-catalog.md
 docs/agents/model-tier-policy.md
 docs/agents/delegation-patterns.md
 docs/agents/runtime-adapters.md
+docs/agents/runtime-practical-guide.md
 docs/agents/learning-loop.md
 docs/patterns/README.md
 docs/patterns/pattern.md

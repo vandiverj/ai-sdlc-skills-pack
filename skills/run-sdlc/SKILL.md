@@ -37,7 +37,7 @@ For concrete route recipes, use `references/route-recipes.md`. Load it when the 
 
 Before finalizing a route, apply the security trigger overlay from `classify-work/references/security-route-triggers.md`. The overlay can add gates/evidence or escalate risk without changing the base route name.
 
-When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical profile, readiness, health, context restore/audit/update plans, context pack, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets, contract packets, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
+When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical profile, readiness, health, context restore/audit/update plans, context pack, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, manual smoke packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets, contract packets, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
 
 ## Helper CLI default sequence
 For new implementation, review, release, exploratory, or resumed work, use this sequence unless the task is so tiny that the commands would add more noise than value, or the CLI is unavailable:
@@ -76,6 +76,7 @@ sdlc workmode detect --task "<human task>"
 sdlc touched packet
 sdlc impact packet --task "<human task>"
 sdlc verify packet --task "<human task>"
+sdlc smoke packet --task "<human task>"
 sdlc qa script --task "<human task>"
 sdlc final gate --task "<human task>"
 sdlc git packet
@@ -97,6 +98,7 @@ After the verdict is known, append a deterministic closeout block to the same pa
 
 ```bash
 sdlc review complete --packet <packet> --verdict "<pass|pass with notes|changes requested|blocked>" --checks "<checks>" --caps "<caps>"
+sdlc smoke complete --packet <packet> --status "<pass|fail|blocked>" --steps "<steps>" --caps "<caps>"
 sdlc release complete --packet <packet> --action "<none|commit|push|handoff>" --verdict "<verdict>" --checks "<checks>" --caps "<caps>"
 ```
 

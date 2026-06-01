@@ -28,6 +28,7 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc touched packet` for changed technical surfaces,
 - `sdlc impact packet --task "..."` for user/system impact,
 - `sdlc verify packet --task "..."` for developer/agent verification,
+- `sdlc smoke packet --task "..."` for developer/agent manual smoke evidence before completion, especially UI/manual-QA/no-tests work,
 - `sdlc qa script --task "..."` for Markdown manual QA test scripts that can be pasted into YouTrack,
 - `sdlc final gate --task "..."` and `sdlc git packet` for human-approved final action decisions.
 - `sdlc workspace status` and `sdlc workspace packet --task "..."` when multiple repositories may be open or affected.
