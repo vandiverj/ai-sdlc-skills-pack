@@ -220,6 +220,7 @@ Checks:
 Evidence:
 
 - review packet,
+- review completion,
 - findings by severity,
 - evidence gaps,
 - no-edit confirmation.
@@ -255,6 +256,7 @@ Checks:
 Evidence:
 
 - release packet,
+- release completion,
 - commit/branch identity,
 - checks,
 - caps,
@@ -271,6 +273,43 @@ Done criteria:
 
 - release action matches approval,
 - post-action branch state is verified.
+
+### contract-first
+
+Trigger: public API, SDK, CLI, configuration, event/message schema, data contract, or cross-boundary interface change.
+
+Context packet:
+
+- current contract/interface source,
+- producers and consumers,
+- compatibility expectations,
+- release or migration order,
+- contract packet.
+
+Checks:
+
+- contract review before implementation plan,
+- type/schema/API tests where available,
+- consumer impact check when known.
+
+Evidence:
+
+- contract packet,
+- compatibility decision,
+- verification path,
+- unresolved ownership or rollout caps.
+
+Stop gates:
+
+- unclear producer/consumer ownership,
+- compatibility or migration ambiguity,
+- missing release order for dependent consumers.
+
+Done criteria:
+
+- contract direction is reviewable,
+- implementation can proceed without rediscovering interface intent,
+- verification path is named or explicitly capped.
 
 ### weak-test-legacy
 

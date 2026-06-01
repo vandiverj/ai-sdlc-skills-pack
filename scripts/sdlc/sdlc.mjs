@@ -28,16 +28,30 @@ async function main(argv) {
   if (area === 'profile' && action === 'init') return profileInit(repo, options);
   if (area === 'context' && action === 'restore') return contextRestore(repo, options);
   if (area === 'context' && action === 'pack') return contextPack(repo, options);
+  if (area === 'context' && action === 'audit') return contextAudit(repo, options);
+  if (area === 'context' && action === 'update-plan') return contextUpdatePlan(repo, options);
   if (area === 'recipe' && action === 'show') return recipeShow(rest[0] || options.route);
   if (area === 'route' && action === 'start') return routeStart(repo, rest[0] || options.route, options);
+  if (area === 'packet' && action === 'status') return packetStatus(repo, options);
+  if (area === 'done' && action === 'check') return doneCheck(repo, options);
+  if (area === 'run' && action === 'start') return runStart(repo, options);
+  if (area === 'run' && action === 'finish') return runFinish(repo, options);
   if (area === 'review' && action === 'packet') return reviewPacket(repo, options);
+  if (area === 'review' && action === 'complete') return reviewComplete(repo, options);
   if (area === 'release' && action === 'packet') return releasePacket(repo, options);
+  if (area === 'release' && action === 'complete') return releaseComplete(repo, options);
+  if (area === 'multi' && action === 'status') return multiStatus(repo, options);
+  if (area === 'multi' && action === 'packet') return multiPacket(repo, options);
+  if (area === 'contract' && action === 'packet') return contractPacket(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
   if (area === 'verify') return verify(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
   if (area === 'calibrate' && action === 'summary') return calibrateSummary(repo, options);
+  if (area === 'calibrate' && action === 'inspect') return calibrateInspect(repo, options);
+  if (area === 'calibrate' && action === 'propose') return calibratePropose(repo, options);
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
-  if (area === 'setup' && action === 'doctor') return setupDoctor(repo);
+  if (area === 'setup' && action === 'doctor') return setupDoctor(repo, options);
+  if (area === 'health') return health(repo, areaOptions);
   if (area === 'render' && action === 'smoke') return renderSmoke(repo, options);
   if (area === 'scenario' && action === 'list') return scenarioList();
   if (area === 'scenario' && action === 'show') return scenarioShow(rest[0] || options.name);
@@ -56,16 +70,30 @@ Usage:
   sdlc profile init [--repo <path>] [--shared-context-root <path>]
   sdlc context restore [--repo <path>] [--include-related-repos]
   sdlc context pack --task "..." [--repo <path>] [--out <path>]
+  sdlc context audit [--repo <path>] [--out <path>]
+  sdlc context update-plan --task "..." [--repo <path>] [--out <path>]
   sdlc recipe show <route>
   sdlc route start <route> [--task "..."] [--repo <path>] [--out <path>]
+  sdlc packet status [--repo <path>]
+  sdlc done check --route <route> [--repo <path>] [--packet <path>]
+  sdlc run start --task "..." [--repo <path>]
+  sdlc run finish --route <route> [--repo <path>] [--packet <path>]
   sdlc review packet --task "..." [--repo <path>] [--out <path>]
+  sdlc review complete --packet <path> --verdict "..." [--findings "..."] [--checks "..."] [--caps "..."]
   sdlc release packet [--task "..."] [--repo <path>] [--out <path>]
+  sdlc release complete --packet <path> --action "none|commit|push|handoff" [--verdict "..."] [--checks "..."] [--caps "..."]
+  sdlc multi status [--repo <path>]
+  sdlc multi packet --task "..." [--repo <path>] [--out <path>]
+  sdlc contract packet --task "..." [--repo <path>] [--out <path>]
   sdlc evidence init --route <route> [--repo <path>] [--out <path>]
   sdlc verify [--repo <path>] [--commands test,build]
   sdlc calibrate add --route <route> [--repo <path>] [--out <path>]
   sdlc calibrate summary [--repo <path>] [--in <path>] [--out <path>]
+  sdlc calibrate inspect [--repo <path>] [--in <path>]
+  sdlc calibrate propose [--repo <path>] [--in <path>] [--out <path>]
   sdlc readiness [--repo <path>]
-  sdlc setup doctor [--repo <path>]
+  sdlc health [--repo <path>]
+  sdlc setup doctor [--repo <path>] [--fix-plan]
   sdlc render smoke --url <url> [--repo <path>] [--cdp <url>] [--screenshot-dir <path>]
   sdlc scenario list
   sdlc scenario show <name>
@@ -307,6 +335,91 @@ sdlc route start ${route}
   console.log(relative(repo, outPath));
 }
 
+function contextAudit(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const docs = contextDocCandidates(repo, profile.values);
+  const existingDocs = docs.filter((item) => existsSync(item.path));
+  const missingDocs = docs.filter((item) => !existsSync(item.path));
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Context Audit
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
+Status: ${git.status || 'clean'}
+
+## Process Docs
+
+${formatContextDocs(repo, existingDocs.filter((item) => ['AGENTS.md', 'SDLC profile JSON', 'SDLC profile Markdown', 'Agent-local SDLC profile', 'Agent-local repository setup'].includes(item.label)))}
+
+## Software Memory Docs
+
+${formatContextDocs(repo, existingDocs.filter((item) => !['AGENTS.md', 'SDLC profile JSON', 'SDLC profile Markdown', 'Agent-local SDLC profile', 'Agent-local repository setup'].includes(item.label)))}
+
+## Missing Or Unconfigured Context
+
+${formatContextDocs(repo, missingDocs)}
+
+## Guidance
+
+- Process docs explain how agents should work.
+- Software memory docs explain this software and cross-repo system state.
+- External shared context roots are valid and should be configured in the SDLC profile instead of duplicated into every repository.
+`;
+
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
+function contextUpdatePlan(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the context update plan can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = inferRouteFromTask(task, git, profile.values);
+  const dirtySurfaces = inferDirtySurfaces(task, git);
+  const contracts = inferContracts(task, profile.values);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-context-update-plan.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Context Update Plan
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Route: ${route}
+Status: ${git.status || 'clean'}
+
+## Update Only If Truth Changed
+
+${formatList(contextUpdateTargets(route, dirtySurfaces, contracts, profile.values))}
+
+## Dirty Surfaces
+
+${formatList(dirtySurfaces)}
+
+## Contracts Or Interfaces
+
+${formatList(contracts)}
+
+## Documentation Boundary
+
+- Do not store process flow rediscovery in repo memory docs.
+- Do store software-specific workflow, contract, service, release-order, and architecture facts when they help future agents avoid rediscovery.
+- Prefer code-local docs for public exports, shared types, APIs, invariants, and examples.
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
 function routeStart(repo, route, options = {}) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
 
@@ -379,6 +492,134 @@ sdlc calibrate add --route ${route} --checks "" --caps "" --outcome "" --route-f
 
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
+}
+
+function packetStatus(repo, options = {}) {
+  const packets = findPackets(repo, options);
+  const rows = packets.map((packet) => ({
+    file: relative(repo, packet.path),
+    kind: packet.kind,
+    completed: packet.completed ? 'yes' : 'no',
+    verdict: packet.verdict || '',
+    action: packet.action || '',
+    head: packet.head || '',
+  }));
+
+  printObject({
+    repository: repo,
+    packets: rows.length,
+    openPackets: rows.filter((row) => row.completed === 'no').length,
+    completedPackets: rows.filter((row) => row.completed === 'yes').length,
+    latestPacket: rows[0]?.file || 'none',
+  });
+
+  if (rows.length) {
+    console.log('\n| Packet | Kind | Completed | Verdict | Action | Head |');
+    console.log('| --- | --- | --- | --- | --- | --- |');
+    for (const row of rows) {
+      console.log(`| ${escapeCell(row.file)} | ${row.kind} | ${row.completed} | ${escapeCell(row.verdict)} | ${escapeCell(row.action)} | ${row.head} |`);
+    }
+  }
+}
+
+function doneCheck(repo, options = {}) {
+  const route = options.route || '';
+  if (!route) fail('Pass --route <route> so done checks can be route-specific.');
+
+  const git = getGitInfo(repo);
+  const packet = options.packet ? readPacket(repo, resolvePacketPath(repo, options.packet)) : findLatestPacket(repo, route);
+  const checks = doneChecksForRoute(route, git, packet);
+  const pass = checks.every((item) => item.status === 'pass' || item.status === 'note');
+
+  printObject({
+    repository: repo,
+    route,
+    packet: packet ? relative(repo, packet.path) : 'none',
+    result: pass ? 'pass' : 'open',
+  });
+  console.log('\n| Check | Status | Detail |');
+  console.log('| --- | --- | --- |');
+  for (const check of checks) console.log(`| ${escapeCell(check.name)} | ${check.status} | ${escapeCell(check.detail)} |`);
+  if (!pass) process.exitCode = 1;
+}
+
+function runStart(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the run can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(route)}-run-start.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Run Start
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Route: ${route}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
+
+## Suggested Command Sequence
+
+\`\`\`bash
+sdlc readiness
+sdlc context pack --task "${escapeCommandArg(task)}"
+sdlc route start ${route} --task "${escapeCommandArg(task)}"
+${runStartPacketCommand(route, task)}
+\`\`\`
+
+## Open Gates
+
+${formatList(runStartGates(route, task, git, profile.values))}
+
+## Finish Command
+
+\`\`\`bash
+sdlc run finish --route ${route}
+\`\`\`
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function runFinish(repo, options = {}) {
+  const route = options.route || '';
+  if (!route) fail('Pass --route <route> so run finish can check the right gates.');
+
+  const git = getGitInfo(repo);
+  const packet = options.packet ? readPacket(repo, resolvePacketPath(repo, options.packet)) : findLatestPacket(repo, route);
+  const done = doneChecksForRoute(route, git, packet);
+  const open = done.filter((item) => item.status === 'open');
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(route)}-run-finish.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Run Finish
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Route: ${route}
+Packet: ${packet ? relative(repo, packet.path) : 'none'}
+Result: ${open.length ? 'open gates remain' : 'done checks pass'}
+
+## Done Checks
+
+| Check | Status | Detail |
+| --- | --- | --- |
+${done.map((item) => `| ${escapeCell(item.name)} | ${item.status} | ${escapeCell(item.detail)} |`).join('\n')}
+
+## Remaining Work
+
+${formatList(open.map((item) => `${item.name}: ${item.detail}`))}
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+  if (open.length) process.exitCode = 1;
 }
 
 function getRecipe(route) {
@@ -530,6 +771,41 @@ sdlc calibrate add --route review-only --checks "" --caps "" --outcome "" --rout
   console.log(relative(repo, outPath));
 }
 
+function reviewComplete(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  if (!options.verdict) fail('Pass --verdict "..." so the review completion has a clear outcome.');
+
+  const git = getGitInfo(repo);
+  const entry = `## Review Completion
+
+Completed: ${new Date().toISOString()}
+Repository status: ${formatInlineStatus(git.status)}
+Head: ${git.head || 'unknown'}
+Verdict: ${options.verdict}
+
+### Findings
+
+${formatOptionList(options.findings)}
+
+### Checks
+
+${formatOptionList(options.checks)}
+
+### Caps
+
+${formatOptionList(options.caps)}
+
+### Calibration Command
+
+\`\`\`bash
+sdlc calibrate add --route review-only --checks "${escapeCommandArg(options.checks || '')}" --caps "${escapeCommandArg(options.caps || '')}" --outcome "${escapeCommandArg(options.outcome || options.verdict)}" --route-fit "${escapeCommandArg(options.routeFit || '')}" --context-missing "${escapeCommandArg(options.contextMissing || '')}" --verification-missing "${escapeCommandArg(options.verificationMissing || '')}" --friction "${escapeCommandArg(options.friction || '')}" --process-change-proposed "${escapeCommandArg(options.processChangeProposed || '')}"
+\`\`\`
+`;
+
+  appendPacketCompletion(packetPath, entry);
+  console.log(relative(repo, packetPath));
+}
+
 function releasePacket(repo, options = {}) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
@@ -607,6 +883,182 @@ ${formatSecurityOverlay(triggers)}
 \`\`\`bash
 sdlc calibrate add --route release-push --checks "" --caps "" --outcome "" --route-fit "" --context-missing "" --verification-missing "" --friction "" --process-change-proposed ""
 \`\`\`
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function releaseComplete(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const action = options.action || '';
+  if (!action) fail('Pass --action "none|commit|push|handoff" so the release completion records what happened.');
+  if (!['none', 'commit', 'push', 'handoff'].includes(action)) fail('Use --action "none", "commit", "push", or "handoff".');
+
+  const git = getGitInfo(repo);
+  const entry = `## Release Completion
+
+Completed: ${new Date().toISOString()}
+Repository status: ${formatInlineStatus(git.status)}
+Branch: ${git.branch || 'unknown'}
+Upstream: ${git.upstream || 'not configured'}
+Ahead/behind: ${git.behind} behind / ${git.ahead} ahead
+Head: ${git.head || 'unknown'}
+Action: ${action}
+Verdict: ${options.verdict || 'not provided'}
+
+### Checks
+
+${formatOptionList(options.checks)}
+
+### Caps
+
+${formatOptionList(options.caps)}
+
+### Git Action Evidence
+
+${formatOptionList(options.evidence || (action === 'none' ? 'No git or release action performed.' : 'Record exact command/result here.'))}
+
+### Calibration Command
+
+\`\`\`bash
+sdlc calibrate add --route release-push --checks "${escapeCommandArg(options.checks || '')}" --caps "${escapeCommandArg(options.caps || '')}" --outcome "${escapeCommandArg(options.outcome || options.verdict || action)}" --route-fit "${escapeCommandArg(options.routeFit || '')}" --context-missing "${escapeCommandArg(options.contextMissing || '')}" --verification-missing "${escapeCommandArg(options.verificationMissing || '')}" --friction "${escapeCommandArg(options.friction || '')}" --process-change-proposed "${escapeCommandArg(options.processChangeProposed || '')}"
+\`\`\`
+`;
+
+  appendPacketCompletion(packetPath, entry);
+  console.log(relative(repo, packetPath));
+}
+
+function multiStatus(repo) {
+  const profile = loadProfile(repo);
+  const related = splitList(profile.values.relatedRepositories);
+  const rows = related.map((item) => {
+    const path = resolve(repo, item);
+    const info = getGitInfo(path);
+    return {
+      repo: item,
+      path,
+      branch: info.branch || 'unavailable',
+      status: info.branch ? formatInlineStatus(info.status) : 'not a git repository or unavailable',
+      upstream: info.upstream || '',
+      aheadBehind: info.branch ? `${info.behind} behind / ${info.ahead} ahead` : '',
+    };
+  });
+
+  printObject({
+    repository: repo,
+    relatedRepositories: related.length || 0,
+    serviceMap: profile.values.serviceMap || 'not configured',
+    releaseOrder: profile.values.releaseOrder || 'not configured',
+  });
+
+  if (!rows.length) {
+    console.log('\n- No related repositories configured. Add them to the SDLC profile for multi-repo tasks.');
+    return;
+  }
+
+  console.log('\n| Repository | Branch | Status | Upstream | Ahead/behind |');
+  console.log('| --- | --- | --- | --- | --- |');
+  for (const row of rows) {
+    console.log(`| ${escapeCell(row.repo)} | ${escapeCell(row.branch)} | ${escapeCell(row.status)} | ${escapeCell(row.upstream)} | ${row.aheadBehind} |`);
+  }
+}
+
+function multiPacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the multi-repo packet can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const related = splitList(profile.values.relatedRepositories);
+  const contracts = inferContracts(task, profile.values);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-multi-repo-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Multi-Repo Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Primary repository: ${repo}
+Primary branch: ${git.branch || 'unknown'}
+Primary status: ${git.status || 'clean'}
+
+## Related Repositories
+
+${formatList(related)}
+
+## Service And Release Context
+
+- Service map: ${profile.values.serviceMap || 'not configured'}
+- Workflow map: ${profile.values.workflowMap || 'not configured'}
+- Release order: ${profile.values.releaseOrder || 'not configured'}
+- Product context index: ${profile.values.productContextIndex || 'not configured'}
+- Repo context index: ${profile.values.repoContextIndex || 'not configured'}
+
+## Contracts Or Interfaces Likely Involved
+
+${formatList(contracts)}
+
+## Per-Repo Checklist
+
+| Repository | Scope | Checks | Release order note | Status |
+| --- | --- | --- | --- | --- |
+${(related.length ? related : ['primary repository only']).map((item) => `| ${escapeCell(item)} |  |  |  | pending |`).join('\n')}
+
+## Stop Gates
+
+- Missing service map, release order, or ownership for affected repositories.
+- Unclear contract direction across services.
+- Dirty unrelated work in any affected repository.
+- Human approval needed for coordinated push/release.
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function contractPacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the contract packet can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const contracts = inferContracts(task, profile.values);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-contract-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Contract Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+
+## Contract Surfaces
+
+${formatList(contracts.length ? contracts : ['public or cross-boundary interface to be identified'])}
+
+## Required Decisions Before Implementation
+
+- Producer/consumer ownership:
+- Backward compatibility:
+- Versioning or migration:
+- Error behavior:
+- Rollout/release order:
+- Test or contract verification path:
+
+## Interface Evidence
+
+| Surface | Current behavior | Proposed behavior | Verification |
+| --- | --- | --- | --- |
+|  |  |  |  |
+
+## Stop Gates
+
+- No implementation plan before public or cross-boundary contract direction is clear.
+- Human approval is needed when compatibility, release order, data, or ownership is unclear.
 `;
 
   writeFileSync(outPath, content, 'utf8');
@@ -774,6 +1226,69 @@ ${recommendedLearningPrompts(caps, friction, proposals, contextMissing, verifica
   console.log(`\nSummary: ${relative(repo, outPath)}`);
 }
 
+function calibrateInspect(repo, options = {}) {
+  const rows = readCalibrationRows(repo, { ...options, allowMissing: true });
+  const validRows = rows.filter((row) => !row.parseError);
+  const caps = groupCounts(validRows.flatMap((row) => normalizeArray(row.caps)));
+  const routeFit = groupCounts(validRows.map((row) => row.routeFit).filter(Boolean));
+  const contextMissing = groupCounts(validRows.flatMap((row) => normalizeArray(row.contextMissing)));
+  const verificationMissing = groupCounts(validRows.flatMap((row) => normalizeArray(row.verificationMissing)));
+  const friction = groupCounts(validRows.map((row) => row.friction).filter(Boolean));
+  const proposals = groupCounts(validRows.map((row) => row.processChangeProposed).filter(Boolean));
+
+  printObject({
+    repository: repo,
+    rows: validRows.length,
+    repeatedCaps: caps.length,
+    routeFitSignals: routeFit.length,
+    missingContextSignals: contextMissing.length,
+    missingVerificationSignals: verificationMissing.length,
+  });
+  console.log('\n## Repeated Caps\n');
+  console.log(formatCounts(caps));
+  console.log('\n## Route Fit\n');
+  console.log(formatCounts(routeFit));
+  console.log('\n## Missing Context\n');
+  console.log(formatCounts(contextMissing));
+  console.log('\n## Missing Verification\n');
+  console.log(formatCounts(verificationMissing));
+  console.log('\n## Friction\n');
+  console.log(formatCounts(friction));
+  console.log('\n## Process Proposals\n');
+  console.log(formatCounts(proposals));
+}
+
+function calibratePropose(repo, options = {}) {
+  const rows = readCalibrationRows(repo, { ...options, allowMissing: true }).filter((row) => !row.parseError);
+  const caps = groupCounts(rows.flatMap((row) => normalizeArray(row.caps)));
+  const routeFit = groupCounts(rows.map((row) => row.routeFit).filter(Boolean));
+  const contextMissing = groupCounts(rows.flatMap((row) => normalizeArray(row.contextMissing)));
+  const verificationMissing = groupCounts(rows.flatMap((row) => normalizeArray(row.verificationMissing)));
+  const friction = groupCounts(rows.map((row) => row.friction).filter(Boolean));
+  const proposals = processProposals(caps, routeFit, contextMissing, verificationMissing, friction);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-calibration-proposals.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Calibration Proposals
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Rows inspected: ${rows.length}
+
+## Proposed Improvements
+
+${formatList(proposals)}
+
+## Decision Rule
+
+- Promote repeated signals into route recipes, setup profiles, context templates, or CLI helpers only after they repeat or create high-cost failure.
+- Keep project-specific facts in repo or shared context docs, not in the reusable SDLC pack.
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
 function readiness(repo) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
@@ -802,7 +1317,39 @@ function readiness(repo) {
   });
 }
 
-function setupDoctor(repo) {
+function health(repo) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const docs = contextDocCandidates(repo, profile.values);
+  const existingDocs = docs.filter((item) => existsSync(item.path));
+  const related = splitList(profile.values.relatedRepositories);
+  const checks = readinessChecks(repo, profile, commands, existingDocs, related);
+  const packets = findPackets(repo, {});
+  const calibrationRows = readCalibrationRows(repo, { allowMissing: true }).filter((row) => !row.parseError);
+  const readinessScore = Math.round((checks.filter((item) => item.status === 'ready').length / checks.length) * 100);
+  const openPackets = packets.filter((packet) => !packet.completed);
+
+  printObject({
+    repository: repo,
+    readiness: `${readinessScore}%`,
+    branch: git.branch || 'unknown',
+    status: git.status || 'clean',
+    packets: packets.length,
+    openPackets: openPackets.length,
+    calibrationRows: calibrationRows.length,
+    relatedRepositories: related.length,
+    recommendedNextCommand: openPackets.length ? `sdlc done check --route ${openPackets[0].route || openPackets[0].kind} --packet ${relative(repo, openPackets[0].path)}` : 'sdlc context pack --task "..."',
+  });
+
+  console.log('\n## Readiness Gaps\n');
+  console.log(formatList(checks.filter((item) => item.status !== 'ready').map((item) => `${item.area}: ${item.fix}`)));
+  console.log('\n## Open Packets\n');
+  console.log(formatList(openPackets.map((packet) => `${relative(repo, packet.path)} (${packet.kind})`)));
+}
+
+function setupDoctor(repo, options = {}) {
   const profile = loadProfile(repo);
   const packageJson = readJsonIfExists(join(repo, 'package.json'));
   const commands = discoverCommands(profile.values, packageJson);
@@ -846,6 +1393,15 @@ function setupDoctor(repo) {
     'sdlc context pack --task "..."',
     '```',
   ];
+
+  if (options.fixPlan) {
+    lines.push(
+      '',
+      '## Fix Plan',
+      '',
+      ...setupFixPlan(gaps, profile.values, commands).map((item, index) => `${index + 1}. ${item}`),
+    );
+  }
 
   console.log(lines.join('\n'));
 }
@@ -1085,9 +1641,24 @@ function scenarioRegressionCases() {
       expectedRoute: 'multi-repo-integration',
     },
     {
+      name: 'single repo public contract',
+      task: 'change the public API contract for this library',
+      expectedRoute: 'contract-first',
+    },
+    {
       name: 'review diff without edits',
       task: 'review the existing diff without making edits',
       expectedRoute: 'review-only',
+    },
+    {
+      name: 'review release without edits',
+      task: 'review the current release without making edits',
+      expectedRoute: 'review-only',
+    },
+    {
+      name: 'internal optional accessibility',
+      task: 'internal admin UI layout tweak with optional accessibility note',
+      expectedRoute: 'ui-rendered-review',
     },
     {
       name: 'tiny docs',
@@ -1241,7 +1812,9 @@ function inferLikelyRoute(gitInfo) {
 
 function inferRouteFromTask(task, gitInfo, profile = {}) {
   const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();
-  if (matchesAny(text, ['multi-repo', 'multi repo', 'cross repo', 'service', 'contract', 'event', 'schema', 'api', 'release order'])) return 'multi-repo-integration';
+  if (matchesAny(text, ['review', 'inspect', 'audit']) && matchesAny(text, ['without edit', 'without making edit', 'no edit', 'read-only', 'read only'])) return 'review-only';
+  if (matchesAny(text, ['multi-repo', 'multi repo', 'cross repo', 'multiple service', 'multiple repo', 'release order'])) return 'multi-repo-integration';
+  if (matchesAny(text, ['contract', 'interface', 'public api', 'sdk', 'cli flag', 'config format', 'event schema', 'message schema'])) return 'contract-first';
   if (matchesAny(text, ['release', 'push', 'deploy', 'merge', 'handoff'])) return 'release-push';
   if (matchesAny(text, ['review', 'inspect', 'audit'])) return 'review-only';
   if (matchesAny(text, ['ui', 'render', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
@@ -1412,6 +1985,210 @@ function printObject(object) {
   }
 }
 
+function resolvePacketPath(repo, packet) {
+  if (!packet) fail('Pass --packet <path> for the packet to complete.');
+  const path = resolve(repo, packet);
+  if (!existsSync(path)) fail(`Packet not found: ${relative(repo, path)}`);
+  return path;
+}
+
+function findPackets(repo, options = {}) {
+  const dir = options.dir ? resolve(repo, options.dir) : defaultRunsDir(repo);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => readPacket(repo, join(dir, file)))
+    .filter((packet) => packet.kind !== 'other')
+    .sort((a, b) => basename(b.path).localeCompare(basename(a.path)));
+}
+
+function findLatestPacket(repo, route) {
+  const wanted = packetKindForRoute(route);
+  return findPackets(repo, {}).find((packet) => packet.kind === wanted || packet.route === route) || null;
+}
+
+function readPacket(repo, path) {
+  const text = readFileSync(path, 'utf8');
+  const kind = packetKind(text);
+  return {
+    path,
+    kind,
+    route: packetRoute(text, kind),
+    completed: /## (Review|Release) Completion/.test(text),
+    verdict: firstMatch(text, /^Verdict:\s*(.+)$/m),
+    action: firstMatch(text, /^Action:\s*(.+)$/m),
+    head: firstMatch(text, /^Head:\s*(.+)$/m),
+    text,
+    repo,
+  };
+}
+
+function packetKind(text) {
+  if (text.includes('# SDLC Review Packet')) return 'review';
+  if (text.includes('# SDLC Release Packet')) return 'release';
+  if (text.includes('# SDLC Multi-Repo Packet')) return 'multi-repo';
+  if (text.includes('# SDLC Contract Packet')) return 'contract';
+  if (text.includes('# SDLC Route Packet')) return 'route';
+  if (text.includes('# SDLC Evidence Packet')) return 'evidence';
+  return 'other';
+}
+
+function packetRoute(text, kind) {
+  const route = firstMatch(text, /^Route:\s*(.+)$/m) || firstMatch(text, /^Suggested route:\s*(.+)$/m);
+  if (route) return route;
+  if (kind === 'review') return 'review-only';
+  if (kind === 'release') return 'release-push';
+  if (kind === 'multi-repo') return 'multi-repo-integration';
+  if (kind === 'contract') return 'contract-first';
+  return kind;
+}
+
+function packetKindForRoute(route) {
+  if (route === 'review-only') return 'review';
+  if (route === 'release-push') return 'release';
+  if (route === 'multi-repo-integration') return 'multi-repo';
+  if (route === 'contract-first') return 'contract';
+  return 'route';
+}
+
+function firstMatch(text, pattern) {
+  const match = text.match(pattern);
+  return match ? match[1].trim() : '';
+}
+
+function doneChecksForRoute(route, gitInfo, packet) {
+  const checks = [
+    { name: 'Git status known', status: 'pass', detail: gitInfo.status || 'clean' },
+  ];
+
+  if (route === 'review-only') {
+    checks.push(
+      { name: 'Review packet exists', status: packet?.kind === 'review' ? 'pass' : 'open', detail: packet ? relative(packet.repo, packet.path) : 'missing review packet' },
+      { name: 'Review completion exists', status: packet?.completed ? 'pass' : 'open', detail: packet?.completed ? 'completion appended' : 'run sdlc review complete' },
+      { name: 'No edit route preserved', status: 'note', detail: 'confirm review did not mutate tracked files unless rerouted' },
+    );
+    return checks;
+  }
+
+  if (route === 'release-push') {
+    checks.push(
+      { name: 'Release packet exists', status: packet?.kind === 'release' ? 'pass' : 'open', detail: packet ? relative(packet.repo, packet.path) : 'missing release packet' },
+      { name: 'Release completion exists', status: packet?.completed ? 'pass' : 'open', detail: packet?.completed ? `action: ${packet.action || 'unknown'}` : 'run sdlc release complete' },
+      { name: 'Human approval gate recorded', status: packet?.text.includes('Human approval') || packet?.text.includes('approval') ? 'pass' : 'open', detail: 'approval must be explicit before credentialed release action' },
+    );
+    return checks;
+  }
+
+  if (route === 'multi-repo-integration') {
+    checks.push(
+      { name: 'Multi-repo packet exists', status: packet?.kind === 'multi-repo' ? 'pass' : 'open', detail: packet ? relative(packet.repo, packet.path) : 'run sdlc multi packet' },
+      { name: 'Release order considered', status: packet?.text.includes('Release order') ? 'pass' : 'open', detail: 'release order must be named or capped' },
+      { name: 'Per-repo checklist present', status: packet?.text.includes('Per-Repo Checklist') ? 'pass' : 'open', detail: 'affected repos need per-repo checks' },
+    );
+    return checks;
+  }
+
+  if (route === 'contract-first') {
+    checks.push(
+      { name: 'Contract packet exists', status: packet?.kind === 'contract' ? 'pass' : 'open', detail: packet ? relative(packet.repo, packet.path) : 'run sdlc contract packet' },
+      { name: 'Compatibility decision present', status: packet?.text.includes('Backward compatibility') ? 'pass' : 'open', detail: 'contract compatibility must be decided or capped' },
+    );
+    return checks;
+  }
+
+  if (route === 'ui-rendered-review') {
+    checks.push(
+      { name: 'Rendered evidence considered', status: packet?.text.includes('render') || packet?.text.includes('screenshot') ? 'pass' : 'open', detail: 'run render smoke or record cap' },
+      { name: 'Accessibility policy considered', status: packet?.text.includes('Accessibility') ? 'pass' : 'note', detail: 'accessibility remains optional unless profile/human requires it' },
+    );
+    return checks;
+  }
+
+  checks.push(
+    { name: 'Evidence or route packet exists', status: packet ? 'pass' : 'open', detail: packet ? relative(packet.repo, packet.path) : 'run route/evidence packet' },
+    { name: 'Verification recorded', status: packet?.text.includes('Verification') || packet?.text.includes('Checks') ? 'pass' : 'open', detail: 'verification evidence or explicit cap required' },
+  );
+  return checks;
+}
+
+function runStartPacketCommand(route, task) {
+  if (route === 'review-only') return `sdlc review packet --task "${escapeCommandArg(task)}"`;
+  if (route === 'release-push') return 'sdlc release packet';
+  if (route === 'multi-repo-integration') return `sdlc multi packet --task "${escapeCommandArg(task)}"`;
+  if (route === 'contract-first') return `sdlc contract packet --task "${escapeCommandArg(task)}"`;
+  return `sdlc evidence init --route ${route}`;
+}
+
+function runStartGates(route, task, gitInfo, profile) {
+  const gates = [];
+  if (!profile.releasePolicy && route === 'release-push') gates.push('release policy missing from profile');
+  if (!profile.sharedContextRoot && route === 'multi-repo-integration') gates.push('shared context root or service map may be needed');
+  if (gitInfo.status) gates.push('dirty working tree must be scoped');
+  gates.push(...securityTriggers(task, profile).map((item) => `security/tool trigger: ${item}`));
+  return gates.length ? gates : ['normal route gates only'];
+}
+
+function contextUpdateTargets(route, dirtySurfaces, contracts, profile) {
+  const targets = [];
+  if (!profile.sharedContextRoot && route === 'multi-repo-integration') targets.push('SDLC profile: configure shared context root or related repository map');
+  if (dirtySurfaces.includes('docs/context')) targets.push('docs/memory-bank or docs/context-state: update active state if durable truth changed');
+  if (contracts.length || route === 'contract-first' || route === 'multi-repo-integration') targets.push('docs/contracts or shared context root: update interface/contract truth');
+  if (dirtySurfaces.includes('rendered UI')) targets.push('feature context or code-local docs: update visible workflow facts only if behavior changed');
+  if (dirtySurfaces.includes('API/contracts/events')) targets.push('service map/workflow map: update cross-boundary facts');
+  if (!targets.length) targets.push('no durable context update required unless implementation changes source truth');
+  return dedupe(targets);
+}
+
+function setupFixPlan(gaps, profile, commands) {
+  const plan = [];
+  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) plan.push('Configure shared/product/repo context paths in `.ai-local/sdlc-profile.md`, using external storage when multiple repos need the same context.');
+  if (!commands.test) plan.push('Add or record the narrowest reliable test command.');
+  if (!commands.build) plan.push('Add or record build/typecheck command when the repo can support it.');
+  if (!profile.releasePolicy) plan.push('Record release policy and approval gates before using release packets for push/deploy work.');
+  if (!profile.approvedTools && !profile.blockedTools) plan.push('Record approved/blocked tools and sensitive-data restrictions.');
+  for (const gap of gaps) {
+    const normalizedFix = gap.fix.toLowerCase();
+    if (!plan.some((item) => item.toLowerCase().includes(normalizedFix) || normalizedFix.includes(item.toLowerCase().slice(0, 24)))) plan.push(gap.fix);
+  }
+  return dedupe(plan);
+}
+
+function readCalibrationRows(repo, options = {}) {
+  const inputPath = options.in ? resolve(repo, options.in) : defaultCalibrationPath(repo);
+  if (!existsSync(inputPath)) {
+    if (options.allowMissing) return [];
+    fail(`Calibration log not found: ${relative(repo, inputPath)}`);
+  }
+  return readFileSync(inputPath, 'utf8')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return { parseError: line };
+      }
+    });
+}
+
+function processProposals(caps, routeFit, contextMissing, verificationMissing, friction) {
+  const proposals = [];
+  for (const [cap, count] of caps.filter(([, count]) => count >= 2)) proposals.push(`Repeated cap "${cap}" appeared ${count} times; consider setup/profile, route recipe, or tooling support.`);
+  for (const [fit, count] of routeFit.filter(([fit, count]) => count >= 2 && ['too heavy', 'too light'].includes(fit))) proposals.push(`Route fit "${fit}" appeared ${count} times; tune route inference or recipe gates.`);
+  for (const [item, count] of contextMissing.filter(([, count]) => count >= 2)) proposals.push(`Missing context "${item}" appeared ${count} times; add it to setup doctor or context-root templates.`);
+  for (const [item, count] of verificationMissing.filter(([, count]) => count >= 2)) proposals.push(`Missing verification "${item}" appeared ${count} times; add command rails or done-check coverage.`);
+  for (const [item, count] of friction.filter(([, count]) => count >= 2)) proposals.push(`Friction "${item}" appeared ${count} times; simplify CLI/docs or add a packet helper.`);
+  if (!proposals.length) proposals.push('No repeated calibration signal has crossed the proposal threshold yet.');
+  return proposals;
+}
+
+function appendPacketCompletion(packetPath, entry) {
+  const existing = readFileSync(packetPath, 'utf8');
+  const separator = existing.endsWith('\n') ? '\n' : '\n\n';
+  writeFileSync(packetPath, `${existing}${separator}${entry}`, 'utf8');
+}
+
 function humanize(value) {
   return value.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase());
 }
@@ -1419,6 +2196,14 @@ function humanize(value) {
 function formatList(items) {
   if (!items.length) return '- none';
   return items.map((item) => `- ${item}`).join('\n');
+}
+
+function formatOptionList(value) {
+  return formatList(splitList(value));
+}
+
+function formatInlineStatus(value) {
+  return value ? String(value).split(/\r?\n/).map((line) => line.trim()).filter(Boolean).join('; ') : 'clean';
 }
 
 function indentList(items) {
@@ -1619,6 +2404,10 @@ function slug(value) {
 
 function escapeCell(value) {
   return String(value).replace(/\|/g, '\\|');
+}
+
+function escapeCommandArg(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 function fail(message) {

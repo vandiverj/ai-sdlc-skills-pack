@@ -33,7 +33,7 @@ For concrete route recipes, use `references/route-recipes.md`. Load it when the 
 
 Before finalizing a route, apply the security trigger overlay from `classify-work/references/security-route-triggers.md`. The overlay can add gates/evidence or escalate risk without changing the base route name.
 
-When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical profile, readiness, context restore, context pack, route packet, review packet, release packet, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
+When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical profile, readiness, health, context restore/audit/update plans, context pack, run start/finish, route packet, review packet, release packet, packet completion/status, done checks, multi-repo packets, contract packets, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
 
 ## Helper CLI default sequence
 For new implementation, review, release, exploratory, or resumed work, use this sequence unless the task is so tiny that the commands would add more noise than value, or the CLI is unavailable:
@@ -42,6 +42,12 @@ For new implementation, review, release, exploratory, or resumed work, use this 
 sdlc readiness
 sdlc context pack --task "<human task>"
 sdlc route start <route> --task "<human task>"
+```
+
+For fuller orchestration, generate a run-start packet that lists the same sequence and route-specific packet command:
+
+```bash
+sdlc run start --task "<human task>"
 ```
 
 At closeout, use the relevant verification and calibration helpers when commands are available:
@@ -56,6 +62,34 @@ For read-only review or release/handoff work, generate the packet that matches t
 ```bash
 sdlc review packet --task "<review task>"
 sdlc release packet
+```
+
+After the verdict is known, append a deterministic closeout block to the same packet:
+
+```bash
+sdlc review complete --packet <packet> --verdict "<pass|pass with notes|changes requested|blocked>" --checks "<checks>" --caps "<caps>"
+sdlc release complete --packet <packet> --action "<none|commit|push|handoff>" --verdict "<verdict>" --checks "<checks>" --caps "<caps>"
+```
+
+Before claiming completion, use done checks and packet status:
+
+```bash
+sdlc packet status
+sdlc done check --route <route> --packet <packet>
+sdlc run finish --route <route> --packet <packet>
+```
+
+For context, multi-repo, contract, health, and calibration improvement work, use the dedicated helpers:
+
+```bash
+sdlc context audit
+sdlc context update-plan --task "<human task>"
+sdlc multi status
+sdlc multi packet --task "<human task>"
+sdlc contract packet --task "<human task>"
+sdlc health
+sdlc calibrate inspect
+sdlc calibrate propose
 ```
 
 If a security trigger appears in the context pack or route packet, keep the security overlay in the evidence and stop for any consent gate before acting.
