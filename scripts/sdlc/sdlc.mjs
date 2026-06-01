@@ -4348,7 +4348,7 @@ function findPackets(repo, options = {}) {
     .filter((file) => file.endsWith('.md'))
     .map((file) => readPacket(repo, join(dir, file)))
     .filter((packet) => packet.kind !== 'other')
-    .sort((a, b) => basename(b.path).localeCompare(basename(a.path)));
+    .sort((a, b) => b.mtimeMs - a.mtimeMs || basename(b.path).localeCompare(basename(a.path)));
 }
 
 function findLatestPacket(repo, route) {
@@ -4359,9 +4359,11 @@ function findLatestPacket(repo, route) {
 function readPacket(repo, path) {
   const text = readFileSync(path, 'utf8');
   const kind = packetKind(text);
+  const stats = statSync(path);
   return {
     path,
     kind,
+    mtimeMs: stats.mtimeMs,
     route: packetRoute(text, kind),
     completed: /## (Review|Release|Developer Verification|QA Script|Manual Smoke) Completion/.test(text),
     verdict: firstMatch(text, /^Verdict:\s*(.+)$/m),
