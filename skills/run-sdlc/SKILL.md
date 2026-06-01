@@ -37,7 +37,7 @@ For concrete route recipes, use `references/route-recipes.md`. Load it when the 
 
 Before finalizing a route, apply the security trigger overlay from `classify-work/references/security-route-triggers.md`. The overlay can add gates/evidence or escalate risk without changing the base route name.
 
-When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical task open/start/status/review/checkpoint/ledger/verify/QA/finish decisions, profile, readiness, health, context restore/audit/freshness/contradiction/update plans, context pack, change graph lite, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, manual smoke packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets, contract packets, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
+When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical task open/start/current/id/bundle/status/review/checkpoint/ledger/verify/QA/finish decisions, profile, readiness, health, context restore/audit/freshness/contradiction/inventory/place/update plans, context pack, change graph lite, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, manual smoke packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets/ledgers/QA scripts, contract packets, rendered evidence, security/tool audit packets, verification, calibration/learned-flow promotion, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
 
 ## Helper CLI default sequence
 For new implementation, review, release, exploratory, or resumed work, use this sequence unless the task is so tiny that the commands would add more noise than value, or the CLI is unavailable:
@@ -58,6 +58,7 @@ For day-to-day implementation work, prefer the task wrapper as the human-facing 
 
 ```bash
 sdlc task open --task "<human task>"
+sdlc task bundle --task "<human task>"
 sdlc task review --task "<human task>"
 ```
 
@@ -79,6 +80,7 @@ For implementation or bugfix work that needs QA handoff, generate the universal 
 
 ```bash
 sdlc workspace status
+sdlc context inventory
 sdlc context freshness --task "<human task>"
 sdlc context contradictions --task "<human task>"
 sdlc change graph --task "<human task>"
@@ -88,6 +90,9 @@ sdlc impact packet --task "<human task>"
 sdlc verify packet --task "<human task>"
 sdlc smoke packet --task "<human task>"
 sdlc qa script --task "<human task>"
+sdlc qa review --packet <qa-packet>
+sdlc test suggest --task "<human task>"
+sdlc render plan --task "<human task>"
 sdlc task finish --task "<human task>"
 ```
 
@@ -98,6 +103,10 @@ sdlc test plan --task "<human task>"
 sdlc data packet --task "<human task>"
 sdlc integration packet --task "<human task>"
 sdlc workspace packet --task "<human task>"
+sdlc workspace map --task "<human task>"
+sdlc multi ledger --task "<human task>"
+sdlc security permissions --task "<human task>"
+sdlc security audit --task "<human task>"
 sdlc handoff draft --task "<human task>"
 sdlc gates --task "<human task>"
 sdlc process health

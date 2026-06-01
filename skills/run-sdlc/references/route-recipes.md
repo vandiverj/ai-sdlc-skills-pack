@@ -27,21 +27,26 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 
 - `sdlc task start --task "..."` for the normalized task contract,
 - `sdlc task open --task "..."` for start + context freshness + context contradiction check + change graph + ledger in one checkpoint,
+- `sdlc task current`, `sdlc task id --task "..."`, and `sdlc task bundle --task "..."` when multiple task runs or packet grouping could make latest-packet selection ambiguous,
 - `sdlc task ledger --task "..."` for the evidence index,
 - `sdlc task review --task "..."` or `sdlc task checkpoint --task "..."` for current completion state,
-- `sdlc context freshness --task "..."`, `sdlc context contradictions --task "..."`, and `sdlc change graph --task "..."` for context confidence and impact graph-lite,
+- `sdlc context inventory`, `sdlc context place --fact "..."`, `sdlc context freshness --task "..."`, `sdlc context contradictions --task "..."`, and `sdlc change graph --task "..."` for context placement, confidence, contradiction checks, and impact graph-lite,
 - `sdlc touched packet` for changed technical surfaces,
 - `sdlc impact packet --task "..."` for user/system impact,
 - `sdlc verify packet --task "..."` for developer/agent verification,
 - `sdlc smoke packet --task "..."` for developer/agent manual smoke evidence before completion, especially UI/manual-QA/no-tests work,
 - `sdlc qa script --task "..."` for Markdown manual QA test scripts that can be pasted into YouTrack,
+- `sdlc qa review --packet <path>` for YouTrack/human-tester readiness checks,
 - `sdlc final gate --task "..."` and `sdlc git packet` for human-approved final action decisions.
-- `sdlc workspace status` and `sdlc workspace packet --task "..."` when multiple repositories may be open or affected.
+- `sdlc workspace status`, `sdlc workspace map --task "..."`, `sdlc workspace packet --task "..."`, and `sdlc multi ledger --task "..."` when multiple repositories may be open or affected.
 - `sdlc workmode detect --task "..."` to surface product/repo/task modifiers such as legacy, modern web, API/service, manual-QA-heavy, no-tests, integration-heavy, or multi-repo.
 - `sdlc test plan --task "..."` when automated coverage is missing or should grow from the active task.
+- `sdlc test suggest --task "..."` when the repo has weak/no tests or a dependency/package upgrade.
 - `sdlc data packet --task "..."` and `sdlc integration packet --task "..."` when data/storage or third-party/cross-system behavior is affected.
 - `sdlc gates --task "..."` for the open-gate dashboard.
 - `sdlc handoff draft --task "..."` for MR/release/QA/deployment text drafts without creating or triggering anything.
+- `sdlc render plan --task "..."` or `sdlc render evidence --task "..."` for visible UI work when tooling is available or caps must be explicit.
+- `sdlc security permissions --task "..."` and `sdlc security audit --task "..."` when tool authority, external calls, dependency installs, generated skills/prompts/agents, secrets, or release surfaces are involved.
 - `sdlc process health` for process-level repeated caps, open packets, and improvement signals.
 - `sdlc task finish --task "..."` for the final human approval decision screen.
 
