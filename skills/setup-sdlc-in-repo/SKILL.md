@@ -67,6 +67,7 @@ docs/agents/model-tier-policy.md
 docs/agents/delegation-patterns.md
 docs/agents/runtime-adapters.md
 docs/agents/runtime-practical-guide.md
+docs/agents/sdlc-agent-prompts.md
 docs/agents/learning-loop.md
 docs/patterns/README.md
 docs/patterns/pattern.md
@@ -108,6 +109,7 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 14. Add evidence packet and independent-reviewer templates when the project will use local handoffs, local review packets, or agent review roles.
 15. Run documentation verification checks and `git diff --check`.
 16. Run `sdlc readiness` again when available and report remaining setup gaps.
+17. For mixed legacy/modern UI systems, add or link `docs/context-root/mixed-ui-guidance.md` or an equivalent shared-context note so future agents do not flatten ASP Classic, React, shared CSS, API, and SQL risks into one generic UI bucket.
 17. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
 
 ## Helper CLI setup flow

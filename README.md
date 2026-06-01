@@ -12,8 +12,22 @@ The pack is designed to help coding agents preserve product intent, application 
 - `agents/` - portable Markdown definitions for optional specialist, worker, reviewer, and handoff agents.
 - `agent-contracts/` - legacy compatibility role contracts kept until downstream references move to `agents/`.
 - `scripts/` - repository maintenance checks for skill file format and related rails.
-- `bin/sdlc` and `scripts/sdlc/` - small dependency-free helper CLI for task start/status/ledger/verify/QA/finish, readiness, health, setup bootstrap/doctor, profile, context restore/audit/freshness/update plans, change graph lite, workspace/work-mode detection, run start/finish, touched/impact/QA/manual-smoke/verification packets, route packets, review/release packets, packet completion/status, gates, done checks, multi-repo, contract, data, integration, test-plan and handoff draft packets, scenario validation/testing, rendered smoke evidence, verification, calibration, and handoff mechanics.
+- `bin/sdlc` and `scripts/sdlc/` - small dependency-free helper CLI for task open/start/status/review/checkpoint/ledger/verify/QA/finish/complete, readiness, health, setup bootstrap/doctor, profile, context restore/audit/freshness/contradiction/update plans, change graph lite, workspace/work-mode detection, run start/finish, touched/impact/QA/manual-smoke/verification packets, route packets, review/release packets, packet completion/status, gates, done checks, multi-repo, contract, data, integration, test-plan and handoff draft packets, scenario validation/testing, rendered smoke evidence, verification, calibration, and handoff mechanics.
 - `templates/` - starter docs, external context-root templates, SDLC scenarios, and feature context templates.
+
+## Common Agent Prompts
+
+Use chat as the normal interface and let the agent run the helper commands:
+
+```text
+Use SDLC for this task: <task>. Determine the scope, implement, verify, generate QA Markdown if needed, and stop at the finish decision before commit or push.
+```
+
+```text
+Use SDLC and review the current completion state of this task: <task>.
+```
+
+More examples live in `templates/docs/agents/sdlc-agent-prompts.md`.
 
 ## First principle
 

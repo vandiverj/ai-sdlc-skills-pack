@@ -26,8 +26,10 @@ Use `sdlc done check --route <route> --packet <packet>` before final completion 
 For implementation, bugfix, maintenance, optimization, or release-facing work that needs human QA or handoff, prefer the universal evidence set:
 
 - `sdlc task start --task "..."` for the normalized task contract,
+- `sdlc task open --task "..."` for start + context freshness + context contradiction check + change graph + ledger in one checkpoint,
 - `sdlc task ledger --task "..."` for the evidence index,
-- `sdlc context freshness --task "..."` and `sdlc change graph --task "..."` for context confidence and impact graph-lite,
+- `sdlc task review --task "..."` or `sdlc task checkpoint --task "..."` for current completion state,
+- `sdlc context freshness --task "..."`, `sdlc context contradictions --task "..."`, and `sdlc change graph --task "..."` for context confidence and impact graph-lite,
 - `sdlc touched packet` for changed technical surfaces,
 - `sdlc impact packet --task "..."` for user/system impact,
 - `sdlc verify packet --task "..."` for developer/agent verification,

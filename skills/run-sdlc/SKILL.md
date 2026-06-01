@@ -37,7 +37,7 @@ For concrete route recipes, use `references/route-recipes.md`. Load it when the 
 
 Before finalizing a route, apply the security trigger overlay from `classify-work/references/security-route-triggers.md`. The overlay can add gates/evidence or escalate risk without changing the base route name.
 
-When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical task start/status/ledger/verify/QA/finish decisions, profile, readiness, health, context restore/audit/freshness/update plans, context pack, change graph lite, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, manual smoke packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets, contract packets, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
+When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical task open/start/status/review/checkpoint/ledger/verify/QA/finish decisions, profile, readiness, health, context restore/audit/freshness/contradiction/update plans, context pack, change graph lite, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, manual smoke packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets, contract packets, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
 
 ## Helper CLI default sequence
 For new implementation, review, release, exploratory, or resumed work, use this sequence unless the task is so tiny that the commands would add more noise than value, or the CLI is unavailable:
@@ -57,9 +57,8 @@ sdlc run start --task "<human task>"
 For day-to-day implementation work, prefer the task wrapper as the human-facing spine:
 
 ```bash
-sdlc task start --task "<human task>"
-sdlc task ledger --task "<human task>"
-sdlc task status --task "<human task>"
+sdlc task open --task "<human task>"
+sdlc task review --task "<human task>"
 ```
 
 At closeout, use the relevant verification and calibration helpers when commands are available:
@@ -81,6 +80,7 @@ For implementation or bugfix work that needs QA handoff, generate the universal 
 ```bash
 sdlc workspace status
 sdlc context freshness --task "<human task>"
+sdlc context contradictions --task "<human task>"
 sdlc change graph --task "<human task>"
 sdlc workmode detect --task "<human task>"
 sdlc touched packet
