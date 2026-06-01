@@ -16,3 +16,5 @@ Portable source: `.agents/agents/{{AGENT_ID}}.md`
 - Generated or adapted for Pi.
 - Tool names, model names, and thinking settings are runtime-specific.
 - Do not broaden write access beyond the portable definition.
+- Use `sdlc qa script` for Markdown human QA scripts and `sdlc final gate` before final Git decisions.
+- Do not merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.

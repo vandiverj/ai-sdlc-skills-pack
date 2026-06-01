@@ -36,6 +36,9 @@ async function main(argv) {
   if (area === 'done' && action === 'check') return doneCheck(repo, options);
   if (area === 'run' && action === 'start') return runStart(repo, options);
   if (area === 'run' && action === 'finish') return runFinish(repo, options);
+  if (area === 'workspace' && action === 'status') return workspaceStatus(repo, options);
+  if (area === 'workspace' && action === 'packet') return workspacePacket(repo, options);
+  if (area === 'workmode' && action === 'detect') return workmodeDetect(repo, options);
   if (area === 'touched' && action === 'packet') return touchedPacket(repo, options);
   if (area === 'impact' && action === 'packet') return impactPacket(repo, options);
   if (area === 'review' && action === 'packet') return reviewPacket(repo, options);
@@ -47,12 +50,17 @@ async function main(argv) {
   if (area === 'multi' && action === 'status') return multiStatus(repo, options);
   if (area === 'multi' && action === 'packet') return multiPacket(repo, options);
   if (area === 'contract' && action === 'packet') return contractPacket(repo, options);
+  if (area === 'data' && action === 'packet') return dataPacket(repo, options);
+  if (area === 'integration' && action === 'packet') return integrationPacket(repo, options);
+  if (area === 'test' && action === 'plan') return testPlan(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
   if (area === 'verify' && action === 'packet') return verifyPacket(repo, options);
   if (area === 'verify' && action === 'complete') return verifyComplete(repo, options);
   if (area === 'verify') return verify(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'final' && action === 'gate') return finalGate(repo, options);
   if (area === 'git' && action === 'packet') return gitPacket(repo, options);
+  if (area === 'gates') return gates(repo, areaOptions);
+  if (area === 'handoff' && action === 'draft') return handoffDraft(repo, options);
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
   if (area === 'calibrate' && action === 'summary') return calibrateSummary(repo, options);
   if (area === 'calibrate' && action === 'inspect') return calibrateInspect(repo, options);
@@ -60,6 +68,7 @@ async function main(argv) {
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'setup' && action === 'doctor') return setupDoctor(repo, options);
   if (area === 'health') return health(repo, areaOptions);
+  if (area === 'process' && action === 'health') return processHealth(repo, options);
   if (area === 'render' && action === 'smoke') return renderSmoke(repo, options);
   if (area === 'scenario' && action === 'list') return scenarioList();
   if (area === 'scenario' && action === 'show') return scenarioShow(rest[0] || options.name);
@@ -86,6 +95,9 @@ Usage:
   sdlc done check --route <route> [--repo <path>] [--packet <path>]
   sdlc run start --task "..." [--repo <path>]
   sdlc run finish --route <route> [--repo <path>] [--packet <path>]
+  sdlc workspace status [--repo <path>] [--workspace <path>]
+  sdlc workspace packet --task "..." [--repo <path>] [--out <path>]
+  sdlc workmode detect [--task "..."] [--repo <path>]
   sdlc touched packet [--repo <path>] [--out <path>]
   sdlc impact packet --task "..." [--repo <path>] [--out <path>]
   sdlc review packet --task "..." [--repo <path>] [--out <path>]
@@ -97,18 +109,24 @@ Usage:
   sdlc multi status [--repo <path>]
   sdlc multi packet --task "..." [--repo <path>] [--out <path>]
   sdlc contract packet --task "..." [--repo <path>] [--out <path>]
+  sdlc data packet --task "..." [--repo <path>] [--out <path>]
+  sdlc integration packet --task "..." [--repo <path>] [--out <path>]
+  sdlc test plan --task "..." [--repo <path>] [--out <path>]
   sdlc evidence init --route <route> [--repo <path>] [--out <path>]
   sdlc verify packet --task "..." [--repo <path>] [--out <path>]
   sdlc verify complete --packet <path> --checks "..." [--caps "..."]
   sdlc verify [--repo <path>] [--commands test,build]
   sdlc final gate [--task "..."] [--repo <path>]
   sdlc git packet [--repo <path>] [--out <path>]
+  sdlc gates [--task "..."] [--repo <path>]
+  sdlc handoff draft [--task "..."] [--repo <path>] [--out <path>]
   sdlc calibrate add --route <route> [--repo <path>] [--out <path>]
   sdlc calibrate summary [--repo <path>] [--in <path>] [--out <path>]
   sdlc calibrate inspect [--repo <path>] [--in <path>]
   sdlc calibrate propose [--repo <path>] [--in <path>] [--out <path>]
   sdlc readiness [--repo <path>]
   sdlc health [--repo <path>]
+  sdlc process health [--repo <path>] [--out <path>]
   sdlc setup doctor [--repo <path>] [--fix-plan]
   sdlc render smoke --url <url> [--repo <path>] [--cdp <url>] [--screenshot-dir <path>]
   sdlc scenario list
@@ -172,6 +190,7 @@ function profileShow(repo) {
     renderedUiReviewCommand: profile.values.renderedUiReviewCommand || '',
     accessibilityReviewPolicy: accessibilityPolicy(profile.values),
     verificationMaturity: profile.values.verificationMaturity || 'not configured',
+    detectedStack: detectStack(repo).join(', ') || 'generic',
     evidenceOutputLocation: profile.values.evidenceOutputLocation || defaultRunsDir(repo),
     calibrationLog: profile.values.calibrationLog || defaultCalibrationPath(repo),
   });
@@ -640,6 +659,73 @@ ${formatList(open.map((item) => `${item.name}: ${item.detail}`))}
   if (open.length) process.exitCode = 1;
 }
 
+function workspaceStatus(repo, options = {}) {
+  const repos = workspaceRepos(repo, options);
+  printObject({
+    workspaceRoot: repo,
+    repositories: repos.length,
+  });
+  console.log('\n| Repository | Role | Branch | Status | Upstream | Ahead/behind |');
+  console.log('| --- | --- | --- | --- | --- | --- |');
+  for (const item of repos) {
+    const info = getGitInfo(item.path);
+    const role = detectStack(item.path).join(', ') || 'generic';
+    console.log(`| ${escapeCell(item.label)} | ${escapeCell(role)} | ${escapeCell(info.branch || 'unavailable')} | ${escapeCell(info.branch ? formatInlineStatus(info.status) : 'not a git repository')} | ${escapeCell(info.upstream || '')} | ${info.branch ? `${info.behind} behind / ${info.ahead} ahead` : ''} |`);
+  }
+}
+
+function workspacePacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the workspace packet can be scoped.');
+
+  const repos = workspaceRepos(repo, options);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-workspace-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const rows = repos.map((item) => {
+    const info = getGitInfo(item.path);
+    return `| ${escapeCell(item.label)} | ${escapeCell(detectStack(item.path).join(', ') || 'generic')} | ${escapeCell(info.branch || 'unavailable')} | ${escapeCell(info.branch ? formatInlineStatus(info.status) : 'not a git repository')} | ${info.branch ? `${info.behind} behind / ${info.ahead} ahead` : ''} |`;
+  });
+
+  const content = `# SDLC Workspace Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Workspace root: ${repo}
+
+## Repositories
+
+| Repository | Role/runtime hints | Branch | Status | Ahead/behind |
+| --- | --- | --- | --- | --- |
+${rows.join('\n')}
+
+## Workspace Gates
+
+- Confirm affected repositories before implementation.
+- Keep unrelated dirty repos out of the task scope.
+- Use per-repo verification and QA evidence when changes span repositories.
+- Do not merge, deploy, move code between branches/environments, create MR/PRs, or trigger pipelines automatically.
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function workmodeDetect(repo, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const modes = detectWorkModes(repo, task, profile.values, git.changedFiles);
+  printObject({
+    repository: repo,
+    task: task || 'not provided',
+    workModes: modes.join(', ') || 'generic',
+    verificationMaturity: verificationMaturity(profile.values, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')))),
+    stack: detectStack(repo).join(', ') || 'generic',
+    recommendedNextCommand: `sdlc impact packet --task "${escapeCommandArg(task || 'current task')}"`,
+  });
+}
+
 function touchedPacket(repo, options = {}) {
   const git = getGitInfo(repo);
   const files = git.changedFiles;
@@ -732,7 +818,7 @@ ${formatList(impactAreas(task, files, profile.values))}
 
 ## QA Coverage Areas
 
-${formatList(qaAreas(task, files))}
+${formatList(scopeItems)}
 
 ## Risks, Unknowns, And Caps
 
@@ -1157,6 +1243,8 @@ function qaScript(repo, options = {}) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
   const files = git.changedFiles;
+  const sourceHints = qaSourceHints(repo, options);
+  const scopeItems = dedupe([...qaAreas(task, files), ...sourceHints.scope]);
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-qa-test-script.md`);
   mkdirSync(dirname(outPath), { recursive: true });
 
@@ -1171,6 +1259,7 @@ Validate the changed behavior for this task and regression-test the affected sit
 ### In Scope
 
 ${formatList(qaAreas(task, files))}
+${sourceHints.scope.length ? `\n### Source Packet Hints\n\n${formatList(sourceHints.scope)}` : ''}
 
 ### Out Of Scope
 
@@ -1242,6 +1331,7 @@ ${formatList(qaAreas(task, files))}
 - Changed files: ${files.length}
 - Verification maturity: ${profile.values.verificationMaturity || 'not configured'}
 - Developer caps to communicate:
+${sourceHints.risks.length ? formatList(sourceHints.risks) : ''}
 
 ## Developer Verification Summary
 
@@ -1420,6 +1510,139 @@ ${formatList(contracts.length ? contracts : ['public or cross-boundary interface
 
 - No implementation plan before public or cross-boundary contract direction is clear.
 - Human approval is needed when compatibility, release order, data, or ownership is unclear.
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function dataPacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the data packet can be scoped.');
+
+  const git = getGitInfo(repo);
+  const dataFiles = git.changedFiles.filter((file) => classifyTouchedSurface(file) === 'database/storage');
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-data-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Data / Storage Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+
+## Data Surfaces
+
+${formatList(dataFiles.length ? dataFiles : ['No changed data files detected yet; identify tables/collections/files/caches/queues during implementation.'])}
+
+## Data Change Checklist
+
+- Tables/collections/files/caches/queues:
+- Schema/migration/scripts:
+- Stored procedures/views/functions:
+- Data correction or backfill:
+- Rollback approach:
+- Locking/performance risk:
+- QA data setup:
+- Downstream workflows/APIs/pages:
+
+## Verification
+
+- Automated data/schema check:
+- Manual data validation:
+- Environment cap:
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function integrationPacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the integration packet can be scoped.');
+
+  const git = getGitInfo(repo);
+  const integrationFiles = git.changedFiles.filter((file) => classifyTouchedSurface(file) === 'external integration');
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-integration-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Integration Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+
+## Integration Surfaces
+
+${formatList(integrationFiles.length ? integrationFiles : ['No changed integration files detected yet; identify providers/endpoints/events/files during implementation.'])}
+
+## Integration Checklist
+
+- Provider/system:
+- Endpoint/webhook/file/event:
+- Auth/config touched:
+- Sandbox/test path:
+- Retry/error behavior:
+- Logging/observability:
+- QA validation path:
+- Fallback/rollback:
+- External dependency cap:
+
+## Verification
+
+- Sandbox/API check:
+- Manual QA observable result:
+- Unavailable integration cap:
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function testPlan(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the test introduction plan can be scoped.');
+
+  const profile = loadProfile(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const git = getGitInfo(repo);
+  const maturity = verificationMaturity(profile.values, commands);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-test-introduction-plan.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Test Introduction Plan
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Verification maturity: ${maturity}
+
+## Current Test Harness
+
+- Test command: ${commands.test || 'not configured'}
+- Build command: ${commands.build || 'not configured'}
+- Lint/typecheck command: ${commands.lint || 'not configured'}
+
+## Touched Surfaces
+
+${formatList(dedupe(git.changedFiles.map(classifyTouchedSurface)))}
+
+## Smallest Useful New Test
+
+- Unit/characterization test:
+- API/service smoke:
+- UI/rendered smoke:
+- Data/integration check:
+- Manual QA only cap:
+
+## Recommendation
+
+${formatList(testPlanRecommendations(maturity, git.changedFiles))}
 `;
 
   writeFileSync(outPath, content, 'utf8');
@@ -1690,7 +1913,7 @@ function health(repo) {
   const packets = findPackets(repo, {});
   const calibrationRows = readCalibrationRows(repo, { allowMissing: true }).filter((row) => !row.parseError);
   const readinessScore = Math.round((checks.filter((item) => item.status === 'ready').length / checks.length) * 100);
-  const openPackets = packets.filter((packet) => !packet.completed);
+  const openPackets = packets.filter((packet) => !packet.completed && completionTrackedPacketKinds().includes(packet.kind));
 
   printObject({
     repository: repo,
@@ -1710,6 +1933,47 @@ function health(repo) {
   console.log(formatList(openPackets.map((packet) => `${relative(repo, packet.path)} (${packet.kind})`)));
 }
 
+function processHealth(repo, options = {}) {
+  const rows = readCalibrationRows(repo, { ...options, allowMissing: true }).filter((row) => !row.parseError);
+  const packets = findPackets(repo, {});
+  const caps = groupCounts(rows.flatMap((row) => normalizeArray(row.caps)));
+  const routeFit = groupCounts(rows.map((row) => row.routeFit).filter(Boolean));
+  const openPackets = packets.filter((packet) => !packet.completed && completionTrackedPacketKinds().includes(packet.kind));
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Process Health
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Calibration rows: ${rows.length}
+Packets: ${packets.length}
+Open packets: ${openPackets.length}
+
+## Repeated Caps
+
+${formatCounts(caps)}
+
+## Route Fit Signals
+
+${formatCounts(routeFit)}
+
+## Open Packets
+
+${formatList(openPackets.map((packet) => `${packet.kind}: ${relative(repo, packet.path)}`))}
+
+## Suggested Improvements
+
+${formatList(processProposals(caps, routeFit, [], [], []))}
+`;
+
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
 function setupDoctor(repo, options = {}) {
   const profile = loadProfile(repo);
   const packageJson = readJsonIfExists(join(repo, 'package.json'));
@@ -1720,12 +1984,14 @@ function setupDoctor(repo, options = {}) {
   const checks = readinessChecks(repo, profile, commands, existingDocs, related);
   const gaps = checks.filter((item) => item.status !== 'ready');
   const profilePath = profile.path ? relative(repo, profile.path) : '.ai-local/sdlc-profile.md';
+  const stack = detectStack(repo);
 
   const lines = [
     '# SDLC Setup Doctor',
     '',
     `Repository: ${repo}`,
     `Profile: ${profilePath}`,
+    `Detected stack: ${stack.join(', ') || 'generic'}`,
     '',
     '## Readiness Gaps',
     '',
@@ -1746,6 +2012,11 @@ function setupDoctor(repo, options = {}) {
     '- Blocked tools: credentialed production writes, destructive Git commands, dependency installs without approval',
     '- Sensitive data restrictions: no secrets, credentials, customer data, or private transcripts in tracked docs/evidence',
     '```',
+    '',
+    '## Stack Detection',
+    '',
+    ...stack.map((item) => `- ${item}`),
+    ...(stack.length ? [] : ['- generic / no known stack markers detected']),
     '',
     '## Useful Commands',
     '',
@@ -1889,15 +2160,8 @@ function finalGate(repo, options = {}) {
   const task = options.task || '';
   const git = getGitInfo(repo);
   const packets = findPackets(repo, {});
-  const hasTouched = packets.some((packet) => packet.kind === 'touched');
-  const hasImpact = packets.some((packet) => packet.kind === 'impact');
-  const hasVerify = packets.some((packet) => packet.kind === 'developer-verification' && packet.completed);
+  const open = finalGateOpenItems(repo, task, git, packets);
   const hasQa = packets.some((packet) => packet.kind === 'qa-script');
-  const open = [];
-  if (git.status && !hasTouched) open.push('touched packet missing for dirty work');
-  if (task && !hasImpact) open.push('impact packet missing for scoped task');
-  if (!hasVerify) open.push('developer verification packet completion missing or capped');
-  if (!hasQa) open.push('human QA Markdown script missing or explicitly not needed');
 
   printObject({
     repository: repo,
@@ -1916,8 +2180,13 @@ function finalGate(repo, options = {}) {
 function gitPacket(repo, options = {}) {
   const gitInfo = getGitInfo(repo);
   const files = gitInfo.changedFiles;
+  const packets = findPackets(repo, {});
+  const latestImpact = packets.find((packet) => packet.kind === 'impact');
+  const latestQa = packets.find((packet) => packet.kind === 'qa-script');
+  const latestVerify = packets.find((packet) => packet.kind === 'developer-verification');
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-git-action-packet.md`);
   mkdirSync(dirname(outPath), { recursive: true });
+  const proposedMessage = proposedCommitMessage(files, latestImpact);
 
   const content = `# SDLC Git Action Packet
 
@@ -1939,10 +2208,17 @@ Status: ${gitInfo.status || 'clean'}
 
 ## Proposed Commit
 
-- Proposed message:
+- Proposed message: ${proposedMessage}
 - Include files:
 ${indentList(files)}
 - Exclude/review before commit:
+
+## Change Summary
+
+- Impact packet: ${latestImpact ? relative(repo, latestImpact.path) : 'none'}
+- QA script: ${latestQa ? relative(repo, latestQa.path) : 'none'}
+- Developer verification: ${latestVerify ? relative(repo, latestVerify.path) : 'none'}
+- Touched surfaces: ${formatInlineList(dedupe(files.map(classifyTouchedSurface)))}
 
 ## Approval Choices
 
@@ -1959,6 +2235,88 @@ ${indentList(files)}
 
 - Dirty surfaces: ${formatInlineList(dedupe(files.map(classifyTouchedSurface)))}
 - Human approval:
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function gates(repo, options = {}) {
+  const task = options.task || '';
+  const gitInfo = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const open = finalGateOpenItems(repo, task, gitInfo, packets);
+  const openPackets = packets.filter((packet) => !packet.completed && ['review', 'release', 'developer-verification', 'qa-script'].includes(packet.kind));
+
+  printObject({
+    repository: repo,
+    task: task || 'not provided',
+    dirtyStatus: formatInlineStatus(gitInfo.status),
+    openPackets: openPackets.length,
+    finalGateBlockers: open.length,
+    suggestedNextCommand: open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc git packet',
+  });
+
+  console.log('\n## Open Final Gates\n');
+  console.log(formatList(open));
+  console.log('\n## Open Packets\n');
+  console.log(formatList(openPackets.map((packet) => `${relative(repo, packet.path)} (${packet.kind})`)));
+}
+
+function handoffDraft(repo, options = {}) {
+  const task = options.task || '';
+  const gitInfo = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-handoff-draft.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Handoff Draft
+
+Date: ${new Date().toISOString()}
+Task: ${task || 'not provided'}
+Repository: ${repo}
+Branch: ${gitInfo.branch || 'unknown'}
+Head: ${gitInfo.head || 'unknown'}
+Status: ${gitInfo.status || 'clean'}
+
+## Summary
+
+-
+
+## Evidence Links
+
+${formatList(packets.slice(0, 12).map((packet) => `${packet.kind}: ${relative(repo, packet.path)}`))}
+
+## QA / Verification
+
+- QA script:
+- Developer verification:
+- Known caps:
+
+## Release / Merge / Deploy Policy
+
+- This is a draft only.
+- The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.
+- Commit and push require explicit human approval.
+- Project-specific release, MR, AWS pipeline, manual compile, or manual file move processes remain human-controlled.
+
+## Draft Text For MR / Handoff / Release Notes
+
+### What Changed
+
+-
+
+### How It Was Verified
+
+-
+
+### QA Script
+
+-
+
+### Risks / Caps
+
+-
 `;
 
   writeFileSync(outPath, content, 'utf8');
@@ -2124,6 +2482,21 @@ function scenarioRegressionCases() {
       expectedSecurityOverlay: true,
     },
     {
+      name: 'database heavy change',
+      task: 'update SQL data storage behavior and prepare QA data setup',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'no tests manual qa',
+      task: 'implement a feature in a no automated tests repo requiring manual QA script',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'workspace multi repo status',
+      task: 'inspect workspace with multiple dirty repositories before implementation',
+      expectedRoute: 'multi-repo-integration',
+    },
+    {
       name: 'manual qa script',
       task: 'produce a markdown QA test script for YouTrack for this site change',
       expectedRoute: 'standard',
@@ -2287,11 +2660,11 @@ function inferLikelyRoute(gitInfo) {
 function inferRouteFromTask(task, gitInfo, profile = {}) {
   const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();
   if (matchesAny(text, ['review', 'inspect', 'audit']) && matchesAny(text, ['without edit', 'without making edit', 'no edit', 'read-only', 'read only'])) return 'review-only';
-  if (matchesAny(text, ['multi-repo', 'multi repo', 'cross repo', 'multiple service', 'multiple repo', 'release order'])) return 'multi-repo-integration';
+  if (matchesAny(text, ['multi-repo', 'multi repo', 'cross repo', 'multiple service', 'multiple repo', 'multiple repositories', 'workspace', 'release order'])) return 'multi-repo-integration';
   if (matchesAny(text, ['contract', 'interface', 'public api', 'sdk', 'cli flag', 'config format', 'event schema', 'message schema'])) return 'contract-first';
   if (matchesAny(text, ['release', 'push', 'deploy', 'merge', 'handoff'])) return 'release-push';
   if (matchesAny(text, ['review', 'inspect', 'audit'])) return 'review-only';
-  if (matchesAny(text, ['ui', 'render', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
+  if (matchesAny(text, ['user interface', 'render', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
   if (matchesAny(text, ['weak test', 'legacy', 'coverage', 'missing test'])) return 'weak-test-legacy';
   if (matchesAny(text, ['docs', 'readme', 'markdown']) && !gitInfo.status) return 'tiny-docs';
   if (matchesAny(text, ['bug', 'fix', 'regression', 'broken', 'failing', 'failure'])) return 'bugfix-regression';
@@ -2387,6 +2760,11 @@ function readinessChecks(repo, profile, commands, existingDocs, related) {
       area: 'commands',
       status: commands.rendered || !requiresRenderedReview(repo) ? 'ready' : 'partial',
       fix: 'record rendered UI review command/tool if the repo has visible UI',
+    },
+    {
+      area: 'commands',
+      status: values.verificationMaturity ? 'ready' : 'partial',
+      fix: 'record verification maturity so final gates can choose automated checks versus manual QA scripts',
     },
     {
       area: 'release',
@@ -2692,6 +3070,160 @@ function suggestedFinalGateCommand(gate, task) {
   return 'sdlc packet status';
 }
 
+function finalGateOpenItems(repo, task, gitInfo, packets) {
+  const profile = loadProfile(repo);
+  const maturity = verificationMaturity(profile.values, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json'))));
+  const hasTouched = packets.some((packet) => packet.kind === 'touched');
+  const hasImpact = packets.some((packet) => packet.kind === 'impact');
+  const hasVerify = packets.some((packet) => packet.kind === 'developer-verification' && packet.completed);
+  const hasQa = packets.some((packet) => packet.kind === 'qa-script');
+  const manualQaMaturity = ['manual qa only', 'no automated tests'].some((item) => maturity.toLowerCase().includes(item));
+  const open = [];
+  if (gitInfo.status && !hasTouched) open.push('touched packet missing for dirty work');
+  if (task && !hasImpact) open.push('impact packet missing for scoped task');
+  if (['mature CI', 'partial automated tests', 'smoke tests'].some((item) => maturity.toLowerCase().includes(item.toLowerCase())) && !hasVerify) open.push('developer verification packet completion missing or capped');
+  if (manualQaMaturity && !hasQa) open.push('human QA Markdown script missing for manual-QA/no-tests workflow');
+  if (!hasVerify) open.push('developer verification packet completion missing or capped');
+  if (!hasQa && !manualQaMaturity) open.push('human QA Markdown script missing or explicitly not needed');
+  return dedupe(open);
+}
+
+function qaSourceHints(repo, options = {}) {
+  const hints = { scope: [], risks: [] };
+  for (const key of ['fromImpact', 'impact']) {
+    if (!options[key]) continue;
+    const text = readPacketTextIfExists(repo, options[key]);
+    hints.scope.push(...extractBulletsAfter(text, '## QA Coverage Areas'));
+    hints.risks.push(...extractBulletsAfter(text, '## Risks, Unknowns, And Caps'));
+  }
+  for (const key of ['fromTouched', 'touched']) {
+    if (!options[key]) continue;
+    const text = readPacketTextIfExists(repo, options[key]);
+    hints.scope.push(...extractTableColumn(text, 1).filter((item) => item && !['Surface', '---'].includes(item)).map((item) => `Validate touched surface: ${item}.`));
+  }
+  hints.scope = dedupe(hints.scope).slice(0, 12);
+  hints.risks = dedupe(hints.risks).slice(0, 12);
+  return hints;
+}
+
+function workspaceRepos(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const repos = [{ label: basename(repo), path: repo }];
+  const explicit = splitList(options.repos || options.paths);
+  for (const item of explicit) repos.push({ label: item, path: resolve(repo, item) });
+  for (const item of splitList(profile.values.relatedRepositories)) repos.push({ label: item, path: resolve(repo, item) });
+
+  const workspacePath = options.workspace ? resolve(repo, options.workspace) : findWorkspaceFile(repo);
+  if (workspacePath) {
+    const workspace = readJsonIfExists(workspacePath);
+    for (const folder of workspace?.folders || []) {
+      if (folder.path) repos.push({ label: folder.name || folder.path, path: resolve(dirname(workspacePath), folder.path) });
+    }
+  }
+
+  return dedupeRepos(repos);
+}
+
+function findWorkspaceFile(repo) {
+  const files = readdirSync(repo).filter((file) => file.endsWith('.code-workspace'));
+  return files.length ? join(repo, files[0]) : '';
+}
+
+function dedupeRepos(repos) {
+  const seen = new Set();
+  const out = [];
+  for (const item of repos) {
+    const path = resolve(item.path);
+    if (seen.has(path)) continue;
+    seen.add(path);
+    out.push({ ...item, path });
+  }
+  return out;
+}
+
+function detectStack(repo) {
+  const markers = [
+    [existsAny(repo, ['package.json']), 'Node/TypeScript'],
+    [existsAny(repo, ['deno.json', 'deno.jsonc', 'jsr.json']), 'Deno/JSR'],
+    [existsAny(repo, ['next.config.js', 'next.config.mjs', 'next.config.ts']), 'Next.js'],
+    [hasFileExt(repo, ['.sln', '.csproj', '.vbproj']), '.NET'],
+    [hasFileExt(repo, ['.asp', '.asa']), 'ASP Classic'],
+    [hasFileExt(repo, ['.sql']), 'SQL/database'],
+    [existsAny(repo, ['Dockerfile', 'docker-compose.yml']) || existsSync(join(repo, '.github')), 'CI/deployment'],
+  ];
+  return markers.filter(([present]) => present).map(([, label]) => label);
+}
+
+function detectWorkModes(repo, task, profile = {}, files = []) {
+  const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();
+  const stack = detectStack(repo);
+  const modes = [];
+  if (matchesAny(text, ['personal'])) modes.push('personal product');
+  if (matchesAny(text, ['company', 'client', 'customer', 'production'])) modes.push('company/customer product');
+  if (matchesAny(text, ['internal', 'admin'])) modes.push('internal tool');
+  if (stack.includes('ASP Classic')) modes.push('legacy system');
+  if (stack.includes('Node/TypeScript') || stack.includes('Deno/JSR') || stack.includes('Next.js')) modes.push('modern web/app package');
+  if (files.some((file) => classifyTouchedSurface(file) === 'backend/API') || matchesAny(text, ['api', 'service'])) modes.push('API/service');
+  if (files.some((file) => classifyTouchedSurface(file) === 'database/storage') || matchesAny(text, ['database', 'sql', 'data'])) modes.push('database-heavy');
+  if (files.some((file) => classifyTouchedSurface(file) === 'external integration') || matchesAny(text, ['third-party', 'integration', 'webhook', 'vendor'])) modes.push('integration-heavy');
+  if (matchesAny(text, ['qa', 'manual test', 'youtrack'])) modes.push('manual-QA-heavy');
+  if (matchesAny(text, ['multi repo', 'multi-repo', 'cross repo'])) modes.push('multi-repo');
+  return dedupe(modes);
+}
+
+function existsAny(repo, paths) {
+  return paths.some((item) => existsSync(join(repo, item)));
+}
+
+function hasFileExt(repo, extensions) {
+  let scanned = 0;
+  const visit = (dir, depth = 0) => {
+    if (depth > 4 || scanned > 5000) return false;
+    let entries = [];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+    for (const entry of entries) {
+      scanned++;
+      if (['.git', 'node_modules', 'dist', 'build', '.next'].includes(entry.name)) continue;
+      const path = join(dir, entry.name);
+      if (entry.isDirectory() && visit(path, depth + 1)) return true;
+      if (entry.isFile() && extensions.some((ext) => entry.name.toLowerCase().endsWith(ext))) return true;
+    }
+    return false;
+  };
+  return visit(repo);
+}
+
+function verificationMaturity(profile, commands) {
+  return profile.verificationMaturity || inferVerificationMaturity(commands);
+}
+
+function readPacketTextIfExists(repo, value) {
+  const path = resolve(repo, value);
+  return existsSync(path) ? readFileSync(path, 'utf8') : '';
+}
+
+function extractBulletsAfter(text, heading) {
+  if (!text) return [];
+  const start = text.indexOf(heading);
+  if (start < 0) return [];
+  const rest = text.slice(start + heading.length);
+  const end = rest.search(/\n## /);
+  const section = end >= 0 ? rest.slice(0, end) : rest;
+  return section.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.startsWith('- ')).map((line) => line.slice(2).trim()).filter(Boolean);
+}
+
+function extractTableColumn(text, columnIndex) {
+  return String(text || '')
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith('|') && line.includes('|'))
+    .map((line) => line.split('|').map((cell) => cell.trim())[columnIndex + 1])
+    .filter(Boolean);
+}
+
 function contextUpdateTargets(route, dirtySurfaces, contracts, profile) {
   const targets = [];
   if (!profile.sharedContextRoot && route === 'multi-repo-integration') targets.push('SDLC profile: configure shared context root or related repository map');
@@ -2705,16 +3237,21 @@ function contextUpdateTargets(route, dirtySurfaces, contracts, profile) {
 
 function setupFixPlan(gaps, profile, commands) {
   const plan = [];
-  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) plan.push('Configure shared/product/repo context paths in `.ai-local/sdlc-profile.md`, using external storage when multiple repos need the same context.');
-  if (!commands.test) plan.push('Add or record the narrowest reliable test command.');
-  if (!commands.build) plan.push('Add or record build/typecheck command when the repo can support it.');
-  if (!profile.releasePolicy) plan.push('Record release policy and approval gates before using release packets for push/deploy work.');
-  if (!profile.approvedTools && !profile.blockedTools) plan.push('Record approved/blocked tools and sensitive-data restrictions.');
+  const add = (item) => {
+    const normalized = item.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!plan.some((existing) => existing.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() === normalized)) plan.push(item);
+  };
+  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) add('Configure shared/product/repo context paths in `.ai-local/sdlc-profile.md`, using external storage when multiple repos need the same context.');
+  if (!commands.test) add('Add or record the narrowest reliable test command.');
+  if (!commands.build) add('Add or record build/typecheck command when the repo can support it.');
+  if (!profile.verificationMaturity) add('Record verification maturity so final gates can choose automated checks versus manual QA scripts.');
+  if (!profile.releasePolicy) add('Record release policy and approval gates before using release packets for push/deploy work.');
+  if (!profile.approvedTools && !profile.blockedTools) add('Record approved/blocked tools and sensitive-data restrictions.');
   for (const gap of gaps) {
-    const normalizedFix = gap.fix.toLowerCase();
-    if (!plan.some((item) => item.toLowerCase().includes(normalizedFix) || normalizedFix.includes(item.toLowerCase().slice(0, 24)))) plan.push(gap.fix);
+    if (['context', 'commands', 'release', 'security'].includes(gap.area)) continue;
+    add(gap.fix);
   }
-  return dedupe(plan);
+  return plan;
 }
 
 function readCalibrationRows(repo, options = {}) {
@@ -2745,6 +3282,10 @@ function processProposals(caps, routeFit, contextMissing, verificationMissing, f
   for (const [item, count] of friction.filter(([, count]) => count >= 2)) proposals.push(`Friction "${item}" appeared ${count} times; simplify CLI/docs or add a packet helper.`);
   if (!proposals.length) proposals.push('No repeated calibration signal has crossed the proposal threshold yet.');
   return proposals;
+}
+
+function completionTrackedPacketKinds() {
+  return ['review', 'release', 'developer-verification', 'qa-script'];
 }
 
 function appendPacketCompletion(packetPath, entry) {
@@ -2888,6 +3429,31 @@ function inferVerificationMaturity(commands) {
   if (commands.test && commands.build && commands.lint) return 'partial automated tests';
   if (commands.test) return 'smoke tests or partial automated tests';
   return 'manual QA only / no automated tests configured';
+}
+
+function testPlanRecommendations(maturity, files) {
+  const surfaces = dedupe(files.map(classifyTouchedSurface));
+  const recommendations = [];
+  if (maturity.toLowerCase().includes('no automated') || maturity.toLowerCase().includes('manual qa')) {
+    recommendations.push('Produce a human QA Markdown script and add the smallest future automated test around the touched behavior.');
+  }
+  if (surfaces.includes('backend/API')) recommendations.push('Prefer an API/service smoke or characterization test for the changed endpoint/service path.');
+  if (surfaces.includes('frontend/UI')) recommendations.push('Prefer a rendered smoke check or focused UI interaction test for the changed workflow.');
+  if (surfaces.includes('database/storage')) recommendations.push('Add a data/schema validation or migration smoke where practical.');
+  if (surfaces.includes('external integration')) recommendations.push('Add a sandbox/mock integration check or record the unavailable integration cap.');
+  if (!recommendations.length) recommendations.push('Run existing project checks and record why no new test is needed for this task.');
+  return recommendations;
+}
+
+function proposedCommitMessage(files, impactPacket) {
+  if (impactPacket?.text) {
+    const task = firstMatch(impactPacket.text, /^Task:\s*(.+)$/m);
+    if (task) return task.length > 72 ? task.slice(0, 69).trimEnd() + '...' : task;
+  }
+  const surfaces = dedupe(files.map(classifyTouchedSurface)).filter((item) => item !== 'source/other');
+  if (surfaces.length === 1) return `Update ${surfaces[0]}`;
+  if (files.length) return 'Update task implementation';
+  return 'No tracked changes to commit';
 }
 
 function formatReleaseChecks(commands) {

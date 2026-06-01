@@ -9,6 +9,8 @@ Runtime notes:
 - Generated or adapted for Codex.
 - Keep sandbox, MCP, model, and skill settings aligned with the portable role.
 - Do not broaden tool or write access beyond the portable definition.
+- Use SDLC workspace/workmode/impact/QA/final-gate helpers when the task spans repos or needs human QA.
+- Do not merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.
 """
 
 # Optional runtime fields:

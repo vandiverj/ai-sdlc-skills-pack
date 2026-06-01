@@ -30,6 +30,13 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc verify packet --task "..."` for developer/agent verification,
 - `sdlc qa script --task "..."` for Markdown manual QA test scripts that can be pasted into YouTrack,
 - `sdlc final gate --task "..."` and `sdlc git packet` for human-approved final action decisions.
+- `sdlc workspace status` and `sdlc workspace packet --task "..."` when multiple repositories may be open or affected.
+- `sdlc workmode detect --task "..."` to surface product/repo/task modifiers such as legacy, modern web, API/service, manual-QA-heavy, no-tests, integration-heavy, or multi-repo.
+- `sdlc test plan --task "..."` when automated coverage is missing or should grow from the active task.
+- `sdlc data packet --task "..."` and `sdlc integration packet --task "..."` when data/storage or third-party/cross-system behavior is affected.
+- `sdlc gates --task "..."` for the open-gate dashboard.
+- `sdlc handoff draft --task "..."` for MR/release/QA/deployment text drafts without creating or triggering anything.
+- `sdlc process health` for process-level repeated caps, open packets, and improvement signals.
 
 The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines. Commit and push require explicit human approval.
 

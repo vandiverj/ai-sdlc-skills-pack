@@ -71,12 +71,26 @@ sdlc release packet
 For implementation or bugfix work that needs QA handoff, generate the universal artifact set:
 
 ```bash
+sdlc workspace status
+sdlc workmode detect --task "<human task>"
 sdlc touched packet
 sdlc impact packet --task "<human task>"
 sdlc verify packet --task "<human task>"
 sdlc qa script --task "<human task>"
 sdlc final gate --task "<human task>"
 sdlc git packet
+```
+
+Use additional packets when the work shape calls for them:
+
+```bash
+sdlc test plan --task "<human task>"
+sdlc data packet --task "<human task>"
+sdlc integration packet --task "<human task>"
+sdlc workspace packet --task "<human task>"
+sdlc handoff draft --task "<human task>"
+sdlc gates --task "<human task>"
+sdlc process health
 ```
 
 After the verdict is known, append a deterministic closeout block to the same packet:

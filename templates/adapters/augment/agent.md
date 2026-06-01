@@ -16,3 +16,6 @@ Portable source: `.agents/agents/{{AGENT_ID}}.md`
 - Generated or adapted for Augment/Auggie.
 - Do not broaden tools beyond the portable definition without review.
 - Keep runtime-specific policy here only when Augment/Auggie requires it.
+- For multi-repo VS Code workspaces, run `sdlc workspace status` before broad implementation.
+- Produce `sdlc qa script` output as Markdown for human testers and YouTrack paste-in.
+- Do not merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.

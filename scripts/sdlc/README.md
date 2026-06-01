@@ -14,7 +14,11 @@ sdlc context update-plan --task "fix payment webhook contract"
 sdlc route start multi-repo-integration --task "fix payment webhook contract"
 sdlc run start --task "fix payment webhook contract"
 sdlc run finish --route multi-repo-integration
+sdlc workspace status
+sdlc workspace packet --task "fix payment webhook contract"
+sdlc workmode detect --task "fix payment webhook contract"
 sdlc packet status
+sdlc gates --task "fix payment webhook contract"
 sdlc touched packet
 sdlc impact packet --task "fix payment webhook contract"
 sdlc done check --route review-only --packet .ai-local/sdlc-runs/<packet>.md
@@ -24,9 +28,15 @@ sdlc done check --route multi-repo-integration --packet .ai-local/sdlc-runs/<pac
 sdlc verify packet --task "fix payment webhook contract"
 sdlc verify complete --packet .ai-local/sdlc-runs/<packet>.md --checks "npm run test" --caps "manual QA required"
 sdlc qa script --task "fix payment webhook contract"
+sdlc qa script --task "fix payment webhook contract" --from-impact .ai-local/sdlc-runs/<impact>.md --from-touched .ai-local/sdlc-runs/<touched>.md
 sdlc qa complete --packet .ai-local/sdlc-runs/<packet>.md --status ready
 sdlc final gate --task "fix payment webhook contract"
 sdlc git packet
+sdlc test plan --task "fix payment webhook contract"
+sdlc data packet --task "fix payment webhook contract"
+sdlc integration packet --task "fix payment webhook contract"
+sdlc handoff draft --task "fix payment webhook contract"
+sdlc process health
 sdlc review packet --task "review the current diff without edits"
 sdlc review complete --packet .ai-local/sdlc-runs/<packet>.md --verdict "pass with notes" --checks "git show --check HEAD,npm run test" --caps "rendered evidence not run"
 sdlc release packet
