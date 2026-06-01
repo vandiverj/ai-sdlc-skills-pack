@@ -60,6 +60,15 @@ For fuller orchestration, generate a run-start packet that lists the same sequen
 sdlc run start --task "<human task>"
 ```
 
+For resumable work, especially multi-repo or interrupted tasks, maintain the lightweight run state and dashboard:
+
+```bash
+sdlc run plan --task "<human task>"
+sdlc run dashboard --task "<human task>"
+sdlc run next --task "<human task>"
+sdlc run resume --task "<human task>"
+```
+
 For day-to-day implementation work, prefer the task wrapper as the human-facing spine:
 
 ```bash
@@ -99,13 +108,17 @@ sdlc context bucket-check --task "<human task>"
 sdlc context resolve --path <path> --task "<human task>"
 sdlc context freshness --task "<human task>"
 sdlc context contradictions --task "<human task>"
+sdlc context conflict-check --task "<human task>"
 sdlc change graph --task "<human task>"
 sdlc workmode detect --task "<human task>"
+sdlc workspace ledger --task "<human task>"
 sdlc touched packet
 sdlc impact packet --task "<human task>"
 sdlc verify packet --task "<human task>"
 sdlc smoke packet --task "<human task>"
+sdlc trace start --task "<human task>"
 sdlc qa script --task "<human task>"
+sdlc qa scenarios match --task "<human task>"
 sdlc artifact budget --route <route>
 sdlc qa review --packet <qa-packet>
 sdlc test suggest --task "<human task>"
@@ -125,9 +138,12 @@ sdlc command classify --command "<command>" --status <code> --stderr "<stderr>"
 sdlc context final-check --task "<human task>"
 sdlc learn route --packet <learning-packet>
 sdlc learn sanitize --packet <learning-packet>
+sdlc learn promote-check --packet <learning-packet>
+sdlc learn candidates
 sdlc learn sync-check
 sdlc learn summary
 sdlc learn capture --summary "<sanitized lesson>"
+sdlc safety preflight --task "<human task>"
 sdlc task finish --task "<human task>"
 ```
 
@@ -149,6 +165,7 @@ sdlc automation budget --route <route>
 sdlc hooks plan --runtime claude|codex|auggie|augment|generic
 sdlc handoff draft --task "<human task>"
 sdlc gates --task "<human task>"
+sdlc safety finish --task "<human task>"
 sdlc process health
 ```
 
@@ -165,6 +182,8 @@ Before claiming completion, use done checks and packet status:
 ```bash
 sdlc packet status
 sdlc done check --route <route> --packet <packet>
+sdlc trace finish --task "<human task>"
+sdlc scorecard task --trace <trace-jsonl>
 sdlc run finish --route <route> --packet <packet>
 ```
 
@@ -194,6 +213,18 @@ sdlc scenario list
 sdlc scenario validate <scenario> --task "<human task>"
 sdlc scenario test
 ```
+
+When onboarding another developer or collecting SDLC usability feedback, keep the request plain-language first and use the feedback helpers only as a sanitized local capture mechanism:
+
+```bash
+sdlc help onboarding
+sdlc onboarding pilot
+sdlc feedback quick --task "<human task>" --friction "<short friction>" --note "<sanitized note>"
+sdlc feedback review
+sdlc feedback summary
+```
+
+Developer feedback is for workflow improvement, not individual performance measurement. Do not store proprietary code, client names, private URLs, credentials, raw logs, or customer data in shared `.agents` learnings.
 
 For rendered UI work, accessibility is profile-driven and optional by default. Treat skipped optional accessibility as a cap or note, not as a stopping failure. Only require accessibility evidence when the repository profile or human explicitly marks it required.
 

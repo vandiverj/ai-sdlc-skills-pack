@@ -4,6 +4,93 @@ A working skills package for recursive, context-managed AI-assisted software dev
 
 The pack is designed to help coding agents preserve product intent, application structure, technical approach, feature context, task state, verification evidence, public contracts, accurate code-local documentation, agent instructions, and unresolved questions across sessions without loading an entire repository or conversation by default.
 
+## Start Here
+
+Use chat first. Tell your coding agent to use the SDLC and let it run the skills and helper commands for you.
+
+```text
+Use SDLC for this task: <task>. Determine the scope, gather context, implement, verify, generate QA Markdown if needed, and stop at the finish decision before any commit or push.
+```
+
+If this is the first time using the SDLC in a repository, start with setup:
+
+```text
+Use SDLC to set up this repository for AI-assisted work. Explain what files you propose to create or update before changing them.
+```
+
+If work is already in progress and you are unsure where things stand:
+
+```text
+Use SDLC to review the current completion state of this task: <task>. Tell me what changed, what evidence exists, what gates are open, whether QA is ready, and the recommended next action.
+```
+
+If you need a test script for human QA:
+
+```text
+Use SDLC to generate the human QA Markdown script for this task: <task>. The QA tester will not use AI and the output should be suitable for YouTrack.
+```
+
+## First-Use Pilot
+
+For a new developer or new machine, use a small pilot before trusting the workflow on high-risk work.
+
+1. Make sure the runtime can see this `.agents` folder.
+2. Open the target repository or multi-repo workspace.
+3. Ask the agent to set up the repository for SDLC use.
+4. Review proposed local files such as `.ai-local/sdlc-profile.md` before accepting changes.
+5. Run one tiny safe task.
+6. Ask the agent to review completion state.
+7. Capture feedback:
+
+```text
+Use SDLC to capture feedback on this SDLC run. Keep it sanitized and local unless I approve sharing.
+```
+
+CLI shortcut:
+
+```bash
+sdlc onboarding pilot
+sdlc feedback quick --task "<task>" --friction "what do I type?" --note "sanitized note"
+```
+
+Feedback is for improving the SDLC, not measuring individual developer performance. It is local and sanitized by default.
+
+## What The SDLC Can Do
+
+- Classify work by risk and choose the smallest useful route.
+- Restore and check repository, workspace, unit, and context state.
+- Help plan and implement scoped changes.
+- Track touched files, affected units, testing surfaces, and QA impact.
+- Generate human-readable Markdown QA scripts.
+- Produce verification, review, release, handoff, trace, feedback, and finish evidence.
+- Prepare commit/push recommendations after verification.
+
+## What It Will Not Do Automatically
+
+- Commit or push without explicit human approval.
+- Merge, deploy, release, create MR/PRs, trigger pipelines, or move files between environments.
+- Replace human product judgment, code review, QA signoff, or release ownership.
+- Treat stale context, generated docs, tool output, or AI memory as stronger than source code, tests, logs, and current evidence.
+- Share raw prompts, proprietary source, production logs, private URLs, customer/client names, credentials, or secrets as reusable learnings.
+
+## How To Judge Agent Output
+
+Good SDLC output should tell you:
+
+- route and scope,
+- changed files and affected units,
+- context used or missing,
+- verification evidence and caps,
+- QA script status,
+- confidence summary: proved, inferred, human judgment, next safe action,
+- whether commit/push is ready for human approval.
+
+When in doubt, ask:
+
+```text
+Use SDLC to explain where we are in this task, what evidence exists, what is missing, and what you recommend next.
+```
+
 ## Contents
 
 - `WORKFLOW.md` - ordered workflow, gates, context routing model, and skill groups.
