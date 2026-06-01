@@ -45,168 +45,63 @@ For repositories containing multiple deployable codebases, reason at `workspace 
 
 Process learnings may be captured in `.agents/learnings/` only after sanitizing product/client details. Keep portable SDLC lessons separate from product-specific durable facts. Product facts usually belong in repo/unit/shared external context, not the skills pack.
 
-## Helper CLI default sequence
-For new implementation, review, release, exploratory, or resumed work, use this sequence unless the task is so tiny that the commands would add more noise than value, or the CLI is unavailable:
+## Helper CLI operating model
+Use the CLI as a small set of mechanical helpers, not as a checklist to exhaust.
 
-```bash
-sdlc readiness
-sdlc context pack --task "<human task>"
-sdlc route start <route> --task "<human task>"
-```
-
-For fuller orchestration, generate a run-start packet that lists the same sequence and route-specific packet command:
-
-```bash
-sdlc run start --task "<human task>"
-```
-
-For resumable work, especially multi-repo or interrupted tasks, maintain the lightweight run state and dashboard:
+Default spine for normal work:
 
 ```bash
 sdlc intake packet --task "<human task>"
-sdlc intake check --task "<human task>"
 sdlc recipe match --task "<human task>"
-sdlc run plan --task "<human task>"
 sdlc run dashboard --task "<human task>"
-sdlc run next --task "<human task>"
-sdlc run resume --task "<human task>"
+sdlc task preflight --task "<human task>"
 ```
 
-For day-to-day implementation work, prefer the task wrapper as the human-facing spine:
+Resume or recover unclear work with:
 
 ```bash
-sdlc task preflight --task "<human task>"
-sdlc task open --task "<human task>"
-sdlc task bundle --task "<human task>"
-sdlc task review --task "<human task>"
+sdlc task doctor --task "<human task>"
+sdlc run resume --task "<human task>"
 ```
 
 Use `sdlc task fast-pass --task "<human task>"` when the work is clearly micro/tiny: one repo, one obvious unit or docs-only scope, no security/data/release trigger, no multi-context ambiguity, and no irreversible action. Fast-pass still needs changed-files awareness, one relevant verification path or explicit cap, and a final confidence block.
 
-At closeout, use the relevant verification and calibration helpers when commands are available:
+At closeout, prefer one finish surface:
 
 ```bash
-sdlc verify --commands test,build
-sdlc calibrate add --route <route> --outcome "<pass|partial|fail>" --route-fit "<right|too heavy|too light>"
+sdlc finish packet --task "<human task>"
+sdlc action preview --action commit
 ```
 
-For read-only review or release/handoff work, generate the packet that matches the route before giving a verdict or taking a Git action:
+Only after explicit human approval should Git commands be run. Merge, deploy, release, MR/PR creation, pipeline triggers, and manual file movement remain outside default automation.
+
+## Route-selected helpers
+Select helpers by route and recipe. Do not run the full list.
+
+Read-only review or release/handoff:
 
 ```bash
 sdlc review packet --task "<review task>"
 sdlc release packet
 ```
 
-For implementation or bugfix work that needs QA handoff, generate the universal artifact set:
+Common implementation evidence:
 
 ```bash
-sdlc workspace status
-sdlc workspace doctor
-sdlc task preflight --task "<human task>"
-sdlc surface detect --task "<human task>"
-sdlc unit detect --task "<human task>"
-sdlc unit doctor
-sdlc profile audit
-sdlc profile suggest --task "<human task>"
-sdlc context inventory
-sdlc context bucket-check --task "<human task>"
-sdlc context bucket-confidence --path <path> --task "<human task>"
-sdlc context resolve --path <path> --task "<human task>"
-sdlc context freshness --task "<human task>"
-sdlc context contradictions --task "<human task>"
-sdlc context conflict-check --task "<human task>"
-sdlc change graph --task "<human task>"
-sdlc workmode detect --task "<human task>"
-sdlc workspace ledger --task "<human task>"
 sdlc touched packet
 sdlc impact packet --task "<human task>"
 sdlc verify packet --task "<human task>"
-sdlc smoke packet --task "<human task>"
-sdlc trace start --task "<human task>"
-sdlc evidence provenance --task "<human task>"
 sdlc qa script --task "<human task>"
-sdlc qa handoff --task "<human task>"
-sdlc qa scenarios match --task "<human task>"
-sdlc artifact budget --route <route>
-sdlc qa review --packet <qa-packet>
-sdlc test suggest --task "<human task>"
-sdlc test bootstrap-plan --unit <unit> --framework dotnet|node|deno|generic
-sdlc test regression-plan --task "<human task>"
-sdlc bug evidence --task "<human task>"
-sdlc bug live-evidence --task "<human task>"
-sdlc bug evidence-check --packet <bug-packet>
-sdlc bug reproduce --task "<human task>"
-sdlc bug diagnose --task "<human task>"
-sdlc bug fix-plan --task "<human task>"
-sdlc bug verify --task "<human task>"
-sdlc bug qa --task "<human task>"
-sdlc render plan --task "<human task>"
-sdlc risk agentic --task "<human task>"
-sdlc search classify --pattern "<pattern>"
-sdlc search classify-results --pattern "<pattern>"
-sdlc route retire --old "<old route>" --new "<new route>" --task "<human task>"
+```
+
+Recipe overlays add proof only when the task shape calls for it:
+
+```bash
 sdlc route proof --old "<old route>" --new "<new route>" --task "<human task>"
-sdlc command classify --command "<command>" --status <code> --stderr "<stderr>"
+sdlc bug live-evidence --task "<human task>"
 sdlc dotnet efcore diagnose --task "<human task>"
-sdlc pattern analog --task "<human task>" --hint "<known working path or term>"
-sdlc fix scope --task "<human task>"
-sdlc context final-check --task "<human task>"
-sdlc learn split --packet <learning-packet>
-sdlc learn route --packet <learning-packet>
-sdlc learn sanitize --packet <learning-packet>
-sdlc learn promote-check --packet <learning-packet>
-sdlc learn candidates
-sdlc learn sync-check
-sdlc learn summary
-sdlc learn capture --summary "<sanitized lesson>"
-sdlc safety preflight --task "<human task>"
-sdlc task finish --task "<human task>"
-```
-
-Use additional packets when the work shape calls for them:
-
-```bash
-sdlc test plan --task "<human task>"
-sdlc data packet --task "<human task>"
-sdlc integration packet --task "<human task>"
-sdlc workspace init
-sdlc workspace doctor
-sdlc workspace packet --task "<human task>"
-sdlc workspace map --task "<human task>"
-sdlc unit map
-sdlc multi ledger --task "<human task>"
-sdlc security permissions --task "<human task>"
-sdlc security audit --task "<human task>"
-sdlc recipe list
-sdlc recipe review --since YYYY-MM-DD
-sdlc automation budget --route <route>
-sdlc hooks plan --runtime claude|codex|auggie|augment|generic
-sdlc handoff draft --task "<human task>"
-sdlc gates --task "<human task>"
-sdlc safety finish --task "<human task>"
-sdlc process health
-```
-
-After the verdict is known, append a deterministic closeout block to the same packet:
-
-```bash
-sdlc review complete --packet <packet> --verdict "<pass|pass with notes|changes requested|blocked>" --checks "<checks>" --caps "<caps>"
-sdlc smoke complete --packet <packet> --status "<pass|fail|blocked>" --steps "<steps>" --caps "<caps>"
-sdlc release complete --packet <packet> --action "<none|commit|push|handoff>" --verdict "<verdict>" --checks "<checks>" --caps "<caps>"
-```
-
-Before claiming completion, use done checks and packet status:
-
-```bash
-sdlc packet status
-sdlc done check --route <route> --packet <packet>
-sdlc trace finish --task "<human task>"
-sdlc trace export --trace <trace-jsonl> --format otel-lite
-sdlc scorecard task --trace <trace-jsonl>
-sdlc task doctor --task "<human task>"
-sdlc finish packet --task "<human task>"
-sdlc action preview --action commit
-sdlc run finish --route <route> --packet <packet>
+sdlc command classify --command "<command>" --status <code> --stderr "<stderr>"
+sdlc context bucket-confidence --path <path> --task "<human task>"
 ```
 
 Done checks are route-specific. Treat open checks as unresolved gates unless the human explicitly accepts the cap. The helper checks evidence shape for review-only, release-push, standard, ui-rendered-review, bugfix-regression, bugfix-live-system, weak-test-legacy, multi-repo-integration, contract-first, and tiny-docs routes; it does not replace source review or judgment.

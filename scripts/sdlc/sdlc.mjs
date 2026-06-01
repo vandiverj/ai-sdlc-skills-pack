@@ -6608,7 +6608,8 @@ function scenarioRegressionCases() {
     {
       name: 'no tests manual qa',
       task: 'implement a feature in a no automated tests repo requiring manual QA script',
-      expectedRoute: 'standard',
+      expectedRoute: 'weak-test-legacy',
+      expectedRecipes: ['no-test-legacy'],
     },
     {
       name: 'workspace multi repo status',
@@ -6970,9 +6971,10 @@ function inferRouteFromTask(task, gitInfo, profile = {}) {
   if (matchesAny(text, ['review', 'inspect', 'audit'])) return 'review-only';
   if (explicitNonUiApi || (matchesAny(text, ['swagger', 'openapi', 'api-only', 'api only', 'developer testing']) && !matchesAny(text, ['user interface', 'visible ui', 'rendered product ui']))) return 'standard';
   if (matchesAny(text, ['multi-project repository', 'multiple projects', 'multiple codebases', 'multiple code bases', 'deployable codebase', 'deployable api codebase'])) return 'standard';
+  if (matchesAny(text, ['weak test', 'coverage', 'missing test', 'no automated tests']) || (text.includes('legacy') && matchesAny(text, ['test', 'coverage', 'regression']))) return 'weak-test-legacy';
+  if (matchesAny(text, ['qa script', 'qa test', 'quality assurance', 'youtrack', 'manual qa', 'test script'])) return 'standard';
   if (matchesAny(text, ['user interface', 'rendered product ui', 'visible ui', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'board', 'placement', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
   if (matchesAny(text, ['staging log', 'production log', 'sql log', 'foreign key', 'fk ', 'live-connected', 'live connected'])) return 'bugfix-live-system';
-  if (matchesAny(text, ['weak test', 'coverage', 'missing test']) || (text.includes('legacy') && matchesAny(text, ['test', 'coverage', 'regression']))) return 'weak-test-legacy';
   if (matchesAny(text, ['docs', 'readme', 'markdown']) && !gitInfo.status) return 'tiny-docs';
   if (matchesAny(text, ['bug', 'fix', 'regression', 'broken', 'failing', 'failure'])) return 'bugfix-regression';
   return inferLikelyRoute(gitInfo) === 'tiny-docs' ? 'tiny-docs' : 'standard';
