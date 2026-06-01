@@ -37,7 +37,13 @@ For concrete route recipes, use `references/route-recipes.md`. Load it when the 
 
 Before finalizing a route, apply the security trigger overlay from `classify-work/references/security-route-triggers.md`. The overlay can add gates/evidence or escalate risk without changing the base route name.
 
-When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical task open/start/current/id/bundle/status/review/checkpoint/ledger/verify/QA/finish decisions, profile, readiness, health, context restore/audit/freshness/contradiction/inventory/place/update plans, context pack, change graph lite, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, manual smoke packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets/ledgers/QA scripts, contract packets, rendered evidence, security/tool audit packets, verification, calibration/learned-flow promotion, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
+When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical task open/start/current/id/bundle/status/review/checkpoint/ledger/verify/QA/finish decisions, profile, readiness, health, context restore/audit/freshness/contradiction/inventory/place/update plans, context pack, change graph lite, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, manual smoke packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets/ledgers/QA scripts, contract packets, data/integration/live-bug packets, rendered evidence, surface/unit detection, safe learning capture/review/promotion, security/tool audit packets, verification, calibration/learned-flow promotion, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
+
+Distinguish testing surfaces before selecting rendered evidence. Swagger/OpenAPI-only APIs, backend services, background jobs, imports/exports, data changes, and provider integrations are testable surfaces, but they are not rendered product UI unless a user-facing browser workflow is actually changed. Use `sdlc surface detect` and `sdlc unit detect` when a repository contains multiple projects or when route selection is unclear.
+
+For repositories containing multiple deployable codebases, reason at `workspace -> repository -> deployable/codebase unit -> context bucket`. Prefer the repo-level unit registry in `.ai-local/sdlc-profile.md`; use optional unit-local `.ai-local/sdlc-profile.md` only for high-detail units. Unit mappings should include path, test surface, context bucket, commands, deploy method, and Swagger/OpenAPI hints.
+
+Process learnings may be captured in `.agents/learnings/` only after sanitizing product/client details. Keep portable SDLC lessons separate from product-specific durable facts. Product facts usually belong in repo/unit/shared external context, not the skills pack.
 
 ## Helper CLI default sequence
 For new implementation, review, release, exploratory, or resumed work, use this sequence unless the task is so tiny that the commands would add more noise than value, or the CLI is unavailable:
@@ -80,6 +86,8 @@ For implementation or bugfix work that needs QA handoff, generate the universal 
 
 ```bash
 sdlc workspace status
+sdlc surface detect --task "<human task>"
+sdlc unit detect --task "<human task>"
 sdlc context inventory
 sdlc context freshness --task "<human task>"
 sdlc context contradictions --task "<human task>"
@@ -92,7 +100,9 @@ sdlc smoke packet --task "<human task>"
 sdlc qa script --task "<human task>"
 sdlc qa review --packet <qa-packet>
 sdlc test suggest --task "<human task>"
+sdlc bug evidence --task "<human task>"
 sdlc render plan --task "<human task>"
+sdlc learn capture --summary "<sanitized lesson>"
 sdlc task finish --task "<human task>"
 ```
 
@@ -104,6 +114,7 @@ sdlc data packet --task "<human task>"
 sdlc integration packet --task "<human task>"
 sdlc workspace packet --task "<human task>"
 sdlc workspace map --task "<human task>"
+sdlc unit map
 sdlc multi ledger --task "<human task>"
 sdlc security permissions --task "<human task>"
 sdlc security audit --task "<human task>"
