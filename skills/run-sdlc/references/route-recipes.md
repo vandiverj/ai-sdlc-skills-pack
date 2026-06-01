@@ -30,6 +30,7 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc task current`, `sdlc task id --task "..."`, and `sdlc task bundle --task "..."` when multiple task runs or packet grouping could make latest-packet selection ambiguous,
 - `sdlc task ledger --task "..."` for the evidence index,
 - `sdlc task review --task "..."` or `sdlc task checkpoint --task "..."` for current completion state,
+- `sdlc surface detect --task "..."` and `sdlc unit detect --task "..."` before choosing rendered UI, API-contract, service, data, integration, background-job, package/tooling, or docs/process evidence,
 - `sdlc context inventory`, `sdlc context place --fact "..."`, `sdlc context freshness --task "..."`, `sdlc context contradictions --task "..."`, and `sdlc change graph --task "..."` for context placement, confidence, contradiction checks, and impact graph-lite,
 - `sdlc touched packet` for changed technical surfaces,
 - `sdlc impact packet --task "..."` for user/system impact,
@@ -39,10 +40,13 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc qa review --packet <path>` for YouTrack/human-tester readiness checks,
 - `sdlc final gate --task "..."` and `sdlc git packet` for human-approved final action decisions.
 - `sdlc workspace status`, `sdlc workspace map --task "..."`, `sdlc workspace packet --task "..."`, and `sdlc multi ledger --task "..."` when multiple repositories may be open or affected.
+- `sdlc unit map` when one repository contains multiple deployable/codebase units with different context buckets, test surfaces, commands, or deploy methods.
 - `sdlc workmode detect --task "..."` to surface product/repo/task modifiers such as legacy, modern web, API/service, manual-QA-heavy, no-tests, integration-heavy, or multi-repo.
 - `sdlc test plan --task "..."` when automated coverage is missing or should grow from the active task.
 - `sdlc test suggest --task "..."` when the repo has weak/no tests or a dependency/package upgrade.
 - `sdlc data packet --task "..."` and `sdlc integration packet --task "..."` when data/storage or third-party/cross-system behavior is affected.
+- `sdlc bug evidence --task "..."` for live-connected staging/production-safe bug investigations that need exact logs, failing SQL/API/contract evidence, minimal fix discipline, targeted regression, and QA scenario retest.
+- `sdlc learn capture`, `sdlc learn review`, and `sdlc learn promote` for sanitized process-learning candidates; keep product/client facts in repo/unit/shared context unless redacted and generalized.
 - `sdlc gates --task "..."` for the open-gate dashboard.
 - `sdlc handoff draft --task "..."` for MR/release/QA/deployment text drafts without creating or triggering anything.
 - `sdlc render plan --task "..."` or `sdlc render evidence --task "..."` for visible UI work when tooling is available or caps must be explicit.
@@ -198,7 +202,9 @@ Done criteria:
 
 ### ui-rendered-review
 
-Trigger: visible UI, layout, interaction, copy, or rendered workflow change.
+Trigger: visible product UI, layout, interaction, copy, or rendered workflow change.
+
+Do not use this route for Swagger/OpenAPI-only APIs, backend services, jobs, data changes, or provider integrations unless a rendered browser workflow is actually changed.
 
 Context packet:
 
@@ -232,6 +238,82 @@ Done criteria:
 
 - rendered evidence supports the claim or caps are explicit,
 - skipped optional accessibility is recorded as a cap/note, not a failure.
+
+### api-contract
+
+Trigger: Swagger/OpenAPI, HTTP endpoint, request/response, SDK/consumer contract, or API-only developer testing surface.
+
+Context packet:
+
+- OpenAPI/Swagger or endpoint source,
+- affected service/unit,
+- auth/config/test data requirements,
+- consumers when known.
+
+Checks:
+
+- unit/service tests when available,
+- Swagger/OpenAPI/API-client request with QA-safe payload when appropriate,
+- contract compatibility review.
+
+Evidence:
+
+- endpoint/path,
+- request payload shape,
+- expected status/response,
+- logs or data side effects when safe,
+- caps.
+
+Stop gates:
+
+- auth/test data unavailable,
+- compatibility or consumer ownership unclear,
+- production/customer data would be needed.
+
+Done criteria:
+
+- API behavior is verified or caps are explicit,
+- QA script uses API-contract mode rather than rendered UI mode.
+
+### bugfix-live-system
+
+Trigger: production/staging-safe bug investigation where logs, generated SQL, external provider traces, or environment-specific evidence identify the failing behavior.
+
+Context packet:
+
+- case identifier,
+- affected unit/context bucket,
+- exact log/error source,
+- failing endpoint/table/contract/job,
+- analogous successful path.
+
+Checks:
+
+- targeted reproduction or log-backed evidence,
+- smallest evidence-backed fix,
+- targeted regression test,
+- relevant broader safe check.
+
+Evidence:
+
+- observed failure,
+- root cause,
+- confirming log/request/SQL evidence,
+- fallback plan rejected,
+- developer validation,
+- QA scenario retest instructions.
+
+Stop gates:
+
+- exact failure source unavailable for risky broad fixes,
+- product/client sensitive data cannot be safely redacted,
+- deploy/release order unclear.
+
+Done criteria:
+
+- root cause and fix are evidence-backed,
+- developer validation is separated from QA scenario validation,
+- durable context and sanitized learnings are placed in the correct buckets.
 
 ### review-only
 
