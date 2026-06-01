@@ -22,6 +22,10 @@ Make the SDLC usable by shifting process work to the AI.
 The human provides intent, constraints, judgment, approvals, and acceptance.
 The AI handles routing, context selection, artifact drafting, verification discipline, doc/context updates, and next-step orchestration.
 
+QA output means Markdown manual quality-assurance test scripts for human testers, usually intended for YouTrack paste-in. Do not assume QA testers use AI, inspect code, run developer commands, or understand the SDLC.
+
+The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines. It may prepare evidence, commit summaries, Git action packets, QA scripts, and handoff notes. Commit and push require explicit human approval.
+
 ## Core rule
 Do not run the whole workflow by default. Run the smallest route that prevents the most likely expensive failure.
 
@@ -33,7 +37,7 @@ For concrete route recipes, use `references/route-recipes.md`. Load it when the 
 
 Before finalizing a route, apply the security trigger overlay from `classify-work/references/security-route-triggers.md`. The overlay can add gates/evidence or escalate risk without changing the base route name.
 
-When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical profile, readiness, health, context restore/audit/update plans, context pack, run start/finish, route packet, review packet, release packet, packet completion/status, done checks, multi-repo packets, contract packets, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
+When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical profile, readiness, health, context restore/audit/update plans, context pack, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets, contract packets, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
 
 ## Helper CLI default sequence
 For new implementation, review, release, exploratory, or resumed work, use this sequence unless the task is so tiny that the commands would add more noise than value, or the CLI is unavailable:
@@ -62,6 +66,17 @@ For read-only review or release/handoff work, generate the packet that matches t
 ```bash
 sdlc review packet --task "<review task>"
 sdlc release packet
+```
+
+For implementation or bugfix work that needs QA handoff, generate the universal artifact set:
+
+```bash
+sdlc touched packet
+sdlc impact packet --task "<human task>"
+sdlc verify packet --task "<human task>"
+sdlc qa script --task "<human task>"
+sdlc final gate --task "<human task>"
+sdlc git packet
 ```
 
 After the verdict is known, append a deterministic closeout block to the same packet:

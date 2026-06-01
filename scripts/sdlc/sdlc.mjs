@@ -36,15 +36,23 @@ async function main(argv) {
   if (area === 'done' && action === 'check') return doneCheck(repo, options);
   if (area === 'run' && action === 'start') return runStart(repo, options);
   if (area === 'run' && action === 'finish') return runFinish(repo, options);
+  if (area === 'touched' && action === 'packet') return touchedPacket(repo, options);
+  if (area === 'impact' && action === 'packet') return impactPacket(repo, options);
   if (area === 'review' && action === 'packet') return reviewPacket(repo, options);
   if (area === 'review' && action === 'complete') return reviewComplete(repo, options);
   if (area === 'release' && action === 'packet') return releasePacket(repo, options);
   if (area === 'release' && action === 'complete') return releaseComplete(repo, options);
+  if (area === 'qa' && (action === 'script' || action === 'packet')) return qaScript(repo, options);
+  if (area === 'qa' && action === 'complete') return qaComplete(repo, options);
   if (area === 'multi' && action === 'status') return multiStatus(repo, options);
   if (area === 'multi' && action === 'packet') return multiPacket(repo, options);
   if (area === 'contract' && action === 'packet') return contractPacket(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
+  if (area === 'verify' && action === 'packet') return verifyPacket(repo, options);
+  if (area === 'verify' && action === 'complete') return verifyComplete(repo, options);
   if (area === 'verify') return verify(resolve(areaOptions.repo || process.cwd()), areaOptions);
+  if (area === 'final' && action === 'gate') return finalGate(repo, options);
+  if (area === 'git' && action === 'packet') return gitPacket(repo, options);
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
   if (area === 'calibrate' && action === 'summary') return calibrateSummary(repo, options);
   if (area === 'calibrate' && action === 'inspect') return calibrateInspect(repo, options);
@@ -78,15 +86,23 @@ Usage:
   sdlc done check --route <route> [--repo <path>] [--packet <path>]
   sdlc run start --task "..." [--repo <path>]
   sdlc run finish --route <route> [--repo <path>] [--packet <path>]
+  sdlc touched packet [--repo <path>] [--out <path>]
+  sdlc impact packet --task "..." [--repo <path>] [--out <path>]
   sdlc review packet --task "..." [--repo <path>] [--out <path>]
   sdlc review complete --packet <path> --verdict "..." [--findings "..."] [--checks "..."] [--caps "..."]
   sdlc release packet [--task "..."] [--repo <path>] [--out <path>]
   sdlc release complete --packet <path> --action "none|commit|push|handoff" [--verdict "..."] [--checks "..."] [--caps "..."]
+  sdlc qa script --task "..." [--repo <path>] [--out <path>]
+  sdlc qa complete --packet <path> --status "draft|ready|blocked" [--caps "..."]
   sdlc multi status [--repo <path>]
   sdlc multi packet --task "..." [--repo <path>] [--out <path>]
   sdlc contract packet --task "..." [--repo <path>] [--out <path>]
   sdlc evidence init --route <route> [--repo <path>] [--out <path>]
+  sdlc verify packet --task "..." [--repo <path>] [--out <path>]
+  sdlc verify complete --packet <path> --checks "..." [--caps "..."]
   sdlc verify [--repo <path>] [--commands test,build]
+  sdlc final gate [--task "..."] [--repo <path>]
+  sdlc git packet [--repo <path>] [--out <path>]
   sdlc calibrate add --route <route> [--repo <path>] [--out <path>]
   sdlc calibrate summary [--repo <path>] [--in <path>] [--out <path>]
   sdlc calibrate inspect [--repo <path>] [--in <path>]
@@ -155,6 +171,7 @@ function profileShow(repo) {
     lintTypecheckFormatCommands: profile.values.lintTypecheckFormatCommands || '',
     renderedUiReviewCommand: profile.values.renderedUiReviewCommand || '',
     accessibilityReviewPolicy: accessibilityPolicy(profile.values),
+    verificationMaturity: profile.values.verificationMaturity || 'not configured',
     evidenceOutputLocation: profile.values.evidenceOutputLocation || defaultRunsDir(repo),
     calibrationLog: profile.values.calibrationLog || defaultCalibrationPath(repo),
   });
@@ -205,6 +222,7 @@ Purpose: local repository profile for SDLC helper automation. Keep this file ign
 - Lint/typecheck/format commands:
 - Rendered UI review command:
 - Accessibility review policy: optional
+- Verification maturity: no automated tests / manual QA only / smoke tests / partial automated tests / mature CI
 
 ## Release
 - Release policy:
@@ -622,6 +640,112 @@ ${formatList(open.map((item) => `${item.name}: ${item.detail}`))}
   if (open.length) process.exitCode = 1;
 }
 
+function touchedPacket(repo, options = {}) {
+  const git = getGitInfo(repo);
+  const files = git.changedFiles;
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-touched-surface-ledger.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const rows = files.map((file) => ({
+    file,
+    surface: classifyTouchedSurface(file),
+    runtime: classifyRuntimeSurface(file),
+    qa: needsManualQa(file) ? 'yes' : 'maybe',
+  }));
+
+  const content = `# SDLC Touched Surface Ledger
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+Head: ${git.head || 'unknown'}
+
+## Summary
+
+- Changed files: ${files.length}
+- Surfaces: ${formatInlineList(dedupe(rows.map((row) => row.surface)))}
+- Runtime hints: ${formatInlineList(dedupe(rows.map((row) => row.runtime)))}
+
+## Changed Files By Surface
+
+| File | Surface | Runtime hint | Manual QA likely |
+| --- | --- | --- | --- |
+${rows.length ? rows.map((row) => `| ${escapeCell(row.file)} | ${row.surface} | ${row.runtime} | ${row.qa} |`).join('\n') : '| none |  |  |  |'}
+
+## QA And Handoff Notes
+
+- Use this ledger as an input to impact, developer verification, QA test scripts, and final handoff.
+- Generated/build artifacts should be reviewed before commit.
+- Manual QA is expected when changed behavior is user-visible, data-affecting, integration-affecting, or lacks automated coverage.
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function impactPacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the impact packet can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = git.changedFiles;
+  const surfaces = dedupe(files.map(classifyTouchedSurface));
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-impact-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Impact Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
+Verification maturity: ${profile.values.verificationMaturity || 'not configured'}
+
+## Impact Summary
+
+- Runtime/product type: ${formatInlineList(dedupe(files.map(classifyRuntimeSurface)))}
+- Touched surfaces: ${formatInlineList(surfaces)}
+- Changed files: ${files.length}
+
+## Affected Areas To Consider
+
+${formatList(impactAreas(task, files, profile.values))}
+
+## User Or System Workflows
+
+- Primary workflow:
+- Secondary/regression workflows:
+- Roles/permissions:
+- Environments affected:
+
+## Technical Impact
+
+- APIs/contracts: ${surfaces.includes('backend/API') || surfaces.includes('contracts/interfaces') ? 'likely' : 'unknown/not detected'}
+- Data/storage: ${surfaces.includes('database/storage') ? 'likely' : 'unknown/not detected'}
+- External integrations: ${surfaces.includes('external integration') ? 'likely' : 'unknown/not detected'}
+- Config/environment: ${surfaces.includes('config/environment') ? 'likely' : 'unknown/not detected'}
+- Dependencies/packages: ${surfaces.includes('dependencies') ? 'likely' : 'unknown/not detected'}
+
+## QA Coverage Areas
+
+${formatList(qaAreas(task, files))}
+
+## Risks, Unknowns, And Caps
+
+- Unknown affected pages/screens:
+- Unknown affected APIs/jobs:
+- Test coverage cap:
+- Release/handoff risk:
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
 function getRecipe(route) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
 
@@ -689,6 +813,100 @@ ${formatList(git.changedFiles)}
 
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
+}
+
+function verifyPacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the developer verification packet can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-developer-verification-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Developer Verification Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+Head: ${git.head || 'unknown'}
+Verification maturity: ${profile.values.verificationMaturity || inferVerificationMaturity(commands)}
+
+## Developer / Agent Verification
+
+This packet records verification performed by the developer or coding agent. It is separate from the human QA Markdown test script.
+
+## Recommended Checks
+
+${formatCommandList(commands, inferRouteFromTask(task, git, profile.values))}
+
+## Checks Run
+
+| Check | Command / Method | Result | Notes |
+| --- | --- | --- | --- |
+|  |  |  |  |
+
+## Manual Smoke / Rendered / API / Data Checks
+
+- Manual smoke:
+- Rendered UI:
+- API or service:
+- Data/storage:
+- Integration:
+
+## Test Introduction Opportunity
+
+- Existing test harness:
+- Smallest useful test for this change:
+- If not adding a test now, cap/rationale:
+
+## Verification Caps
+
+- No automated tests:
+- Environment unavailable:
+- Data/integration unavailable:
+- Other:
+
+## Completion Command
+
+\`\`\`bash
+sdlc verify complete --packet ${relative(repo, outPath)} --checks "" --caps ""
+\`\`\`
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function verifyComplete(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const git = getGitInfo(repo);
+  const entry = `## Developer Verification Completion
+
+Completed: ${new Date().toISOString()}
+Repository status: ${formatInlineStatus(git.status)}
+Head: ${git.head || 'unknown'}
+
+### Checks
+
+${formatOptionList(options.checks)}
+
+### Caps
+
+${formatOptionList(options.caps)}
+
+### Result
+
+- Outcome: ${options.outcome || 'not provided'}
+- Notes: ${options.notes || ''}
+`;
+
+  appendPacketCompletion(packetPath, entry);
+  console.log(relative(repo, packetPath));
 }
 
 function reviewPacket(repo, options = {}) {
@@ -833,6 +1051,8 @@ Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
 ## Release Scope
 
 - No commit, push, merge, deploy, publish, or destructive action was taken by packet generation.
+- The SDLC prepares release readiness/handoff evidence only; it must not automatically merge, deploy, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.
+- Commit and push require explicit human approval.
 - Changed files:
 ${indentList(git.changedFiles)}
 - Recent commits:
@@ -924,6 +1144,147 @@ ${formatOptionList(options.evidence || (action === 'none' ? 'No git or release a
 \`\`\`bash
 sdlc calibrate add --route release-push --checks "${escapeCommandArg(options.checks || '')}" --caps "${escapeCommandArg(options.caps || '')}" --outcome "${escapeCommandArg(options.outcome || options.verdict || action)}" --route-fit "${escapeCommandArg(options.routeFit || '')}" --context-missing "${escapeCommandArg(options.contextMissing || '')}" --verification-missing "${escapeCommandArg(options.verificationMissing || '')}" --friction "${escapeCommandArg(options.friction || '')}" --process-change-proposed "${escapeCommandArg(options.processChangeProposed || '')}"
 \`\`\`
+`;
+
+  appendPacketCompletion(packetPath, entry);
+  console.log(relative(repo, packetPath));
+}
+
+function qaScript(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the QA test script can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = git.changedFiles;
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-qa-test-script.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# QA Test Script: ${task}
+
+## Summary
+
+Validate the changed behavior for this task and regression-test the affected site/application areas. This Markdown is intended to be pasted into YouTrack and followed by human QA testers. It does not assume QA will use AI, inspect source code, run developer commands, or know the SDLC.
+
+## Scope
+
+### In Scope
+
+${formatList(qaAreas(task, files))}
+
+### Out Of Scope
+
+- Source-code review.
+- Developer-only build/test commands.
+- Merge, deploy, release, or branch movement decisions.
+
+## Environment
+
+- Environment: QA
+- Browser/device:
+- User role:
+- Test account/data:
+- Build/version/branch: ${git.branch || 'unknown'} / ${git.head || 'unknown'}
+
+## Preconditions
+
+- Required permissions:
+- Required test data:
+- Feature flags/config:
+- External systems/sandbox availability:
+
+## Test Cases
+
+### QA-001: Primary Changed Workflow
+
+**Purpose:** Validate the main behavior changed by this task.
+
+**Steps**
+1. Navigate to the affected area.
+   - Expected: The page/workflow loads without errors.
+2. Perform the primary changed action.
+   - Expected: The new or fixed behavior works as described in the task.
+3. Refresh or revisit the affected area when persistence matters.
+   - Expected: Data/state remains correct.
+
+**Result**
+- Pass/Fail:
+- Actual result:
+- Notes:
+
+### QA-002: Regression Check
+
+**Purpose:** Ensure nearby existing behavior still works.
+
+**Steps**
+1. Run the closest existing workflow that uses the same page/API/data/integration.
+   - Expected: Existing behavior still works.
+2. Check validation/error handling for the affected area.
+   - Expected: Errors are clear and no unexpected failures occur.
+
+**Result**
+- Pass/Fail:
+- Actual result:
+- Notes:
+
+## Regression Checklist
+
+- [ ] Changed workflow works.
+- [ ] Existing nearby workflow still works.
+- [ ] Permissions/roles behave correctly.
+- [ ] Existing saved data displays correctly.
+- [ ] Validation and error messages behave correctly.
+- [ ] No unexpected page, API, or integration errors are visible to QA.
+
+## Known Risks / Notes
+
+- Touched surfaces: ${formatInlineList(dedupe(files.map(classifyTouchedSurface)))}
+- Changed files: ${files.length}
+- Verification maturity: ${profile.values.verificationMaturity || 'not configured'}
+- Developer caps to communicate:
+
+## Developer Verification Summary
+
+- Developer/agent checks run:
+- Known verification caps:
+
+## QA Completion
+
+- QA status:
+- QA tester:
+- Date:
+- Notes:
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function qaComplete(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const status = options.status || '';
+  if (!status) fail('Pass --status "draft|ready|blocked" so QA script readiness is explicit.');
+  if (!['draft', 'ready', 'blocked'].includes(status)) fail('Use --status "draft", "ready", or "blocked".');
+
+  const entry = `## QA Script Completion
+
+Completed: ${new Date().toISOString()}
+Status: ${status}
+Ready for YouTrack paste: ${status === 'ready' ? 'yes' : 'no'}
+
+### Remaining Gaps / Caps
+
+${formatOptionList(options.caps)}
+
+### Linked Evidence
+
+- Impact packet: ${options.impact || ''}
+- Touched packet: ${options.touched || ''}
+- Developer verification packet: ${options.verify || ''}
+
+### Notes
+
+${options.notes || ''}
 `;
 
   appendPacketCompletion(packetPath, entry);
@@ -1378,8 +1739,9 @@ function setupDoctor(repo, options = {}) {
     '```text',
     '- Rendered UI review command: npm run dev',
     '- Accessibility review policy: optional',
+    '- Verification maturity: no automated tests / manual QA only / smoke tests / partial automated tests / mature CI',
     '- Release policy: local commit/push only after tests/build pass and human approval',
-    '- Human approval gates: commit, push, dependency install, external service calls, destructive commands',
+    '- Human approval gates: commit, push, dependency install, external service calls, destructive commands; merge/deploy/release actions are project-specific human processes',
     '- Approved tools: git, npm scripts, local browser/rendered inspection, SDLC helper',
     '- Blocked tools: credentialed production writes, destructive Git commands, dependency installs without approval',
     '- Sensitive data restrictions: no secrets, credentials, customer data, or private transcripts in tracked docs/evidence',
@@ -1523,6 +1885,86 @@ function handoff(repo) {
   });
 }
 
+function finalGate(repo, options = {}) {
+  const task = options.task || '';
+  const git = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const hasTouched = packets.some((packet) => packet.kind === 'touched');
+  const hasImpact = packets.some((packet) => packet.kind === 'impact');
+  const hasVerify = packets.some((packet) => packet.kind === 'developer-verification' && packet.completed);
+  const hasQa = packets.some((packet) => packet.kind === 'qa-script');
+  const open = [];
+  if (git.status && !hasTouched) open.push('touched packet missing for dirty work');
+  if (task && !hasImpact) open.push('impact packet missing for scoped task');
+  if (!hasVerify) open.push('developer verification packet completion missing or capped');
+  if (!hasQa) open.push('human QA Markdown script missing or explicitly not needed');
+
+  printObject({
+    repository: repo,
+    task: task || 'not provided',
+    branch: git.branch || 'unknown',
+    status: git.status || 'clean',
+    readyToCommit: open.length ? 'no' : 'yes, with explicit human approval only',
+    readyToPush: open.length ? 'no' : 'only with explicit human approval',
+    readyForQaHandoff: hasQa ? 'yes' : 'no',
+    mergeDeployRelease: 'forbidden by SDLC default; use project-specific human process',
+    openGates: open.join('; ') || 'none detected',
+    suggestedNextCommand: open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc git packet',
+  });
+}
+
+function gitPacket(repo, options = {}) {
+  const gitInfo = getGitInfo(repo);
+  const files = gitInfo.changedFiles;
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-git-action-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Git Action Packet
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Branch: ${gitInfo.branch || 'unknown'}
+Upstream: ${gitInfo.upstream || 'not configured'}
+Ahead/behind: ${gitInfo.behind} behind / ${gitInfo.ahead} ahead
+Head: ${gitInfo.head || 'unknown'}
+Status: ${gitInfo.status || 'clean'}
+
+## Policy
+
+- This packet prepares Git action evidence only.
+- The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.
+- Commit requires explicit human approval.
+- Push requires explicit human approval.
+- Merge/deploy/release follows the project-specific human process.
+
+## Proposed Commit
+
+- Proposed message:
+- Include files:
+${indentList(files)}
+- Exclude/review before commit:
+
+## Approval Choices
+
+- [ ] No action.
+- [ ] Commit only.
+- [ ] Commit and push.
+
+## Push Target
+
+- Remote/upstream: ${gitInfo.upstream || 'not configured'}
+- Push cap/risk:
+
+## Risks / Notes
+
+- Dirty surfaces: ${formatInlineList(dedupe(files.map(classifyTouchedSurface)))}
+- Human approval:
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
 function loadProfile(repo) {
   const candidates = [
     join(repo, '.sdlc', 'profile.json'),
@@ -1583,8 +2025,17 @@ function getGitInfo(repo) {
     ahead: Number(counts[1] || 0),
     status,
     head,
-    changedFiles: status.split(/\r?\n/).filter(Boolean).map((line) => line.slice(3).trim()),
+    changedFiles: status.split(/\r?\n/).filter(Boolean).map(parseStatusPath),
   };
+}
+
+function parseStatusPath(line) {
+  const text = String(line);
+  if (/^\?\? /.test(text)) return text.slice(3).trim();
+  if (/^ [A-Z] /.test(text)) return text.slice(3).trim();
+  if (/^[A-Z]  /.test(text)) return text.slice(3).trim();
+  if (/^[A-Z] /.test(text)) return text.slice(2).trim();
+  return text.trim();
 }
 
 function git(repo, args) {
@@ -1659,6 +2110,29 @@ function scenarioRegressionCases() {
       name: 'internal optional accessibility',
       task: 'internal admin UI layout tweak with optional accessibility note',
       expectedRoute: 'ui-rendered-review',
+    },
+    {
+      name: 'package upgrade maintenance',
+      task: 'upgrade package versions for routine maintenance',
+      expectedRoute: 'standard',
+      expectedSecurityOverlay: true,
+    },
+    {
+      name: 'third party integration',
+      task: 'update third-party webhook integration error handling',
+      expectedRoute: 'standard',
+      expectedSecurityOverlay: true,
+    },
+    {
+      name: 'manual qa script',
+      task: 'produce a markdown QA test script for YouTrack for this site change',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'no automatic merge deploy',
+      task: 'prepare final gate but do not merge deploy release or move code between branches',
+      expectedRoute: 'release-push',
+      expectedSecurityOverlay: true,
     },
     {
       name: 'tiny docs',
@@ -2014,7 +2488,7 @@ function readPacket(repo, path) {
     path,
     kind,
     route: packetRoute(text, kind),
-    completed: /## (Review|Release) Completion/.test(text),
+    completed: /## (Review|Release|Developer Verification|QA Script) Completion/.test(text),
     verdict: firstMatch(text, /^Verdict:\s*(.+)$/m),
     action: firstMatch(text, /^Action:\s*(.+)$/m),
     head: firstMatch(text, /^Head:\s*(.+)$/m),
@@ -2026,6 +2500,11 @@ function readPacket(repo, path) {
 function packetKind(text) {
   if (text.includes('# SDLC Review Packet')) return 'review';
   if (text.includes('# SDLC Release Packet')) return 'release';
+  if (text.includes('# SDLC Touched Surface Ledger')) return 'touched';
+  if (text.includes('# SDLC Impact Packet')) return 'impact';
+  if (text.includes('# SDLC Developer Verification Packet')) return 'developer-verification';
+  if (text.includes('# QA Test Script:')) return 'qa-script';
+  if (text.includes('# SDLC Git Action Packet')) return 'git-action';
   if (text.includes('# SDLC Multi-Repo Packet')) return 'multi-repo';
   if (text.includes('# SDLC Contract Packet')) return 'contract';
   if (text.includes('# SDLC Route Packet')) return 'route';
@@ -2040,6 +2519,8 @@ function packetRoute(text, kind) {
   if (kind === 'release') return 'release-push';
   if (kind === 'multi-repo') return 'multi-repo-integration';
   if (kind === 'contract') return 'contract-first';
+  if (kind === 'developer-verification') return 'verification';
+  if (kind === 'qa-script') return 'qa-script';
   return kind;
 }
 
@@ -2203,6 +2684,14 @@ function runStartGates(route, task, gitInfo, profile) {
   return gates.length ? gates : ['normal route gates only'];
 }
 
+function suggestedFinalGateCommand(gate, task) {
+  if (gate.includes('touched')) return 'sdlc touched packet';
+  if (gate.includes('impact')) return `sdlc impact packet --task "${escapeCommandArg(task || 'current task')}"`;
+  if (gate.includes('verification')) return `sdlc verify packet --task "${escapeCommandArg(task || 'current task')}"`;
+  if (gate.includes('QA')) return `sdlc qa script --task "${escapeCommandArg(task || 'current task')}"`;
+  return 'sdlc packet status';
+}
+
 function contextUpdateTargets(route, dirtySurfaces, contracts, profile) {
   const targets = [];
   if (!profile.sharedContextRoot && route === 'multi-repo-integration') targets.push('SDLC profile: configure shared context root or related repository map');
@@ -2273,6 +2762,10 @@ function formatList(items) {
   return items.map((item) => `- ${item}`).join('\n');
 }
 
+function formatInlineList(items) {
+  return items.length ? items.join(', ') : 'none';
+}
+
 function formatOptionList(value) {
   return formatList(splitList(value));
 }
@@ -2335,6 +2828,66 @@ function formatReviewChecks(commands, route) {
   if (commands.lint) lines.push(`- lint/typecheck/format: \`${commands.lint}\``);
   if (commands.rendered && route === 'ui-rendered-review') lines.push(`- rendered: \`${commands.rendered}\``);
   return lines.join('\n');
+}
+
+function classifyTouchedSurface(file) {
+  const value = String(file || '').toLowerCase();
+  if (/\.(asp|asa|aspx|ascx)$/.test(value)) return 'frontend/UI';
+  if (/\.(tsx|jsx|css|scss|html|vue|svelte)$/.test(value)) return 'frontend/UI';
+  if (/\.(cs|vb|fs|go|rs|java|kt|php|rb|py)$/.test(value)) return 'backend/API';
+  if (/\.(sql)$/.test(value) || value.includes('migration') || value.includes('schema')) return 'database/storage';
+  if (value.includes('contract') || value.includes('openapi') || value.includes('swagger') || value.includes('proto')) return 'contracts/interfaces';
+  if (value.includes('integration') || value.includes('webhook') || value.includes('vendor') || value.includes('third')) return 'external integration';
+  if (value.includes('package.json') || value.includes('package-lock') || value.includes('pnpm-lock') || value.includes('yarn.lock') || value.includes('deno.json')) return 'dependencies';
+  if (value.includes('.env') || value.includes('config') || value.includes('appsettings') || value.includes('pipeline') || value.includes('docker')) return 'config/environment';
+  if (/\.(test|spec)\./.test(value) || value.includes('__tests__') || value.includes('/tests/')) return 'tests';
+  if (value.endsWith('.md') || value.includes('/docs/')) return 'docs/context';
+  if (value.includes('/scripts/') || value.includes('/tools/') || value.includes('/bin/')) return 'scripts/tooling';
+  if (value.includes('/dist/') || value.includes('/build/') || value.includes('/generated/')) return 'generated/build artifacts';
+  return 'source/other';
+}
+
+function classifyRuntimeSurface(file) {
+  const value = String(file || '').toLowerCase();
+  if (/\.(asp|asa)$/.test(value)) return 'ASP Classic';
+  if (/\.(cs|csproj|sln)$/.test(value)) return '.NET';
+  if (/\.(sql)$/.test(value)) return 'SQL/database';
+  if (value.includes('deno.json') || value.includes('jsr.json')) return 'Deno/JSR';
+  if (value.includes('package.json') || /\.(ts|tsx|js|jsx)$/.test(value)) return 'Node/TypeScript';
+  if (value.includes('next.config')) return 'Next.js';
+  if (value.includes('docker') || value.includes('pipeline') || value.includes('workflow')) return 'deployment/tooling';
+  return 'generic';
+}
+
+function needsManualQa(file) {
+  return ['frontend/UI', 'backend/API', 'database/storage', 'external integration', 'contracts/interfaces', 'config/environment', 'dependencies'].includes(classifyTouchedSurface(file));
+}
+
+function impactAreas(task, files, profile = {}) {
+  const text = `${task} ${profile.repositoryRole || ''}`.toLowerCase();
+  const areas = [];
+  if (files.some((file) => classifyTouchedSurface(file) === 'frontend/UI') || matchesAny(text, ['site', 'page', 'screen', 'ui', 'client', 'animation', 'game', 'turn', 'workflow', 'feature'])) areas.push('user-visible site/application workflow');
+  if (files.some((file) => classifyTouchedSurface(file) === 'backend/API') || matchesAny(text, ['api', 'service', 'endpoint'])) areas.push('API/service behavior');
+  if (files.some((file) => classifyTouchedSurface(file) === 'database/storage') || matchesAny(text, ['database', 'sql', 'data', 'storage'])) areas.push('data/storage behavior');
+  if (files.some((file) => classifyTouchedSurface(file) === 'external integration') || matchesAny(text, ['third party', 'third-party', 'vendor', 'webhook', 'integration'])) areas.push('external integration behavior');
+  if (files.some((file) => classifyTouchedSurface(file) === 'dependencies') || matchesAny(text, ['package', 'dependency', 'upgrade'])) areas.push('dependency/package behavior');
+  if (!areas.length) areas.push('task-specific behavior to identify during implementation');
+  return dedupe(areas);
+}
+
+function qaAreas(task, files) {
+  const areas = impactAreas(task, files, {});
+  const checks = areas.map((area) => `Validate ${area}.`);
+  if (files.some((file) => classifyTouchedSurface(file) === 'config/environment')) checks.push('Validate environment/configuration-dependent behavior.');
+  if (files.some((file) => classifyTouchedSurface(file) === 'dependencies')) checks.push('Run a regression smoke path for dependency/package upgrade side effects.');
+  if (!checks.length) checks.push('Validate the changed behavior described in the task.');
+  return dedupe(checks);
+}
+
+function inferVerificationMaturity(commands) {
+  if (commands.test && commands.build && commands.lint) return 'partial automated tests';
+  if (commands.test) return 'smoke tests or partial automated tests';
+  return 'manual QA only / no automated tests configured';
 }
 
 function formatReleaseChecks(commands) {

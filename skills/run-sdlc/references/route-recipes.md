@@ -23,6 +23,16 @@ Each recipe defines:
 
 Use `sdlc done check --route <route> --packet <packet>` before final completion claims. The helper checks route-specific evidence shape and reports unresolved gates; it does not replace human approval, source review, or command interpretation.
 
+For implementation, bugfix, maintenance, optimization, or release-facing work that needs human QA or handoff, prefer the universal evidence set:
+
+- `sdlc touched packet` for changed technical surfaces,
+- `sdlc impact packet --task "..."` for user/system impact,
+- `sdlc verify packet --task "..."` for developer/agent verification,
+- `sdlc qa script --task "..."` for Markdown manual QA test scripts that can be pasted into YouTrack,
+- `sdlc final gate --task "..."` and `sdlc git packet` for human-approved final action decisions.
+
+The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines. Commit and push require explicit human approval.
+
 ## Security Trigger Overlay
 
 Apply `classify-work/references/security-route-triggers.md` before starting any route. Security/tool triggers add consent gates, threat-model/security review expectations, and evidence fields to the base route. They may escalate risk while preserving the selected route name.

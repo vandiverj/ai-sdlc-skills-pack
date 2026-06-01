@@ -17,15 +17,16 @@ For delegated final Git handoff, use the local reference `references/final-git-h
 5. Before public push or PR, verify latest commit author/committer identity with `git log --format=fuller -1`.
 6. Summarize changed files.
 7. Confirm docs/context updates.
-8. Provide commit message.
-9. Present finish options:
-   - push/create PR
-   - merge locally
-   - keep branch
-   - discard branch
+8. Provide commit message and Git action packet when useful.
+9. Present finish options without taking the action:
+   - no action
+   - commit only, with explicit approval
+   - commit and push, with explicit approval
+   - project-specific handoff/merge/deploy process for the human to run
 10. Save context checkpoint.
 
 ## Do not
 - Claim the branch is done without verification evidence.
 - Push or merge without an explicit user instruction or configured workflow.
+- Merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines by default.
 - Push public/shared work without checking Git identity and local-only files.
