@@ -79,6 +79,8 @@ sdlc done check --route <route> --packet <packet>
 sdlc run finish --route <route> --packet <packet>
 ```
 
+Done checks are route-specific. Treat open checks as unresolved gates unless the human explicitly accepts the cap. The helper checks evidence shape for review-only, release-push, standard, ui-rendered-review, bugfix-regression, weak-test-legacy, multi-repo-integration, contract-first, and tiny-docs routes; it does not replace source review or judgment.
+
 For context, multi-repo, contract, health, and calibration improvement work, use the dedicated helpers:
 
 ```bash

@@ -21,6 +21,8 @@ Each recipe defines:
 - stop gates,
 - done criteria.
 
+Use `sdlc done check --route <route> --packet <packet>` before final completion claims. The helper checks route-specific evidence shape and reports unresolved gates; it does not replace human approval, source review, or command interpretation.
+
 ## Security Trigger Overlay
 
 Apply `classify-work/references/security-route-triggers.md` before starting any route. Security/tool triggers add consent gates, threat-model/security review expectations, and evidence fields to the base route. They may escalate risk while preserving the selected route name.

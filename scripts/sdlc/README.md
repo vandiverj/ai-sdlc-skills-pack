@@ -16,6 +16,9 @@ sdlc run start --task "fix payment webhook contract"
 sdlc run finish --route multi-repo-integration
 sdlc packet status
 sdlc done check --route review-only --packet .ai-local/sdlc-runs/<packet>.md
+sdlc done check --route standard --packet .ai-local/sdlc-runs/<packet>.md
+sdlc done check --route contract-first --packet .ai-local/sdlc-runs/<packet>.md
+sdlc done check --route multi-repo-integration --packet .ai-local/sdlc-runs/<packet>.md
 sdlc review packet --task "review the current diff without edits"
 sdlc review complete --packet .ai-local/sdlc-runs/<packet>.md --verdict "pass with notes" --checks "git show --check HEAD,npm run test" --caps "rendered evidence not run"
 sdlc release packet
@@ -38,3 +41,5 @@ sdlc calibrate propose
 ```
 
 The CLI is an affordance over the Markdown SDLC. It does not replace agent judgment, human approval gates, source review, or route-specific skill guidance.
+
+`sdlc done check` is route-specific. It verifies the packet/evidence shape for review, release, standard, UI-rendered, bugfix-regression, weak-test-legacy, multi-repo, contract-first, and tiny-docs work, then reports open gates without taking release or edit actions.
