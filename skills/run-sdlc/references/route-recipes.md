@@ -25,6 +25,9 @@ Use `sdlc done check --route <route> --packet <packet>` before final completion 
 
 For implementation, bugfix, maintenance, optimization, or release-facing work that needs human QA or handoff, prefer the universal evidence set:
 
+- `sdlc task start --task "..."` for the normalized task contract,
+- `sdlc task ledger --task "..."` for the evidence index,
+- `sdlc context freshness --task "..."` and `sdlc change graph --task "..."` for context confidence and impact graph-lite,
 - `sdlc touched packet` for changed technical surfaces,
 - `sdlc impact packet --task "..."` for user/system impact,
 - `sdlc verify packet --task "..."` for developer/agent verification,
@@ -38,6 +41,7 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc gates --task "..."` for the open-gate dashboard.
 - `sdlc handoff draft --task "..."` for MR/release/QA/deployment text drafts without creating or triggering anything.
 - `sdlc process health` for process-level repeated caps, open packets, and improvement signals.
+- `sdlc task finish --task "..."` for the final human approval decision screen.
 
 The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines. Commit and push require explicit human approval.
 
