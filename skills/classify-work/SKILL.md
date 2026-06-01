@@ -69,10 +69,10 @@ Examples: typo fix, formatting-only change, comment wording, dead link update, m
 Fast-pass route:
 ```text
 classify-work
--> select-context, minimal
--> safe-edit-boundary, implicit or one-line
+-> context, minimal selection
+-> implementation safe-edit boundary, implicit or one-line
 -> direct edit
--> verification-before-completion, smallest relevant check or documented inspection
+-> quality verification, smallest relevant check or documented inspection
 ```
 
 Evidence packet level: one-line summary.
@@ -87,14 +87,14 @@ Examples: small copy edit, simple config comment, narrow test expectation update
 Fast-pass route:
 ```text
 classify-work
--> select-tools, only if needed
--> select-context
--> safe-edit-boundary, lightweight
--> direct edit or execute-plan
--> verification-before-completion
--> assert-doc-sync, only if docs/code may disagree
--> update-context-docs, only if dirty surfaces require it
--> context-save, only if pending work/context changed
+-> tools, only if needed
+-> context selection
+-> implementation safe-edit boundary, lightweight
+-> direct edit or implementation execution
+-> quality verification
+-> context doc-sync check, only if docs/code may disagree
+-> context docs update, only if dirty surfaces require it
+-> context save, only if pending work/context changed
 ```
 
 Usually skip application modeling, PRD, issues, contract spec, implementation plan, outside voice, broad reviews, and branch finishing.
@@ -107,22 +107,22 @@ Use for bounded feature work, moderate bug fixes, or multi-file changes with cle
 Fast-pass route:
 ```text
 classify-work
--> select-tools, only if needed
--> select-context
--> choose-implementation-pattern, if repeated project-specific patterns may apply
--> existing PRD/task source or to-prd if requirements need durable form
--> to-issues, if not already tracked
--> write-implementation-plan
--> review-implementation-plan
--> safe-edit-boundary
--> execute-plan / tdd
--> verification-before-completion
--> review-spec-compliance
--> assert-doc-sync, if dirty surfaces require it
--> review-code-quality
--> update-context-docs, dirty surfaces only
--> manage-context-state, if uncertainty changed
--> context-save
+-> tools, only if needed
+-> context selection
+-> implementation pattern selection, if repeated project-specific patterns may apply
+-> existing PRD/task source or planning PRD conversion if requirements need durable form
+-> planning issues, if not already tracked
+-> planning implementation plan
+-> review implementation-plan reference
+-> implementation safe-edit boundary
+-> implementation execution / TDD
+-> quality verification
+-> review spec-compliance reference
+-> context doc-sync check, if dirty surfaces require it
+-> review code-quality reference
+-> context docs update, dirty surfaces only
+-> context state management, if uncertainty changed
+-> context save
 ```
 
 For Standard work, spec compliance, artifact sync, and code quality can be performed as one concise review pass when risk is low and the dirty surfaces are narrow.
@@ -148,8 +148,8 @@ High-risk does not always mean every step. Every skipped gate must be justified.
 Usually required:
 - model/PRD/context-state alignment
 - contract spec when public/cross-boundary behavior changes
-- structured reasoning or `select-tools` for Sequential Thinking-style support when useful
-- `threat-model` when security, privacy, data, dependency, integration, untrusted input, AI/agent, tool-access, or abuse-case risk is present
+- structured reasoning or tools selection for Sequential Thinking-style support when useful
+- `review/references/threat-model.md` when security, privacy, data, dependency, integration, untrusted input, AI/agent, tool-access, or abuse-case risk is present
 - implementation plan and review
 - security/privacy/supply-chain/license risk review
 - data retention/deletion review when user data is involved
@@ -157,8 +157,8 @@ Usually required:
 - contract/type/schema stress testing where relevant
 - performance, accessibility, observability, and rollout checks where relevant
 - fresh verification evidence
-- `production-readiness-review` before merge/release/deploy/handoff for production-intended changes
-- `assert-doc-sync`
+- `review/references/production-readiness.md` before merge/release/deploy/handoff for production-intended changes
+- context doc-sync check
 - context and release documentation updates only where dirty surfaces require them
 
 Evidence packet level: full evidence packet with waiver/status notes.
@@ -169,16 +169,16 @@ Use for spikes, prototypes, research, or uncertain feasibility work.
 Fast-pass route:
 ```text
 classify-work
--> select-tools, likely useful
--> select-context
--> product-reframe or grill-me, if ambiguity is product/requirements
--> model-application, only if exploring architecture
--> safe-edit-boundary
--> execute-plan as spike/prototype
--> verification-before-completion, evidence of findings
--> health-check, if prototype affects repo health
--> manage-context-state, capture questions/decisions
--> context-save
+-> tools, likely useful
+-> context selection
+-> planning product framing or grill-me, if ambiguity is product/requirements
+-> planning application model, only if exploring architecture
+-> implementation safe-edit boundary
+-> implementation execution as spike/prototype
+-> quality verification, evidence of findings
+-> quality health check, if prototype affects repo health
+-> context state management, capture questions/decisions
+-> context save
 ```
 
 Exploratory work produces findings, options, risks, and a recommended next classification. It does not produce production completion claims.
@@ -191,10 +191,10 @@ Use when inspecting a diff, artifact, prior agent session, or branch without app
 Fast-pass route:
 ```text
 classify-work
--> select-context
--> choose-agent-strategy, if independent review or specialist review is useful
--> review-agent-work or review-spec-compliance/review-code-quality as applicable
--> verification-before-completion, only if evidence is missing and commands can be run safely
+-> context selection
+-> agents strategy, if independent review or specialist review is useful
+-> review agent-work, spec-compliance, or code-quality references as applicable
+-> quality verification, only if evidence is missing and commands can be run safely
 ```
 
 Evidence packet level: findings packet.
@@ -207,9 +207,9 @@ Use when preparing merge, deploy, QA, ticket update, or local review packet.
 Fast-pass route:
 ```text
 classify-work
--> verification-before-completion
--> review-agent-work, production-readiness-review, or finish-development-branch as applicable
--> context-save / update-context-docs, dirty surfaces only
+-> quality verification
+-> review agent-work / production-readiness or release finish-development-branch references as applicable
+-> context save / docs update, dirty surfaces only
 ```
 
 Evidence packet level: release/handoff packet.
@@ -246,23 +246,23 @@ uncertaintyChanged: yes/no
 Surface routing:
 - `requirementsSurfaceChanged` -> update/review product intent, PRD, issue, acceptance criteria, or application model section.
 - `publicContractSurfaceChanged` -> write/review contract spec; update public API docs, schemas, type docs, examples, or compatibility notes.
-- `technicalApproachChanged` -> run `choose-technical-approach`; update ADRs, application model, AGENTS.md, context-state, and Memory Bank indexes as applicable.
-- `qualityAutomationChanged` -> run `choose-quality-automation`; update command wiring, CI/local preflight docs, AGENTS.md, verification expectations, context-state, and Memory Bank indexes as applicable.
-- `retrievalApproachChanged` -> run `choose-retrieval-approach`; update retrieval decisions, tool boundaries, index/report locations, freshness expectations, AGENTS.md, context-state, and Memory Bank indexes as applicable.
+- `technicalApproachChanged` -> use implementation technical-approach guidance; update ADRs, application model, AGENTS.md, context-state, and Memory Bank indexes as applicable.
+- `qualityAutomationChanged` -> use quality automation guidance; update command wiring, CI/local preflight docs, AGENTS.md, verification expectations, context-state, and Memory Bank indexes as applicable.
+- `retrievalApproachChanged` -> use tools retrieval-approach guidance; update retrieval decisions, tool boundaries, index/report locations, freshness expectations, AGENTS.md, context-state, and Memory Bank indexes as applicable.
 - systemSurfaceChanged -> update/review application model, ADRs, diagrams, dependency boundaries, data flows, or feature context.
 - `verificationSurfaceChanged` -> update tests, verification plan, health-check expectations, or evidence requirements.
 - `docsContextSurfaceChanged` -> update code-local docs, feature context, Memory Bank routing, context index, release docs, or developer docs.
-- `riskSurfaceChanged` -> run `threat-model`, security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review, or `production-readiness-review` as applicable.
-- `implementationPatternChanged` -> run `choose-implementation-pattern`, `review-implementation-pattern`, or `update-implementation-patterns`; update `docs/patterns/*`, feature context, AGENTS.md, context-state, or Memory Bank indexes as applicable.
+- `riskSurfaceChanged` -> use `review/references/threat-model.md`, security/privacy/dependency/license/migration/rollback/performance/accessibility/observability/rollout review, or `review/references/production-readiness.md` as applicable.
+- `implementationPatternChanged` -> use implementation pattern selection, `review/references/implementation-pattern.md`, or process-learning pattern updates; update `docs/patterns/*`, feature context, AGENTS.md, context-state, or Memory Bank indexes as applicable.
 - `agentOpsSurfaceChanged` -> update `AGENTS.md`, setup commands, verification commands, safe-edit rules, or workflow guidance.
-- `agentStrategyChanged` -> run `choose-agent-strategy`, `review-agent-strategy`, or `update-agent-definitions`; update `docs/agents/*`, runtime adapters, or AGENTS.md as applicable.
-- `processLearningSurfaceChanged` -> run `capture-process-event` or include the evidence in a `review-process-learning` report.
+- `agentStrategyChanged` -> use agents strategy selection/update guidance or `review/references/agent-strategy.md`; update `docs/agents/*`, runtime adapters, or AGENTS.md as applicable.
+- `processLearningSurfaceChanged` -> use process-learning event capture or include the evidence in a process-learning review report.
 - `uncertaintyChanged` -> update `docs/context-state.md`.
 
 Legacy dirty flags may still appear in older artifacts. Map them to the surface groups instead of preserving both lists.
 
 ## Mid-stream reclassification
-During `execute-plan`, `verification-before-completion`, review, or doc-sync, pause and reclassify when:
+During implementation execution, quality verification, review, or doc-sync, pause and reclassify when:
 
 - The change touches more files/modules than expected.
 - Public behavior, contracts, schema, API, CLI, integration, data, auth, security, privacy, dependency, migration, infrastructure, concurrency, or architecture changes appear.
@@ -274,7 +274,7 @@ During `execute-plan`, `verification-before-completion`, review, or doc-sync, pa
 Reclassification may escalate or narrow the route. Record why the original route changed.
 
 ## Confidence and escalation
-If classification confidence is below 80%, take the smallest uncertainty-reducing step: ask one or two clarifying questions, run `select-context`, use `diagnose`, use `grill-me`, use `select-tools`, or draft/review a contract spec.
+If classification confidence is below 80%, take the smallest uncertainty-reducing step: ask one or two clarifying questions, use context selection, implementation diagnosis, `grill-me`, tools selection, or draft/review a contract spec.
 
 Escalate when:
 - Micro -> Tiny: behavior, tests, docs, shared code, generated files, or more than one meaningful file changes.
@@ -282,16 +282,16 @@ Escalate when:
 - Standard -> High-risk: public behavior, auth, permissions, user data, dependencies, migrations, infrastructure, concurrency, external integrations, or architecture changes.
 - Exploratory -> Standard: spike findings become production implementation.
 - Exploratory -> High-risk: spike touches high-risk systems or recommends high-risk production work.
-- Any route -> `manage-context-state`: uncertainty, blocked questions, or affected artifacts appear.
-- Any route -> `assert-doc-sync`: code/docs/contracts/context disagree or related dirty surfaces are true.
-- Any route -> `choose-technical-approach`: stack, architecture, runtime, dependency, service, persistence, deployment, testing, or operations decisions are missing or changing.
-- Any route -> `choose-quality-automation`: formatter, linter, typecheck, test, build, contract, accessibility, security, dependency, license, generated artifact, docs, CI, local preflight, or verification command decisions are missing, stale, noisy, or changing.
-- Any route -> `choose-retrieval-approach`: RAG, embeddings, vector search, graph/index tooling, repo retrieval, Obsidian-style navigation, hosted retrieval, indexing cadence, source scope, freshness, privacy, or retrieval trust boundaries are missing, stale, risky, unnecessary, or changing.
-- Any route -> `choose-agent-strategy`: Standard, High-risk, Exploratory, broad review, or release work may benefit from delegation, model-tier selection, specialist review, independent verification, or runtime-specific agent boundaries.
-- Any route -> `choose-implementation-pattern`: work touches repeated project-specific implementation surfaces such as forms, tables, modals, data fetching, API handlers, error handling, tests, layouts, or feature module structure.
-- Any route -> `threat-model`: security, privacy, user data, untrusted input, dependency/supply-chain, external integration, public contract, AI/agent, tool-access, or abuse-case risk is present and not already addressed.
-- Any route -> `production-readiness-review`: Standard or High-risk work is intended for merge, release, deploy, or production handoff and needs Git reviewability, rollback, observability, or release confidence.
-- Any route -> select-tools: current external docs, reasoning scaffold, repo retrieval, or tool boundaries are needed.
+- Any route -> context state management: uncertainty, blocked questions, or affected artifacts appear.
+- Any route -> context doc-sync check: code/docs/contracts/context disagree or related dirty surfaces are true.
+- Any route -> implementation technical-approach guidance: stack, architecture, runtime, dependency, service, persistence, deployment, testing, or operations decisions are missing or changing.
+- Any route -> quality automation guidance: formatter, linter, typecheck, test, build, contract, accessibility, security, dependency, license, generated artifact, docs, CI, local preflight, or verification command decisions are missing, stale, noisy, or changing.
+- Any route -> tools retrieval-approach guidance: RAG, embeddings, vector search, graph/index tooling, repo retrieval, Obsidian-style navigation, hosted retrieval, indexing cadence, source scope, freshness, privacy, or retrieval trust boundaries are missing, stale, risky, unnecessary, or changing.
+- Any route -> agents strategy guidance: Standard, High-risk, Exploratory, broad review, or release work may benefit from delegation, model-tier selection, specialist review, independent verification, or runtime-specific agent boundaries.
+- Any route -> implementation pattern guidance: work touches repeated project-specific implementation surfaces such as forms, tables, modals, data fetching, API handlers, error handling, tests, layouts, or feature module structure.
+- Any route -> `review/references/threat-model.md`: security, privacy, user data, untrusted input, dependency/supply-chain, external integration, public contract, AI/agent, tool-access, or abuse-case risk is present and not already addressed.
+- Any route -> `review/references/production-readiness.md`: Standard or High-risk work is intended for merge, release, deploy, or production handoff and needs Git reviewability, rollback, observability, or release confidence.
+- Any route -> tools selection: current external docs, reasoning scaffold, repo retrieval, or tool boundaries are needed.
 
 ## Contextual caps
 Contextual caps limit completion confidence when required evidence is missing. Prefer these canonical caps over many custom numeric sub-scores:
@@ -354,4 +354,4 @@ Treat the work as higher risk when it touches:
 - Do not continue on the original route after evidence shows the route is wrong.
 
 ## Next skills
-Usually `select-tools` when tools are needed, then `select-context`, then the first required gate for the chosen fast-pass route.
+Usually `tools` when tool boundaries are needed, then `context` selection, then the first required gate for the chosen fast-pass route.

@@ -112,15 +112,14 @@ Use when installing or refreshing this SDLC in a downstream repository.
 Typical route:
 ```text
 classify-work
--> select-context
+-> context, for context selection
 -> setup-sdlc-in-repo
--> setup-agent-instructions, if AGENTS.md is missing or stale
--> choose-agent-strategy, if agent roles/model tiers/runtime adapters are needed
--> choose-implementation-pattern, if implementation pattern docs are missing or needed
--> choose-quality-automation, if command rails are missing or changing
--> choose-retrieval-approach, if retrieval/indexing is needed
--> verification-before-completion
--> context-save
+-> agents, if AGENTS.md, agent roles, model tiers, or runtime adapters are needed
+-> implementation, if technical approach or implementation pattern docs are missing or changing
+-> quality, if command rails are missing or changing
+-> tools, if retrieval/indexing is needed
+-> quality
+-> context, to save state
 ```
 
 Stop at ambiguous existing instructions, runtime adapter choices, new tooling/dependency decisions, or any change that would overwrite project-specific guidance.
@@ -131,21 +130,16 @@ Use when the user starts from an idea or empty/new repo.
 Typical route:
 ```text
 classify-work
--> context-restore, if repo exists
--> select-context
--> product-reframe
--> define-application
--> choose-technical-approach
--> choose-quality-automation
--> choose-retrieval-approach, if retrieval/RAG/indexing may be justified
--> choose-agent-strategy, if multiple runtimes, specialists, or model tiers may matter
--> choose-implementation-pattern, if project-specific implementation patterns may matter
+-> context, if repo exists or context selection is needed
+-> planning, for product framing and application definition
+-> implementation, for technical approach and implementation pattern choices
+-> quality, for verification and automation rails
+-> tools, if retrieval/RAG/indexing may be justified
+-> agents, if multiple runtimes, specialists, or model tiers may matter
 -> grill-me, if assumptions remain
--> model-application
--> review-application-model
--> to-prd
--> to-issues
--> write-implementation-plan for first slice
+-> planning, for application model
+-> review, for application model review
+-> planning, for PRD, issues, and first implementation plan
 ```
 
 Stop at product direction, application definition, technical approach, quality automation when needed, retrieval approach when needed, application model, MVP PRD, and first implementation plan approval.
@@ -156,19 +150,13 @@ Use when adding meaningful behavior to an existing project.
 Typical route:
 ```text
 classify-work
--> context-restore
--> select-context
--> product-reframe, if feature value is unclear
--> slice-product-fit, mandatory for Standard feature slices before PRD/issues/plan; for Tiny/Micro when actor/input/contract/data/AI risk appears
--> define/model update, if app structure changes
--> choose-technical-approach, if new technical surface is needed
--> choose-quality-automation, if verification or tooling rails are missing or changing
--> choose-retrieval-approach, if retrieval/RAG/indexing is part of the feature or context selection is failing
--> choose-agent-strategy, if delegation, specialist review, or model-tier selection would reduce risk
--> choose-implementation-pattern, if repeated project-specific implementation patterns apply
--> to-prd or update existing PRD
--> to-issues
--> write-implementation-plan
+-> context
+-> planning, for product framing, slice product-fit, and model updates
+-> implementation, if new technical surface or repeated implementation patterns apply
+-> quality, if verification or tooling rails are missing or changing
+-> tools, if retrieval/RAG/indexing is part of the feature or context selection is failing
+-> agents, if delegation, specialist review, or model-tier selection would reduce risk
+-> planning, for PRD/issues/implementation plan
 ```
 
 Stop at scope approval, technical approach, quality automation, or retrieval approval if needed, PRD/issue approval, and implementation plan approval.
@@ -179,19 +167,16 @@ Use when fixing broken behavior.
 Typical route:
 ```text
 classify-work
--> context-restore
--> select-context
--> diagnose
--> slice-product-fit, if the fix is Standard or actor/input/contract/data/cross-feature assumptions changed
--> choose-quality-automation, if verification or tooling rails are missing or changing
--> choose-retrieval-approach, if diagnosis needs missing/stale retrieval rails
--> choose-agent-strategy, if diagnosis needs read-only exploration, specialist review, or independent verification
--> choose-implementation-pattern, if the bug involves a repeated project pattern
--> write-implementation-plan, if non-trivial
--> safe-edit-boundary
--> execute-plan / tdd
--> verification-before-completion
--> assert-doc-sync, if behavior/docs may disagree
+-> context
+-> implementation, for diagnosis
+-> planning, if the fix is Standard or actor/input/contract/data/cross-feature assumptions changed
+-> quality, if verification or tooling rails are missing or changing
+-> tools, if diagnosis needs missing/stale retrieval rails
+-> agents, if diagnosis needs read-only exploration, specialist review, or independent verification
+-> planning, for implementation plan if non-trivial
+-> implementation, for safe edit boundary and execution/TDD
+-> quality, for verification before completion
+-> context, if behavior/docs may disagree
 ```
 
 Stop when expected behavior is unclear or a non-trivial/risky fix needs plan approval.
@@ -202,19 +187,17 @@ Use when changing structure without intended behavior change.
 Typical route:
 ```text
 classify-work
--> select-context
--> slice-product-fit, mandatory for Standard refactors where actors, contracts, shared concepts, or user-visible behavior may be affected
--> choose-technical-approach, if patterns/dependencies/architecture change
--> choose-quality-automation, if verification or tooling rails are missing or changing
--> choose-retrieval-approach, if retrieval/index sources or context-selection workflow changes
--> choose-agent-strategy, if the refactor can be split into bounded workers or specialist review
--> choose-implementation-pattern, if the refactor changes or depends on project patterns
--> write-implementation-plan
--> review-implementation-plan
--> safe-edit-boundary
--> execute-plan / tdd
--> verification-before-completion
--> review-code-quality
+-> context, for context selection
+-> planning, for Standard refactor product-fit if actors, contracts, shared concepts, or user-visible behavior may be affected
+-> implementation, if patterns/dependencies/architecture change
+-> quality, if verification or tooling rails are missing or changing
+-> tools, if retrieval/index sources or context-selection workflow changes
+-> agents, if the refactor can be split into bounded workers or specialist review
+-> planning, for implementation plan
+-> review, for implementation plan review
+-> implementation, for safe edit boundary and execution/TDD
+-> quality, for verification before completion
+-> review, for code quality
 ```
 
 Stop at technical approach, quality automation, or retrieval approval if architecture, dependency, verification, tooling, or retrieval rails change, and at refactor plan approval.
@@ -225,20 +208,17 @@ Use when feasibility or direction is uncertain.
 Typical route:
 ```text
 classify-work
--> select-tools, if external/current research is needed
--> select-context
--> product-reframe or grill-me
--> slice-product-fit, if the spike is evaluating a product slice, user workflow, AI behavior, API contract, or shared concept
--> choose-technical-approach, if comparing technical options
--> choose-quality-automation, if comparing automation options or spike checks
--> choose-retrieval-approach, if comparing retrieval/RAG/index options
--> choose-agent-strategy, if exploration benefits from read-only specialists or model-tier comparison
--> choose-implementation-pattern, if exploring or comparing implementation patterns
--> safe-edit-boundary
--> execute-plan as spike/prototype
--> verification-before-completion for findings
--> manage-context-state
--> context-save
+-> tools, if external/current research is needed
+-> context
+-> planning or grill-me
+-> planning, if the spike is evaluating a product slice, user workflow, AI behavior, API contract, or shared concept
+-> implementation, if comparing technical options or implementation patterns
+-> quality, if comparing automation options or spike checks
+-> tools, if comparing retrieval/RAG/index options
+-> agents, if exploration benefits from read-only specialists or model-tier comparison
+-> implementation, for safe edit boundary and spike/prototype execution
+-> quality, for findings verification
+-> context, to update uncertainty and save state
 ```
 
 Stop at spike boundary approval and recommendation approval before production work.
@@ -248,11 +228,10 @@ Use when continuing a prior session.
 
 Typical route:
 ```text
-context-restore
+context
 -> classify-work
--> choose-agent-strategy, if restored work requires delegation or model-tier changes
--> select-context
--> manage-context-state, if uncertainty changed
+-> agents, if restored work requires delegation or model-tier changes
+-> context, for selected context and uncertainty updates
 -> next required gate from restored state
 ```
 
@@ -264,11 +243,11 @@ Use when auditing AI or human work.
 Typical route:
 ```text
 classify-work
--> select-context
--> choose-agent-strategy, if independent specialist review or verification is useful
--> review-agent-work
--> assert-doc-sync, if artifacts may disagree
--> verification-before-completion, if evidence is missing
+-> context
+-> agents, if independent specialist review or verification is useful
+-> review
+-> context, if artifacts may disagree
+-> quality, if evidence is missing
 -> independent reviewer role, when behavior/risk/evidence warrants separate critique
 ```
 
@@ -280,18 +259,15 @@ Use when preparing to finish, merge, ship, or document.
 Typical route:
 ```text
 classify-work
--> verification-before-completion
--> review-spec-compliance
--> assert-doc-sync
--> review-code-quality
--> health-check, if needed
--> choose-quality-automation, if release checks expose missing or stale rails
--> choose-retrieval-approach, if release checks expose missing or stale retrieval/index rails
--> choose-agent-strategy, if release review needs specialists or independent verification
--> review-implementation-pattern, if implementation patterns affected the release surface
--> document-release
--> finish-development-branch
--> context-save
+-> quality
+-> review
+-> context, for doc/context sync
+-> quality, for health check or stale/missing rails if needed
+-> tools, if release checks expose missing or stale retrieval/index rails
+-> agents, if release review needs specialists or independent verification
+-> review, if implementation patterns affected the release surface
+-> release
+-> context, to save final state
 ```
 
 Stop at failed verification, unresolved high-risk findings, or release approval.
@@ -409,4 +385,4 @@ rather than active context routing.
 - Do not claim completion without fresh verification evidence.
 
 ## Next skills
-Usually one of: `classify-work`, `context-restore`, `setup-sdlc-in-repo`, `select-context`, `product-reframe`, `slice-product-fit`, `define-application`, `choose-technical-approach`, `choose-quality-automation`, `choose-retrieval-approach`, `choose-agent-strategy`, `choose-implementation-pattern`, `grill-me`, `model-application`, `to-prd`, `to-issues`, `write-implementation-plan`, `execute-plan`, `verification-before-completion`, `review-agent-work`, `capture-process-event`, `finish-development-branch`, or `context-save`.
+Usually one of: `classify-work`, `context`, `planning`, `implementation`, `quality`, `review`, `release`, `agents`, `tools`, `process-learning`, `setup-sdlc-in-repo`, `grill-me`, or `test-skill-behavior`.

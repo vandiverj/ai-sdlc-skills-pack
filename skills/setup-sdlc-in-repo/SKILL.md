@@ -117,6 +117,14 @@ Prefer a Markdown-first setup profile while the fields are still evolving:
 .ai-local/quality-capabilities.md
 .ai-local/terminology.md
 docs/evidence/evidence-packet.md
+docs/evidence/micro-tiny-evidence.md
+docs/evidence/standard-evidence-packet.md
+docs/evidence/high-risk-release-evidence-packet.md
+docs/evidence/exploratory-findings.md
+docs/evidence/review-only-packet.md
+docs/security/ai-agent-security-checklist.md
+docs/evaluation/calibration-log.md
+docs/evaluation/router-consolidation-validation.md
 docs/agents/independent-reviewer.md
 ```
 
@@ -217,4 +225,4 @@ Create concrete pattern files only when the project has evidence, examples, or t
 - Do not create a commit that bundles setup with unrelated feature work.
 
 ## Next skills
-Usually `setup-agent-instructions`, `choose-agent-strategy`, `choose-implementation-pattern`, `choose-quality-automation`, `choose-retrieval-approach`, `health-check`, `context-save`, or `review-agent-work`.
+Usually `agents`, `implementation`, `quality`, `tools`, `context`, or `review`.

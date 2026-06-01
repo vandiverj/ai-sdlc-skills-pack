@@ -1,0 +1,17 @@
+name = "{{AGENT_ID}}"
+description = "{{DESCRIPTION}}"
+developer_instructions = """
+Portable source: .agents/agents/{{AGENT_ID}}.md
+
+{{PROMPT_BODY}}
+
+Runtime notes:
+- Generated or adapted for Codex.
+- Keep sandbox, MCP, model, and skill settings aligned with the portable role.
+- Do not broaden tool or write access beyond the portable definition.
+"""
+
+# Optional runtime fields:
+# model = "{{MODEL}}"
+# model_reasoning_effort = "{{REASONING_EFFORT}}"
+# sandbox_mode = "{{SANDBOX_MODE}}"
