@@ -33,7 +33,7 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc task ledger --task "..."` for the evidence index,
 - `sdlc task review --task "..."` or `sdlc task checkpoint --task "..."` for current completion state,
 - `sdlc surface detect --task "..."` and `sdlc unit detect --task "..."` before choosing rendered UI, API-contract, service, data, integration, background-job, package/tooling, or docs/process evidence,
-- `sdlc context inventory`, `sdlc context bucket-check --task "..."`, `sdlc context place --fact "..."`, `sdlc context freshness --task "..."`, `sdlc context contradictions --task "..."`, and `sdlc change graph --task "..."` for context placement, confidence, contradiction checks, and impact graph-lite,
+- `sdlc context inventory`, `sdlc context bucket-check --task "..."`, `sdlc context resolve --path <path> --task "..."`, `sdlc context final-check --task "..."`, `sdlc context place --fact "..."`, `sdlc context freshness --task "..."`, `sdlc context contradictions --task "..."`, and `sdlc change graph --task "..."` for context placement, confidence, contradiction checks, final verification discoveries, and impact graph-lite,
 - `sdlc touched packet` for changed technical surfaces,
 - `sdlc impact packet --task "..."` for user/system impact,
 - `sdlc verify packet --task "..."` for developer/agent verification,
@@ -46,12 +46,18 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc workmode detect --task "..."` to surface product/repo/task modifiers such as legacy, modern web, API/service, manual-QA-heavy, no-tests, integration-heavy, or multi-repo.
 - `sdlc test plan --task "..."` when automated coverage is missing or should grow from the active task.
 - `sdlc test suggest --task "..."` when the repo has weak/no tests or a dependency/package upgrade.
+- `sdlc test bootstrap-plan --unit <unit> --framework dotnet|node|deno|generic` when a focused test project/harness must be introduced for the active task.
 - `sdlc data packet --task "..."` and `sdlc integration packet --task "..."` when data/storage or third-party/cross-system behavior is affected.
 - `sdlc bug evidence --task "..."` for live-connected staging/production-safe bug investigations that need exact logs, failing SQL/API/contract evidence, minimal fix discipline, targeted regression, and QA scenario retest.
+- `sdlc bug evidence-check --packet <path>` before closing a live-system bugfix.
 - `sdlc bug reproduce`, `sdlc bug diagnose`, `sdlc bug fix-plan`, `sdlc bug verify`, and `sdlc bug qa` when a live-system bug needs stepwise evidence-first handling.
+- `sdlc search classify --pattern "..."` when search results may include archived, generated, dependency, test, docs, or active-source references.
+- `sdlc route retire --old "..." --new "..." --task "..."` when replacing routes/endpoints/links and needing positive/negative search evidence.
+- `sdlc command classify --command "..." --status <code> --stderr "..."` when a failed command might be quoting, tooling, sandbox, setup, flaky external, or product failure.
 - `sdlc artifact budget --route <route>` for proportional evidence expectations.
+- `sdlc automation budget --route <route>` and `sdlc hooks plan --runtime <runtime>` when deterministic hook/event automation is being configured.
 - `sdlc risk agentic --task "..."` when tool authority, identity, memory/context, untrusted input, cascading actions, release authority, or sensitive data needs explicit gates.
-- `sdlc learn capture`, `sdlc learn route`, `sdlc learn summary`, `sdlc learn review`, and `sdlc learn promote` for sanitized process-learning candidates; keep product/client facts in repo/unit/shared context unless redacted and generalized.
+- `sdlc learn quick`, `sdlc learn capture`, `sdlc learn sanitize`, `sdlc learn sync-check`, `sdlc learn review-cycle`, `sdlc learn archive`, `sdlc learn route`, `sdlc learn summary`, `sdlc learn review`, and `sdlc learn promote` for cross-environment process-learning candidates; keep product/client facts in repo/unit/shared context unless redacted and generalized.
 - `sdlc gates --task "..."` for the open-gate dashboard.
 - `sdlc handoff draft --task "..."` for MR/release/QA/deployment text drafts without creating or triggering anything.
 - `sdlc render plan --task "..."` or `sdlc render evidence --task "..."` for visible UI work when tooling is available or caps must be explicit.

@@ -11,6 +11,10 @@ sdlc context restore
 sdlc context pack --task "fix payment webhook contract"
 sdlc context audit
 sdlc context update-plan --task "fix payment webhook contract"
+sdlc context resolve --path MainsiteCoreAPI/LegacyApi --task "save durable workflow learning"
+sdlc context final-check --task "replace legacy signed-form route"
+sdlc search classify --pattern "DownloadSignedForm" --scope www_dev
+sdlc route retire --old "NatacsMain/PrintProcess" --new "/API/Admin/File/Download" --task "replace legacy signed-form download route"
 sdlc route start multi-repo-integration --task "fix payment webhook contract"
 sdlc run start --task "fix payment webhook contract"
 sdlc run finish --route multi-repo-integration
@@ -20,6 +24,7 @@ sdlc workmode detect --task "fix payment webhook contract"
 sdlc packet status
 sdlc gates --task "fix payment webhook contract"
 sdlc touched packet
+sdlc touched update --surface "legacy UI" --evidence "www_dev active caller changed"
 sdlc impact packet --task "fix payment webhook contract"
 sdlc done check --route review-only --packet .ai-local/sdlc-runs/<packet>.md
 sdlc done check --route standard --packet .ai-local/sdlc-runs/<packet>.md
@@ -33,6 +38,8 @@ sdlc qa complete --packet .ai-local/sdlc-runs/<packet>.md --status ready
 sdlc final gate --task "fix payment webhook contract"
 sdlc git packet
 sdlc test plan --task "fix payment webhook contract"
+sdlc test bootstrap-plan --unit LegacyApi --framework dotnet
+sdlc command classify --command "rg pattern" --status 1 --stderr "ParserError"
 sdlc data packet --task "fix payment webhook contract"
 sdlc integration packet --task "fix payment webhook contract"
 sdlc handoff draft --task "fix payment webhook contract"
@@ -49,6 +56,13 @@ sdlc setup doctor --fix-plan
 sdlc scenario list
 sdlc scenario test
 sdlc scenario validate ui-rendered-issue --task "add animation to the computer turn"
+sdlc automation budget --route bugfix-live-system
+sdlc hooks plan --runtime generic
+sdlc event pre-stop --task "fix payment webhook contract"
+sdlc learn quick --summary "active route search needed classification" --case LC_24 --source work
+sdlc learn sanitize --packet .agents/learnings/<learning>.md
+sdlc learn sync-check
+sdlc learn review-cycle --since 2026-06-01
 sdlc render smoke --url http://127.0.0.1:5173/
 sdlc evidence init --route standard
 sdlc verify --commands test,build

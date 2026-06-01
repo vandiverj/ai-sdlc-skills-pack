@@ -35,9 +35,13 @@ async function main(argv) {
   if (area === 'context' && (action === 'contradictions' || action === 'check')) return contextContradictions(repo, options);
   if (area === 'context' && action === 'inventory') return contextInventory(repo, options);
   if (area === 'context' && action === 'bucket-check') return contextBucketCheck(repo, options);
+  if (area === 'context' && action === 'resolve') return contextResolve(repo, options);
+  if (area === 'context' && action === 'final-check') return contextFinalCheck(repo, options);
   if (area === 'context' && action === 'place') return contextPlace(repo, options);
   if (area === 'context' && action === 'update-plan') return contextUpdatePlan(repo, options);
   if (area === 'change' && (action === 'graph' || action === 'graph-lite')) return changeGraph(repo, options);
+  if (area === 'search' && action === 'classify') return searchClassify(repo, options);
+  if (area === 'search' && action === 'retire-check') return searchRetireCheck(repo, options);
   if (area === 'recipe' && action === 'show') return recipeShow(rest[0] || options.route);
   if (area === 'task' && action === 'id') return taskId(repo, options);
   if (area === 'task' && action === 'current') return taskCurrent(repo, options);
@@ -53,6 +57,7 @@ async function main(argv) {
   if (area === 'task' && action === 'qa') return taskQa(repo, options);
   if (area === 'task' && (action === 'finish' || action === 'complete')) return taskFinish(repo, options);
   if (area === 'route' && action === 'start') return routeStart(repo, rest[0] || options.route, options);
+  if (area === 'route' && action === 'retire') return routeRetire(repo, options);
   if (area === 'packet' && action === 'status') return packetStatus(repo, options);
   if (area === 'done' && action === 'check') return doneCheck(repo, options);
   if (area === 'run' && action === 'start') return runStart(repo, options);
@@ -70,6 +75,7 @@ async function main(argv) {
   if (area === 'unit' && action === 'doctor') return unitDoctor(repo, options);
   if (area === 'unit' && action === 'profile') return unitProfile(repo, options);
   if (area === 'touched' && action === 'packet') return touchedPacket(repo, options);
+  if (area === 'touched' && action === 'update') return touchedUpdate(repo, options);
   if (area === 'impact' && action === 'packet') return impactPacket(repo, options);
   if (area === 'review' && action === 'packet') return reviewPacket(repo, options);
   if (area === 'review' && action === 'complete') return reviewComplete(repo, options);
@@ -90,8 +96,14 @@ async function main(argv) {
   if (area === 'integration' && action === 'packet') return integrationPacket(repo, options);
   if (area === 'test' && action === 'plan') return testPlan(repo, options);
   if (area === 'test' && action === 'suggest') return testSuggest(repo, options);
+  if (area === 'test' && action === 'bootstrap-plan') return testBootstrapPlan(repo, options);
   if (area === 'bug' && (action === 'evidence' || action === 'packet')) return bugEvidencePacket(repo, options);
+  if (area === 'bug' && action === 'evidence-check') return bugEvidenceCheck(repo, options);
   if (area === 'bug' && ['reproduce', 'diagnose', 'fix-plan', 'verify', 'qa'].includes(action)) return bugWorkflowPacket(repo, action, options);
+  if (area === 'command' && action === 'classify') return commandClassify(repo, options);
+  if (area === 'automation' && action === 'budget') return automationBudget(repo, options);
+  if (area === 'event' && ['prompt-submit', 'post-edit', 'pre-stop', 'approval-request'].includes(action)) return sdlcEvent(repo, action, options);
+  if (area === 'hooks' && action === 'plan') return hooksPlan(repo, options);
   if (area === 'artifact' && action === 'budget') return artifactBudget(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
   if (area === 'verify' && action === 'packet') return verifyPacket(repo, options);
@@ -108,6 +120,11 @@ async function main(argv) {
   if (area === 'calibrate' && (action === 'flows' || action === 'promote-candidates')) return calibrateFlows(repo, options);
   if (area === 'calibrate' && action === 'promote') return calibratePromote(repo, options);
   if (area === 'learn' && action === 'capture') return learnCapture(repo, options);
+  if (area === 'learn' && action === 'quick') return learnQuick(repo, options);
+  if (area === 'learn' && action === 'sanitize') return learnSanitize(repo, options);
+  if (area === 'learn' && action === 'sync-check') return learnSyncCheck(repo, options);
+  if (area === 'learn' && action === 'review-cycle') return learnReviewCycle(repo, options);
+  if (area === 'learn' && action === 'archive') return learnArchive(repo, options);
   if (area === 'learn' && action === 'route') return learnRoute(repo, options);
   if (area === 'learn' && action === 'summary') return learnSummary(repo, options);
   if (area === 'learn' && action === 'review') return learnReview(repo, options);
@@ -150,9 +167,13 @@ Usage:
   sdlc context contradictions --task "..." [--repo <path>] [--out <path>]
   sdlc context inventory [--repo <path>] [--out <path>]
   sdlc context bucket-check --task "..." [--repo <path>] [--out <path>]
+  sdlc context resolve --path <path> [--task "..."] [--repo <path>]
+  sdlc context final-check --task "..." [--repo <path>] [--out <path>]
   sdlc context place --fact "..." [--repo <path>]
   sdlc context update-plan --task "..." [--repo <path>] [--out <path>]
   sdlc change graph --task "..." [--repo <path>] [--out <path>]
+  sdlc search classify --pattern "..." [--scope <path>] [--repo <path>] [--out <path>]
+  sdlc search retire-check --old <pattern> --new <pattern> [--scope <path>] [--repo <path>] [--out <path>]
   sdlc recipe show <route>
   sdlc task id --task "..." [--repo <path>]
   sdlc task current [--repo <path>]
@@ -170,6 +191,7 @@ Usage:
   sdlc task finish --task "..." [--repo <path>] [--out <path>]
   sdlc task complete --task "..." [--repo <path>] [--out <path>]
   sdlc route start <route> [--task "..."] [--repo <path>] [--out <path>]
+  sdlc route retire --old <pattern> --new <pattern> --task "..." [--scope <path>] [--repo <path>] [--out <path>]
   sdlc packet status [--repo <path>]
   sdlc done check --route <route> [--repo <path>] [--packet <path>]
   sdlc run start --task "..." [--repo <path>]
@@ -187,6 +209,7 @@ Usage:
   sdlc unit doctor [--repo <path>] [--out <path>]
   sdlc unit profile --unit <name> [--repo <path>]
   sdlc touched packet [--repo <path>] [--out <path>]
+  sdlc touched update --surface <kind> [--evidence "..."] [--repo-name <name>] [--repo <path>]
   sdlc impact packet --task "..." [--repo <path>] [--out <path>]
   sdlc review packet --task "..." [--repo <path>] [--out <path>]
   sdlc review complete --packet <path> --verdict "..." [--findings "..."] [--checks "..."] [--caps "..."]
@@ -207,8 +230,14 @@ Usage:
   sdlc integration packet --task "..." [--repo <path>] [--out <path>]
   sdlc test plan --task "..." [--repo <path>] [--out <path>]
   sdlc test suggest --task "..." [--repo <path>] [--out <path>]
+  sdlc test bootstrap-plan --unit <name> --framework dotnet|node|deno|generic [--repo <path>] [--out <path>]
   sdlc bug evidence --task "..." [--repo <path>] [--out <path>]
+  sdlc bug evidence-check --packet <path> [--repo <path>]
   sdlc bug reproduce|diagnose|fix-plan|verify|qa --task "..." [--repo <path>] [--out <path>]
+  sdlc command classify --command "..." --status <code> [--stderr "..."] [--repo <path>]
+  sdlc automation budget --route <route> [--repo <path>]
+  sdlc event prompt-submit|post-edit|pre-stop|approval-request [--task "..."] [--repo <path>]
+  sdlc hooks plan --runtime claude|codex|auggie|augment|generic [--repo <path>] [--out <path>]
   sdlc artifact budget --route <route> [--repo <path>]
   sdlc evidence init --route <route> [--repo <path>] [--out <path>]
   sdlc verify packet --task "..." [--repo <path>] [--out <path>]
@@ -225,6 +254,11 @@ Usage:
   sdlc calibrate flows [--repo <path>] [--in <path>] [--out <path>]
   sdlc calibrate promote --candidate "..." [--repo <path>] [--out <path>]
   sdlc learn capture --summary "..." [--case <id>] [--repo <path>] [--out <path>]
+  sdlc learn quick --summary "..." [--case <id>] [--source work|personal|fixture] [--repo <path>]
+  sdlc learn sanitize --packet <path> [--repo <path>] [--out <path>]
+  sdlc learn sync-check [--repo <path>]
+  sdlc learn review-cycle [--since YYYY-MM-DD] [--repo <path>] [--out <path>]
+  sdlc learn archive --packet <path> --reason "..." [--repo <path>]
   sdlc learn route --packet <path> [--repo <path>]
   sdlc learn summary [--repo <path>] [--out <path>]
   sdlc learn review --packet <path> [--repo <path>]
@@ -764,6 +798,68 @@ ${formatList(recommendations.length ? recommendations : ['No obvious context buc
   }
 }
 
+function contextResolve(repo, options = {}) {
+  const targetPath = options.path ? resolve(repo, options.path) : repo;
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const aliases = contextAliases(profile.values);
+  const normalized = normalizeUnitPath(relative(repo, targetPath) || options.path || '.').toLowerCase();
+  const alias = aliases.find((item) => normalized.includes(item.match.toLowerCase()) || String(task).toLowerCase().includes(item.match.toLowerCase()));
+  const unit = affectedUnits(repo, [relative(repo, targetPath)], profile, options.unit)[0];
+  const recommendedBucket = alias?.bucket || unit?.contextBucket || profile.values.productContext || profile.values.repoContext || profile.values.sharedContextRoot || 'not configured';
+  printObject({
+    repository: repo,
+    path: relative(repo, targetPath) || '.',
+    task: task || 'not provided',
+    matchedAlias: alias ? `${alias.match} -> ${alias.bucket}` : 'none',
+    affectedUnit: unit?.name || 'default',
+    recommendedContextBucket: recommendedBucket,
+    durableContextFile: unit?.durableContextFile || recommendedContextFile(unit || { contextBucket: recommendedBucket, path: '.' }),
+    note: alias ? 'alias overrides folder/repo-name intuition' : 'no alias override found',
+  });
+}
+
+function contextFinalCheck(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so final context check can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const contextSignals = finalContextSignals(task, git.changedFiles, packets);
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Final Context Check
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+
+## Durable Knowledge Signals
+
+${formatList(contextSignals)}
+
+## Context Placement Decision
+
+- Product-context bucket: ${profile.values.productContext || profile.values.sharedContextRoot || 'not configured'}
+- Repo-context bucket: ${profile.values.repoContext || 'not configured'}
+- Process-learning candidate: ${contextSignals.some((item) => item.includes('process')) ? 'yes' : 'only if verification exposed reusable SDLC behavior'}
+- Sensitive/product-specific detail present: review before sharing in `.agents/learnings`
+
+## Required Question Before Final Handoff
+
+- Did final grep/test/log review discover durable product knowledge?
+- Which bucket owns it?
+- Is it product-specific, process-general, or both?
+- Was the context update done, deferred, or capped?
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
 function contextPlace(repo, options = {}) {
   const fact = options.fact || options.text || '';
   if (!fact) fail('Pass --fact "..." so the SDLC can recommend context placement.');
@@ -866,6 +962,90 @@ ${formatList(changeGraphImplications(graph, task, files))}
   console.log(relative(repo, outPath));
 }
 
+function searchClassify(repo, options = {}) {
+  const pattern = options.pattern || options.query || '';
+  if (!pattern) fail('Pass --pattern "..." so search results can be classified.');
+  const scope = options.scope ? resolve(repo, options.scope) : repo;
+  const results = searchPattern(scope, pattern).map((item) => ({
+    ...item,
+    category: classifySearchPath(relative(repo, item.path)),
+  }));
+  const groups = groupBy(results, (item) => item.category);
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Search Classification
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Scope: ${relative(repo, scope) || '.'}
+Pattern: ${pattern}
+
+## Summary
+
+${formatList(Object.entries(groups).map(([category, items]) => `${category}: ${items.length}`))}
+
+## Results
+
+${formatSearchGroups(repo, groups)}
+
+## Completion Rule
+
+- Active source/page references can drive implementation scope.
+- Archived, generated, dependency, and build-output references are context only unless the task explicitly targets them.
+- Remaining retired-route matches must be classified before completion.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
+function searchRetireCheck(repo, options = {}) {
+  const oldPattern = options.old || options.oldPattern || '';
+  const newPattern = options.new || options.newPattern || '';
+  if (!oldPattern || !newPattern) fail('Pass --old <pattern> and --new <pattern>.');
+  const scope = options.scope ? resolve(repo, options.scope) : repo;
+  const oldResults = searchPattern(scope, oldPattern).map((item) => ({ ...item, category: classifySearchPath(relative(repo, item.path)) }));
+  const newResults = searchPattern(scope, newPattern).map((item) => ({ ...item, category: classifySearchPath(relative(repo, item.path)) }));
+  const activeOld = oldResults.filter((item) => item.category === 'active source/page reference');
+  const activeNew = newResults.filter((item) => item.category === 'active source/page reference');
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Route Retirement Search Check
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Scope: ${relative(repo, scope) || '.'}
+Old pattern: ${oldPattern}
+New pattern: ${newPattern}
+Result: ${activeOld.length ? 'open - old active references remain' : activeNew.length ? 'pass - new active references found and old active references absent' : 'open - no new active references found'}
+
+## Positive Search: New Route
+
+${formatSearchGroups(repo, groupBy(newResults, (item) => item.category))}
+
+## Negative Search: Old Route
+
+${formatSearchGroups(repo, groupBy(oldResults, (item) => item.category))}
+
+## Gate
+
+${formatList([
+    activeNew.length ? 'new route appears in active source/page references' : 'new route was not found in active source/page references',
+    activeOld.length ? `${activeOld.length} old active reference(s) remain` : 'no old active source/page references remain',
+  ])}
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+  if (activeOld.length || !activeNew.length) process.exitCode = 1;
+}
+
 function routeStart(repo, route, options = {}) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
 
@@ -938,6 +1118,56 @@ sdlc calibrate add --route ${route} --checks "" --caps "" --outcome "" --route-f
 
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
+}
+
+function routeRetire(repo, options = {}) {
+  const task = options.task || '';
+  const oldPattern = options.old || options.oldPattern || '';
+  const newPattern = options.new || options.newPattern || '';
+  if (!task) fail('Pass --task "..." so route retirement evidence can be scoped.');
+  if (!oldPattern || !newPattern) fail('Pass --old <pattern> and --new <pattern>.');
+  const scope = options.scope ? resolve(repo, options.scope) : repo;
+  const oldResults = searchPattern(scope, oldPattern).map((item) => ({ ...item, category: classifySearchPath(relative(repo, item.path)) }));
+  const newResults = searchPattern(scope, newPattern).map((item) => ({ ...item, category: classifySearchPath(relative(repo, item.path)) }));
+  const activeOld = oldResults.filter((item) => item.category === 'active source/page reference');
+  const activeNew = newResults.filter((item) => item.category === 'active source/page reference');
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-route-retirement.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Route Retirement Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Scope: ${relative(repo, scope) || '.'}
+Old route/pattern: ${oldPattern}
+New route/pattern: ${newPattern}
+Result: ${activeOld.length ? 'open - old active references remain' : activeNew.length ? 'ready-looking' : 'open - no new active references found'}
+
+## Active Callers Expected
+
+- to be filled by the agent/human for the route replacement task
+
+## Positive Search: New Route
+
+${formatSearchGroups(repo, groupBy(newResults, (item) => item.category))}
+
+## Negative Search: Old Route
+
+${formatSearchGroups(repo, groupBy(oldResults, (item) => item.category))}
+
+## Remaining Old References Classification
+
+${formatList(oldResults.map((item) => `${item.category}: ${relative(repo, item.path)}:${item.line}`))}
+
+## Manual QA Expectations
+
+- Validate the user/API/download/workflow behavior that should now use the new route.
+- Confirm the old failure, log, or bad route is absent in QA/staging when that evidence is available.
+- Archived/generated/dependency references are not failures unless the task explicitly targets them.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+  if (activeOld.length || !activeNew.length) process.exitCode = 1;
 }
 
 function packetStatus(repo, options = {}) {
@@ -1984,6 +2214,23 @@ ${rows.length ? rows.map((row) => `| ${escapeCell(row.file)} | ${row.surface} | 
 `;
 
   writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function touchedUpdate(repo, options = {}) {
+  const surface = options.surface || '';
+  if (!surface) fail('Pass --surface <kind> so the touched-surface ledger can be updated.');
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), 'touched-surface-live-ledger.jsonl');
+  mkdirSync(dirname(outPath), { recursive: true });
+  const row = {
+    timestamp: new Date().toISOString(),
+    repo: options.repoName || basename(repo),
+    surface,
+    evidence: options.evidence || '',
+    task: options.task || '',
+    privacy: options.privacy || 'internal',
+  };
+  appendFileSync(outPath, `${JSON.stringify(row)}\n`, 'utf8');
   console.log(relative(repo, outPath));
 }
 
@@ -3189,6 +3436,49 @@ ${formatList(suggestions)}
   }
 }
 
+function testBootstrapPlan(repo, options = {}) {
+  const unitName = options.unit || options.name || 'default';
+  const framework = String(options.framework || inferBootstrapFramework(repo)).toLowerCase();
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const checklist = testBootstrapChecklist(framework);
+  const content = `# SDLC Test Bootstrap Plan
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Unit: ${unitName}
+Framework: ${framework}
+
+## Goal
+
+Add the smallest focused test harness needed for the active task without pretending the legacy or multi-project repository is fully covered.
+
+## Checklist
+
+${formatList(checklist)}
+
+## Validation
+
+- Focused test command:
+- Broader build/test command when feasible:
+- Dependency/package warnings:
+- Environment/setup caps:
+- Manual smoke or QA replacement when automation cannot be added:
+
+## Guardrails
+
+- Do not backfill broad legacy coverage as part of a narrow task unless explicitly requested.
+- Record dependency warnings separately from product/test failures.
+- Keep the first test close to the active bug, route, data invariant, or workflow.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
 function bugEvidencePacket(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the live-system bug evidence packet can be scoped.');
@@ -3258,6 +3548,32 @@ ${formatList(units.map((unit) => `${unit.name} (${unit.testSurface || 'surface u
   console.log(relative(repo, outPath));
 }
 
+function bugEvidenceCheck(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const text = readFileSync(packetPath, 'utf8');
+  const required = [
+    ['Case ID', ['Case ID:', 'Case:']],
+    ['Exact log/source', ['Exact error/log source:', 'Exact log/request/SQL/source:']],
+    ['Failing surface', ['Failing endpoint/table/contract/job:', 'Failing table', 'Failing endpoint']],
+    ['Failing field/status/payload', ['Failing columns/fields/status codes:', 'failing column', 'status code', 'payload']],
+    ['Analogous working path', ['Existing successful analogous path:', 'analogous working path']],
+    ['Smallest fix', ['Smallest evidence-backed fix chosen:', 'Smallest evidence-backed fix:']],
+    ['Targeted regression', ['Targeted test added or updated:', 'targeted regression']],
+    ['QA scenario retest', ['QA Scenario Retest', 'Scenario name/id:']],
+  ];
+  const rows = required.map(([name, needles]) => ({ name, status: packetHas(text, needles) ? 'pass' : 'open', detail: needles.join(' or ') }));
+  const pass = rows.every((row) => row.status === 'pass');
+  printObject({
+    repository: repo,
+    packet: relative(repo, packetPath),
+    result: pass ? 'pass' : 'open',
+  });
+  console.log('\n| Evidence | Status | Detail |');
+  console.log('| --- | --- | --- |');
+  for (const row of rows) console.log(`| ${escapeCell(row.name)} | ${row.status} | ${escapeCell(row.detail)} |`);
+  if (!pass) process.exitCode = 1;
+}
+
 function bugWorkflowPacket(repo, action, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the bug workflow packet can be scoped.');
@@ -3302,6 +3618,92 @@ ${bugNextCommand(action, task)}
 `;
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
+}
+
+function commandClassify(repo, options = {}) {
+  const command = options.command || '';
+  const status = options.status ?? '';
+  const stderr = options.stderr || options.error || '';
+  if (!command && !stderr) fail('Pass --command "..." and/or --stderr "..." so the failure can be classified.');
+  const classification = classifyCommandFailure(command, status, stderr);
+  printObject({
+    repository: repo,
+    command: command || 'not provided',
+    status: status === '' ? 'not provided' : status,
+    classification: classification.kind,
+    evidenceUse: classification.evidenceUse,
+    recommendedNextAction: classification.nextAction,
+  });
+}
+
+function automationBudget(repo, options = {}) {
+  const route = options.route || inferRouteFromTask(options.task || '', getGitInfo(repo), loadProfile(repo).values);
+  const budget = automationBudgetForRoute(route);
+  printObject({
+    repository: repo,
+    route,
+    level: budget.level,
+    defaultMode: budget.mode,
+    stopBehavior: budget.stopBehavior,
+  });
+  console.log('\n## Automation\n');
+  console.log(formatList(budget.actions));
+}
+
+function sdlcEvent(repo, action, options = {}) {
+  const task = options.task || options.prompt || '';
+  const route = task ? inferRouteFromTask(task, getGitInfo(repo), loadProfile(repo).values) : 'unknown';
+  const budget = automationBudgetForRoute(route);
+  const recommendations = eventRecommendations(action, task, route, budget);
+  printObject({
+    repository: repo,
+    event: action,
+    task: task || 'not provided',
+    route,
+    automationMode: budget.mode,
+  });
+  console.log('\n## Recommendations\n');
+  console.log(formatList(recommendations));
+}
+
+function hooksPlan(repo, options = {}) {
+  const runtime = String(options.runtime || 'generic').toLowerCase();
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Hook Adapter Plan
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Runtime: ${runtime}
+
+## Position
+
+Hooks are optional adapters over portable \`sdlc event ...\` commands. Normal SDLC usage must continue to work when runtime hooks are unavailable.
+
+## Suggested Events
+
+${formatList(hookPlanEvents(runtime))}
+
+## Local Template
+
+\`\`\`bash
+# Generic pre-stop style check
+sdlc event pre-stop --task "<task>"
+sdlc gates --task "<task>"
+\`\`\`
+
+## Guardrails
+
+- Keep hook-generated files local/ignored unless explicitly approved.
+- Use hooks to suggest or block deterministic risk, not to hide human approval gates.
+- Do not require a runtime-specific hook to complete normal SDLC work.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
 }
 
 function verify(repo, options = {}) {
@@ -3639,6 +4041,123 @@ ${summary}
 `;
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(process.cwd(), outPath));
+}
+
+function learnQuick(repo, options = {}) {
+  const summary = options.summary || '';
+  if (!summary) fail('Pass --summary "..." so the learning can be captured quickly.');
+  return learnCapture(repo, {
+    ...options,
+    summary,
+    privacy: options.privacy || 'sensitive-redacted',
+    owner: options.owner || 'unknown',
+    source: options.source || 'unspecified',
+  });
+}
+
+function learnSanitize(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const text = readFileSync(packetPath, 'utf8');
+  const findings = learningReviewFindings(text);
+  const buckets = sanitizeLearningBuckets(text);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-learning-sanitization.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Learning Sanitization
+
+Date: ${new Date().toISOString()}
+Source learning: ${relative(repo, packetPath)}
+Result: ${findings.length ? 'blocked/pending review' : 'ready-looking'}
+
+## Portable Process Lesson
+
+${formatList(buckets.portable)}
+
+## Product-Context Relocation
+
+${formatList(buckets.product)}
+
+## Blocked Sensitive Detail
+
+${formatList(findings.length ? findings : buckets.sensitive)}
+
+## Promotion Rule
+
+- Portable process lessons may become \`.agents/learnings\` candidates.
+- Product facts belong in repo/unit/shared external context.
+- Sensitive details must be redacted before shared process promotion.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+  if (findings.length) process.exitCode = 1;
+}
+
+function learnSyncCheck(repo, options = {}) {
+  const learningDir = options.dir ? resolve(repo, options.dir) : join(agentsRoot, 'learnings');
+  const files = existsSync(learningDir) ? readdirSync(learningDir).filter((file) => file.endsWith('.md')).map((file) => join(learningDir, file)) : [];
+  const status = git(agentsRoot, ['status', '--short', '--branch']);
+  const unpushed = git(agentsRoot, ['log', '--oneline', '@{u}..HEAD']);
+  const behind = git(agentsRoot, ['log', '--oneline', 'HEAD..@{u}']);
+  const blocked = files.filter((file) => learningReviewFindings(readFileSync(file, 'utf8')).length);
+  printObject({
+    repository: agentsRoot,
+    branchStatus: status.split(/\r?\n/)[0] || 'not a git repository',
+    learningFiles: files.length,
+    unpushedCommits: unpushed ? unpushed.split(/\r?\n/).length : 0,
+    remoteCommitsNotPulled: behind ? behind.split(/\r?\n/).length : 0,
+    sanitizationBlockedFiles: blocked.length,
+  });
+  console.log('\n## Blocked Learning Files\n');
+  console.log(formatList(blocked.map((file) => relative(agentsRoot, file))));
+}
+
+function learnReviewCycle(repo, options = {}) {
+  const since = options.since || '';
+  const learningDir = options.dir ? resolve(repo, options.dir) : join(agentsRoot, 'learnings');
+  const files = existsSync(learningDir) ? readdirSync(learningDir).filter((file) => file.endsWith('.md')).map((file) => join(learningDir, file)) : [];
+  const selected = since ? files.filter((file) => readFileSync(file, 'utf8').includes(since) || basename(file) >= since) : files;
+  const rows = selected.map((file) => {
+    const text = readFileSync(file, 'utf8');
+    const findings = learningReviewFindings(text);
+    return `| ${escapeCell(relative(agentsRoot, file))} | ${escapeCell(firstMatch(text, /^Privacy:\s*(.+)$/m) || 'unknown')} | ${findings.length ? 'blocked' : 'candidate'} | ${escapeCell(firstMatch(text, /^Case:\s*(.+)$/m) || '')} |`;
+  });
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-learning-review-cycle.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Learning Review Cycle
+
+Date: ${new Date().toISOString()}
+Since: ${since || 'all'}
+Learning directory: ${learningDir}
+
+| Learning | Privacy | Review state | Case |
+| --- | --- | --- | --- |
+${rows.join('\n') || '| none |  |  |  |'}
+
+## Promotion Levels
+
+${formatList(['Level 0 raw local event', 'Level 1 sanitized shared learning', 'Level 2 reviewed candidate', 'Level 3 implementation plan', 'Level 4 process update', 'Level 5 stable pattern'])}
+
+## Outcomes To Assign
+
+- product context relocated
+- process change implemented
+- deferred with reason
+- archived as not reusable
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function learnArchive(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const reason = options.reason || '';
+  if (!reason) fail('Pass --reason "..." so the archive is explainable.');
+  const archiveDir = options.archiveDir ? resolve(repo, options.archiveDir) : join(dirname(packetPath), 'archive');
+  mkdirSync(archiveDir, { recursive: true });
+  const archivedPath = join(archiveDir, basename(packetPath));
+  const text = readFileSync(packetPath, 'utf8');
+  writeFileSync(archivedPath, `${text.trimEnd()}\n\n## Archive Reason\n\n- ${reason}\n`, 'utf8');
+  writeFileSync(packetPath, `# Archived SDLC Learning Pointer\n\nOriginal moved to: ${relative(repo, archivedPath)}\nReason: ${reason}\n`, 'utf8');
+  console.log(relative(repo, archivedPath));
 }
 
 function learnRoute(repo, options = {}) {
@@ -4860,6 +5379,164 @@ function riskLevel(risks) {
   return 'low';
 }
 
+function contextAliases(profile = {}) {
+  const raw = profile.contextAliases || profile.contextAlias || '';
+  return splitList(raw).map((item) => {
+    const [match, bucket] = item.split(/->|=>|=/).map((value) => value?.trim());
+    return match && bucket ? { match, bucket } : null;
+  }).filter(Boolean);
+}
+
+function finalContextSignals(task, files, packets) {
+  const signals = [];
+  if (matchesAny(task, ['route', 'endpoint', 'download', 'workflow', 'context', 'learning', 'api'])) signals.push('task language suggests durable workflow/API/context knowledge may have changed');
+  if (files.some((file) => classifyTouchedSurface(file) === 'docs/context')) signals.push('context/docs files changed');
+  if (packets.some((packet) => packet.kind === 'route-retirement')) signals.push('route retirement evidence may produce durable product context');
+  if (packets.some((packet) => packet.kind === 'learning-summary')) signals.push('process learning summary exists');
+  if (!signals.length) signals.push('no obvious durable context signal detected; still confirm before final handoff');
+  return signals;
+}
+
+function searchPattern(scope, pattern) {
+  const results = [];
+  const regex = new RegExp(escapeRegExp(pattern), 'i');
+  for (const file of findRepoFiles(scope, () => true, 8, 20000)) {
+    if (isLikelyBinary(file)) continue;
+    let text = '';
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch {
+      continue;
+    }
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line, index) => {
+      if (regex.test(line)) results.push({ path: file, line: index + 1, text: line.trim().slice(0, 220) });
+    });
+  }
+  return results;
+}
+
+function classifySearchPath(path) {
+  const value = normalizeUnitPath(path).toLowerCase();
+  if (/(^|\/)(archive|archived|archivedpages|old|legacy-archive)(\/|$)/.test(value)) return 'archived historical reference';
+  if (/(^|\/)(dist|build|bin|obj|out|coverage|generated|wwwroot\/dist)(\/|$)/.test(value) || /\.(min|bundle)\.(js|css)$/.test(value)) return 'generated/deployed artifact';
+  if (/(^|\/)(node_modules|packages|vendor)(\/|$)/.test(value)) return 'dependency/build output';
+  if (/(^|\/)(test|tests|__tests__|fixtures|spec)(\/|$)/.test(value) || /\.(test|spec)\./.test(value)) return 'test/reference fixture';
+  if (value.endsWith('.md') || /(^|\/)(docs|learnings)(\/|$)/.test(value)) return 'context/doc note';
+  return 'active source/page reference';
+}
+
+function formatSearchGroups(repo, groups) {
+  const entries = Object.entries(groups);
+  if (!entries.length) return '- none';
+  return entries.map(([category, items]) => `### ${category}
+
+${formatList(items.slice(0, 80).map((item) => `${relative(repo, item.path)}:${item.line} ${item.text}`))}${items.length > 80 ? `\n- ... ${items.length - 80} more` : ''}`).join('\n\n');
+}
+
+function isLikelyBinary(path) {
+  return /\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz|dll|exe|pdb|woff|woff2|ttf|eot|mp4|mov)$/i.test(path);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function groupBy(items, keyFn) {
+  return items.reduce((acc, item) => {
+    const key = keyFn(item);
+    acc[key] ||= [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+}
+
+function inferBootstrapFramework(repo) {
+  if (hasFileExt(repo, ['.csproj', '.sln'])) return 'dotnet';
+  if (existsAny(repo, ['package.json'])) return 'node';
+  if (existsAny(repo, ['deno.json', 'deno.jsonc'])) return 'deno';
+  return 'generic';
+}
+
+function testBootstrapChecklist(framework) {
+  if (framework === 'dotnet') return [
+    'Create or identify the focused test project.',
+    'Add project reference to the unit under test.',
+    'Add required test packages through the package manager.',
+    'Add the test project to the solution when the repo uses a solution file.',
+    'Add the smallest regression/invariant test for the active task.',
+    'Run the focused test project.',
+    'Run solution build/test when feasible.',
+    'Record dependency warnings separately from failures.',
+  ];
+  if (framework === 'node') return [
+    'Detect package manager and existing test runner.',
+    'Add or verify the focused test runner without broad tool churn.',
+    'Add the smallest regression/unit/component test for the active task.',
+    'Run the focused test.',
+    'Run build/typecheck when feasible.',
+    'Record missing test harness as a cap if adding one is out of scope.',
+  ];
+  if (framework === 'deno') return [
+    'Confirm deno.json/deno.jsonc task conventions.',
+    'Add the smallest Deno test near the changed unit.',
+    'Run the focused deno test command.',
+    'Run broader Deno check/task when feasible.',
+  ];
+  return [
+    'Identify the smallest testable unit.',
+    'Choose the lowest-friction test harness already used by the repo.',
+    'Add a focused regression/invariant check.',
+    'Run the focused check.',
+    'Record harness/setup caps separately from product failures.',
+  ];
+}
+
+function classifyCommandFailure(command, status, stderr) {
+  const text = `${command}\n${stderr}`.toLowerCase();
+  if (matchesAny(text, ['eperm', 'permission denied', 'operation not permitted', 'sandbox'])) return { kind: 'permission/sandbox failure', evidenceUse: 'cap until rerun with permission or alternate output path', nextAction: 'rerun with approved permission or record sandbox cap' };
+  if (matchesAny(text, ['unexpected token', 'unterminated', 'quote', 'parsererror', 'syntax error near', 'no matches found'])) return { kind: 'invocation/tooling failure', evidenceUse: 'not product evidence', nextAction: 'fix quoting/shell invocation and rerun' };
+  if (matchesAny(text, ['command not found', 'not recognized', 'cannot find module', 'no such file or directory', 'missing script'])) return { kind: 'environment/setup cap', evidenceUse: 'setup evidence, not product failure', nextAction: 'record missing tool/dependency or install with approval' };
+  if (matchesAny(text, ['timeout', 'econnreset', 'enotfound', 'rate limit', 'temporarily unavailable'])) return { kind: 'flaky/transient external failure', evidenceUse: 'inconclusive until retried or capped', nextAction: 'retry once or record external cap' };
+  if (String(status) !== '' && Number(status) !== 0) return { kind: 'product/test failure', evidenceUse: 'valid failing evidence if command invocation was correct', nextAction: 'debug failing check or record accepted cap' };
+  return { kind: 'pass or unclassified', evidenceUse: 'usable only with command output context', nextAction: 'record check result normally' };
+}
+
+function automationBudgetForRoute(route) {
+  if (['tiny-docs', 'tiny-code-cleanup'].includes(route)) return { level: 'minimal', mode: 'suggest', stopBehavior: 'optional summary', actions: ['changed-files awareness', 'one cheap check or explicit cap'] };
+  if (['bugfix-live-system', 'multi-repo-integration', 'contract-first'].includes(route)) return { level: 'expanded', mode: 'run safe local / ask on gates', stopBehavior: 'block on open high-risk gates', actions: ['preflight', 'context resolve', 'active search when relevant', 'risk check', 'QA handoff'] };
+  if (route === 'release-push') return { level: 'guarded', mode: 'block/ask', stopBehavior: 'block before credentialed action', actions: ['permission policy', 'git packet', 'final gates', 'human approval'] };
+  return { level: 'standard', mode: 'suggest / run safe local', stopBehavior: 'warn on open gates', actions: ['preflight', 'verification packet', 'finish confidence'] };
+}
+
+function eventRecommendations(action, task, route, budget) {
+  if (action === 'prompt-submit') return [`route candidate: ${route}`, `automation budget: ${budget.level}`, task ? `next: sdlc task preflight --task "${escapeCommandArg(task)}"` : 'capture task text before routing'];
+  if (action === 'post-edit') return [`run changed-file awareness`, `route-appropriate check mode: ${budget.mode}`, `consider: sdlc task review --task "${escapeCommandArg(task || 'current task')}"`];
+  if (action === 'pre-stop') return ['run `sdlc gates --task "..."`', 'ensure final confidence block exists', 'ensure commit/push choice remains human-controlled'];
+  if (action === 'approval-request') return ['summarize tool/risk/action requested', 'confirm no merge/deploy/release/pipeline/manual movement is hidden', 'record approval or cap'];
+  return ['no recommendation'];
+}
+
+function hookPlanEvents(runtime) {
+  const common = ['pre-stop: call `sdlc event pre-stop` and `sdlc gates` before claiming completion', 'approval-request: summarize risk and human gate', 'post-edit: suggest cheap route-appropriate checks'];
+  if (runtime === 'claude') return ['UserPromptSubmit -> `sdlc event prompt-submit`', 'PostToolUse/Edit -> `sdlc event post-edit`', 'Stop -> `sdlc event pre-stop`', ...common];
+  if (runtime === 'codex') return ['Use available hook/plugin surfaces only where supported; otherwise use agent prompt and CLI commands.', ...common];
+  if (['auggie', 'augment'].includes(runtime)) return ['Use IDE/CLI task adapters if available; otherwise invoke `sdlc event ...` from run-sdlc guidance.', ...common];
+  return common;
+}
+
+function sanitizeLearningBuckets(text) {
+  const lines = String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const portable = lines.filter((line) => /process improvement|run-sdlc|sdlc|route|qa|verification|context bucket|learning|checklist/i.test(line)).slice(0, 20);
+  const product = lines.filter((line) => /durable fact|root cause|fix:|failure:|workflow:|route:|endpoint|table|column|repository|scenario/i.test(line)).slice(0, 20);
+  const sensitive = lines.filter((line) => /secret|token|credential|customer|client|private url|raw log|production log|stack trace/i.test(line)).slice(0, 20);
+  return {
+    portable: portable.length ? portable : ['No portable process lesson extracted automatically; review manually.'],
+    product: product.length ? product : ['No product-context relocation extracted automatically.'],
+    sensitive: sensitive.length ? sensitive : ['No obvious sensitive detail found by simple scanner.'],
+  };
+}
+
 function optionFiles(options, fallback = []) {
   if (!options.files) return fallback;
   return splitList(options.files).map((file) => file.trim()).filter(Boolean);
@@ -5287,6 +5964,26 @@ function scenarioRegressionCases() {
       expectedRoute: 'tiny-docs',
       cleanGitOnly: true,
     },
+    {
+      name: 'route retirement verification',
+      task: 'replace old legacy download route with current API endpoint and prove old active callers are gone',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'context alias resolution',
+      task: 'save LegacyApi workflow learning to the legacy-main-site context bucket',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'learning sync review',
+      task: 'review shared .agents learnings from work and personal environments before changing SDLC',
+      expectedRoute: 'review-only',
+    },
+    {
+      name: 'hook event adapter',
+      task: 'plan optional hooks that call portable sdlc event commands without requiring runtime-specific support',
+      expectedRoute: 'standard',
+    },
   ];
 }
 
@@ -5540,7 +6237,7 @@ function inferRouteFromTask(task, gitInfo, profile = {}) {
   if (matchesAny(text, ['swagger', 'openapi', 'api-only', 'api only', 'developer testing']) && !matchesAny(text, ['user interface', 'visible ui', 'rendered product ui'])) return 'standard';
   if (matchesAny(text, ['user interface', 'rendered product ui', 'visible ui', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'board', 'placement', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
   if (matchesAny(text, ['staging log', 'production log', 'sql log', 'foreign key', 'fk ', 'live-connected', 'live connected'])) return 'bugfix-live-system';
-  if (matchesAny(text, ['weak test', 'legacy', 'coverage', 'missing test'])) return 'weak-test-legacy';
+  if (matchesAny(text, ['weak test', 'coverage', 'missing test']) || (text.includes('legacy') && matchesAny(text, ['test', 'coverage', 'regression']))) return 'weak-test-legacy';
   if (matchesAny(text, ['docs', 'readme', 'markdown']) && !gitInfo.status) return 'tiny-docs';
   if (matchesAny(text, ['bug', 'fix', 'regression', 'broken', 'failing', 'failure'])) return 'bugfix-regression';
   return inferLikelyRoute(gitInfo) === 'tiny-docs' ? 'tiny-docs' : 'standard';
@@ -5773,6 +6470,12 @@ function packetKind(text) {
   if (text.includes('# SDLC Agentic Risk Packet')) return 'agentic-risk';
   if (text.includes('# SDLC Unit Doctor')) return 'unit-doctor';
   if (text.includes('# SDLC Context Bucket Check')) return 'context-bucket-check';
+  if (text.includes('# SDLC Route Retirement Packet')) return 'route-retirement';
+  if (text.includes('# SDLC Final Context Check')) return 'context-final-check';
+  if (text.includes('# SDLC Test Bootstrap Plan')) return 'test-bootstrap-plan';
+  if (text.includes('# SDLC Hook Adapter Plan')) return 'hook-adapter-plan';
+  if (text.includes('# SDLC Learning Sanitization')) return 'learning-sanitization';
+  if (text.includes('# SDLC Learning Review Cycle')) return 'learning-review-cycle';
   if (text.includes('# SDLC Learning Summary')) return 'learning-summary';
   if (text.includes('# SDLC Learned Flow Promotion Draft')) return 'learned-flow-promotion';
   if (text.includes('# SDLC Git Action Packet')) return 'git-action';

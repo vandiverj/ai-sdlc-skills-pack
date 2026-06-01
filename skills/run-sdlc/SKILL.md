@@ -96,6 +96,7 @@ sdlc unit detect --task "<human task>"
 sdlc unit doctor
 sdlc context inventory
 sdlc context bucket-check --task "<human task>"
+sdlc context resolve --path <path> --task "<human task>"
 sdlc context freshness --task "<human task>"
 sdlc context contradictions --task "<human task>"
 sdlc change graph --task "<human task>"
@@ -108,7 +109,9 @@ sdlc qa script --task "<human task>"
 sdlc artifact budget --route <route>
 sdlc qa review --packet <qa-packet>
 sdlc test suggest --task "<human task>"
+sdlc test bootstrap-plan --unit <unit> --framework dotnet|node|deno|generic
 sdlc bug evidence --task "<human task>"
+sdlc bug evidence-check --packet <bug-packet>
 sdlc bug reproduce --task "<human task>"
 sdlc bug diagnose --task "<human task>"
 sdlc bug fix-plan --task "<human task>"
@@ -116,7 +119,13 @@ sdlc bug verify --task "<human task>"
 sdlc bug qa --task "<human task>"
 sdlc render plan --task "<human task>"
 sdlc risk agentic --task "<human task>"
+sdlc search classify --pattern "<pattern>"
+sdlc route retire --old "<old route>" --new "<new route>" --task "<human task>"
+sdlc command classify --command "<command>" --status <code> --stderr "<stderr>"
+sdlc context final-check --task "<human task>"
 sdlc learn route --packet <learning-packet>
+sdlc learn sanitize --packet <learning-packet>
+sdlc learn sync-check
 sdlc learn summary
 sdlc learn capture --summary "<sanitized lesson>"
 sdlc task finish --task "<human task>"
@@ -136,6 +145,8 @@ sdlc unit map
 sdlc multi ledger --task "<human task>"
 sdlc security permissions --task "<human task>"
 sdlc security audit --task "<human task>"
+sdlc automation budget --route <route>
+sdlc hooks plan --runtime claude|codex|auggie|augment|generic
 sdlc handoff draft --task "<human task>"
 sdlc gates --task "<human task>"
 sdlc process health
