@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,6 +35,10 @@ function main(argv) {
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
   if (area === 'calibrate' && action === 'summary') return calibrateSummary(repo, options);
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
+  if (area === 'setup' && action === 'doctor') return setupDoctor(repo);
+  if (area === 'scenario' && action === 'list') return scenarioList();
+  if (area === 'scenario' && action === 'show') return scenarioShow(rest[0] || options.name);
+  if (area === 'scenario' && action === 'validate') return scenarioValidate(rest[0] || options.name, repo, options);
   if (area === 'handoff') return handoff(resolve(areaOptions.repo || process.cwd()), areaOptions);
 
   fail(`Unknown command: ${argv.join(' ')}`);
@@ -55,6 +59,10 @@ Usage:
   sdlc calibrate add --route <route> [--repo <path>] [--out <path>]
   sdlc calibrate summary [--repo <path>] [--in <path>] [--out <path>]
   sdlc readiness [--repo <path>]
+  sdlc setup doctor [--repo <path>]
+  sdlc scenario list
+  sdlc scenario show <name>
+  sdlc scenario validate <name> --task "..." [--repo <path>]
   sdlc handoff [--repo <path>]
 
 This CLI automates mechanical SDLC evidence and context tasks. It does not replace
@@ -610,8 +618,95 @@ function readiness(repo) {
     security: readinessStatus(checks, 'security'),
     multiRepo: readinessStatus(checks, 'multi-repo'),
     recommendedSetupFixes: fixes.join('; ') || 'none',
-    recommendedNextCommand: score < 75 ? 'setup-sdlc-in-repo or sdlc profile init' : 'sdlc context pack --task "..."',
+    recommendedNextCommand: score < 75 ? 'sdlc setup doctor' : 'sdlc context pack --task "..."',
   });
+}
+
+function setupDoctor(repo) {
+  const profile = loadProfile(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const docs = contextDocCandidates(repo, profile.values);
+  const existingDocs = docs.filter((item) => existsSync(item.path));
+  const related = splitList(profile.values.relatedRepositories);
+  const checks = readinessChecks(repo, profile, commands, existingDocs, related);
+  const gaps = checks.filter((item) => item.status !== 'ready');
+  const profilePath = profile.path ? relative(repo, profile.path) : '.ai-local/sdlc-profile.md';
+
+  const lines = [
+    '# SDLC Setup Doctor',
+    '',
+    `Repository: ${repo}`,
+    `Profile: ${profilePath}`,
+    '',
+    '## Readiness Gaps',
+    '',
+    ...gaps.map((item) => `- ${item.area}: ${item.fix}`),
+    ...(gaps.length ? [] : ['- none']),
+    '',
+    '## Suggested Profile Fields',
+    '',
+    'Copy or adapt these fields into the local SDLC profile. Keep personal paths and local evidence ignored unless the repo explicitly approves sharing a sanitized variant.',
+    '',
+    '```text',
+    '- Rendered UI review command: npm run dev',
+    '- Release policy: local commit/push only after tests/build pass and human approval',
+    '- Human approval gates: commit, push, dependency install, external service calls, destructive commands',
+    '- Approved tools: git, npm scripts, local browser/rendered inspection, SDLC helper',
+    '- Blocked tools: credentialed production writes, destructive Git commands, dependency installs without approval',
+    '- Sensitive data restrictions: no secrets, credentials, customer data, or private transcripts in tracked docs/evidence',
+    '```',
+    '',
+    '## Useful Commands',
+    '',
+    '```bash',
+    'sdlc readiness',
+    'sdlc context restore',
+    'sdlc context pack --task "..."',
+    '```',
+  ];
+
+  console.log(lines.join('\n'));
+}
+
+function scenarioList() {
+  const scenarios = scenarioNames();
+  if (!scenarios.length) fail('No scenarios found.');
+  console.log(scenarios.join('\n'));
+}
+
+function scenarioShow(name) {
+  const scenario = loadScenario(name);
+  console.log(scenario.text.trimEnd());
+}
+
+function scenarioValidate(name, repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the scenario can validate route inference.');
+
+  const scenario = loadScenario(name);
+  const profile = loadProfile(repo);
+  const route = inferRouteFromTask(task, getGitInfo(repo), profile.values);
+  const triggers = securityTriggers(task, profile.values);
+  const expected = parseScenarioExpectedRoute(scenario.text);
+  const normalizedExpected = expected.toLowerCase();
+  const pass =
+    normalizedExpected.includes(route) ||
+    (normalizedExpected.includes('high-risk overlay') && triggers.length > 0) ||
+    (normalizedExpected.includes('standard') && route === 'standard') ||
+    (normalizedExpected.includes('tiny-docs') && route === 'tiny-docs');
+
+  printObject({
+    scenario: scenario.name,
+    task,
+    expectedRoute: expected || 'not found',
+    inferredRoute: route,
+    securityTriggers: triggers.join(', ') || 'none',
+    result: pass ? 'pass' : 'review-needed',
+    nextCommand: `sdlc route start ${route} --task "${task}"`,
+  });
+
+  if (!pass) process.exitCode = 1;
 }
 
 function handoff(repo) {
@@ -707,6 +802,34 @@ function readJsonIfExists(path) {
   } catch {
     return null;
   }
+}
+
+function scenarioNames() {
+  const dir = join(agentsRoot, 'templates', 'scenarios');
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => basename(file, '.md'))
+    .sort();
+}
+
+function loadScenario(name) {
+  if (!name) fail('Pass a scenario name, such as ui-rendered-issue.');
+  const safeName = slug(name);
+  const path = join(agentsRoot, 'templates', 'scenarios', `${safeName}.md`);
+  if (!existsSync(path)) fail(`Scenario not found: ${name}`);
+  return { name: safeName, path, text: readFileSync(path, 'utf8') };
+}
+
+function parseScenarioExpectedRoute(text) {
+  const match = text.match(/## Expected Route\s+([\s\S]*?)(?:\n## |\n# |$)/);
+  if (!match) return '';
+  return match[1]
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(' ')
+    .replace(/`/g, '');
 }
 
 function findExisting(repo, paths) {

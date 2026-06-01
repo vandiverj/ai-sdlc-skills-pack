@@ -53,6 +53,13 @@ sdlc calibrate add --route <route> --outcome "<pass|partial|fail>" --route-fit "
 
 If a security trigger appears in the context pack or route packet, keep the security overlay in the evidence and stop for any consent gate before acting.
 
+When route behavior itself is being tested or a known failure pattern is relevant, use scenario fixtures:
+
+```bash
+sdlc scenario list
+sdlc scenario validate <scenario> --task "<human task>"
+```
+
 When delegating implementation, verification, independent review, release handoff, process learning, or evidence-packet creation, or when running those roles as separate Codex-direct phases, the orchestrator may fill the general templates in `templates/prompts/sdlc/`. These templates are internal prompt-generation aids for the AI; do not require the human to provide prompts in that format.
 
 ## What this skill does
