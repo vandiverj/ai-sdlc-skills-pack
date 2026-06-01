@@ -29,6 +29,10 @@ async function main(argv) {
   if (area === 'help' && (action === 'onboarding' || action === 'start')) return helpOnboarding();
   if (area === 'profile' && action === 'show') return profileShow(repo);
   if (area === 'profile' && action === 'init') return profileInit(repo, options);
+  if (area === 'profile' && action === 'audit') return profileAudit(repo, options);
+  if (area === 'profile' && action === 'suggest') return profileSuggest(repo, options);
+  if (area === 'intake' && action === 'packet') return intakePacket(repo, options);
+  if (area === 'intake' && action === 'check') return intakeCheck(repo, options);
   if (area === 'context' && action === 'restore') return contextRestore(repo, options);
   if (area === 'context' && action === 'pack') return contextPack(repo, options);
   if (area === 'context' && action === 'audit') return contextAudit(repo, options);
@@ -37,14 +41,20 @@ async function main(argv) {
   if (area === 'context' && (action === 'contradictions' || action === 'check')) return contextContradictions(repo, options);
   if (area === 'context' && action === 'inventory') return contextInventory(repo, options);
   if (area === 'context' && action === 'bucket-check') return contextBucketCheck(repo, options);
+  if (area === 'context' && action === 'bucket-confidence') return contextBucketConfidence(repo, options);
   if (area === 'context' && action === 'resolve') return contextResolve(repo, options);
   if (area === 'context' && action === 'final-check') return contextFinalCheck(repo, options);
   if (area === 'context' && action === 'place') return contextPlace(repo, options);
   if (area === 'context' && action === 'update-plan') return contextUpdatePlan(repo, options);
   if (area === 'change' && (action === 'graph' || action === 'graph-lite')) return changeGraph(repo, options);
   if (area === 'search' && action === 'classify') return searchClassify(repo, options);
+  if (area === 'search' && action === 'classify-results') return searchClassifyResults(repo, options);
   if (area === 'search' && action === 'retire-check') return searchRetireCheck(repo, options);
   if (area === 'recipe' && action === 'show') return recipeShow(rest[0] || options.route);
+  if (area === 'recipe' && action === 'match') return recipeMatch(repo, options);
+  if (area === 'recipe' && action === 'list') return recipeList(repo, options);
+  if (area === 'recipe' && action === 'review') return recipeReview(repo, options);
+  if (area === 'recipe' && action === 'retire') return recipeRetire(repo, options);
   if (area === 'task' && action === 'id') return taskId(repo, options);
   if (area === 'task' && action === 'current') return taskCurrent(repo, options);
   if (area === 'task' && action === 'preflight') return taskPreflight(repo, options);
@@ -53,6 +63,7 @@ async function main(argv) {
   if (area === 'task' && (action === 'open')) return taskOpen(repo, options);
   if (area === 'task' && (action === 'bundle')) return taskBundle(repo, options);
   if (area === 'task' && action === 'status') return taskStatus(repo, options);
+  if (area === 'task' && action === 'doctor') return taskDoctor(repo, options);
   if (area === 'task' && (action === 'review' || action === 'checkpoint')) return taskReview(repo, options);
   if (area === 'task' && action === 'ledger') return taskLedger(repo, options);
   if (area === 'task' && action === 'verify') return taskVerify(repo, options);
@@ -60,6 +71,7 @@ async function main(argv) {
   if (area === 'task' && (action === 'finish' || action === 'complete')) return taskFinish(repo, options);
   if (area === 'route' && action === 'start') return routeStart(repo, rest[0] || options.route, options);
   if (area === 'route' && action === 'retire') return routeRetire(repo, options);
+  if (area === 'route' && action === 'proof') return routeProof(repo, options);
   if (area === 'packet' && action === 'status') return packetStatus(repo, options);
   if (area === 'done' && action === 'check') return doneCheck(repo, options);
   if (area === 'run' && action === 'plan') return runPlan(repo, options);
@@ -90,6 +102,7 @@ async function main(argv) {
   if (area === 'release' && action === 'packet') return releasePacket(repo, options);
   if (area === 'release' && action === 'complete') return releaseComplete(repo, options);
   if (area === 'qa' && (action === 'script' || action === 'packet')) return qaScript(repo, options);
+  if (area === 'qa' && action === 'handoff') return qaHandoff(repo, options);
   if (area === 'qa' && action === 'scenarios') return qaScenarios(repo, rest[0] || options.command || 'list', options);
   if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi'].includes(action)) return qaModeCommand(repo, action, options, rest);
   if (area === 'qa' && action === 'complete') return qaComplete(repo, options);
@@ -106,9 +119,14 @@ async function main(argv) {
   if (area === 'test' && action === 'plan') return testPlan(repo, options);
   if (area === 'test' && action === 'suggest') return testSuggest(repo, options);
   if (area === 'test' && action === 'bootstrap-plan') return testBootstrapPlan(repo, options);
+  if (area === 'test' && action === 'regression-plan') return testRegressionPlan(repo, options);
   if (area === 'bug' && (action === 'evidence' || action === 'packet')) return bugEvidencePacket(repo, options);
+  if (area === 'bug' && action === 'live-evidence') return bugLiveEvidence(repo, options);
   if (area === 'bug' && action === 'evidence-check') return bugEvidenceCheck(repo, options);
   if (area === 'bug' && ['reproduce', 'diagnose', 'fix-plan', 'verify', 'qa'].includes(action)) return bugWorkflowPacket(repo, action, options);
+  if (area === 'dotnet' && action === 'efcore' && (rest[0] || options.command) === 'diagnose') return dotnetEfcoreDiagnose(repo, options);
+  if (area === 'pattern' && action === 'analog') return patternAnalog(repo, options);
+  if (area === 'fix' && action === 'scope') return fixScope(repo, options);
   if (area === 'command' && action === 'classify') return commandClassify(repo, options);
   if (area === 'automation' && action === 'budget') return automationBudget(repo, options);
   if (area === 'event' && ['prompt-submit', 'post-edit', 'pre-stop', 'approval-request'].includes(action)) return sdlcEvent(repo, action, options);
@@ -121,15 +139,19 @@ async function main(argv) {
   if (area === 'trace' && action === 'start') return traceStart(repo, options);
   if (area === 'trace' && action === 'event') return traceEvent(repo, options);
   if (area === 'trace' && action === 'finish') return traceFinish(repo, options);
+  if (area === 'trace' && action === 'export') return traceExport(repo, options);
   if (area === 'scorecard' && action === 'task') return scorecardTask(repo, options);
   if (area === 'scorecard' && action === 'summary') return scorecardSummary(repo, options);
   if (area === 'artifact' && action === 'budget') return artifactBudget(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
+  if (area === 'evidence' && action === 'provenance') return evidenceProvenance(repo, options);
   if (area === 'verify' && action === 'packet') return verifyPacket(repo, options);
   if (area === 'verify' && action === 'complete') return verifyComplete(repo, options);
   if (area === 'verify') return verify(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'final' && action === 'gate') return finalGate(repo, options);
+  if (area === 'finish' && action === 'packet') return finishPacket(repo, options);
   if (area === 'git' && action === 'packet') return gitPacket(repo, options);
+  if (area === 'action' && action === 'preview') return actionPreview(repo, options);
   if (area === 'gates') return gates(repo, areaOptions);
   if (area === 'handoff' && action === 'draft') return handoffDraft(repo, options);
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
@@ -149,6 +171,8 @@ async function main(argv) {
   if (area === 'learn' && action === 'review') return learnReview(repo, options);
   if (area === 'learn' && action === 'promote-check') return learnPromoteCheck(repo, options);
   if (area === 'learn' && action === 'candidates') return learnCandidates(repo, options);
+  if (area === 'learn' && action === 'split') return learnSplit(repo, options);
+  if (area === 'learn' && action === 'backlog') return learnBacklog(repo, options);
   if (area === 'learn' && action === 'promote') return learnPromote(repo, options);
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'setup' && action === 'doctor') return setupDoctor(repo, options);
@@ -184,6 +208,10 @@ Usage:
   sdlc help workflow
   sdlc help onboarding
   sdlc profile init [--repo <path>] [--shared-context-root <path>]
+  sdlc profile audit [--repo <path>]
+  sdlc profile suggest --task "..." [--repo <path>]
+  sdlc intake packet --task "..." [--case <id>] [--repo <path>] [--out <path>]
+  sdlc intake check --task "..." [--repo <path>]
   sdlc context restore [--repo <path>] [--include-related-repos]
   sdlc context pack --task "..." [--repo <path>] [--out <path>]
   sdlc context audit [--repo <path>] [--out <path>]
@@ -192,14 +220,20 @@ Usage:
   sdlc context contradictions --task "..." [--repo <path>] [--out <path>]
   sdlc context inventory [--repo <path>] [--out <path>]
   sdlc context bucket-check --task "..." [--repo <path>] [--out <path>]
+  sdlc context bucket-confidence --path <path> --task "..." [--repo <path>]
   sdlc context resolve --path <path> [--task "..."] [--repo <path>]
   sdlc context final-check --task "..." [--repo <path>] [--out <path>]
   sdlc context place --fact "..." [--repo <path>]
   sdlc context update-plan --task "..." [--repo <path>] [--out <path>]
   sdlc change graph --task "..." [--repo <path>] [--out <path>]
   sdlc search classify --pattern "..." [--scope <path>] [--repo <path>] [--out <path>]
+  sdlc search classify-results --pattern "..." [--scope <path>] [--repo <path>] [--out <path>]
   sdlc search retire-check --old <pattern> --new <pattern> [--scope <path>] [--repo <path>] [--out <path>]
   sdlc recipe show <route>
+  sdlc recipe match --task "..." [--repo <path>]
+  sdlc recipe list [--repo <path>]
+  sdlc recipe review [--since YYYY-MM-DD] [--repo <path>]
+  sdlc recipe retire --recipe <id> --reason "..." [--repo <path>] [--out <path>]
   sdlc task id --task "..." [--repo <path>]
   sdlc task current [--repo <path>]
   sdlc task preflight --task "..." [--repo <path>] [--lock] [--out <path>]
@@ -208,6 +242,7 @@ Usage:
   sdlc task open --task "..." [--repo <path>]
   sdlc task bundle --task "..." [--repo <path>]
   sdlc task status [--task "..."] [--repo <path>]
+  sdlc task doctor --task "..." [--repo <path>]
   sdlc task review --task "..." [--repo <path>]
   sdlc task checkpoint --task "..." [--repo <path>]
   sdlc task ledger --task "..." [--repo <path>] [--out <path>] [--refresh]
@@ -217,6 +252,7 @@ Usage:
   sdlc task complete --task "..." [--repo <path>] [--out <path>]
   sdlc route start <route> [--task "..."] [--repo <path>] [--out <path>]
   sdlc route retire --old <pattern> --new <pattern> --task "..." [--scope <path>] [--repo <path>] [--out <path>]
+  sdlc route proof --old <pattern> --new <pattern> --task "..." [--scope <path>] [--repo <path>] [--out <path>]
   sdlc packet status [--repo <path>]
   sdlc done check --route <route> [--repo <path>] [--packet <path>]
   sdlc run plan --task "..." [--repo <path>] [--out <path>]
@@ -247,6 +283,7 @@ Usage:
   sdlc release packet [--task "..."] [--repo <path>] [--out <path>]
   sdlc release complete --packet <path> --action "none|commit|push|handoff" [--verdict "..."] [--checks "..."] [--caps "..."]
   sdlc qa script --task "..." [--repo <path>] [--out <path>]
+  sdlc qa handoff --task "..." [--repo <path>] [--out <path>]
   sdlc qa scenarios init|list|match [--task "..."] [--repo <path>]
   sdlc qa ui|api|data|integration|scenario|multi --task "..." [--repo <path>] [--scenario <id>] [--out <path>]
   sdlc qa complete --packet <path> --status "draft|ready|blocked" [--caps "..."]
@@ -263,9 +300,14 @@ Usage:
   sdlc test plan --task "..." [--repo <path>] [--out <path>]
   sdlc test suggest --task "..." [--repo <path>] [--out <path>]
   sdlc test bootstrap-plan --unit <name> --framework dotnet|node|deno|generic [--repo <path>] [--out <path>]
+  sdlc test regression-plan --task "..." [--repo <path>] [--out <path>]
   sdlc bug evidence --task "..." [--repo <path>] [--out <path>]
+  sdlc bug live-evidence --task "..." [--repo <path>] [--out <path>]
   sdlc bug evidence-check --packet <path> [--repo <path>]
   sdlc bug reproduce|diagnose|fix-plan|verify|qa --task "..." [--repo <path>] [--out <path>]
+  sdlc dotnet efcore diagnose --task "..." [--repo <path>] [--out <path>]
+  sdlc pattern analog --task "..." [--hint "..."] [--repo <path>] [--out <path>]
+  sdlc fix scope --task "..." [--repo <path>] [--out <path>]
   sdlc command classify --command "..." --status <code> [--stderr "..."] [--repo <path>]
   sdlc automation budget --route <route> [--repo <path>]
   sdlc event prompt-submit|post-edit|pre-stop|approval-request [--task "..."] [--repo <path>]
@@ -278,15 +320,19 @@ Usage:
   sdlc trace start --task "..." [--repo <path>]
   sdlc trace event --type <type> --summary "..." [--repo <path>]
   sdlc trace finish --task "..." [--repo <path>]
+  sdlc trace export --trace <path> --format json|otel-lite [--repo <path>] [--out <path>]
   sdlc scorecard task --trace <path> [--repo <path>]
   sdlc scorecard summary [--since YYYY-MM-DD] [--repo <path>]
   sdlc artifact budget --route <route> [--repo <path>]
   sdlc evidence init --route <route> [--repo <path>] [--out <path>]
+  sdlc evidence provenance --task "..." [--repo <path>] [--out <path>]
   sdlc verify packet --task "..." [--repo <path>] [--out <path>]
   sdlc verify complete --packet <path> --checks "..." [--caps "..."]
   sdlc verify [--repo <path>] [--commands test,build]
   sdlc final gate [--task "..."] [--repo <path>]
+  sdlc finish packet --task "..." [--repo <path>] [--out <path>]
   sdlc git packet [--repo <path>] [--out <path>]
+  sdlc action preview --action commit|push|tool|network|dependency|learning-promotion [--repo <path>] [--command "..."]
   sdlc gates [--task "..."] [--repo <path>]
   sdlc handoff draft [--task "..."] [--repo <path>] [--out <path>]
   sdlc calibrate add --route <route> [--repo <path>] [--out <path>]
@@ -306,6 +352,8 @@ Usage:
   sdlc learn review --packet <path> [--repo <path>]
   sdlc learn promote-check --packet <path> [--repo <path>]
   sdlc learn candidates [--since YYYY-MM-DD] [--repo <path>]
+  sdlc learn split --packet <path> [--repo <path>] [--out <path>]
+  sdlc learn backlog [--repo <path>]
   sdlc learn promote --packet <path> --target "process|template|route|context" [--repo <path>] [--out <path>]
   sdlc readiness [--repo <path>]
   sdlc health [--repo <path>]
@@ -517,6 +565,8 @@ Purpose: local repository profile for SDLC helper automation. Keep this file ign
 - Human approval gates:
 - Require case ID in commit messages: false
 - Commit message format: CASE_ID: concise summary
+- Case ID convention:
+- QA ownership:
 
 ## Deployable Units
 
@@ -537,6 +587,12 @@ Use one block per codebase/deployable unit when a repository contains multiple p
 - Approved tools:
 - Blocked tools:
 - Sensitive data restrictions:
+- Sensitive log handling:
+- Archived paths:
+- Generated paths:
+- Dependency paths:
+- Context aliases:
+- QA scenario library:
 
 ## Last Reviewed
 - Date:
@@ -5275,17 +5331,20 @@ function scenarioTest(repo, options = {}) {
   const results = cases.map((item) => {
     const route = inferRouteFromTask(item.task, item.cleanGitOnly ? { ...git, status: '', changedFiles: [] } : git, profile.values);
     const triggers = securityTriggers(item.task, profile.values);
+    const recipes = matchRecipes(item.task, item.cleanGitOnly ? { ...git, status: '', changedFiles: [] } : git, profile.values).map((recipe) => recipe.id);
     const routePass = item.expectedRoute ? route === item.expectedRoute : true;
     const overlayPass = item.expectedSecurityOverlay ? triggers.length > 0 : true;
-    return { ...item, route, triggers, pass: routePass && overlayPass };
+    const recipePass = item.expectedRecipes ? item.expectedRecipes.every((recipe) => recipes.includes(recipe)) : true;
+    return { ...item, route, triggers, recipes, pass: routePass && overlayPass && recipePass };
   });
 
   for (const result of results) {
-    console.log(`${result.pass ? 'PASS' : 'FAIL'} ${result.name}: ${result.route}${result.triggers.length ? ` (${result.triggers.join(', ')})` : ''}`);
+    console.log(`${result.pass ? 'PASS' : 'FAIL'} ${result.name}: ${result.route}${result.triggers.length ? ` (${result.triggers.join(', ')})` : ''}${result.recipes.length ? ` recipes=${result.recipes.join(',')}` : ''}`);
     if (!result.pass) {
       console.log(`  task: ${result.task}`);
       if (result.expectedRoute) console.log(`  expected route: ${result.expectedRoute}`);
       if (result.expectedSecurityOverlay) console.log('  expected security overlay: yes');
+      if (result.expectedRecipes) console.log(`  expected recipes: ${result.expectedRecipes.join(', ')}`);
     }
   }
 
@@ -6104,6 +6163,19 @@ function testBootstrapChecklist(framework) {
   ];
 }
 
+function testRecommendationsForSurfaces(surfaces = [], task = '') {
+  const text = String(task || '').toLowerCase();
+  const recommendations = [];
+  const surfaceText = surfaces.join(' ').toLowerCase();
+  if (matchesAny(`${text} ${surfaceText}`, ['foreign key', 'relationship', 'ef core', 'sql', 'database', 'data'])) recommendations.push('Add the smallest data/ORM invariant test that fails for the observed root cause.');
+  if (matchesAny(`${text} ${surfaceText}`, ['route', 'endpoint', 'download', 'api'])) recommendations.push('Add focused API/controller/route coverage for old/new behavior when a harness exists.');
+  if (matchesAny(`${text} ${surfaceText}`, ['ui', 'screen', 'page', 'layout'])) recommendations.push('Add rendered/manual smoke coverage for the changed user-visible path.');
+  if (matchesAny(`${text} ${surfaceText}`, ['no automated tests', 'manual qa', 'weak test', 'legacy'])) recommendations.push('Create a test-bootstrap plan or record why manual QA is the accepted cap.');
+  if (matchesAny(`${text} ${surfaceText}`, ['dependency', 'package', 'upgrade'])) recommendations.push('Run startup/build/focused regression checks that would catch the dependency break.');
+  if (!recommendations.length) recommendations.push('Use the existing test command when available, or record why no new test is needed.');
+  return dedupe(recommendations);
+}
+
 function classifyCommandFailure(command, status, stderr) {
   const text = `${command}\n${stderr}`.toLowerCase();
   if (matchesAny(text, ['eperm', 'permission denied', 'operation not permitted', 'sandbox'])) return { kind: 'permission/sandbox failure', evidenceUse: 'cap until rerun with permission or alternate output path', nextAction: 'rerun with approved permission or record sandbox cap' };
@@ -6580,11 +6652,13 @@ function scenarioRegressionCases() {
       name: 'route retirement verification',
       task: 'replace old legacy download route with current API endpoint and prove old active callers are gone',
       expectedRoute: 'standard',
+      expectedRecipes: ['route-retirement'],
     },
     {
       name: 'context alias resolution',
       task: 'save LegacyApi workflow learning to the legacy-main-site context bucket',
       expectedRoute: 'standard',
+      expectedRecipes: ['context-bucket-save'],
     },
     {
       name: 'learning sync review',
@@ -6600,6 +6674,7 @@ function scenarioRegressionCases() {
       name: 'api only openapi service',
       task: 'change an API-only service with Swagger OpenAPI developer testing and no rendered product UI',
       expectedRoute: 'standard',
+      expectedRecipes: ['api-only-openapi'],
     },
     {
       name: 'multi project repository',
@@ -6610,21 +6685,37 @@ function scenarioRegressionCases() {
       name: 'multi repo shared qa',
       task: 'finish a feature spanning five repositories and produce one human QA Markdown script for the visible workflow',
       expectedRoute: 'multi-repo-integration',
+      expectedRecipes: ['multi-repo-qa-handoff'],
     },
     {
       name: 'legacy route replacement',
       task: 'replace a legacy ASP Classic route with a .NET API route and verify old active callers are retired',
       expectedRoute: 'standard',
+      expectedRecipes: ['route-retirement'],
     },
     {
       name: 'live bug sanitized log',
       task: 'fix a production issue using sanitized staging logs and exact reproduction evidence',
       expectedRoute: 'bugfix-live-system',
+      expectedRecipes: ['live-system-bug'],
     },
     {
       name: 'no test legacy manual qa',
       task: 'implement a legacy site fix where no automated tests exist and create a Markdown QA script for YouTrack',
       expectedRoute: 'weak-test-legacy',
+      expectedRecipes: ['no-test-legacy'],
+    },
+    {
+      name: 'efcore trigger output metadata',
+      task: 'fix EF Core SQL Server OUTPUT clause failure on trigger-backed tables after package upgrade',
+      expectedRoute: 'bugfix-regression',
+      expectedRecipes: ['efcore-sqlserver-trigger-output'],
+    },
+    {
+      name: 'command quoting false failure',
+      task: 'classify a ParserError quoting command failed result before using it as evidence',
+      expectedRoute: 'standard',
+      expectedRecipes: ['command-tooling-failure'],
     },
   ];
 }
@@ -7311,6 +7402,683 @@ function defaultFeedbackPath(repo) {
   return join(defaultRunsDir(repo), 'developer-feedback.jsonl');
 }
 
+function intakePacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so intake can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const caseId = taskCaseId(task, options, profile.values);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-intake-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Intake Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Case ID: ${caseId || 'not provided'}
+Source system: ${options.source || options.sourceSystem || 'not provided'}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Suggested route: ${inferRouteFromTask(task, git, profile.values)}
+Task type: ${taskType(task)}
+
+## Identity And Ownership
+
+- Affected product/repo/unit: ${options.unit || 'infer from changed files/profile'}
+- QA ownership: ${options.qaOwner || profile.values.qaOwnership || 'decide during impact/QA handoff'}
+- Commit-message case ID policy: ${caseIdPolicy(profile.values)}
+- Proposed commit prefix: ${caseId ? `${caseId}:` : requiresCaseId(profile.values) ? 'blocked until case ID is known' : 'optional'}
+
+## Required Early Decisions
+
+${formatList(intakeOpenItems(task, profile.values, caseId))}
+
+## Next Commands
+
+\`\`\`bash
+sdlc recipe match --task "${escapeCommandArg(task)}"
+sdlc run dashboard --task "${escapeCommandArg(task)}"
+\`\`\`
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function intakeCheck(repo, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const caseId = taskCaseId(task, options, profile.values);
+  const open = intakeOpenItems(task, profile.values, caseId);
+  printObject({
+    repository: repo,
+    task: task || 'not provided',
+    caseId: caseId || 'not provided',
+    caseIdPolicy: caseIdPolicy(profile.values),
+    status: open.length ? 'open' : 'ready',
+    openItems: open.join('; ') || 'none',
+  });
+  if (requiresCaseId(profile.values) && !caseId) process.exitCode = 1;
+}
+
+function recipeMatch(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const recipes = matchRecipes(task, getGitInfo(repo), loadProfile(repo).values);
+  printObject({
+    repository: repo,
+    task,
+    matches: recipes.length,
+    primary: recipes[0]?.id || 'none',
+  });
+  console.log('\n| Recipe | Confidence | Status | Required proof | Suggested command |');
+  console.log('| --- | --- | --- | --- | --- |');
+  for (const recipe of recipes) {
+    console.log(`| ${recipe.id} | ${recipe.confidence} | ${recipe.status} | ${escapeCell(recipe.requiredProof.join('; '))} | \`${recipe.command}\` |`);
+  }
+}
+
+function recipeList(repo, options = {}) {
+  const recipes = recipeRegistry();
+  console.log('| Recipe | Status | Owner | Triggers |');
+  console.log('| --- | --- | --- | --- |');
+  for (const recipe of recipes) {
+    if (options.status && recipe.status !== options.status) continue;
+    console.log(`| ${recipe.id} | ${recipe.status} | ${recipe.owner} | ${escapeCell(recipe.triggers.join(', '))} |`);
+  }
+}
+
+function recipeReview(repo, options = {}) {
+  const traces = findTraceFiles(repo).flatMap((file) => readJsonLines(file));
+  const recipes = recipeRegistry();
+  console.log(`# SDLC Recipe Review
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Since: ${options.since || 'all'}
+
+| Recipe | Status | Trace mentions | Suggested action |
+| --- | --- | --- | --- |`);
+  for (const recipe of recipes) {
+    const mentions = traces.filter((row) => String(row.recipeIds || row.recipe || row.summary || '').includes(recipe.id)).length;
+    const action = recipe.status === 'experimental' && mentions > 2 ? 'review for promotion to active' : recipe.status === 'deprecated' ? 'confirm replacement or retire' : 'keep monitoring';
+    console.log(`| ${recipe.id} | ${recipe.status} | ${mentions} | ${action} |`);
+  }
+}
+
+function recipeRetire(repo, options = {}) {
+  const recipe = options.recipe || options.id || '';
+  if (!recipe) fail('Pass --recipe <id>.');
+  const reason = options.reason || 'not provided';
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(recipe)}-recipe-retirement.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Recipe Retirement
+
+Date: ${new Date().toISOString()}
+Recipe: ${recipe}
+Reason: ${reason}
+
+## Rule
+
+- Do not delete historical learning just because a recipe is retired.
+- Mark future matching as advisory/deprecated until a replacement is approved.
+- Add a scenario regression when retirement fixes a false positive.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function profileAudit(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
+  const missing = profileCapabilityGaps(repo, profile.values, commands);
+  printObject({
+    repository: repo,
+    profile: profile.path ? relative(repo, profile.path) : 'not found',
+    status: missing.length ? 'partial' : 'ready',
+    gaps: missing.join('; ') || 'none',
+  });
+  if (missing.length) process.exitCode = 1;
+}
+
+function profileSuggest(repo, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const recipes = matchRecipes(task, git, profile.values);
+  console.log(`# SDLC Profile Suggestions
+
+Task: ${task || 'not provided'}
+Repository: ${repo}
+
+## Suggested Profile Additions
+
+${formatList(profileSuggestionsForTask(task, profile.values, recipes))}
+`);
+}
+
+function contextBucketConfidence(repo, options = {}) {
+  const target = options.path || '.';
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const targetPath = resolve(repo, target);
+  const normalized = normalizeUnitPath(relative(repo, targetPath) || target);
+  const aliases = contextAliases(profile.values).filter((item) => normalized.toLowerCase().includes(item.match.toLowerCase()) || task.toLowerCase().includes(item.match.toLowerCase()));
+  const units = affectedUnits(repo, [normalized], profile, options.unit);
+  const candidates = dedupe([
+    ...aliases.map((item) => item.bucket),
+    ...units.map((unit) => unit.contextBucket),
+    profile.values.repoContext,
+    profile.values.productContext,
+    profile.values.sharedContextRoot,
+  ]).filter(Boolean);
+  const confidence = aliases.length === 1 || units.length === 1 && units[0].contextBucket ? 'high' : candidates.length === 1 ? 'medium' : candidates.length > 1 ? 'conflict' : 'low';
+  printObject({
+    repository: repo,
+    path: normalized || '.',
+    task: task || 'not provided',
+    confidence,
+    candidates: candidates.join('; ') || 'none configured',
+    recommended: candidates[0] || 'configure repo/unit/shared context bucket',
+    gate: ['low', 'conflict'].includes(confidence) ? 'ask human before durable context write' : 'safe to use with normal review',
+  });
+  if (['low', 'conflict'].includes(confidence)) process.exitCode = 1;
+}
+
+function searchClassifyResults(repo, options = {}) {
+  return searchClassify(repo, options);
+}
+
+function routeProof(repo, options = {}) {
+  return routeRetire(repo, options);
+}
+
+function qaHandoff(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const recipes = matchRecipes(task, git, profile.values);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-qa-handoff.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC QA Handoff
+
+Task: ${task}
+Case ID: ${taskCaseId(task, options, profile.values) || 'not provided'}
+Repository: ${repo}
+Branch/build: ${git.branch || 'unknown'} / ${git.head || 'unknown'}
+
+## Tester Instructions
+
+- Environment:
+- Test account/data:
+- Steps:
+- Expected result:
+- Regression checks:
+
+## Developer Validation Evidence
+
+${formatList(taskEvidenceSummary(repo, packets))}
+
+## Recipe-Specific QA Notes
+
+${formatList(recipes.flatMap((recipe) => recipe.qaAdditions))}
+
+## Manual QA Ownership
+
+- QA tester follows this Markdown manually.
+- QA tester does not need AI, source-code access, or developer command knowledge.
+- Developer owns any listed caps, setup notes, and environment limitations.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function testRegressionPlan(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-regression-plan.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Targeted Regression Plan
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+
+## Smallest Useful Regression
+
+${formatList(testRecommendationsForSurfaces(inferDirtySurfaces(task, git), task))}
+
+## Existing Evidence Recipe Matches
+
+${formatList(matchRecipes(task, git, profile.values).map((recipe) => `${recipe.id}: ${recipe.requiredProof.join('; ')}`))}
+
+## Caps
+
+- If no automated test is practical, record why and produce a QA handoff/manual smoke replacement.
+- Do not backfill broad legacy coverage as part of a narrow task unless explicitly approved.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function bugLiveEvidence(repo, options = {}) {
+  return bugEvidencePacket(repo, options);
+}
+
+function dotnetEfcoreDiagnose(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-efcore-diagnostic.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const triggerMode = matchesAny(task.toLowerCase(), ['trigger', 'output clause', 'output', 'sqloutput']) ? 'sql-server-output-trigger' : 'fk-relationship';
+  const content = `# SDLC EF Core Diagnostic Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Diagnostic mode: ${triggerMode}
+
+## Required Evidence
+
+${formatList(triggerMode === 'sql-server-output-trigger' ? [
+    'Capture exact SQL Server error naming OUTPUT/trigger behavior and target table.',
+    'Check EF Core/SQL Server provider version or package change if relevant.',
+    'Get authoritative trigger-backed table list for the affected database.',
+    'Intersect trigger-backed tables with entities mapped by the affected DbContext.',
+    'Prefer model metadata/output-clause configuration fix before workflow/schema changes.',
+    'Add metadata-level regression test and record SQL Server smoke cap.',
+  ] : [
+    'Capture exact FK error, target table, and columns from SQL/log output.',
+    'Identify relationship invariant the ORM did not satisfy.',
+    'Find analogous successful path before changing save ordering broadly.',
+    'Prefer narrow relationship wiring fix when evidence supports it.',
+    'Add focused regression test for the invariant.',
+  ])}
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function patternAnalog(repo, options = {}) {
+  const task = options.task || '';
+  const hint = options.hint || task;
+  if (!task) fail('Pass --task "...".');
+  const terms = dedupe(String(hint).split(/[^A-Za-z0-9_/-]+/).filter((word) => word.length > 4)).slice(0, 6);
+  const results = terms.flatMap((term) => searchPattern(repo, term).slice(0, 10)).slice(0, 40);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-analogous-paths.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Analogous Path Search
+
+Task: ${task}
+Hint: ${hint}
+
+## Candidate Working Paths
+
+${formatList(results.map((item) => `${relative(repo, item.path)}:${item.line} ${item.text}`))}
+
+## Review Questions
+
+- Which candidate is known working behavior?
+- What invariant can be reused?
+- What differences limit reuse?
+- If no analogous path exists, record that as a cap before broad implementation.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function fixScope(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-fix-scope.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Fix Scope Packet
+
+Task: ${task}
+Repository: ${repo}
+
+## Primary Evidence-Backed Fix
+
+- Evidence:
+- Proposed narrow change:
+- Blast radius:
+- Rollback/revert note:
+
+## Fallback Plans Deferred
+
+- Fallback:
+- Why deferred:
+- Evidence required before use:
+
+## Gate
+
+- Broad remediation requires explicit evidence or human approval.
+- Final handoff should explain why the implemented fix was the smallest safe fix.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function evidenceProvenance(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const git = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const rows = provenanceRows(repo, task, git, packets);
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Evidence Provenance
+
+Task: ${task}
+Repository: ${repo}
+
+| Source | Trust | Freshness | Note |
+| --- | --- | --- | --- |
+${rows.map((row) => `| ${escapeCell(row.source)} | ${row.trust} | ${row.freshness} | ${escapeCell(row.note)} |`).join('\n')}
+
+## Rule
+
+- Source code, tests, runtime logs, and current command output outrank advisory context.
+- Issue text, generated docs, old agent output, and external/tool summaries are advisory until verified.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
+function traceExport(repo, options = {}) {
+  const tracePath = options.trace ? resolve(repo, options.trace) : defaultTracePath(repo, options.task || 'current-task');
+  const rows = readJsonLines(tracePath);
+  const format = options.format || 'json';
+  const exported = format === 'otel-lite' ? rows.map(toOtelLiteSpan) : rows;
+  const text = JSON.stringify(exported, null, 2);
+  if (options.out) {
+    const outPath = resolve(repo, options.out);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, `${text}\n`, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(text);
+  }
+}
+
+function finishPacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const recipes = matchRecipes(task, git, profile.values);
+  const open = finalGateOpenItems(repo, task, git, packets);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-finish-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Unified Finish Packet
+
+Task: ${task}
+Case ID: ${taskCaseId(task, options, profile.values) || 'not provided'}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+Route: ${inferRouteFromTask(task, git, profile.values)}
+
+## Selected Recipes
+
+${formatList(recipes.map((recipe) => `${recipe.id} (${recipe.confidence})`))}
+
+## Proved
+
+${formatList(taskEvidenceSummary(repo, packets))}
+
+## Inferred
+
+${formatList(inferDirtySurfaces(task, git))}
+
+## Capped Or Open
+
+${formatList(open.length ? open : ['none detected by local packets'])}
+
+## Human QA Owns
+
+- ${packets.some((packet) => packet.kind === 'qa-script') ? 'QA Markdown exists; tester executes it manually.' : 'QA handoff not found; generate or explicitly cap if QA is needed.'}
+
+## Git / Release Decision
+
+- Commit readiness: ${open.length ? 'not ready without accepted caps' : 'ready for explicit human approval only'}
+- Push readiness: explicit human approval only
+- Merge/deploy/release/MR/PR/pipeline/manual file movement: never automatic
+
+## Recommended Next Action
+
+\`\`\`bash
+${open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc action preview --action commit'}
+\`\`\`
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function taskDoctor(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const open = finalGateOpenItems(repo, task, git, packets);
+  printObject({
+    repository: repo,
+    task,
+    route: inferRouteFromTask(task, git, profile.values),
+    changedFiles: git.changedFiles.length,
+    recipes: matchRecipes(task, git, profile.values).map((recipe) => recipe.id).join(', ') || 'none',
+    evidence: taskEvidenceSummary(repo, packets).join('; ') || 'none',
+    missing: open.join('; ') || 'none detected',
+    qaReady: packets.some((packet) => packet.kind === 'qa-script') ? 'yes' : 'no or not needed',
+    nextDecision: open[0] || 'approve commit/push/handoff choice if satisfied',
+    nextCommand: open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc finish packet --task "..."',
+  });
+}
+
+function actionPreview(repo, options = {}) {
+  const action = options.action || '';
+  if (!action) fail('Pass --action commit|push|tool|network|dependency|learning-promotion.');
+  const git = getGitInfo(repo);
+  const profile = loadProfile(repo);
+  const risk = actionRisk(action, options.command || '');
+  printObject({
+    repository: repo,
+    action,
+    exactCommand: options.command || actionCommandHint(action),
+    targetBranch: git.branch || 'unknown',
+    changedFiles: git.changedFiles.join(', ') || 'none',
+    risk,
+    reversible: ['commit'].includes(action) ? 'mostly yes before push' : ['push', 'network', 'dependency', 'learning-promotion'].includes(action) ? 'partially or no' : 'depends',
+    approvalRequired: 'yes',
+    nonActions: 'no merge/deploy/release/MR/PR/pipeline/manual file movement unless separately approved',
+    caseIdPolicy: caseIdPolicy(profile.values),
+  });
+}
+
+function learnSplit(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const text = readFileSync(packetPath, 'utf8');
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(basename(packetPath, '.md'))}-learning-split.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Learning Split
+
+Source: ${relative(repo, packetPath)}
+
+## Portable Process Lesson
+
+${extractLearningSection(text, 'Portable Process Lesson') || extractLearningSection(text, 'Key Process Learnings') || 'Review and summarize reusable process-only lesson here.'}
+
+## Product-Specific Durable Fact
+
+${extractLearningSection(text, 'Product-Specific Durable Fact') || extractLearningSection(text, 'Durable Facts') || 'Move product/repo/workflow facts to repo/unit/shared context, not global process guidance.'}
+
+## Sensitive / Redacted Detail
+
+- Confirm no raw prompts, source snippets, production logs, private URLs, customer/client names, credentials, or secrets are promoted.
+
+## Candidate Owner
+
+- process / template / route / context / parked
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function learnBacklog(repo, options = {}) {
+  const root = join(agentsRoot, 'learnings');
+  const files = existsSync(root) ? readdirSync(root).filter((file) => file.endsWith('.md')) : [];
+  console.log('| Learning | Promotion state | Candidate implementation |');
+  console.log('| --- | --- | --- |');
+  for (const file of files) {
+    const text = readFileSync(join(root, file), 'utf8');
+    const state = learningPromotionFindings(text).length ? 'needs review' : 'ready for review';
+    const candidate = firstMatch(text, /^- Implementation candidate:\s*(.+)$/m) || firstMatch(text, /^Candidate implementation:\s*(.+)$/m) || 'not specified';
+    console.log(`| ${file} | ${state} | ${escapeCell(candidate)} |`);
+  }
+}
+
+function intakeOpenItems(task, profile = {}, caseId = '') {
+  const open = [];
+  if (!task) open.push('task statement missing');
+  if (requiresCaseId(profile) && !caseId) open.push('case ID required before commit message suggestion');
+  if (!profile.releasePolicy) open.push('release/commit/push policy not configured');
+  if (!profile.qaOwnership && !profile.qaOwner) open.push('QA ownership model not configured');
+  if (!profile.repoContext && !profile.productContext && !profile.sharedContextRoot) open.push('context bucket not configured');
+  return open;
+}
+
+function recipeRegistry() {
+  return [
+    recipe('route-retirement', 'active', ['retire', 'replace old', 'legacy route', 'old route', 'download route', 'old active callers', 'active callers'], ['positive search for new active callers', 'negative search for old active callers', 'remaining references classified'], 'sdlc route proof --old <old> --new <new> --task "..."', ['include old/new behavior and absence checks in QA']),
+    recipe('live-system-bug', 'active', ['staging log', 'production log', 'live bug', 'sql log', 'exact error', 'support report'], ['sanitized exact error/log', 'minimal reproduction or cap', 'smallest fix hypothesis'], 'sdlc bug live-evidence --task "..."', ['include root cause, retest steps, and expected absence of old error']),
+    recipe('efcore-sqlserver-trigger-output', 'experimental', ['ef core', 'sql server', 'trigger', 'output clause', 'usesqloutputclause', 'hastrigger'], ['exact SQL Server error/table', 'trigger-backed table list', 'mapped DbContext intersection', 'metadata regression test'], 'sdlc dotnet efcore diagnose --task "..."', ['record SQL Server smoke cap separately from metadata test']),
+    recipe('efcore-fk-relationship', 'experimental', ['foreign key', ' fk ', 'relationship', 'savechanges', 'company_id'], ['exact FK table/columns', 'relationship invariant', 'analogous working path', 'focused regression test'], 'sdlc dotnet efcore diagnose --task "..."', ['include scenario retest and invariant expectation']),
+    recipe('no-test-legacy', 'active', ['no automated tests', 'manual qa', 'weak test', 'missing test', 'legacy site fix where no automated tests'], ['test bootstrap decision', 'manual smoke cap', 'QA Markdown'], 'sdlc test regression-plan --task "..."', ['include manual QA owner and future test recommendation']),
+    recipe('api-only-openapi', 'active', ['api-only', 'api only', 'swagger', 'openapi', 'developer testing'], ['API request/response evidence', 'contract/error behavior', 'no rendered UI cap'], 'sdlc qa api --task "..."', ['write API/client validation steps, not browser UI steps']),
+    recipe('multi-repo-qa-handoff', 'active', ['multi-repo', 'multi repo', 'five repositories', 'several repositories', 'shared qa', 'release order'], ['workspace ledger', 'affected units', 'one tester-visible QA script'], 'sdlc workspace ledger --task "..."', ['hide repo mechanics unless QA needs them']),
+    recipe('test-bootstrap', 'active', ['add test project', 'bootstrap test', 'new test project', 'missing harness'], ['project reference', 'package/reference validation', 'focused test command'], 'sdlc test bootstrap-plan --unit <unit> --framework dotnet', ['record dependency warnings separately']),
+    recipe('command-tooling-failure', 'active', ['parsererror', 'quote', 'syntax', 'command failed', 'operation not permitted', 'sandbox'], ['failure classified', 'corrected rerun result or cap'], 'sdlc command classify --command "..." --status <code>', ['do not treat invocation failure as product evidence']),
+    recipe('context-bucket-save', 'active', ['context', 'learning', 'durable fact', 'legacyapi', 'shared context'], ['bucket confidence', 'product vs process split', 'final context checkpoint'], 'sdlc context bucket-confidence --path <path> --task "..."', ['confirm context updated/deferred/capped']),
+  ];
+}
+
+function recipe(id, status, triggers, requiredProof, command, qaAdditions) {
+  return {
+    id,
+    status,
+    owner: recipeOwner(id),
+    triggers,
+    requiredProof,
+    command,
+    qaAdditions,
+    confidence: 'medium',
+  };
+}
+
+function recipeOwner(id) {
+  if (id.includes('efcore') || id.includes('test')) return 'implementation/quality';
+  if (id.includes('qa')) return 'quality/release';
+  if (id.includes('context') || id.includes('learning')) return 'context/process-learning';
+  if (id.includes('command')) return 'tools/quality';
+  return 'run-sdlc';
+}
+
+function matchRecipes(task, gitInfo = { changedFiles: [] }, profile = {}) {
+  const text = `${task} ${profile.repositoryRole || ''}`.toLowerCase();
+  const matches = recipeRegistry()
+    .map((item) => {
+      const hits = item.triggers.filter((trigger) => text.includes(trigger.toLowerCase())).length;
+      return hits ? { ...item, confidence: hits > 1 ? 'high' : 'medium' } : null;
+    })
+    .filter(Boolean);
+  return dedupeBy(matches, (item) => item.id);
+}
+
+function profileCapabilityGaps(repo, profile = {}, commands = {}) {
+  const gaps = [];
+  if (!profile.requireCaseIdInCommitMessages && !profile.commitMessageFormat) gaps.push('case-ID/commit message convention not configured');
+  if (!profile.qaOwnership && !profile.qaOwner) gaps.push('QA ownership model not configured');
+  if (!profile.releasePolicy && !profile.humanApprovalGates) gaps.push('release/commit/push policy not configured');
+  if (!commands.test) gaps.push('test command not configured/discovered');
+  if (!commands.build) gaps.push('build command not configured/discovered');
+  if (!profile.contextAliases && !profile.repoContext && !profile.productContext && !profile.sharedContextRoot) gaps.push('context bucket mapping not configured');
+  if (!profile.sensitiveDataRestrictions) gaps.push('sensitive data/log handling not configured');
+  if (!profile.archivedPaths && !profile.generatedPaths && !profile.dependencyPaths) gaps.push('archived/generated/dependency folder classification not configured');
+  if (unitRegistry(repo, { values: profile }).length <= 1 && hasMultiProjectSignals(repo)) gaps.push('multi-project unit mappings may be needed');
+  return gaps;
+}
+
+function profileSuggestionsForTask(task, profile = {}, recipes = []) {
+  const suggestions = profileCapabilityGaps(process.cwd(), profile, {}).slice(0, 8);
+  if (recipes.some((item) => item.id === 'route-retirement')) suggestions.push('Add archived/generated/dependency path classifications before route retirement work.');
+  if (recipes.some((item) => item.id === 'multi-repo-qa-handoff')) suggestions.push('Add related repositories, service map, and shared context root.');
+  if (recipes.some((item) => item.id.includes('efcore'))) suggestions.push('Add database/provider evidence handling and SQL log redaction rules.');
+  if (!suggestions.length) suggestions.push('No obvious profile additions for this task.');
+  return dedupe(suggestions);
+}
+
+function hasMultiProjectSignals(repo) {
+  return findFilesByExt(repo, ['.csproj', '.fsproj', '.vbproj'], 3, 3).length > 1 || findFilesByName(repo, ['package.json'], 3, 3).length > 1;
+}
+
+function provenanceRows(repo, task, git, packets) {
+  const rows = [
+    { source: 'source code', trust: 'authoritative', freshness: git.status ? 'current dirty worktree' : 'current clean worktree', note: `${git.changedFiles.length} changed file(s)` },
+    { source: 'tests/current command output', trust: 'strong current evidence', freshness: 'current when run this task', note: packets.some((packet) => packet.kind === 'developer-verification') ? 'verification packet found' : 'not found' },
+    { source: 'runtime logs/database/provider evidence', trust: matchesAny(task.toLowerCase(), ['log', 'sql', 'provider', 'staging', 'production']) ? 'strong when sanitized and exact' : 'not used', freshness: 'task-specific', note: 'capture exact failing table/endpoint/status when relevant' },
+    { source: 'human task statement', trust: 'intent source', freshness: 'current request', note: task },
+    { source: 'issue/ticket text', trust: 'advisory until verified', freshness: 'external', note: 'verify against source/logs/tests' },
+    { source: 'generated docs/previous agent output', trust: 'advisory', freshness: 'unknown', note: 'never use as proof without source check' },
+    { source: 'context docs', trust: 'routing memory', freshness: 'check freshness/conflicts', note: 'source code/tests/logs win when conflicting' },
+  ];
+  return rows;
+}
+
+function toOtelLiteSpan(row) {
+  return {
+    name: row.type === 'command' || row.command ? `execute_tool ${row.command || 'sdlc'}` : `sdlc.${row.type || 'event'}`,
+    attributes: {
+      'gen_ai.operation.name': row.command ? 'execute_tool' : 'invoke_agent',
+      'sdlc.event.type': row.type || 'event',
+      'sdlc.task': row.task || '',
+      'sdlc.route': row.route || '',
+      'sdlc.summary': row.summary || '',
+      'sdlc.status': row.status || '',
+      'sdlc.branch': row.branch || '',
+      'sdlc.files_changed': row.filesChanged || 0,
+    },
+  };
+}
+
+function actionRisk(action, command = '') {
+  const text = `${action} ${command}`.toLowerCase();
+  if (matchesAny(text, ['push', 'deploy', 'release', 'merge', 'rm -rf', 'delete', 'credential', 'token', 'secret'])) return 'high';
+  if (matchesAny(text, ['network', 'dependency', 'install', 'learning-promotion', 'external'])) return 'medium';
+  return 'low';
+}
+
+function actionCommandHint(action) {
+  if (action === 'commit') return 'git commit -m "<case>: <summary>"';
+  if (action === 'push') return 'git push <remote> <branch>';
+  if (action === 'dependency') return '<package-manager> install/add ...';
+  if (action === 'learning-promotion') return 'sdlc learn promote --packet <path> --target <target>';
+  return 'provide --command "..." for exact preview';
+}
+
+function extractLearningSection(text, heading) {
+  const pattern = new RegExp(`^##+\\s+${escapeRegExp(heading)}\\s*$([\\s\\S]*?)(?=^##+\\s+|\\z)`, 'im');
+  const match = text.match(pattern);
+  return match ? match[1].trim() : '';
+}
+
 function printObject(object) {
   for (const [key, value] of Object.entries(object)) {
     console.log(`${humanize(key)}: ${value}`);
@@ -7358,6 +8126,14 @@ function readPacket(repo, path) {
 }
 
 function packetKind(text) {
+  if (text.includes('# SDLC Intake Packet')) return 'intake';
+  if (text.includes('# SDLC Unified Finish Packet')) return 'finish';
+  if (text.includes('# SDLC QA Handoff')) return 'qa-handoff';
+  if (text.includes('# SDLC Evidence Provenance')) return 'evidence-provenance';
+  if (text.includes('# SDLC Fix Scope Packet')) return 'fix-scope';
+  if (text.includes('# SDLC Analogous Path Search')) return 'analogous-paths';
+  if (text.includes('# SDLC EF Core Diagnostic Packet')) return 'efcore-diagnostic';
+  if (text.includes('# SDLC Targeted Regression Plan')) return 'regression-plan';
   if (text.includes('# SDLC Review Packet')) return 'review';
   if (text.includes('# SDLC Release Packet')) return 'release';
   if (text.includes('# SDLC Touched Surface Ledger')) return 'touched';

@@ -12,6 +12,9 @@ sdlc feedback review
 sdlc run plan --task "fix payment webhook contract"
 sdlc run dashboard --task "fix payment webhook contract"
 sdlc run next --task "fix payment webhook contract"
+sdlc intake packet --task "LC_24 fix signed form route" --case LC_24
+sdlc recipe match --task "replace legacy signed-form route"
+sdlc task doctor --task "replace legacy signed-form route"
 sdlc readiness
 sdlc health
 sdlc context restore
@@ -20,9 +23,12 @@ sdlc context audit
 sdlc context conflict-check --task "fix payment webhook contract"
 sdlc context update-plan --task "fix payment webhook contract"
 sdlc context resolve --path MainsiteCoreAPI/LegacyApi --task "save durable workflow learning"
+sdlc context bucket-confidence --path MainsiteCoreAPI/LegacyApi --task "save durable workflow learning"
 sdlc context final-check --task "replace legacy signed-form route"
 sdlc search classify --pattern "DownloadSignedForm" --scope www_dev
+sdlc search classify-results --pattern "DownloadSignedForm" --scope www_dev
 sdlc route retire --old "NatacsMain/PrintProcess" --new "/API/Admin/File/Download" --task "replace legacy signed-form download route"
+sdlc route proof --old "NatacsMain/PrintProcess" --new "/API/Admin/File/Download" --task "replace legacy signed-form download route"
 sdlc route start multi-repo-integration --task "fix payment webhook contract"
 sdlc run start --task "fix payment webhook contract"
 sdlc run finish --route multi-repo-integration
@@ -42,6 +48,7 @@ sdlc done check --route multi-repo-integration --packet .ai-local/sdlc-runs/<pac
 sdlc verify packet --task "fix payment webhook contract"
 sdlc verify complete --packet .ai-local/sdlc-runs/<packet>.md --checks "npm run test" --caps "manual QA required"
 sdlc qa script --task "fix payment webhook contract"
+sdlc qa handoff --task "fix payment webhook contract"
 sdlc qa scenarios init
 sdlc qa scenarios match --task "fix payment webhook contract"
 sdlc qa script --task "fix payment webhook contract" --from-impact .ai-local/sdlc-runs/<impact>.md --from-touched .ai-local/sdlc-runs/<touched>.md
@@ -50,7 +57,12 @@ sdlc final gate --task "fix payment webhook contract"
 sdlc git packet
 sdlc test plan --task "fix payment webhook contract"
 sdlc test bootstrap-plan --unit LegacyApi --framework dotnet
+sdlc test regression-plan --task "fix CrewID import FK wiring"
 sdlc command classify --command "rg pattern" --status 1 --stderr "ParserError"
+sdlc bug live-evidence --task "fix staging SQL log FK failure"
+sdlc dotnet efcore diagnose --task "fix EF Core SQL Server OUTPUT trigger failure"
+sdlc pattern analog --task "fix import FK wiring" --hint "ExportEmployee"
+sdlc fix scope --task "fix import FK wiring"
 sdlc data packet --task "fix payment webhook contract"
 sdlc integration packet --task "fix payment webhook contract"
 sdlc handoff draft --task "fix payment webhook contract"
@@ -71,18 +83,24 @@ sdlc automation budget --route bugfix-live-system
 sdlc trace start --task "fix payment webhook contract"
 sdlc trace event --type verification --summary "ran focused test"
 sdlc trace finish --task "fix payment webhook contract"
+sdlc trace export --trace .ai-local/sdlc-runs/<trace>.jsonl --format otel-lite
 sdlc scorecard task --trace .ai-local/sdlc-runs/<trace>.jsonl
 sdlc hooks plan --runtime generic
 sdlc event pre-stop --task "fix payment webhook contract"
 sdlc learn quick --summary "active route search needed classification" --case LC_24 --source work
 sdlc learn sanitize --packet .agents/learnings/<learning>.md
 sdlc learn promote-check --packet .agents/learnings/<learning>.md
+sdlc learn split --packet .agents/learnings/<learning>.md
+sdlc learn backlog
 sdlc learn candidates
 sdlc learn sync-check
 sdlc learn review-cycle --since 2026-06-01
 sdlc render smoke --url http://127.0.0.1:5173/
 sdlc safety preflight --task "fix payment webhook contract"
 sdlc safety finish --task "fix payment webhook contract"
+sdlc evidence provenance --task "fix payment webhook contract"
+sdlc finish packet --task "fix payment webhook contract"
+sdlc action preview --action commit
 sdlc evidence init --route standard
 sdlc verify --commands test,build
 sdlc calibrate add --route standard --outcome pass --route-fit right
@@ -98,3 +116,5 @@ The CLI is an affordance over the Markdown SDLC. It does not replace agent judgm
 `sdlc qa script` generates Markdown manual QA test scripts for human testers and YouTrack paste-in. It does not assume QA testers use AI, inspect code, run developer commands, or know the SDLC.
 
 Final Git/release commands prepare evidence only. The SDLC must not automatically merge, deploy, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines. Commit and push require explicit human approval.
+
+Recipe commands are advisory overlays, not mandatory stack flows. They add the proof likely needed for a task shape, such as route retirement, live-system bugs, EF Core SQL Server failures, no-test legacy changes, API-only work, multi-repo QA handoff, command/tooling failures, and context-bucket saves.

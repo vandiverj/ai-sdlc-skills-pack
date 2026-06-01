@@ -63,6 +63,9 @@ sdlc run start --task "<human task>"
 For resumable work, especially multi-repo or interrupted tasks, maintain the lightweight run state and dashboard:
 
 ```bash
+sdlc intake packet --task "<human task>"
+sdlc intake check --task "<human task>"
+sdlc recipe match --task "<human task>"
 sdlc run plan --task "<human task>"
 sdlc run dashboard --task "<human task>"
 sdlc run next --task "<human task>"
@@ -103,8 +106,11 @@ sdlc task preflight --task "<human task>"
 sdlc surface detect --task "<human task>"
 sdlc unit detect --task "<human task>"
 sdlc unit doctor
+sdlc profile audit
+sdlc profile suggest --task "<human task>"
 sdlc context inventory
 sdlc context bucket-check --task "<human task>"
+sdlc context bucket-confidence --path <path> --task "<human task>"
 sdlc context resolve --path <path> --task "<human task>"
 sdlc context freshness --task "<human task>"
 sdlc context contradictions --task "<human task>"
@@ -117,13 +123,17 @@ sdlc impact packet --task "<human task>"
 sdlc verify packet --task "<human task>"
 sdlc smoke packet --task "<human task>"
 sdlc trace start --task "<human task>"
+sdlc evidence provenance --task "<human task>"
 sdlc qa script --task "<human task>"
+sdlc qa handoff --task "<human task>"
 sdlc qa scenarios match --task "<human task>"
 sdlc artifact budget --route <route>
 sdlc qa review --packet <qa-packet>
 sdlc test suggest --task "<human task>"
 sdlc test bootstrap-plan --unit <unit> --framework dotnet|node|deno|generic
+sdlc test regression-plan --task "<human task>"
 sdlc bug evidence --task "<human task>"
+sdlc bug live-evidence --task "<human task>"
 sdlc bug evidence-check --packet <bug-packet>
 sdlc bug reproduce --task "<human task>"
 sdlc bug diagnose --task "<human task>"
@@ -133,9 +143,15 @@ sdlc bug qa --task "<human task>"
 sdlc render plan --task "<human task>"
 sdlc risk agentic --task "<human task>"
 sdlc search classify --pattern "<pattern>"
+sdlc search classify-results --pattern "<pattern>"
 sdlc route retire --old "<old route>" --new "<new route>" --task "<human task>"
+sdlc route proof --old "<old route>" --new "<new route>" --task "<human task>"
 sdlc command classify --command "<command>" --status <code> --stderr "<stderr>"
+sdlc dotnet efcore diagnose --task "<human task>"
+sdlc pattern analog --task "<human task>" --hint "<known working path or term>"
+sdlc fix scope --task "<human task>"
 sdlc context final-check --task "<human task>"
+sdlc learn split --packet <learning-packet>
 sdlc learn route --packet <learning-packet>
 sdlc learn sanitize --packet <learning-packet>
 sdlc learn promote-check --packet <learning-packet>
@@ -161,6 +177,8 @@ sdlc unit map
 sdlc multi ledger --task "<human task>"
 sdlc security permissions --task "<human task>"
 sdlc security audit --task "<human task>"
+sdlc recipe list
+sdlc recipe review --since YYYY-MM-DD
 sdlc automation budget --route <route>
 sdlc hooks plan --runtime claude|codex|auggie|augment|generic
 sdlc handoff draft --task "<human task>"
@@ -183,13 +201,28 @@ Before claiming completion, use done checks and packet status:
 sdlc packet status
 sdlc done check --route <route> --packet <packet>
 sdlc trace finish --task "<human task>"
+sdlc trace export --trace <trace-jsonl> --format otel-lite
 sdlc scorecard task --trace <trace-jsonl>
+sdlc task doctor --task "<human task>"
+sdlc finish packet --task "<human task>"
+sdlc action preview --action commit
 sdlc run finish --route <route> --packet <packet>
 ```
 
 Done checks are route-specific. Treat open checks as unresolved gates unless the human explicitly accepts the cap. The helper checks evidence shape for review-only, release-push, standard, ui-rendered-review, bugfix-regression, bugfix-live-system, weak-test-legacy, multi-repo-integration, contract-first, and tiny-docs routes; it does not replace source review or judgment.
 
 Every route, including fast-pass, keeps the quality floor: changed-files awareness, at least one verification path or explicit cap, surface-correct evidence, context placement decision when durable knowledge changed, human QA Markdown when testers are involved, developer-controlled finish, and a final confidence summary that separates proved facts, inferred facts, remaining human judgment, and safe next action.
+
+Use recipe overlays when the task shape calls for specific proof. Recipes are advisory overlays, not a replacement route and not a hardcoded golden flow. Record whether a recipe was accepted, ignored, or capped when it materially affects the task.
+
+- Route replacement: classify active vs archived/generated/dependency references, prove new active callers, prove old active callers are retired, and include route behavior in QA handoff.
+- Live-system bug: start from sanitized exact log/error/request evidence, identify the failing table/endpoint/provider behavior, look for an analogous successful path, and prefer the smallest evidence-backed fix.
+- EF Core SQL Server failures: use the EF Core diagnostic overlay for FK/relationship failures and SQL Server OUTPUT/trigger metadata drift.
+- No-test legacy work: generate a targeted regression or test-bootstrap plan and a human QA handoff rather than pretending broad automated coverage exists.
+- Command failures: classify shell/tooling/setup failures separately from system-under-test failures before using command output as evidence.
+- Context saves: run bucket confidence and split product-specific facts from portable process lessons before promoting learnings.
+
+When the developer is unsure where things stand, use `sdlc task doctor --task "<human task>"` and summarize only the current route, recipes, evidence, missing gates, QA readiness, and next decision.
 
 For context, multi-repo, contract, health, and calibration improvement work, use the dedicated helpers:
 

@@ -24,6 +24,12 @@ If work is already in progress and you are unsure where things stand:
 Use SDLC to review the current completion state of this task: <task>. Tell me what changed, what evidence exists, what gates are open, whether QA is ready, and the recommended next action.
 ```
 
+If the agent seems stuck, too broad, or you are not sure what decision is needed:
+
+```text
+Use SDLC to explain where we are, what is missing, and what I should decide next.
+```
+
 If you need a test script for human QA:
 
 ```text
@@ -61,8 +67,9 @@ Feedback is for improving the SDLC, not measuring individual developer performan
 - Restore and check repository, workspace, unit, and context state.
 - Help plan and implement scoped changes.
 - Track touched files, affected units, testing surfaces, and QA impact.
+- Select task-shape evidence recipes for route retirement, live bugs, EF Core/SQL Server failures, API-only work, multi-repo QA, no-test legacy work, command failures, and context-bucket saves.
 - Generate human-readable Markdown QA scripts.
-- Produce verification, review, release, handoff, trace, feedback, and finish evidence.
+- Produce verification, review, release, handoff, trace, feedback, provenance, QA handoff, and finish evidence.
 - Prepare commit/push recommendations after verification.
 
 ## What It Will Not Do Automatically
@@ -71,6 +78,7 @@ Feedback is for improving the SDLC, not measuring individual developer performan
 - Merge, deploy, release, create MR/PRs, trigger pipelines, or move files between environments.
 - Replace human product judgment, code review, QA signoff, or release ownership.
 - Treat stale context, generated docs, tool output, or AI memory as stronger than source code, tests, logs, and current evidence.
+- Treat search hits as active behavior until archived/generated/dependency/source categories are classified.
 - Share raw prompts, proprietary source, production logs, private URLs, customer/client names, credentials, or secrets as reusable learnings.
 
 ## How To Judge Agent Output
@@ -80,6 +88,7 @@ Good SDLC output should tell you:
 - route and scope,
 - changed files and affected units,
 - context used or missing,
+- selected evidence recipes and why they apply,
 - verification evidence and caps,
 - QA script status,
 - confidence summary: proved, inferred, human judgment, next safe action,
@@ -89,6 +98,14 @@ When in doubt, ask:
 
 ```text
 Use SDLC to explain where we are in this task, what evidence exists, what is missing, and what you recommend next.
+```
+
+CLI shortcut:
+
+```bash
+sdlc task doctor --task "<task>"
+sdlc finish packet --task "<task>"
+sdlc action preview --action commit
 ```
 
 ## Contents
