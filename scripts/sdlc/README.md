@@ -9,6 +9,8 @@ sdlc readiness
 sdlc context restore
 sdlc context pack --task "fix payment webhook contract"
 sdlc route start multi-repo-integration --task "fix payment webhook contract"
+sdlc review packet --task "review the current diff without edits"
+sdlc release packet
 sdlc setup doctor
 sdlc scenario list
 sdlc scenario test

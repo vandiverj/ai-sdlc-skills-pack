@@ -33,7 +33,7 @@ For concrete route recipes, use `references/route-recipes.md`. Load it when the 
 
 Before finalizing a route, apply the security trigger overlay from `classify-work/references/security-route-triggers.md`. The overlay can add gates/evidence or escalate risk without changing the base route name.
 
-When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical profile, readiness, context restore, context pack, route packet, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
+When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical profile, readiness, context restore, context pack, route packet, review packet, release packet, evidence, verification, calibration, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
 
 ## Helper CLI default sequence
 For new implementation, review, release, exploratory, or resumed work, use this sequence unless the task is so tiny that the commands would add more noise than value, or the CLI is unavailable:
@@ -49,6 +49,13 @@ At closeout, use the relevant verification and calibration helpers when commands
 ```bash
 sdlc verify --commands test,build
 sdlc calibrate add --route <route> --outcome "<pass|partial|fail>" --route-fit "<right|too heavy|too light>"
+```
+
+For read-only review or release/handoff work, generate the packet that matches the route before giving a verdict or taking a Git action:
+
+```bash
+sdlc review packet --task "<review task>"
+sdlc release packet
 ```
 
 If a security trigger appears in the context pack or route packet, keep the security overlay in the evidence and stop for any consent gate before acting.

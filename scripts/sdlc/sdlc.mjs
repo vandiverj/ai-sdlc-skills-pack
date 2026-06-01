@@ -30,6 +30,8 @@ async function main(argv) {
   if (area === 'context' && action === 'pack') return contextPack(repo, options);
   if (area === 'recipe' && action === 'show') return recipeShow(rest[0] || options.route);
   if (area === 'route' && action === 'start') return routeStart(repo, rest[0] || options.route, options);
+  if (area === 'review' && action === 'packet') return reviewPacket(repo, options);
+  if (area === 'release' && action === 'packet') return releasePacket(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
   if (area === 'verify') return verify(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
@@ -56,6 +58,8 @@ Usage:
   sdlc context pack --task "..." [--repo <path>] [--out <path>]
   sdlc recipe show <route>
   sdlc route start <route> [--task "..."] [--repo <path>] [--out <path>]
+  sdlc review packet --task "..." [--repo <path>] [--out <path>]
+  sdlc release packet [--task "..."] [--repo <path>] [--out <path>]
   sdlc evidence init --route <route> [--repo <path>] [--out <path>]
   sdlc verify [--repo <path>] [--commands test,build]
   sdlc calibrate add --route <route> [--repo <path>] [--out <path>]
@@ -440,6 +444,169 @@ ${formatList(git.changedFiles)}
 ## Handoff
 - Suggested next action:
 - Human approvals needed:
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function reviewPacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the review packet can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const docs = contextDocCandidates(repo, profile.values);
+  const existingDocs = docs.filter((item) => existsSync(item.path));
+  const inferredRoute = inferRouteFromTask(task, git, profile.values);
+  const route = 'review-only';
+  const triggers = securityTriggers(task, profile.values);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-review-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Review Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Upstream: ${git.upstream || 'not configured'}
+Ahead/behind: ${git.behind} behind / ${git.ahead} ahead
+Head: ${git.head || 'unknown'}
+Status: ${git.status || 'clean'}
+Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
+Suggested route: ${route}
+Other route signals: ${inferredRoute === route ? 'none' : inferredRoute}
+
+## Read-Only Scope
+
+- Do not edit code, docs, tests, or generated files while using this packet unless the work is explicitly rerouted.
+- Review task: ${task}
+- Changed files:
+${indentList(git.changedFiles)}
+
+## Context To Inspect
+
+${formatContextDocs(repo, existingDocs)}
+
+## Diff / Artifact Targets
+
+${formatReviewTargets(git)}
+
+## Suggested Checks
+
+${formatReviewChecks(commands, route)}
+
+## Security Overlay
+
+${formatSecurityOverlay(triggers)}
+
+## Findings
+
+| Severity | File/line | Finding | Recommendation |
+| --- | --- | --- | --- |
+|  |  |  |  |
+
+## Evidence Gaps
+
+- Record missing requirements, missing tests, unavailable local services, skipped optional checks, or unavailable rendered evidence here.
+
+## Review Verdict
+
+- Pass / Pass with notes / Changes requested / Blocked:
+- Rationale:
+- Residual risk:
+
+## Calibration Stub
+
+\`\`\`bash
+sdlc calibrate add --route review-only --checks "" --caps "" --outcome "" --route-fit "" --context-missing "" --verification-missing "" --friction "" --process-change-proposed ""
+\`\`\`
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function releasePacket(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const docs = contextDocCandidates(repo, profile.values);
+  const existingDocs = docs.filter((item) => existsSync(item.path));
+  const triggers = securityTriggers(options.task || 'release handoff push', profile.values);
+  const commits = recentCommits(repo, 5);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-release-packet.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Release Packet
+
+Date: ${new Date().toISOString()}
+Task: ${options.task || 'release / handoff readiness'}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Upstream: ${git.upstream || 'not configured'}
+Ahead/behind: ${git.behind} behind / ${git.ahead} ahead
+Head: ${git.head || 'unknown'}
+Status: ${git.status || 'clean'}
+Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
+
+## Release Scope
+
+- No commit, push, merge, deploy, publish, or destructive action was taken by packet generation.
+- Changed files:
+${indentList(git.changedFiles)}
+- Recent commits:
+${indentList(commits)}
+
+## Context To Inspect
+
+${formatContextDocs(repo, existingDocs)}
+
+## Release Policy
+
+- Policy: ${profile.values.releasePolicy || 'not configured'}
+- Human approval gates: ${profile.values.humanApprovalGates || 'not configured'}
+- Accessibility policy: ${accessibilityPolicy(profile.values)}
+
+## Expected Checks
+
+${formatReleaseChecks(commands)}
+
+## Stop Gates
+
+${formatReleaseStopGates(git, profile.values)}
+
+## Security Overlay
+
+${formatSecurityOverlay(triggers)}
+
+## Release Decision
+
+| Item | Evidence | Status |
+| --- | --- | --- |
+| Scope reviewed |  | pending |
+| Working tree appropriate |  | pending |
+| Required checks pass |  | pending |
+| Branch/upstream correct |  | pending |
+| Human approval captured |  | pending |
+| Git action performed | none by packet generation | pending |
+
+## Handoff Notes
+
+- Release action requested:
+- Verification evidence:
+- Caps:
+- Next actor:
+
+## Calibration Stub
+
+\`\`\`bash
+sdlc calibrate add --route release-push --checks "" --caps "" --outcome "" --route-fit "" --context-missing "" --verification-missing "" --friction "" --process-change-proposed ""
+\`\`\`
 `;
 
   writeFileSync(outPath, content, 'utf8');
@@ -903,8 +1070,8 @@ function scenarioRegressionCases() {
       expectedSecurityOverlay: true,
     },
     {
-      name: 'dirty release handoff',
-      task: 'prepare release handoff and push the current branch',
+      name: 'release dirty work packet',
+      task: 'prepare release handoff with dirty unrelated work and push the current branch',
       expectedRoute: 'release-push',
     },
     {
@@ -918,7 +1085,7 @@ function scenarioRegressionCases() {
       expectedRoute: 'multi-repo-integration',
     },
     {
-      name: 'review only',
+      name: 'review diff without edits',
       task: 'review the existing diff without making edits',
       expectedRoute: 'review-only',
     },
@@ -1108,7 +1275,7 @@ function inferContracts(task, profile) {
 }
 
 function securityTriggers(task, profile = {}) {
-  const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''} ${profile.sensitiveDataRestrictions || ''}`.toLowerCase();
+  const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();
   const triggers = [];
   if (matchesAny(text, ['secret', 'credential', 'password', 'token', 'api key', 'private key'])) triggers.push('secrets or credentials');
   if (matchesAny(text, ['dependency', 'package', 'install', 'npm install', 'pip install', 'cargo add', 'plugin'])) triggers.push('new dependency or tool install');
@@ -1254,6 +1421,10 @@ function formatList(items) {
   return items.map((item) => `- ${item}`).join('\n');
 }
 
+function indentList(items) {
+  return formatList(items).split('\n').map((line) => `  ${line}`).join('\n');
+}
+
 function formatContextDocs(repo, items) {
   if (!items.length) return '- none';
   return items.map((item) => `- ${item.label}: ${relative(repo, item.path) || '.'}`).join('\n');
@@ -1268,6 +1439,66 @@ function formatCommandList(commands, route) {
     .filter(([key, command]) => command && (selected.has(key) || ['install', 'dev'].includes(key)))
     .map(([key, command]) => `- ${key}: \`${command}\``);
   return lines.length ? lines.join('\n') : '- none discovered';
+}
+
+function formatReviewTargets(gitInfo) {
+  if (gitInfo.changedFiles.length) {
+    return `${formatList(gitInfo.changedFiles)}
+
+Suggested diff commands:
+
+\`\`\`bash
+git diff --stat
+git diff
+\`\`\``;
+  }
+
+  return `- No dirty working-tree files detected.
+- Review the latest commit, branch state, or explicit artifact named in the task.
+
+Suggested read-only commands:
+
+\`\`\`bash
+git show --stat --oneline HEAD
+git show --check --stat HEAD
+\`\`\``;
+}
+
+function formatReviewChecks(commands, route) {
+  const lines = [
+    '- Read the relevant diff/artifacts before running broader checks.',
+    '- `git diff --check` when reviewing a dirty working tree.',
+    '- `git show --check --stat HEAD` when reviewing the latest committed change.',
+  ];
+  if (commands.test) lines.push(`- test: \`${commands.test}\``);
+  if (commands.build && route !== 'review-only') lines.push(`- build: \`${commands.build}\``);
+  if (commands.lint) lines.push(`- lint/typecheck/format: \`${commands.lint}\``);
+  if (commands.rendered && route === 'ui-rendered-review') lines.push(`- rendered: \`${commands.rendered}\``);
+  return lines.join('\n');
+}
+
+function formatReleaseChecks(commands) {
+  const lines = ['- `git diff --check` for dirty work or `git show --check --stat HEAD` for committed-only release review.'];
+  if (commands.test) lines.push(`- test: \`${commands.test}\``);
+  if (commands.build) lines.push(`- build: \`${commands.build}\``);
+  if (commands.lint) lines.push(`- lint/typecheck/format: \`${commands.lint}\``);
+  if (!commands.test && !commands.build && !commands.lint) lines.push('- No project test/build/lint commands discovered; record this as a release cap.');
+  return lines.join('\n');
+}
+
+function formatReleaseStopGates(gitInfo, profile) {
+  const gates = [];
+  if (gitInfo.status) gates.push('Dirty working tree is present; confirm whether each file belongs in the release before committing or pushing.');
+  if (!gitInfo.upstream) gates.push('No upstream branch is configured; confirm push target before any credentialed write.');
+  if (gitInfo.behind > 0) gates.push(`Branch is ${gitInfo.behind} commit(s) behind upstream; pull/rebase/merge policy must be confirmed before release.`);
+  if (!profile.releasePolicy) gates.push('Release policy is not configured in the SDLC profile.');
+  if (!profile.humanApprovalGates) gates.push('Human approval gates are not configured in the SDLC profile.');
+  gates.push('Explicit human approval is required before commit, push, merge, deploy, publish, or destructive Git actions.');
+  return formatList(gates);
+}
+
+function recentCommits(repo, count = 5) {
+  return git(repo, ['log', '--oneline', `-${count}`]).split(/\r?\n/).filter(Boolean);
 }
 
 function accessibilityPolicy(profile) {
