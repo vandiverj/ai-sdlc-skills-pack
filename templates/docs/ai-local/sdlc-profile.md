@@ -33,6 +33,7 @@ Purpose: local repository profile for SDLC helper automation. Keep this file ign
 - Build command:
 - Lint/typecheck/format commands:
 - Rendered UI review command:
+- Accessibility review policy: optional
 
 ## Release
 - Release policy:

@@ -181,7 +181,7 @@ Checks:
 - tests/build as applicable,
 - browser/rendered inspection,
 - viewport coverage appropriate to risk,
-- accessibility check when available.
+- accessibility check when available and when repository policy or the human asks for it.
 
 Evidence:
 
@@ -194,11 +194,13 @@ Evidence:
 Stop gates:
 
 - no rendered path for release-sensitive UI,
-- accessibility or layout risk cannot be inspected.
+- layout risk cannot be inspected,
+- accessibility risk cannot be inspected when repository policy marks accessibility required.
 
 Done criteria:
 
-- rendered evidence supports the claim or caps are explicit.
+- rendered evidence supports the claim or caps are explicit,
+- skipped optional accessibility is recorded as a cap/note, not a failure.
 
 ### review-only
 

@@ -58,7 +58,10 @@ When route behavior itself is being tested or a known failure pattern is relevan
 ```bash
 sdlc scenario list
 sdlc scenario validate <scenario> --task "<human task>"
+sdlc scenario test
 ```
+
+For rendered UI work, accessibility is profile-driven and optional by default. Treat skipped optional accessibility as a cap or note, not as a stopping failure. Only require accessibility evidence when the repository profile or human explicitly marks it required.
 
 When delegating implementation, verification, independent review, release handoff, process learning, or evidence-packet creation, or when running those roles as separate Codex-direct phases, the orchestrator may fill the general templates in `templates/prompts/sdlc/`. These templates are internal prompt-generation aids for the AI; do not require the human to provide prompts in that format.
 

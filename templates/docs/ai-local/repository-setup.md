@@ -59,6 +59,7 @@ Purpose: first-run and machine/runtime setup profile for the AI SDLC. Keep this 
 - Build command:
 - Lint/typecheck/format commands:
 - Rendered UI review command/tool:
+- Accessibility review policy: optional / suggested / required
 - QA/manual validation path:
 - CI/preflight command:
 - Deployment/smoke validation:

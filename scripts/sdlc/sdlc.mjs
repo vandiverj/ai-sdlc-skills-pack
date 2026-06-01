@@ -10,9 +10,9 @@ const agentsRoot = resolve(dirname(scriptPath), '..', '..');
 
 const args = process.argv.slice(2);
 
-main(args);
+await main(args);
 
-function main(argv) {
+async function main(argv) {
   const [area, action, ...rest] = argv;
   const areaOptions = parseOptions(argv.slice(1));
 
@@ -36,9 +36,11 @@ function main(argv) {
   if (area === 'calibrate' && action === 'summary') return calibrateSummary(repo, options);
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'setup' && action === 'doctor') return setupDoctor(repo);
+  if (area === 'render' && action === 'smoke') return renderSmoke(repo, options);
   if (area === 'scenario' && action === 'list') return scenarioList();
   if (area === 'scenario' && action === 'show') return scenarioShow(rest[0] || options.name);
   if (area === 'scenario' && action === 'validate') return scenarioValidate(rest[0] || options.name, repo, options);
+  if (area === 'scenario' && action === 'test') return scenarioTest(repo, options);
   if (area === 'handoff') return handoff(resolve(areaOptions.repo || process.cwd()), areaOptions);
 
   fail(`Unknown command: ${argv.join(' ')}`);
@@ -60,9 +62,11 @@ Usage:
   sdlc calibrate summary [--repo <path>] [--in <path>] [--out <path>]
   sdlc readiness [--repo <path>]
   sdlc setup doctor [--repo <path>]
+  sdlc render smoke --url <url> [--repo <path>] [--cdp <url>] [--screenshot-dir <path>]
   sdlc scenario list
   sdlc scenario show <name>
   sdlc scenario validate <name> --task "..." [--repo <path>]
+  sdlc scenario test [--repo <path>]
   sdlc handoff [--repo <path>]
 
 This CLI automates mechanical SDLC evidence and context tasks. It does not replace
@@ -117,6 +121,8 @@ function profileShow(repo) {
     testCommand: profile.values.testCommand || '',
     buildCommand: profile.values.buildCommand || '',
     lintTypecheckFormatCommands: profile.values.lintTypecheckFormatCommands || '',
+    renderedUiReviewCommand: profile.values.renderedUiReviewCommand || '',
+    accessibilityReviewPolicy: accessibilityPolicy(profile.values),
     evidenceOutputLocation: profile.values.evidenceOutputLocation || defaultRunsDir(repo),
     calibrationLog: profile.values.calibrationLog || defaultCalibrationPath(repo),
   });
@@ -166,6 +172,7 @@ Purpose: local repository profile for SDLC helper automation. Keep this file ign
 - Build command:
 - Lint/typecheck/format commands:
 - Rendered UI review command:
+- Accessibility review policy: optional
 
 ## Release
 - Release policy:
@@ -306,6 +313,7 @@ function routeStart(repo, route, options = {}) {
   const recipe = getRecipe(route);
   const task = options.task || '';
   const triggers = securityTriggers(task, profile.values);
+  const accessibility = accessibilityPolicy(profile.values);
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(route)}-route.md`);
   mkdirSync(dirname(outPath), { recursive: true });
 
@@ -341,6 +349,10 @@ ${formatCommandList(commands, route)}
 
 ${formatSecurityOverlay(triggers)}
 
+## Accessibility Policy
+
+${formatAccessibilityPolicy(accessibility, route)}
+
 ## Evidence Skeleton
 
 | Item | Evidence | Status |
@@ -350,6 +362,7 @@ ${formatSecurityOverlay(triggers)}
 | Implementation/review completed |  | pending |
 | Verification run |  | pending |
 | Security/tool triggers checked |  | pending |
+| Accessibility checked or capped according to policy |  | pending |
 | Context docs updated if truth changed |  | pending |
 | Calibration captured |  | pending |
 
@@ -650,6 +663,7 @@ function setupDoctor(repo) {
     '',
     '```text',
     '- Rendered UI review command: npm run dev',
+    '- Accessibility review policy: optional',
     '- Release policy: local commit/push only after tests/build pass and human approval',
     '- Human approval gates: commit, push, dependency install, external service calls, destructive commands',
     '- Approved tools: git, npm scripts, local browser/rendered inspection, SDLC helper',
@@ -667,6 +681,42 @@ function setupDoctor(repo) {
   ];
 
   console.log(lines.join('\n'));
+}
+
+async function renderSmoke(repo, options = {}) {
+  const url = options.url || '';
+  if (!url) fail('Pass --url <url> for rendered smoke validation.');
+
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-render-smoke.md`);
+  const screenshotDir = options.screenshotDir ? resolve(repo, options.screenshotDir) : join(repo, '.ai-local', 'rendered');
+  const cdp = options.cdp || '';
+  const evidence = {
+    date: new Date().toISOString(),
+    url,
+    status: 'capped',
+    notes: [],
+    screenshots: [],
+  };
+
+  if (!/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|::1)/.test(url)) {
+    evidence.notes.push('Only local URLs are supported by this dependency-free smoke helper.');
+  } else if (!cdp) {
+    evidence.notes.push('No --cdp endpoint provided. Start Chrome with remote debugging or record manual rendered evidence.');
+  } else {
+    try {
+      const result = await captureRenderedSmoke(url, cdp, screenshotDir);
+      evidence.status = result.status;
+      evidence.notes.push(...result.notes);
+      evidence.screenshots.push(...result.screenshots);
+    } catch (error) {
+      evidence.notes.push(`CDP smoke failed: ${error.message}`);
+    }
+  }
+
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, renderSmokeEvidence(evidence), 'utf8');
+  console.log(renderSmokeEvidence(evidence).trimEnd());
+  console.log(`\nEvidence: ${relative(repo, outPath)}`);
 }
 
 function scenarioList() {
@@ -707,6 +757,33 @@ function scenarioValidate(name, repo, options = {}) {
   });
 
   if (!pass) process.exitCode = 1;
+}
+
+function scenarioTest(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const cases = scenarioRegressionCases();
+  const results = cases.map((item) => {
+    const route = inferRouteFromTask(item.task, item.cleanGitOnly ? { ...git, status: '', changedFiles: [] } : git, profile.values);
+    const triggers = securityTriggers(item.task, profile.values);
+    const routePass = item.expectedRoute ? route === item.expectedRoute : true;
+    const overlayPass = item.expectedSecurityOverlay ? triggers.length > 0 : true;
+    return { ...item, route, triggers, pass: routePass && overlayPass };
+  });
+
+  for (const result of results) {
+    console.log(`${result.pass ? 'PASS' : 'FAIL'} ${result.name}: ${result.route}${result.triggers.length ? ` (${result.triggers.join(', ')})` : ''}`);
+    if (!result.pass) {
+      console.log(`  task: ${result.task}`);
+      if (result.expectedRoute) console.log(`  expected route: ${result.expectedRoute}`);
+      if (result.expectedSecurityOverlay) console.log('  expected security overlay: yes');
+    }
+  }
+
+  if (results.some((result) => !result.pass)) process.exitCode = 1;
+  if (options.verbose) {
+    console.log(`\nScenarios tested: ${results.length}`);
+  }
 }
 
 function handoff(repo) {
@@ -813,12 +890,122 @@ function scenarioNames() {
     .sort();
 }
 
+function scenarioRegressionCases() {
+  return [
+    {
+      name: 'ui animation delay',
+      task: 'add animation and a short delay so the computer attack feels like a turn occurred',
+      expectedRoute: 'ui-rendered-review',
+    },
+    {
+      name: 'dangerous destructive tool',
+      task: 'delete files with rm -rf and force push the release',
+      expectedSecurityOverlay: true,
+    },
+    {
+      name: 'dirty release handoff',
+      task: 'prepare release handoff and push the current branch',
+      expectedRoute: 'release-push',
+    },
+    {
+      name: 'weak tests',
+      task: 'prove the weak legacy tests catch this regression',
+      expectedRoute: 'weak-test-legacy',
+    },
+    {
+      name: 'multi repo contract',
+      task: 'change the API schema contract across multiple service repositories',
+      expectedRoute: 'multi-repo-integration',
+    },
+    {
+      name: 'review only',
+      task: 'review the existing diff without making edits',
+      expectedRoute: 'review-only',
+    },
+    {
+      name: 'tiny docs',
+      task: 'fix a docs typo in the readme markdown',
+      expectedRoute: 'tiny-docs',
+      cleanGitOnly: true,
+    },
+  ];
+}
+
 function loadScenario(name) {
   if (!name) fail('Pass a scenario name, such as ui-rendered-issue.');
   const safeName = slug(name);
   const path = join(agentsRoot, 'templates', 'scenarios', `${safeName}.md`);
   if (!existsSync(path)) fail(`Scenario not found: ${name}`);
   return { name: safeName, path, text: readFileSync(path, 'utf8') };
+}
+
+async function captureRenderedSmoke(url, cdpBase, screenshotDir) {
+  const targets = await fetchJson(`${trimSlash(cdpBase)}/json`);
+  const page = targets.find((target) => target.type === 'page') || targets[0];
+  if (!page?.webSocketDebuggerUrl) {
+    throw new Error('No CDP page target found.');
+  }
+
+  const ws = new WebSocket(page.webSocketDebuggerUrl);
+  let seq = 0;
+  const pending = new Map();
+  ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.id && pending.has(message.id)) {
+      pending.get(message.id)(message);
+      pending.delete(message.id);
+    }
+  };
+
+  await new Promise((resolve, reject) => {
+    ws.onopen = resolve;
+    ws.onerror = reject;
+  });
+
+  const send = (method, params = {}) =>
+    new Promise((resolve, reject) => {
+      const id = ++seq;
+      pending.set(id, (message) => {
+        if (message.error) {
+          reject(new Error(JSON.stringify(message.error)));
+          return;
+        }
+        resolve(message.result);
+      });
+      ws.send(JSON.stringify({ id, method, params }));
+    });
+
+  try {
+    await send('Page.enable');
+    await send('Runtime.enable');
+    await send('Page.navigate', { url });
+    await sleep(600);
+    const title = await send('Runtime.evaluate', {
+      expression: 'document.title',
+      returnByValue: true,
+    });
+    const bodyLength = await send('Runtime.evaluate', {
+      expression: 'document.body ? document.body.innerText.length : 0',
+      returnByValue: true,
+    });
+    mkdirSync(screenshotDir, { recursive: true });
+    const screenshot = await send('Page.captureScreenshot', { format: 'png' });
+    const screenshotPath = join(screenshotDir, `${stamp()}-render-smoke.png`);
+    writeFileSync(screenshotPath, Buffer.from(screenshot.data, 'base64'));
+    return {
+      status: Number(bodyLength.result.value || 0) > 0 ? 'pass' : 'fail',
+      notes: [`Loaded title: ${title.result.value || '(untitled)'}`, `Body text length: ${bodyLength.result.value || 0}`],
+      screenshots: [screenshotPath],
+    };
+  } finally {
+    ws.close();
+  }
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Fetch failed ${response.status}: ${url}`);
+  return response.json();
 }
 
 function parseScenarioExpectedRoute(text) {
@@ -891,9 +1078,9 @@ function inferRouteFromTask(task, gitInfo, profile = {}) {
   if (matchesAny(text, ['release', 'push', 'deploy', 'merge', 'handoff'])) return 'release-push';
   if (matchesAny(text, ['review', 'inspect', 'audit'])) return 'review-only';
   if (matchesAny(text, ['ui', 'render', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
-  if (matchesAny(text, ['bug', 'fix', 'regression', 'broken', 'failing', 'failure'])) return 'bugfix-regression';
   if (matchesAny(text, ['weak test', 'legacy', 'coverage', 'missing test'])) return 'weak-test-legacy';
   if (matchesAny(text, ['docs', 'readme', 'markdown']) && !gitInfo.status) return 'tiny-docs';
+  if (matchesAny(text, ['bug', 'fix', 'regression', 'broken', 'failing', 'failure'])) return 'bugfix-regression';
   return inferLikelyRoute(gitInfo) === 'tiny-docs' ? 'tiny-docs' : 'standard';
 }
 
@@ -1029,6 +1216,29 @@ function renderVerification(results) {
   return `${lines.join('\n')}\n`;
 }
 
+function renderSmokeEvidence(evidence) {
+  return `# SDLC Render Smoke
+
+Date: ${evidence.date}
+URL: ${evidence.url}
+Status: ${evidence.status}
+
+## Notes
+
+${formatList(evidence.notes)}
+
+## Screenshots
+
+${formatList(evidence.screenshots)}
+
+## Accessibility
+
+- Policy: optional by default unless repository profile says suggested or required.
+- Result: not run by render smoke.
+- Cap: record as "accessibility not run" only when relevant to the task or required by profile.
+`;
+}
+
 function printObject(object) {
   for (const [key, value] of Object.entries(object)) {
     console.log(`${humanize(key)}: ${value}`);
@@ -1058,6 +1268,28 @@ function formatCommandList(commands, route) {
     .filter(([key, command]) => command && (selected.has(key) || ['install', 'dev'].includes(key)))
     .map(([key, command]) => `- ${key}: \`${command}\``);
   return lines.length ? lines.join('\n') : '- none discovered';
+}
+
+function accessibilityPolicy(profile) {
+  const value = String(profile.accessibilityReviewPolicy || 'optional').trim().toLowerCase();
+  return ['optional', 'suggested', 'required'].includes(value) ? value : 'optional';
+}
+
+function formatAccessibilityPolicy(policy, route) {
+  const routeText = route === 'ui-rendered-review' ? 'This route touches rendered UI.' : 'This route does not inherently require accessibility evidence.';
+  if (policy === 'required') {
+    return `Policy: required
+${routeText}
+Required evidence: run the repository accessibility check or record the work as incomplete/capped until a human waives it.`;
+  }
+  if (policy === 'suggested') {
+    return `Policy: suggested
+${routeText}
+Suggested evidence: run accessibility checks when UI changes affect real users, keyboard use, forms, navigation, focus, semantics, contrast, or production-facing surfaces. If skipped, record a cap.`;
+  }
+  return `Policy: optional
+${routeText}
+Default behavior: accessibility checks are available but not a stopping gate. For internal tools, skipped accessibility is not a failure unless the repository or human requires it.`;
 }
 
 function formatSecurityOverlay(triggers) {
@@ -1091,6 +1323,14 @@ function groupCounts(values) {
     counts.set(key, (counts.get(key) || 0) + 1);
   }
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+
+function trimSlash(value) {
+  return String(value).replace(/\/+$/, '');
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function formatCounts(counts) {
