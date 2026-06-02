@@ -151,13 +151,22 @@ ${bugNextCommand(action, task)}
 }
 
 export function commandClassify(repo, options = {}, dependencies = {}) {
-  const { classifyCommandFailure } = dependencies;
   const command = options.command || '';
   const status = options.status ?? '';
   const stderr = options.stderr || options.error || '';
   if (!command && !stderr) fail('Pass --command "..." and/or --stderr "..." so the failure can be classified.');
   const classification = classifyCommandFailure(command, status, stderr);
   printObject({ repository: repo, command: command || 'not provided', status: status === '' ? 'not provided' : status, classification: classification.kind, evidenceUse: classification.evidenceUse, recommendedNextAction: classification.nextAction });
+}
+
+function classifyCommandFailure(command, status, stderr) {
+  const text = `${command}\n${stderr}`.toLowerCase();
+  if (matchesAny(text, ['eperm', 'permission denied', 'operation not permitted', 'sandbox'])) return { kind: 'permission/sandbox failure', evidenceUse: 'cap until rerun with permission or alternate output path', nextAction: 'rerun with approved permission or record sandbox cap' };
+  if (matchesAny(text, ['unexpected token', 'unterminated', 'quote', 'parsererror', 'syntax error near', 'no matches found'])) return { kind: 'invocation/tooling failure', evidenceUse: 'not product evidence', nextAction: 'fix quoting/shell invocation and rerun' };
+  if (matchesAny(text, ['command not found', 'not recognized', 'cannot find module', 'no such file or directory', 'missing script'])) return { kind: 'environment/setup cap', evidenceUse: 'setup evidence, not product failure', nextAction: 'record missing tool/dependency or install with approval' };
+  if (matchesAny(text, ['timeout', 'econnreset', 'enotfound', 'rate limit', 'temporarily unavailable'])) return { kind: 'flaky/transient external failure', evidenceUse: 'inconclusive until retried or capped', nextAction: 'retry once or record external cap' };
+  if (String(status) !== '' && Number(status) !== 0) return { kind: 'product/test failure', evidenceUse: 'valid failing evidence if command invocation was correct', nextAction: 'debug failing check or record accepted cap' };
+  return { kind: 'pass or unclassified', evidenceUse: 'usable only with command output context', nextAction: 'record check result normally' };
 }
 
 export function dotnetEfcoreDiagnose(repo, options = {}) {
