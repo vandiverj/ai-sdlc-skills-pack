@@ -22,6 +22,7 @@ import { contractPacket } from './contract.mjs';
 import { dataBoundary, dataEvidence, dataPacket, dataQueryPlan } from './data.mjs';
 import { ticketDrift, ticketEvidence, ticketUpdatePreview } from './ticket.mjs';
 import { integrationPacket } from './integration.mjs';
+import { smokeComplete, smokePacket } from './smoke.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -161,8 +162,8 @@ export async function main(argv) {
   if (area === 'qa' && action === 'review') return qaReview(repo, options);
   if (area === 'qa' && action === 'build') return qaBuild(repo, options);
   if (area === 'qa' && action === 'validate') return qaValidate(repo, options);
-  if (area === 'smoke' && action === 'packet') return smokePacket(repo, options);
-  if (area === 'smoke' && action === 'complete') return smokeComplete(repo, options);
+  if (area === 'smoke' && action === 'packet') return smokePacket(repo, options, smokeDependencies());
+  if (area === 'smoke' && action === 'complete') return smokeComplete(repo, options, smokeDependencies());
   if (area === 'multi' && action === 'status') return multiStatus(repo, options);
   if (area === 'multi' && action === 'packet') return multiPacket(repo, options);
   if (area === 'multi' && action === 'ledger') return multiLedger(repo, options, { classifyTouchedSurface });
@@ -1785,7 +1786,7 @@ function taskBundle(repo, options = {}) {
   touchedPacket(repo, { ...options, out: join(outDir, `${taskSlug}-touched-surface-ledger.md`) });
   impactPacket(repo, { ...options, out: join(outDir, `${taskSlug}-impact-packet.md`) });
   verifyPacket(repo, { ...options, out: join(outDir, `${taskSlug}-developer-verification-packet.md`) });
-  smokePacket(repo, { ...options, out: join(outDir, `${taskSlug}-manual-smoke-packet.md`) });
+  smokePacket(repo, { ...options, out: join(outDir, `${taskSlug}-manual-smoke-packet.md`) }, smokeDependencies());
   qaScript(repo, { ...options, out: join(outDir, `${taskSlug}-qa-test-script.md`) });
   taskLedger(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-task-ledger.md`), refresh: true });
 }
@@ -2821,102 +2822,8 @@ function qaReview(repo, options = {}) {
   console.log(formatList(findings));
 }
 
-function smokePacket(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the manual smoke packet can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = git.changedFiles;
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-manual-smoke-packet.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Manual Smoke Packet
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Head: ${git.head || 'unknown'}
-Status: ${git.status || 'clean'}
-Verification maturity: ${profile.values.verificationMaturity || 'not configured'}
-
-## Purpose
-
-Record developer/agent smoke evidence for the changed behavior before completion, commit, push, or QA handoff. This is separate from the human QA Markdown script.
-
-## Changed Surfaces
-
-${formatList(dedupe(files.map(classifyTouchedSurface)))}
-
-## Suggested Smoke Steps
-
-${formatList(smokeStepSuggestions(task, files))}
-
-## Rendered Evidence Plan
-
-${formatList(renderedEvidencePlan(task, files, profile.values))}
-
-## Environment
-
-- Local/QA URL:
-- Browser/device:
-- User role/test account:
-- Data/config needed:
-
-## Expected Result
-
-- Changed behavior is visible or callable.
-- Nearby existing behavior still works.
-- No obvious console, page, API, or integration errors appear in the smoke path.
-
-## Actual Result
-
-- Status:
-- Notes:
-- Screenshots/logs:
-
-## Caps
-
-- Automated tests unavailable:
-- Render/browser unavailable:
-- External service/data unavailable:
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function smokeComplete(repo, options = {}) {
-  const packetPath = resolvePacketPath(repo, options.packet);
-  const status = options.status || '';
-  if (!status) fail('Pass --status "pass|fail|blocked" so manual smoke outcome is explicit.');
-  if (!['pass', 'fail', 'blocked'].includes(status)) fail('Use --status "pass", "fail", or "blocked".');
-
-  const entry = `## Manual Smoke Completion
-
-Completed: ${new Date().toISOString()}
-Status: ${status}
-
-### Steps Run
-
-${formatOptionList(options.steps)}
-
-### Result / Evidence
-
-${formatOptionList(options.evidence || options.result)}
-
-### Remaining Gaps / Caps
-
-${formatOptionList(options.caps)}
-
-### Notes
-
-${options.notes || ''}
-`;
-
-  appendPacketCompletion(packetPath, entry);
-  console.log(relative(repo, packetPath));
+function smokeDependencies() {
+  return { classifyTouchedSurface, smokeStepSuggestions, renderedEvidencePlan, resolvePacketPath, appendPacketCompletion };
 }
 
 function validationLadder(repo, options = {}) {
