@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteJsonFile, safeWriteTextFile, slug, splitList, stamp, toCamel, writeOrPrint } from './common.mjs';
+import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, slug, splitList, stamp, toCamel, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -16,6 +16,7 @@ import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { contextAssemble, contextBudget, contextCompact, contextLedger } from './context.mjs';
+import { learnExport, learnImport } from './learning.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
 import { workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
 import { multiLedger, multiPacket, multiQa, multiStatus } from './multi.mjs';
@@ -3799,40 +3800,6 @@ function learningSuggestionsFromRun(repo, runDir, task) {
   if (checks.some((check) => check.status === 'cap')) suggestions.push('Evidence caps were recorded; consider setup/profile changes if this repeats.');
   if (matchesAny(String(task || '').toLowerCase(), ['fixture', 'battle soccer'])) suggestions.push('Fixture validation used; split portable process lessons from product-specific game facts.');
   return dedupe(suggestions);
-}
-
-function learnExport(repo, options = {}) {
-  const rows = readJsonLines(defaultLearningBacklogPath(repo)).map(sanitizePortableObject);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), 'sdlc-learnings.sanitized.json');
-  safeWriteJsonFile(repo, outPath, { schema: 'sdlc-sanitized-learning-export-v1', exportedAt: new Date().toISOString(), rows });
-  console.log(relative(repo, outPath));
-}
-
-function learnImport(repo, options = {}) {
-  if (!options.file) fail('Pass --file <path>.');
-  const input = readJsonIfExists(resolve(repo, options.file));
-  const rows = Array.isArray(input?.rows) ? input.rows : Array.isArray(input) ? input : [];
-  const target = defaultLearningBacklogPath(repo);
-  for (const row of rows) appendControlJsonLine(repo, target, { ...row, importedAt: new Date().toISOString(), importReviewRequired: true });
-  console.log(`${rows.length} learning rows imported to ${relative(repo, target)}`);
-}
-
-function sanitizePortableObject(value) {
-  if (Array.isArray(value)) return value.map(sanitizePortableObject);
-  if (value && typeof value === 'object') {
-    const out = {};
-    for (const [key, item] of Object.entries(value)) out[key] = sanitizePortableObject(item);
-    return out;
-  }
-  if (typeof value !== 'string') return value;
-  return sanitizeOneLine(value)
-    .replace(/\/Users\/[^\s/]+/g, '/Users/[redacted]')
-    .replace(/\b[A-Z]{1,10}-\d{1,8}\b/g, '[ticket-id]')
-    .replace(/\b(?:client|customer|company|tenant)[-_ ]?[A-Za-z0-9]+\b/gi, '[redacted-entity]');
-}
-
-function defaultLearningBacklogPath(repo) {
-  return join(repo, '.ai-local', 'sdlc-learning-backlog.jsonl');
 }
 
 function escapeCommandArg(value) {
