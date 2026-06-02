@@ -6,7 +6,7 @@ import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, form
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
-import { appendPacketCompletion, completionTrackedPacketKinds, doneChecksForRoute, findLatestPacket, findPackets, firstMatch, packetHas, readPacket, resolvePacketPath } from './packets.mjs';
+import { appendPacketCompletion, completionTrackedPacketKinds, doneChecksForRoute, findLatestPacket, findPackets, firstMatch, latestPacketPath, packetHas, readPacket, resolvePacketPath, taskEvidenceSummary } from './packets.mjs';
 import { runDashboard, runFinish, runNext, runPlan, runResume, runStart, runStatus } from './run.mjs';
 import { ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, stateAdvance, stateBlockers, stateCurrent, stateExplain, stateInit } from './state.mjs';
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
@@ -742,20 +742,10 @@ function taskMetrics(repo, task, git, packets) {
   };
 }
 
-function latestPacketPath(repo, packets, kind) {
-  const packet = packets.find((item) => item.kind === kind);
-  return packet ? relative(repo, packet.path) : 'missing';
-}
-
 function shouldSuggestTestPlan(repo, task, files) {
   const profile = loadProfile(repo);
   const maturity = verificationMaturity(profile.values, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')))).toLowerCase();
   return maturity.includes('manual qa') || maturity.includes('no automated') || files.some((file) => classifyTouchedSurface(file) === 'dependencies') || matchesAny(String(task || '').toLowerCase(), ['package', 'dependency', 'upgrade', 'missing test', 'no automated']);
-}
-
-function taskEvidenceSummary(repo, packets) {
-  const latestByKind = dedupe(packets.map((packet) => packet.kind)).map((kind) => packets.find((packet) => packet.kind === kind));
-  return latestByKind.slice(0, 12).map((packet) => `${packet.kind}: ${relative(repo, packet.path)}${completionTrackedPacketKinds().includes(packet.kind) ? ` (${packet.completed ? 'completed' : 'open'})` : ''}`);
 }
 
 function suggestedFinalGateCommand(gate, task) {

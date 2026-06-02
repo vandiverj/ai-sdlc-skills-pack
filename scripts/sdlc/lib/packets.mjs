@@ -35,6 +35,16 @@ export function findLatestPacket(repo, route) {
   return findPackets(repo, {}).find((packet) => packet.kind === wanted || packet.route === route) || null;
 }
 
+export function latestPacketPath(repo, packets, kind) {
+  const packet = packets.find((item) => item.kind === kind);
+  return packet ? relative(repo, packet.path) : 'missing';
+}
+
+export function taskEvidenceSummary(repo, packets) {
+  const latestByKind = [...new Set(packets.map((packet) => packet.kind))].map((kind) => packets.find((packet) => packet.kind === kind));
+  return latestByKind.slice(0, 12).map((packet) => `${packet.kind}: ${relative(repo, packet.path)}${completionTrackedPacketKinds().includes(packet.kind) ? ` (${packet.completed ? 'completed' : 'open'})` : ''}`);
+}
+
 export function readPacket(repo, path) {
   const text = readFileSync(path, 'utf8');
   const kind = packetKind(text);
