@@ -18,6 +18,7 @@ import { configDiff, configExplain, configExport, configImport, configNormalize,
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
 import { workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
 import { multiLedger, multiPacket, multiQa, multiStatus } from './multi.mjs';
+import { contractPacket } from './contract.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -2913,53 +2914,6 @@ ${options.notes || ''}
 
   appendPacketCompletion(packetPath, entry);
   console.log(relative(repo, packetPath));
-}
-
-function contractPacket(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the contract packet can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const contracts = inferContracts(task, profile.values);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-contract-packet.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Contract Packet
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Status: ${git.status || 'clean'}
-
-## Contract Surfaces
-
-${formatList(contracts.length ? contracts : ['public or cross-boundary interface to be identified'])}
-
-## Required Decisions Before Implementation
-
-- Producer/consumer ownership:
-- Backward compatibility:
-- Versioning or migration:
-- Error behavior:
-- Rollout/release order:
-- Test or contract verification path:
-
-## Interface Evidence
-
-| Surface | Current behavior | Proposed behavior | Verification |
-| --- | --- | --- | --- |
-|  |  |  |  |
-
-## Stop Gates
-
-- No implementation plan before public or cross-boundary contract direction is clear.
-- Human approval is needed when compatibility, release order, data, or ownership is unclear.
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
 }
 
 function dataPacket(repo, options = {}) {
