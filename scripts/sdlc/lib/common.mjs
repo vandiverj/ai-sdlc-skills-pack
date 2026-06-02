@@ -181,6 +181,12 @@ export function printTable(headers, rows) {
   for (const row of rows) console.log(`| ${row.map((cell) => escapeCell(cell ?? '')).join(' | ')} |`);
 }
 
+export function printGateRows(rows) {
+  console.log('\n| Gate | Status | Detail | Next |');
+  console.log('| --- | --- | --- | --- |');
+  for (const row of rows) console.log(`| ${escapeCell(row.id || row.name)} | ${row.status} | ${escapeCell(row.detail || '')} | ${escapeCell(row.next || '')} |`);
+}
+
 export function fail(message) {
   console.error(message);
   process.exit(1);

@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendControlJsonLine, dedupe, dedupeBy, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, parseOptions, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteJsonFile, safeWriteTextFile, slug, stamp, toCamel, writeOrPrint } from './common.mjs';
+import { appendControlJsonLine, dedupe, dedupeBy, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteJsonFile, safeWriteTextFile, slug, stamp, toCamel, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys } from './profile.mjs';
 import { defaultCalibrationPath, defaultFeedbackPath, defaultRunsDir, defaultTracePath, runStatePath } from './paths.mjs';
@@ -13,6 +13,7 @@ import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
+import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
 import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, hasFileExt, inferTestingSurfaces, normalizeUnitPath, qaModeForSurfaces, unitRegistry } from './units.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -1663,27 +1664,6 @@ function learnSuggest(repo, options = {}) {
   const suggestions = learningSuggestionsFromRun(repo, runDir, task);
   printObject({ task: task || 'not provided', suggestions: suggestions.length });
   console.log(formatList(suggestions.length ? suggestions : ['No strong process-learning candidate detected from local run records.']));
-}
-
-function policyCheck(repo, options = {}) {
-  const task = options.task || '';
-  const action = options.action || '';
-  const profile = loadProfile(repo);
-  const rows = action ? policyRowsForAction(repo, task, action, profile.values) : policyRowsForTask(repo, task, profile.values);
-  const blocked = rows.filter((row) => row.status === 'block');
-  printObject({ task: task || 'not provided', action: action || 'task', result: blocked.length ? 'blocked' : rows.some((row) => row.status === 'warn') ? 'warn' : 'pass' });
-  printGateRows(rows);
-  if (blocked.length) process.exitCode = 1;
-}
-
-function policyExplain(repo, options = {}) {
-  const gate = options.gate || '';
-  if (!gate) fail('Pass --gate <id>.');
-  const explanations = policyExplanations();
-  printObject({
-    gate,
-    explanation: explanations[gate] || 'No specific explanation found; use `sdlc policy check --task "..."` for current policy rows.',
-  });
 }
 
 function runStart(repo, options = {}) {
@@ -10059,12 +10039,6 @@ function writeGateRows(repo, runDir, rows) {
   for (const row of rows) appendControlJsonLine(repo, join(runDir, 'gates.jsonl'), { ...row, recordedAt: new Date().toISOString() });
 }
 
-function printGateRows(rows) {
-  console.log('\n| Gate | Status | Detail | Next |');
-  console.log('| --- | --- | --- | --- |');
-  for (const row of rows) console.log(`| ${escapeCell(row.id || row.name)} | ${row.status} | ${escapeCell(row.detail || '')} | ${escapeCell(row.next || '')} |`);
-}
-
 function printEvidenceRows(rows) {
   console.log('\n| Evidence | Level | Summary |');
   console.log('| --- | --- | --- |');
@@ -10171,37 +10145,6 @@ function contextGateRows(repo, task, profile, git, options = {}) {
   rows.push({ id: 'context-stale-docs', status: stale.length ? 'warn' : 'pass', detail: stale.length ? `${stale.length} stale context docs` : 'no stale context docs detected', next: stale.length ? `sdlc context freshness --task "${escapeCommandArg(task || 'current task')}"` : '' });
   rows.push({ id: 'context-unit-map', status: multi && unitRegistry(repo, profile).length <= 1 ? 'block' : 'pass', detail: multi ? 'multi-repo/project task needs unit/workspace mapping' : 'unit map not required by task signals', next: multi ? 'sdlc unit doctor' : '' });
   return rows;
-}
-
-function policyRowsForTask(repo, task, profile = {}) {
-  const rows = [];
-  const triggers = securityTriggers(task || '', profile);
-  if (triggers.length) rows.push({ id: 'policy-security-triggers', status: 'warn', detail: triggers.join(', '), next: `sdlc policy check --task "${escapeCommandArg(task || '')}"` });
-  if (matchesAny(String(task || '').toLowerCase(), ['merge', 'deploy', 'release', 'pipeline', 'move files'])) rows.push({ id: 'policy-release-boundary', status: 'block', detail: 'merge/deploy/release/pipeline/file movement is never automatic', next: 'human project-specific release process' });
-  if (!rows.length) rows.push({ id: 'policy-default', status: 'pass', detail: 'no high-risk policy trigger detected', next: '' });
-  return rows;
-}
-
-function policyRowsForAction(repo, task, action, profile = {}) {
-  const rows = [];
-  if (action === 'push') rows.push({ id: 'policy-push-approval', status: 'block', detail: 'push requires explicit human approval and is never automatic', next: 'ask human for push approval' });
-  else if (action === 'commit') rows.push({ id: 'policy-commit-approval', status: 'warn', detail: 'commit requires explicit human approval', next: 'sdlc action preview --action commit' });
-  else if (['merge', 'deploy', 'release', 'pipeline'].includes(action)) rows.push({ id: 'policy-release-boundary', status: 'block', detail: `${action} is outside SDLC automation`, next: 'use project-specific human release process' });
-  else if (action === 'ticket-update') rows.push({ id: 'policy-ticket-write', status: 'block', detail: 'ticket writes/status updates require explicit approval', next: 'sdlc ticket update-preview --task "..."' });
-  else if (action === 'db-query') rows.push({ id: 'policy-database-boundary', status: 'warn', detail: 'database access must stay read-only, bounded, and redacted', next: 'sdlc data query-plan --task "..."' });
-  else if (['install', 'network'].includes(action)) rows.push({ id: 'policy-external-action', status: 'warn', detail: `${action} may need approval depending on sandbox/profile`, next: 'sdlc tools status --task "..."' });
-  rows.push(...policyRowsForTask(repo, task, profile).filter((row) => row.id !== 'policy-default'));
-  return rows.length ? rows : [{ id: 'policy-action', status: 'pass', detail: 'no special action policy detected', next: '' }];
-}
-
-function policyExplanations() {
-  return {
-    'policy-push-approval': 'Push changes only after explicit human approval. Commit approval is separate from push approval.',
-    'policy-release-boundary': 'Merge, deploy, release, MR/PR creation, pipeline triggers, and manual file movement are project-specific human processes.',
-    'policy-ticket-write': 'Ticket comments/status/field changes can affect team workflow and require explicit approval.',
-    'policy-database-boundary': 'Read-only database evidence can reduce uncertainty, but writes, migrations, backfills, stored procedure execution, and sensitive row reads are blocked without explicit approval.',
-    'policy-security-triggers': 'Security/tool triggers add review and evidence expectations; they do not automatically authorize action.',
-  };
 }
 
 function learningSuggestionsFromRun(repo, runDir, task) {
@@ -10414,32 +10357,6 @@ function qaValidate(repo, options = {}) {
   if (!findings.length) findings.push({ status: 'pass', section: 'qa-script', detail: 'required structure present' });
   printTable(['Status', 'Section', 'Detail'], findings.map((item) => [item.status, item.section, item.detail]));
   if (findings.some((item) => item.status === 'block')) process.exitCode = 1;
-}
-
-function policyList(repo, options = {}) {
-  const profile = loadProfile(repo).values;
-  const rows = ['commit', 'push', 'merge', 'deploy', 'ticket-update', 'db-query', 'install', 'network'].flatMap((action) => policyRowsForAction(repo, options.task || '', action, profile).map((row) => [action, row.id, row.status, row.detail]));
-  printTable(['Action', 'Gate', 'Status', 'Detail'], rows);
-}
-
-function policyValidateConfig(repo, options = {}) {
-  const profile = loadProfile(repo).values;
-  const findings = [];
-  if (!profile.releasePolicy && !profile.humanApprovalGates) findings.push(['warn', 'release policy/human approval gates not configured']);
-  if (!profile.sensitiveDataRestrictions) findings.push(['warn', 'sensitive data restrictions not configured']);
-  if (profile.databaseMcpAvailability === 'available' && !profile.databaseAllowedOperations) findings.push(['warn', 'database MCP available but allowed operations not configured']);
-  if (profile.ticketMcpAvailability === 'available' && !profile.ticketSensitiveDataRules) findings.push(['warn', 'ticket MCP available but sensitive data rules not configured']);
-  if (!findings.length) findings.push(['pass', 'policy config has core fields']);
-  printTable(['Status', 'Finding'], findings);
-  if (findings.some((row) => row[0] === 'warn')) process.exitCode = 1;
-}
-
-function policySimulate(repo, options = {}) {
-  const action = options.action || '';
-  if (!action) fail('Pass --action <action>.');
-  const rows = policyRowsForAction(repo, options.task || '', action, loadProfile(repo).values);
-  printTable(['Gate', 'Status', 'Decision', 'Next'], rows.map((row) => [row.id, row.status, policyDecision(row.status), row.next || '']));
-  if (rows.some((row) => row.status === 'block')) process.exitCode = 1;
 }
 
 function contextBudget(repo, options = {}) {
@@ -10669,12 +10586,6 @@ function nextActionForPhase(phase, task) {
   if (phase === 'qa') return `sdlc qa build --task "${escapeCommandArg(task || '...')}"`;
   if (phase === 'finish') return `sdlc complete check --task "${escapeCommandArg(task || '...')}"`;
   return 'continue with SDLC state/current evidence';
-}
-
-function policyDecision(status) {
-  if (status === 'block') return 'blocked or human approval required';
-  if (status === 'warn') return 'allowed only with review/approval as applicable';
-  return 'allowed within normal SDLC boundaries';
 }
 
 function defaultLearningBacklogPath(repo) {
