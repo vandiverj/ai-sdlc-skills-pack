@@ -8,7 +8,7 @@ import { discoverCommands, loadProfile, normalizeKeys } from './profile.mjs';
 import { defaultCalibrationPath, defaultFeedbackPath, defaultRunsDir, defaultTracePath, runStatePath } from './paths.mjs';
 import { controlCurrentPointerPath, controlRunDir, controlRunRoot, ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, validStateTransition } from './state.mjs';
 import { matchRecipes, recipeForCompile, recipeRegistry } from './recipes.mjs';
-import { adapterGenerate } from './adapters.mjs';
+import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { createServices } from './services.mjs';
@@ -4346,46 +4346,6 @@ function sdlcEvent(repo, action, options = {}) {
   console.log(formatList(recommendations));
 }
 
-function hooksPlan(repo, options = {}) {
-  const runtime = String(options.runtime || 'generic').toLowerCase();
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Hook Adapter Plan
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Runtime: ${runtime}
-
-## Position
-
-Hooks are optional adapters over portable \`sdlc event ...\` commands. Normal SDLC usage must continue to work when runtime hooks are unavailable.
-
-## Suggested Events
-
-${formatList(hookPlanEvents(runtime))}
-
-## Local Template
-
-\`\`\`bash
-# Generic pre-stop style check
-sdlc event pre-stop --task "<task>"
-sdlc gates --task "<task>"
-\`\`\`
-
-## Guardrails
-
-- Keep hook-generated files local/ignored unless explicitly approved.
-- Use hooks to suggest or block deterministic risk, not to hide human approval gates.
-- Do not require a runtime-specific hook to complete normal SDLC work.
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
 function onboardingPilot(repo, options = {}) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
@@ -6618,14 +6578,6 @@ function eventRecommendations(action, task, route, budget) {
   if (action === 'pre-stop') return ['run `sdlc gates --task "..."`', 'ensure final confidence block exists', 'ensure commit/push choice remains human-controlled'];
   if (action === 'approval-request') return ['summarize tool/risk/action requested', 'confirm no merge/deploy/release/pipeline/manual movement is hidden', 'record approval or cap'];
   return ['no recommendation'];
-}
-
-function hookPlanEvents(runtime) {
-  const common = ['pre-stop: call `sdlc event pre-stop` and `sdlc gates` before claiming completion', 'approval-request: summarize risk and human gate', 'post-edit: suggest cheap route-appropriate checks'];
-  if (runtime === 'claude') return ['UserPromptSubmit -> `sdlc event prompt-submit`', 'PostToolUse/Edit -> `sdlc event post-edit`', 'Stop -> `sdlc event pre-stop`', ...common];
-  if (runtime === 'codex') return ['Use available hook/plugin surfaces only where supported; otherwise use agent prompt and CLI commands.', ...common];
-  if (['auggie', 'augment'].includes(runtime)) return ['Use IDE/CLI task adapters if available; otherwise invoke `sdlc event ...` from run-sdlc guidance.', ...common];
-  return common;
 }
 
 function sanitizeLearningBuckets(text) {
