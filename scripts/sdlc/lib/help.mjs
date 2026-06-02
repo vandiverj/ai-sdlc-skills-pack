@@ -173,6 +173,7 @@ Usage:
   sdlc scorecard summary [--since YYYY-MM-DD] [--repo <path>]
   sdlc scorecard trends [--since YYYY-MM-DD] [--repo <path>]
   sdlc artifact budget --route <route> [--repo <path>]
+  sdlc artifact spa-plan --task "..." [--package <package.json>] [--repo <path>] [--out <path>]
   sdlc evidence init --route <route> [--repo <path>] [--out <path>]
   sdlc evidence provenance --task "..." [--repo <path>] [--out <path>]
   sdlc evidence required --task "..." [--repo <path>]

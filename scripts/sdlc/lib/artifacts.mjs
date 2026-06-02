@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { escapeCell, formatList, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteJsonFile, writeOrPrint } from './common.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { getGitInfo } from './git.mjs';
@@ -20,6 +20,66 @@ export function artifactBudget(repo, options = {}) {
   });
   console.log('\n## Final Response Shape\n');
   console.log(formatList(['changed files', 'checks', 'QA readiness', 'open caps', 'commit/push status', 'next action', 'confidence block']));
+}
+
+export function artifactSpaPlan(repo, options = {}) {
+  const task = options.task || 'generated SPA artifact promotion';
+  const packagePath = options.package ? resolve(repo, options.package) : join(repo, 'package.json');
+  const packageJson = readJsonIfExists(packagePath) || {};
+  const scripts = packageJson.scripts || {};
+  const packageType = classifySpaPackage(packageJson, scripts);
+  const homepage = packageJson.homepage || '';
+  const hasPublish = Boolean(scripts.publish);
+  const hasBuild = Boolean(scripts.build);
+  const hostTarget = homepage ? homepage.replace(/^https?:\/\/[^/]+/i, '').replace(/^\//, '') : '';
+  const lines = [
+    '# SDLC Generated SPA Artifact Promotion Plan',
+    '',
+    `Task: ${task}`,
+    `Repository: ${repo}`,
+    `Package file: ${relative(repo, packagePath) || 'package.json'}`,
+    '',
+    '## Detected Package Signals',
+    '',
+    `- Package type: ${packageType}`,
+    `- Build script: ${scripts.build || 'not configured'}`,
+    `- Publish script: ${scripts.publish || 'not configured'}`,
+    `- Homepage: ${homepage || 'not configured'}`,
+    `- Host target hint: ${hostTarget || 'not inferred'}`,
+    '',
+    '## Promotion Decision',
+    '',
+    ...spaPromotionDecisionRows({ packageType, hasPublish, hasBuild, homepage }),
+    '',
+    '## Required Checklist',
+    '',
+    '- Identify changed source packages and classify each as library/package or deployable app bundle.',
+    '- Build library packages first, but do not copy their `dist/` output into a host repository.',
+    '- Deploy or promote only the consuming app bundle that owns the hosted output.',
+    '- Prefer an app `publish` script when present; inspect its target path before committing artifacts.',
+    '- For build-only apps, use package `homepage` or repo profile context to map the host target.',
+    '- Inspect the host target before copying: preserve host pages, server includes, auth logic, local config, uploads, and environment-specific markup.',
+    '- Update only generated script/style tags that reference the app build assets.',
+    '- Clean stale generated app assets only by comparing old generated filenames to the latest build output; never wipe the target folder.',
+    '- Review `git diff --stat`, `git diff --numstat`, and `git diff --check` before committing generated artifacts.',
+    '- Restore no-op line-ending/stat noise when Git shows dirty generated files with no meaningful content diff.',
+    '',
+    '## Stop Gates',
+    '',
+    '- Package type, host target, or deployable unit is unclear.',
+    '- The task would replace or delete a host page such as `index.asp`, auth/server config, or unrelated assets.',
+    '- Generated artifact cleanup would remove files outside the app-owned generated bundle pattern.',
+    '- Publish/deploy/push/release would occur without explicit human approval.',
+    '',
+    '## Suggested Verification',
+    '',
+    '- Build changed libraries and consuming app packages in dependency order.',
+    '- Run the app publish/build command and inspect the host repository diff.',
+    '- Run focused UI/API smoke against the hosted workflow when available, or record an explicit cap.',
+    '- Produce a QA Markdown script when human testers must verify the hosted workflow.',
+    '',
+  ];
+  writeOrPrint(repo, options.out, lines.join('\n'));
 }
 
 export function artifactBudgetForRoute(route, size = '') {
@@ -47,6 +107,30 @@ export function artifactBudgetForRoute(route, size = '') {
     optional: ['QA Markdown', 'context update plan', 'learning capture'],
     chatRule: 'one-screen summary unless high-risk signals appear',
   };
+}
+
+function classifySpaPackage(packageJson = {}, scripts = {}) {
+  const deps = {
+    ...(packageJson.dependencies || {}),
+    ...(packageJson.devDependencies || {}),
+  };
+  const build = String(scripts.build || '').toLowerCase();
+  const publish = String(scripts.publish || '').toLowerCase();
+  if (deps.webpack || build.includes('webpack') || publish.includes('webpack')) return 'webpack app bundle';
+  if (deps.rollup || build.includes('rollup') || publish.includes('rollup')) return 'rollup library/package';
+  if (deps.vite || build.includes('vite') || publish.includes('vite')) return 'vite app bundle';
+  if (deps.react || deps['react-dom']) return 'react package/app - bundler unknown';
+  return 'unknown';
+}
+
+function spaPromotionDecisionRows({ packageType, hasPublish, hasBuild, homepage }) {
+  const rows = [];
+  if (packageType.includes('rollup')) rows.push('- Treat this as a likely shared library/package: build it, then rebuild/promote the consuming app rather than copying this package `dist/` to a host repo.');
+  if (hasPublish) rows.push('- Prefer the package `publish` script as the artifact-generation path; verify the target host diff before committing.');
+  if (!hasPublish && hasBuild && homepage) rows.push('- Build-only app with a homepage hint: resolve the host target from `homepage`, then manually promote only generated app assets.');
+  if (!hasPublish && hasBuild && !homepage) rows.push('- Build-only package without `homepage`: stop and identify the host target from repo profile/context before copying artifacts.');
+  if (!rows.length) rows.push('- Insufficient package signals: classify the deployable unit and artifact owner before build/publish work.');
+  return rows;
 }
 
 export function formatArtifactBudget(budget) {

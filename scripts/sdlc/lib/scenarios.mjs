@@ -348,6 +348,12 @@ export function scenarioRegressionCases() {
       expectedRecipes: ['ticket-evidence', 'database-evidence'],
       expectedSecurityOverlay: true,
     },
+    {
+      name: 'spa artifact promotion',
+      task: 'promote generated SPA artifacts from a build-only Webpack app into a host repository while preserving host pages',
+      expectedRoute: 'standard',
+      expectedRecipes: ['spa-artifact-promotion'],
+    },
   ];
 }
 

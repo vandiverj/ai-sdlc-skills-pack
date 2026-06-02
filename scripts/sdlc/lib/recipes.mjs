@@ -26,6 +26,7 @@ export function recipeRegistry() {
     recipe('context-bucket-save', 'active', ['context', 'learning', 'durable fact', 'legacyapi', 'shared context'], ['bucket confidence', 'product vs process split', 'final context checkpoint'], 'sdlc context bucket-confidence --path <path> --task "..."', ['confirm context updated/deferred/capped']),
     recipe('ticket-evidence', 'active', ['youtrack', 'ticket', 'yt-', 'issue id', 'acceptance criteria', 'qa case'], ['ticket source and read mode', 'acceptance criteria or confirmed gap', 'drift check before closeout'], 'sdlc ticket evidence --task "..."', ['translate acceptance criteria into tester steps']),
     recipe('database-evidence', 'active', ['database mcp', 'read-only database', 'read only database', 'database evidence', 'database query', 'db evidence', 'sql evidence', 'query plan', 'native soc', 'data mismatch'], ['read-only boundary', 'safe query plan', 'redacted result summary or cap'], 'sdlc data query-plan --task "..."', ['describe observable behavior and safe test data, not raw SQL']),
+    recipe('spa-artifact-promotion', 'active', ['spa artifact', 'generated spa', 'webpack', 'rollup', 'publish script', 'build-only app', 'build only app', 'homepage', 'host repository', 'host repo', 'generated bundle', 'artifact promotion'], ['package type classified', 'artifact owner/host target identified', 'host pages and config preserved', 'meaningful generated diff verified'], 'sdlc artifact spa-plan --task "..."', ['include hosted workflow smoke/QA expectations and generated-file cleanup scope']),
   ];
 }
 

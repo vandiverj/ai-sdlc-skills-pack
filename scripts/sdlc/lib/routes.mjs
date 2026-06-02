@@ -28,6 +28,7 @@ export function inferRouteFromTask(task, gitInfo, profile = {}) {
   if (matchesAny(text, ['multi-project repository', 'multiple projects', 'multiple codebases', 'multiple code bases', 'deployable codebase', 'deployable api codebase'])) return 'standard';
   if (matchesAny(text, ['weak test', 'coverage', 'missing test', 'no automated tests']) || (text.includes('legacy') && matchesAny(text, ['test', 'coverage', 'regression']))) return 'weak-test-legacy';
   if (matchesAny(text, ['qa script', 'qa test', 'quality assurance', 'youtrack', 'manual qa', 'test script'])) return 'standard';
+  if (matchesAny(text, ['spa artifact', 'generated spa', 'webpack', 'rollup', 'publish script', 'build-only app', 'build only app', 'generated bundle', 'artifact promotion'])) return 'standard';
   if (matchesAny(text, ['user interface', 'rendered product ui', 'visible ui', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'board', 'placement', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
   if (matchesAny(text, ['staging log', 'production log', 'sql log', 'foreign key', 'fk ', 'live-connected', 'live connected'])) return 'bugfix-live-system';
   if (matchesAny(text, ['docs', 'readme', 'markdown']) && !gitInfo.status) return 'tiny-docs';

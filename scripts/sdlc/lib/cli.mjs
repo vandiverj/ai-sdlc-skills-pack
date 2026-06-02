@@ -50,7 +50,7 @@ import { changeGraph, changeGraphEdges, changeGraphImplications, classifySearchP
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policySimulate, policyValidateConfig } from './policy.mjs';
-import { artifactBudget, artifactBudgetForRoute, artifactMigrate, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
+import { artifactBudget, artifactBudgetForRoute, artifactMigrate, artifactSpaPlan, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
 import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
 import { impactAreas, primaryQaSteps, qaAreas, qaBuild, qaCompare, qaComplete, qaHandoff, qaModeCommand, qaOutline, qaOutlineForMode, qaReview, qaScenarios, qaScript, qaValidate } from './qa.mjs';
 import { capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsFallback, toolsStatus } from './tools.mjs';
@@ -264,6 +264,7 @@ export async function main(argv) {
   if (area === 'artifact' && action === 'validate') return artifactValidate(repo, options);
   if (area === 'artifact' && action === 'summarize') return artifactSummarize(repo, options);
   if (area === 'artifact' && action === 'migrate') return artifactMigrate(repo, options);
+  if (area === 'artifact' && (action === 'spa-plan' || action === 'spa')) return artifactSpaPlan(repo, options);
   if (area === 'dashboard') return statusDashboard(resolve(areaOptions.repo || repo), areaOptions, statusDependencies());
   if (area === 'adapter' && action === 'generate') return adapterGenerate(repo, options);
   if (area === 'eval' && action === 'run') return evalRun(repo, options);

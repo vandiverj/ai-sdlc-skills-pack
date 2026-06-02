@@ -138,6 +138,7 @@ Use recipe overlays when the task shape calls for specific proof. Recipes are ad
 - Command failures: classify shell/tooling/setup failures separately from system-under-test failures before using command output as evidence.
 - Ticket evidence: use YouTrack/ticket MCP only when available and allowed; refresh for drift before closeout; preview but do not post updates without explicit approval.
 - Database evidence: plan bounded read-only metadata/aggregate/existence evidence first; redact summaries; never infer permission for writes, migrations, backfills, stored procedure execution, deploy, or release.
+- Generated SPA artifact promotion: classify package type and artifact owner, prefer app publish scripts, map build-only apps to host targets through `homepage` or context, preserve host pages/config, clean only stale app-owned generated assets, and verify meaningful host-repo diffs before commit.
 - Interactive/stateful features: capture the starting state, action sequence, state changes, feedback/animation, recovery path, and strongest available validation ladder.
 - Fixture validation with kept changes: treat useful fixture changes as real product work; verify, review, and prepare commit preview only after explicit finish intent.
 - Deterministic completion: record state, required evidence, command results, scope, policy, and waivers locally before claiming done.

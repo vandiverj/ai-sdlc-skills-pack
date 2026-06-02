@@ -65,6 +65,7 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc command classify --command "..." --status <code> --stderr "..."` when a failed command might be quoting, tooling, sandbox, setup, flaky external, or product failure.
 - `sdlc tools detect`, `sdlc tools status --task "..."`, and `sdlc tools fallback --task "..."` when current runtime capability should be made explicit before selecting evidence paths.
 - `sdlc artifact budget --route <route>` for proportional evidence expectations.
+- `sdlc artifact spa-plan --task "..."` when generated SPA bundles must be built, published, copied, or promoted into a separate host repository.
 - `sdlc automation budget --route <route>` and `sdlc hooks plan --runtime <runtime>` when deterministic hook/event automation is being configured.
 - `sdlc risk agentic --task "..."` when tool authority, identity, memory/context, untrusted input, cascading actions, release authority, or sensitive data needs explicit gates.
 - `sdlc learn quick`, `sdlc learn capture`, `sdlc learn sanitize`, `sdlc learn sync-check`, `sdlc learn review-cycle`, `sdlc learn archive`, `sdlc learn route`, `sdlc learn summary`, `sdlc learn review`, and `sdlc learn promote` for cross-environment process-learning candidates; keep product/client facts in repo/unit/shared context unless redacted and generalized.
@@ -506,6 +507,51 @@ Done criteria:
 - database evidence supports observed state only,
 - desired behavior remains grounded in ticket/spec/product context,
 - raw query output and proprietary schema details are not promoted to shared learnings.
+
+### generated-spa-artifact-promotion
+
+Trigger: generated React/SPA/Webpack/Vite artifacts need build, publish, copy, cleanup, or promotion into a separate host repository or legacy site folder.
+
+Context packet:
+
+- changed source package(s),
+- package scripts and package type signals,
+- consuming app/deployable unit,
+- host repository/folder and host page files,
+- current generated artifact diff.
+
+Checks:
+
+- classify packages as library/package vs deployable app bundle,
+- build libraries before consuming apps,
+- prefer app `publish` script when present,
+- for build-only apps, map package `homepage` or repo profile context to the host target,
+- inspect host files before copying,
+- `git diff --stat`, `git diff --numstat`, and `git diff --check`.
+
+Evidence:
+
+- package type and artifact owner,
+- publish/build command used,
+- host target path,
+- stale generated asset cleanup scope,
+- meaningful generated diff summary,
+- smoke/QA cap for hosted workflow.
+
+Stop gates:
+
+- deployable unit or host target is unclear,
+- promotion would replace/delete host pages, auth/server config, uploads, or unrelated assets,
+- cleanup would wipe a target folder or remove files outside the app-owned generated asset pattern,
+- publish/deploy/push/release would run without explicit human approval.
+
+Done criteria:
+
+- only the changed app-owned generated assets are promoted,
+- host pages and local server config are preserved,
+- generated script/style tags are updated without unrelated markup churn,
+- no-op generated-file noise is restored or explicitly capped,
+- source and artifact repositories are committed separately when they are separate repos.
 
 ### review-only
 
