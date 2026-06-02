@@ -6,7 +6,7 @@ import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, form
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultCalibrationPath, defaultFeedbackPath, defaultRunsDir, defaultTracePath, runStatePath } from './paths.mjs';
-import { buildRunState, loadRunState, runNextAction } from './runstate.mjs';
+import { runDashboard, runNext, runPlan, runResume, runStatus } from './run.mjs';
 import { controlCurrentPointerPath, controlRunDir, controlRunRoot, ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, validStateTransition } from './state.mjs';
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
 import { ensureEvidenceManifest, evidenceAdd, evidenceInit, evidencePlan, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, evidenceStatusRows, readEvidenceManifest } from './evidence.mjs';
@@ -113,10 +113,10 @@ export async function main(argv) {
   if (area === 'packet' && action === 'status') return packetStatus(repo, options);
   if (area === 'done' && action === 'check') return doneCheck(repo, options);
   if (area === 'run' && action === 'plan') return runPlan(repo, options);
-  if (area === 'run' && action === 'status') return runStatus(repo, options);
-  if (area === 'run' && action === 'next') return runNext(repo, options);
-  if (area === 'run' && action === 'resume') return runResume(repo, options);
-  if (area === 'run' && action === 'dashboard') return runDashboard(repo, options);
+  if (area === 'run' && action === 'status') return runStatus(repo, options, runActionDependencies());
+  if (area === 'run' && action === 'next') return runNext(repo, options, runActionDependencies());
+  if (area === 'run' && action === 'resume') return runResume(repo, options, runActionDependencies());
+  if (area === 'run' && action === 'dashboard') return runDashboard(repo, options, runActionDependencies());
   if (area === 'run' && action === 'start') return runStart(repo, options);
   if (area === 'run' && action === 'finish') return runFinish(repo, options);
   if (area === 'workspace' && action === 'status') return workspaceStatus(repo, options);
@@ -4233,99 +4233,8 @@ function feedbackSummary(repo, options = {}) {
   console.log(formatList(feedbackImprovementCandidates(rows)));
 }
 
-function runPlan(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the run can be planned.');
-  const state = buildRunState(repo, task, options);
-  const outPath = options.out ? resolve(repo, options.out) : runStatePath(repo, task);
-  mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, JSON.stringify(state, null, 2), 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function runStatus(repo, options = {}) {
-  const task = options.task || '';
-  const state = loadRunState(repo, task);
-  const git = getGitInfo(repo);
-  printObject({
-    repository: repo,
-    task: state.task || task || 'not provided',
-    route: state.route || 'unknown',
-    runState: state.path ? relative(repo, state.path) : 'not found',
-    changedFiles: git.changedFiles.length,
-    nextAction: runNextAction(repo, state, git, runActionDependencies()),
-  });
-}
-
-function runNext(repo, options = {}) {
-  const state = loadRunState(repo, options.task || '');
-  const git = getGitInfo(repo);
-  console.log(runNextAction(repo, state, git, runActionDependencies()));
-}
-
-function runResume(repo, options = {}) {
-  const state = loadRunState(repo, options.task || '');
-  if (!state.path) fail('No run state found. Use `sdlc run plan --task "..."` first.');
-  runDashboard(repo, { ...options, task: state.task, out: options.out });
-}
-
 function runActionDependencies() {
-  return { findPackets, finalGateOpenItems, suggestedFinalGateCommand };
-}
-
-function runDashboard(repo, options = {}) {
-  const task = options.task || '';
-  const state = loadRunState(repo, task);
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const route = state.route || inferRouteFromTask(task, git, profile.values);
-  const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
-  const surfaces = inferTestingSurfaces(repo, task || state.task || '', git.changedFiles, profile);
-  const open = finalGateOpenItems(repo, task || state.task || '', git, packets);
-  const content = `# SDLC Run Dashboard
-
-Task: ${task || state.task || 'not provided'}
-Repository: ${repo}
-Route: ${route}
-Branch: ${git.branch || 'unknown'}
-Status: ${git.status || 'clean'}
-
-## Scope
-
-- Changed files: ${git.changedFiles.length}
-- Affected units: ${formatInlineList(units.map((unit) => unit.name))}
-- Context buckets: ${formatInlineList(dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)))}
-- Test surfaces: ${formatInlineList(surfaces)}
-
-## Evidence
-
-${formatList(taskEvidenceSummary(repo, packets))}
-
-## Open Gates
-
-${formatList(open)}
-
-## QA
-
-- QA script: ${packets.some((packet) => packet.kind === 'qa-script') ? 'present' : 'missing or not needed'}
-- Recommended QA command: sdlc qa script --task "${escapeCommandArg(task || state.task || 'current task')}"
-
-## Finish
-
-- Commit: ${open.length ? 'not ready' : 'ready only with explicit human approval'}
-- Push: ${open.length ? 'not ready' : 'only with explicit human approval'}
-- Merge/deploy/release: not automatic
-- Next safe action: ${runNextAction(repo, state, git, runActionDependencies())}
-`;
-  if (options.out) {
-    const outPath = resolve(repo, options.out);
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
+  return { findPackets, finalGateOpenItems, suggestedFinalGateCommand, taskEvidenceSummary };
 }
 
 function workspaceLedger(repo, options = {}) {
