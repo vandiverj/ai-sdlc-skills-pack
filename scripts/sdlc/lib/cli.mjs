@@ -908,24 +908,6 @@ function classifyCommandFailure(command, status, stderr) {
   return { kind: 'pass or unclassified', evidenceUse: 'usable only with command output context', nextAction: 'record check result normally' };
 }
 
-function optionFiles(options, fallback = []) {
-  if (!options.files) return fallback;
-  return splitList(options.files).map((file) => file.trim()).filter(Boolean);
-}
-
-function qaSummaryForMode(mode) {
-  if (mode === 'api-contract') return 'Validate the changed API behavior through Swagger/OpenAPI, an approved API client, or documented request/response evidence. This Markdown is for human QA or developer-test handoff and does not assume QA will inspect source code or use AI.';
-  if (mode === 'cli-workflow') return 'Validate the changed command-line behavior through command execution, help/version smoke, expected output, and error handling. This script is for human or developer-test handoff and should name exact commands when safe.';
-  if (mode === 'background-job') return 'Validate the changed background job, queue, import/export, or scheduled process through a dry-run, sandbox execution, logs, output files, or explicit environment caps.';
-  if (mode === 'data-persistence') return 'Validate the changed data behavior with QA-safe data setup, visible application/API evidence, and approved SQL/log checks when available. This script is for human testers and tracking-system paste-in.';
-  if (mode === 'integration-provider') return 'Validate the provider or cross-system behavior through sandbox-safe requests, callbacks, exports/imports, or logs approved for QA. This script does not require source-code inspection.';
-  if (mode === 'interactive-stateful') return 'Validate the changed interactive or stateful workflow, including setup, mode/settings changes, primary user path, feedback/animation, reset/recovery, and nearby regression behavior.';
-  if (mode === 'multi-repo-workflow') return 'Validate the full tester-visible workflow that spans repositories or deployable units. The script should hide repository mechanics and focus on environment, steps, expected results, and release-order caps.';
-  if (mode === 'docs-process') return 'Validate the documentation/process change by checking the intended reader path, links, examples, and whether current instructions match source truth.';
-  if (mode === 'scenario-retest') return 'Validate the named QA/business scenario in the target environment and record pass/fail evidence for the tracking ticket.';
-  return 'Validate the changed behavior for this task and regression-test the affected site/application areas. This Markdown is intended to be pasted into YouTrack and followed by human QA testers. It does not assume QA will use AI, inspect source code, run developer commands, or know the SDLC.';
-}
-
 function validationLadderRows(task, surfaces = []) {
   const text = String(task || '').toLowerCase();
   const rows = [];
@@ -957,27 +939,6 @@ function validationLadderRows(task, surfaces = []) {
 
 function formatValidationLadder(rows) {
   return rows.map((row) => `### ${row.surface}\n\n${row.steps.map((step, index) => `${index + 1}. ${step}`).join('\n')}`).join('\n\n');
-}
-
-function scenarioRetestSection(options = {}) {
-  const scenario = options.scenario || options.case || '';
-  if (!scenario) return '';
-  return `### QA-Scenario: ${scenario}
-
-**Purpose:** Retest the named business/QA scenario connected to this task.
-
-**Steps**
-1. Prepare the scenario-specific test data and user role.
-   - Expected: Preconditions match the tracking ticket.
-2. Execute the scenario from start to finish in QA/staging.
-   - Expected: The scenario completes with the expected result.
-3. Record environment, build/branch, and observed outcome.
-   - Expected: The tracking ticket has enough detail for release review.
-
-**Result**
-- Pass/Fail:
-- Actual result:
-- Notes:`;
 }
 
 function git(repo, args) {
@@ -1115,24 +1076,6 @@ function finalGateOpenItems(repo, task, gitInfo, packets) {
   if (requiresIntegration && !hasIntegration) open.push('integration packet missing for external integration workflow');
   if (requiresTestPlan && !hasTestPlan) open.push('test introduction plan missing for no-tests/dependency workflow');
   return dedupe(open);
-}
-
-function qaSourceHints(repo, options = {}) {
-  const hints = { scope: [], risks: [] };
-  for (const key of ['fromImpact', 'impact']) {
-    if (!options[key]) continue;
-    const text = readPacketTextIfExists(repo, options[key]);
-    hints.scope.push(...extractBulletsAfter(text, '## QA Coverage Areas'));
-    hints.risks.push(...extractBulletsAfter(text, '## Risks, Unknowns, And Caps'));
-  }
-  for (const key of ['fromTouched', 'touched']) {
-    if (!options[key]) continue;
-    const text = readPacketTextIfExists(repo, options[key]);
-    hints.scope.push(...extractTableColumn(text, 1).filter((item) => item && !['Surface', '---'].includes(item)).map((item) => `Validate touched surface: ${item}.`));
-  }
-  hints.scope = dedupe(hints.scope).slice(0, 12);
-  hints.risks = dedupe(hints.risks).slice(0, 12);
-  return hints;
 }
 
 function profileToken(value) {
