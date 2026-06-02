@@ -38,6 +38,7 @@ import { automationBudget, feedbackCapture, feedbackQuick, feedbackReview, feedb
 import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calibratePropose, calibrateSummary, learnedFlowCandidates, processProposals, readCalibrationRows } from './calibration.mjs';
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, readiness as statusReadiness } from './status.mjs';
 import { intakeCheck, intakePacket } from './intake.mjs';
+import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -159,10 +160,10 @@ export async function main(argv) {
   if (area === 'unit' && action === 'list') return unitList(repo, options);
   if (area === 'unit' && action === 'resolve') return unitResolve(repo, options);
   if (area === 'unit' && action === 'context') return unitContext(repo, options);
-  if (area === 'touched' && action === 'packet') return touchedPacket(repo, options);
+  if (area === 'touched' && action === 'packet') return touchedPacket(repo, options, changeImpactDependencies());
   if (area === 'touched' && action === 'update') return touchedUpdate(repo, options);
-  if (area === 'impact' && action === 'packet') return impactPacket(repo, options);
-  if (area === 'interaction' && action === 'packet') return interactionPacket(repo, options);
+  if (area === 'impact' && action === 'packet') return impactPacket(repo, options, changeImpactDependencies());
+  if (area === 'interaction' && action === 'packet') return interactionPacket(repo, options, changeImpactDependencies());
   if (area === 'review' && action === 'packet') return reviewPacket(repo, options, releaseDependencies());
   if (area === 'review' && action === 'complete') return reviewComplete(repo, options, releaseDependencies());
   if (area === 'release' && action === 'packet') return releasePacket(repo, options, releaseDependencies());
@@ -1826,183 +1827,6 @@ function workmodeDetect(repo, options = {}) {
   });
 }
 
-function touchedPacket(repo, options = {}) {
-  const git = getGitInfo(repo);
-  const files = git.changedFiles;
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-touched-surface-ledger.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const rows = files.map((file) => ({
-    file,
-    surface: classifyTouchedSurface(file),
-    runtime: classifyRuntimeSurface(file),
-    qa: needsManualQa(file) ? 'yes' : 'maybe',
-  }));
-
-  const content = `# SDLC Touched Surface Ledger
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Status: ${git.status || 'clean'}
-Head: ${git.head || 'unknown'}
-
-## Summary
-
-- Changed files: ${files.length}
-- Surfaces: ${formatInlineList(dedupe(rows.map((row) => row.surface)))}
-- Runtime hints: ${formatInlineList(dedupe(rows.map((row) => row.runtime)))}
-
-## Changed Files By Surface
-
-| File | Surface | Runtime hint | Manual QA likely |
-| --- | --- | --- | --- |
-${rows.length ? rows.map((row) => `| ${escapeCell(row.file)} | ${row.surface} | ${row.runtime} | ${row.qa} |`).join('\n') : '| none |  |  |  |'}
-
-## QA And Handoff Notes
-
-- Use this ledger as an input to impact, developer verification, QA test scripts, and final handoff.
-- Generated/build artifacts should be reviewed before commit.
-- Manual QA is expected when changed behavior is user-visible, data-affecting, integration-affecting, or lacks automated coverage.
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function touchedUpdate(repo, options = {}) {
-  const surface = options.surface || '';
-  if (!surface) fail('Pass --surface <kind> so the touched-surface ledger can be updated.');
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), 'touched-surface-live-ledger.jsonl');
-  mkdirSync(dirname(outPath), { recursive: true });
-  const row = {
-    timestamp: new Date().toISOString(),
-    repo: options.repoName || basename(repo),
-    surface,
-    evidence: options.evidence || '',
-    task: options.task || '',
-    privacy: options.privacy || 'internal',
-  };
-  appendFileSync(outPath, `${JSON.stringify(row)}\n`, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function impactPacket(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the impact packet can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = git.changedFiles;
-  const units = affectedUnits(repo, files, profile, options.unit);
-  const testingSurfaces = inferTestingSurfaces(repo, task, files, profile);
-  const surfaces = dedupe(files.map(classifyTouchedSurface));
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-impact-packet.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Impact Packet
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Status: ${git.status || 'clean'}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-Verification maturity: ${profile.values.verificationMaturity || 'not configured'}
-
-## Impact Summary
-
-- Runtime/product type: ${formatInlineList(dedupe(files.map(classifyRuntimeSurface)))}
-- Touched surfaces: ${formatInlineList(surfaces)}
-- Testing surfaces: ${formatInlineList(testingSurfaces)}
-- Affected units: ${formatInlineList(units.map((unit) => unit.name))}
-- Context buckets: ${formatInlineList(dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)))}
-- Deploy methods: ${formatInlineList(dedupe(units.map((unit) => unit.deployMethod).filter(Boolean)))}
-- Changed files: ${files.length}
-
-## Affected Areas To Consider
-
-${formatList(impactAreas(task, files, profile.values))}
-
-## User Or System Workflows
-
-- Primary workflow:
-- Secondary/regression workflows:
-- Roles/permissions:
-- Environments affected:
-
-## Technical Impact
-
-- APIs/contracts: ${surfaces.includes('backend/API') || surfaces.includes('contracts/interfaces') ? 'likely' : 'unknown/not detected'}
-- Data/storage: ${surfaces.includes('database/storage') ? 'likely' : 'unknown/not detected'}
-- External integrations: ${surfaces.includes('external integration') ? 'likely' : 'unknown/not detected'}
-- Config/environment: ${surfaces.includes('config/environment') ? 'likely' : 'unknown/not detected'}
-- Dependencies/packages: ${surfaces.includes('dependencies') ? 'likely' : 'unknown/not detected'}
-
-## QA Coverage Areas
-
-${formatList(qaAreas(task, files))}
-
-## Risks, Unknowns, And Caps
-
-- Unknown affected pages/screens:
-- Unknown affected APIs/jobs:
-- Test coverage cap:
-- Release/handoff risk:
-`;
-
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function interactionPacket(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the interaction packet can be scoped.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = git.changedFiles;
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  const breadth = taskBreadthAssessment(task, files, surfaces);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-interaction-stateful-feature.md`);
-  const content = `# SDLC Interactive / Stateful Feature Packet
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Task breadth: ${breadth.level}
-
-## Trigger Signals
-
-${formatList(breadth.signals.length ? breadth.signals : ['interactive/stateful recipe selected manually'])}
-
-## Interaction Contract
-
-- Primary actor:
-- Starting state:
-- User action sequence:
-- Mode/settings/state changes:
-- Feedback/animation/response expected:
-- Error/repeat/edge path:
-- Reset/recovery path:
-
-## Required Proof
-
-- State/domain logic test or explicit cap:
-- Build/typecheck:
-- Rendered/execution-path smoke:
-- Happy path:
-- Regression path:
-- QA Markdown when human testers are involved:
-
-## Validation Surface Ladder
-
-${formatValidationLadder(validationLadderRows(task, surfaces))}
-`;
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
 function getRecipe(route) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
 
@@ -2373,6 +2197,19 @@ function statusDependencies() {
 
 function intakeDependencies() {
   return { caseIdPolicy, requiresCaseId, taskCaseId, taskType };
+}
+
+function changeImpactDependencies() {
+  return {
+    classifyRuntimeSurface,
+    classifyTouchedSurface,
+    formatValidationLadder,
+    impactAreas,
+    needsManualQa,
+    qaAreas,
+    taskBreadthAssessment,
+    validationLadderRows,
+  };
 }
 
 function validationLadder(repo, options = {}) {
