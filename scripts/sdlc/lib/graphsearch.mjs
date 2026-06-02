@@ -1,10 +1,65 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { defaultRunsDir } from './paths.mjs';
 import { escapeCell, fail, formatList, safeWriteTextFile, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { inferDirtySurfaces } from './routes.mjs';
+import { findRepoFiles, normalizeUnitPath } from './units.mjs';
+
+export function searchPattern(scope, pattern) {
+  const results = [];
+  const regex = new RegExp(escapeRegExp(pattern), 'i');
+  for (const file of findRepoFiles(scope, () => true, 8, 20000)) {
+    if (isLikelyBinary(file)) continue;
+    let text = '';
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch {
+      continue;
+    }
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line, index) => {
+      if (regex.test(line)) results.push({ path: file, line: index + 1, text: line.trim().slice(0, 220) });
+    });
+  }
+  return results;
+}
+
+export function classifySearchPath(path) {
+  const value = normalizeUnitPath(path).toLowerCase();
+  if (/(^|\/)(archive|archived|archivedpages|old|legacy-archive)(\/|$)/.test(value)) return 'archived historical reference';
+  if (/(^|\/)(dist|build|bin|obj|out|coverage|generated|wwwroot\/dist)(\/|$)/.test(value) || /\.(min|bundle)\.(js|css)$/.test(value)) return 'generated/deployed artifact';
+  if (/(^|\/)(node_modules|packages|vendor)(\/|$)/.test(value)) return 'dependency/build output';
+  if (/(^|\/)(test|tests|__tests__|fixtures|spec)(\/|$)/.test(value) || /\.(test|spec)\./.test(value)) return 'test/reference fixture';
+  if (value.endsWith('.md') || /(^|\/)(docs|learnings)(\/|$)/.test(value)) return 'context/doc note';
+  return 'active source/page reference';
+}
+
+export function formatSearchGroups(repo, groups) {
+  const entries = Object.entries(groups);
+  if (!entries.length) return '- none';
+  return entries.map(([category, items]) => `### ${category}
+
+${formatList(items.slice(0, 80).map((item) => `${relative(repo, item.path)}:${item.line} ${item.text}`))}${items.length > 80 ? `\n- ... ${items.length - 80} more` : ''}`).join('\n\n');
+}
+
+export function groupBy(items, keyFn) {
+  return items.reduce((acc, item) => {
+    const key = keyFn(item);
+    acc[key] ||= [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+}
+
+function isLikelyBinary(path) {
+  return /\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz|dll|exe|pdb|woff|woff2|ttf|eot|mp4|mov)$/i.test(path);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export function changeGraph(repo, options = {}, deps = {}) {
   const task = options.task || '';

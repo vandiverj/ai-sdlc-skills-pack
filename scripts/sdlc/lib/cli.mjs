@@ -46,7 +46,7 @@ import { dashboard as statusDashboard, gates as statusGates, handoff as statusHa
 import { intakeCheck, intakePacket } from './intake.mjs';
 import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
 import { confidenceBlock, detectWorkModes, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, inferVerificationMaturity, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verificationMaturity, verify, workmodeDetect } from './assessment.mjs';
-import { changeGraph, searchClassify, searchRetireCheck } from './graphsearch.mjs';
+import { changeGraph, classifySearchPath, formatSearchGroups, groupBy, searchClassify, searchPattern, searchRetireCheck } from './graphsearch.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -54,7 +54,7 @@ import { artifactBudget, artifactBudgetForRoute, artifactMigrate, artifactSummar
 import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
 import { impactAreas, primaryQaSteps, qaAreas, qaBuild, qaCompare, qaComplete, qaHandoff, qaModeCommand, qaOutline, qaOutlineForMode, qaReview, qaScenarios, qaScript, qaValidate } from './qa.mjs';
 import { capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsFallback, toolsStatus } from './tools.mjs';
-import { affectedUnits, classifyTestingSurface, detectPackageManager, findRepoFiles, inferTestingSurfaces, matchesAny, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
+import { affectedUnits, classifyTestingSurface, detectPackageManager, inferTestingSurfaces, matchesAny, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(scriptPath), '..', '..', '..');
@@ -615,60 +615,6 @@ function finalContextSignals(task, files, packets) {
   if (packets.some((packet) => packet.kind === 'learning-summary')) signals.push('process learning summary exists');
   if (!signals.length) signals.push('no obvious durable context signal detected; still confirm before final handoff');
   return signals;
-}
-
-function searchPattern(scope, pattern) {
-  const results = [];
-  const regex = new RegExp(escapeRegExp(pattern), 'i');
-  for (const file of findRepoFiles(scope, () => true, 8, 20000)) {
-    if (isLikelyBinary(file)) continue;
-    let text = '';
-    try {
-      text = readFileSync(file, 'utf8');
-    } catch {
-      continue;
-    }
-    const lines = text.split(/\r?\n/);
-    lines.forEach((line, index) => {
-      if (regex.test(line)) results.push({ path: file, line: index + 1, text: line.trim().slice(0, 220) });
-    });
-  }
-  return results;
-}
-
-function classifySearchPath(path) {
-  const value = normalizeUnitPath(path).toLowerCase();
-  if (/(^|\/)(archive|archived|archivedpages|old|legacy-archive)(\/|$)/.test(value)) return 'archived historical reference';
-  if (/(^|\/)(dist|build|bin|obj|out|coverage|generated|wwwroot\/dist)(\/|$)/.test(value) || /\.(min|bundle)\.(js|css)$/.test(value)) return 'generated/deployed artifact';
-  if (/(^|\/)(node_modules|packages|vendor)(\/|$)/.test(value)) return 'dependency/build output';
-  if (/(^|\/)(test|tests|__tests__|fixtures|spec)(\/|$)/.test(value) || /\.(test|spec)\./.test(value)) return 'test/reference fixture';
-  if (value.endsWith('.md') || /(^|\/)(docs|learnings)(\/|$)/.test(value)) return 'context/doc note';
-  return 'active source/page reference';
-}
-
-function formatSearchGroups(repo, groups) {
-  const entries = Object.entries(groups);
-  if (!entries.length) return '- none';
-  return entries.map(([category, items]) => `### ${category}
-
-${formatList(items.slice(0, 80).map((item) => `${relative(repo, item.path)}:${item.line} ${item.text}`))}${items.length > 80 ? `\n- ... ${items.length - 80} more` : ''}`).join('\n\n');
-}
-
-function isLikelyBinary(path) {
-  return /\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz|dll|exe|pdb|woff|woff2|ttf|eot|mp4|mov)$/i.test(path);
-}
-
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function groupBy(items, keyFn) {
-  return items.reduce((acc, item) => {
-    const key = keyFn(item);
-    acc[key] ||= [];
-    acc[key].push(item);
-    return acc;
-  }, {});
 }
 
 function git(repo, args) {
