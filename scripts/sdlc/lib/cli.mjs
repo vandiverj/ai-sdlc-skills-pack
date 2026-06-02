@@ -745,33 +745,6 @@ function bugNextCommand(action, task) {
   return action === 'qa' ? `sdlc qa scenario --task "${escapeCommandArg(task)}"` : `sdlc bug ${next} --task "${escapeCommandArg(task)}"`;
 }
 
-function qaScenarioRecords(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const candidates = [
-    options.library ? resolve(repo, options.library) : '',
-    profile.values.qaScenarioLibrary ? resolve(repo, profile.values.qaScenarioLibrary) : '',
-    join(repo, '.ai-local', 'qa-scenarios.md'),
-    join(repo, 'docs', 'qa-scenarios.md'),
-  ].filter(Boolean);
-  const path = candidates.find((candidate) => existsSync(candidate));
-  if (!path) return [];
-  const text = readFileSync(path, 'utf8');
-  const sections = text.split(/^##\s+/m).slice(1);
-  return sections.map((section) => {
-    const [titleLine, ...bodyLines] = section.split(/\r?\n/);
-    const title = titleLine.trim();
-    const body = bodyLines.join('\n');
-    return {
-      id: firstMatch(body, /^ID:\s*(.+)$/m) || slug(title),
-      title,
-      unit: firstMatch(body, /^Unit:\s*(.+)$/m) || '',
-      surface: firstMatch(body, /^Surface:\s*(.+)$/m) || '',
-      path,
-      body: body.trim(),
-    };
-  });
-}
-
 function contextAliases(profile = {}) {
   const raw = profile.contextAliases || profile.contextAlias || '';
   return splitList(raw).map((item) => {
@@ -1101,29 +1074,6 @@ function detectWorkModes(repo, task, profile = {}, files = []) {
 
 function verificationMaturity(profile, commands) {
   return profile.verificationMaturity || inferVerificationMaturity(commands);
-}
-
-function readPacketTextIfExists(repo, value) {
-  const path = resolve(repo, value);
-  return existsSync(path) ? readFileSync(path, 'utf8') : '';
-}
-
-function extractBulletsAfter(text, heading) {
-  if (!text) return [];
-  const start = text.indexOf(heading);
-  if (start < 0) return [];
-  const rest = text.slice(start + heading.length);
-  const end = rest.search(/\n## /);
-  const section = end >= 0 ? rest.slice(0, end) : rest;
-  return section.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.startsWith('- ')).map((line) => line.slice(2).trim()).filter(Boolean);
-}
-
-function extractTableColumn(text, columnIndex) {
-  return String(text || '')
-    .split(/\r?\n/)
-    .filter((line) => line.startsWith('|') && line.includes('|'))
-    .map((line) => line.split('|').map((cell) => cell.trim())[columnIndex + 1])
-    .filter(Boolean);
 }
 
 function contextUpdateTargets(route, dirtySurfaces, contracts, profile) {
@@ -1477,18 +1427,6 @@ function controlGateRows(repo, state, runDir, options = {}) {
 
 function writeGateRows(repo, runDir, rows) {
   for (const row of rows) appendControlJsonLine(repo, join(runDir, 'gates.jsonl'), { ...row, recordedAt: new Date().toISOString() });
-}
-
-function printEvidenceRows(rows) {
-  console.log('\n| Evidence | Level | Summary |');
-  console.log('| --- | --- | --- |');
-  for (const row of rows) console.log(`| ${escapeCell(row.id)} | ${row.level} | ${escapeCell(row.summary)} |`);
-}
-
-function printEvidenceStatusRows(rows) {
-  console.log('\n| Evidence | Level | Status | Summary |');
-  console.log('| --- | --- | --- | --- |');
-  for (const row of rows) console.log(`| ${escapeCell(row.id)} | ${row.level} | ${row.status} | ${escapeCell(row.summary)} |`);
 }
 
 function nextActionFromGates(rows, task) {
