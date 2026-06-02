@@ -23,6 +23,7 @@ import { dataBoundary, dataEvidence, dataPacket, dataQueryPlan } from './data.mj
 import { ticketDrift, ticketEvidence, ticketUpdatePreview } from './ticket.mjs';
 import { integrationPacket } from './integration.mjs';
 import { smokeComplete, smokePacket } from './smoke.mjs';
+import { releaseComplete, releaseOrderNote, releasePacket, reviewComplete, reviewPacket } from './release.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -148,10 +149,10 @@ export async function main(argv) {
   if (area === 'touched' && action === 'update') return touchedUpdate(repo, options);
   if (area === 'impact' && action === 'packet') return impactPacket(repo, options);
   if (area === 'interaction' && action === 'packet') return interactionPacket(repo, options);
-  if (area === 'review' && action === 'packet') return reviewPacket(repo, options);
-  if (area === 'review' && action === 'complete') return reviewComplete(repo, options);
-  if (area === 'release' && action === 'packet') return releasePacket(repo, options);
-  if (area === 'release' && action === 'complete') return releaseComplete(repo, options);
+  if (area === 'review' && action === 'packet') return reviewPacket(repo, options, releaseDependencies());
+  if (area === 'review' && action === 'complete') return reviewComplete(repo, options, releaseDependencies());
+  if (area === 'release' && action === 'packet') return releasePacket(repo, options, releaseDependencies());
+  if (area === 'release' && action === 'complete') return releaseComplete(repo, options, releaseDependencies());
   if (area === 'qa' && (action === 'script' || action === 'packet')) return qaScript(repo, options);
   if (area === 'qa' && action === 'handoff') return qaHandoff(repo, options);
   if (area === 'qa' && action === 'scenarios') return qaScenarios(repo, rest[0] || options.command || 'list', options);
@@ -290,7 +291,7 @@ export async function main(argv) {
   if (area === 'render' && action === 'plan') return renderPlan(repo, options);
   if (area === 'render' && action === 'evidence') return renderEvidencePacket(repo, options);
   if (area === 'render' && action === 'smoke') return renderSmoke(repo, options);
-  if (area === 'release' && action === 'note') return releaseOrderNote(repo, options);
+  if (area === 'release' && action === 'note') return releaseOrderNote(repo, options, releaseDependencies());
   if (area === 'security' && (action === 'permissions' || action === 'policy')) return permissionPolicyPacket(repo, options);
   if (area === 'security' && (action === 'audit' || action === 'tool-audit')) return toolAuditPacket(repo, options);
   if (area === 'safety' && action === 'preflight') return safetyPreflight(repo, options);
@@ -2376,247 +2377,6 @@ ${formatOptionList(options.caps)}
   console.log(relative(repo, packetPath));
 }
 
-function reviewPacket(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the review packet can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const docs = contextDocCandidates(repo, profile.values);
-  const existingDocs = docs.filter((item) => existsSync(item.path));
-  const inferredRoute = inferRouteFromTask(task, git, profile.values);
-  const route = 'review-only';
-  const triggers = securityTriggers(task, profile.values);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-review-packet.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Review Packet
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Upstream: ${git.upstream || 'not configured'}
-Ahead/behind: ${git.behind} behind / ${git.ahead} ahead
-Head: ${git.head || 'unknown'}
-Status: ${git.status || 'clean'}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-Suggested route: ${route}
-Other route signals: ${inferredRoute === route ? 'none' : inferredRoute}
-
-## Read-Only Scope
-
-- Do not edit code, docs, tests, or generated files while using this packet unless the work is explicitly rerouted.
-- Review task: ${task}
-- Changed files:
-${indentList(git.changedFiles)}
-
-## Context To Inspect
-
-${formatContextDocs(repo, existingDocs)}
-
-## Diff / Artifact Targets
-
-${formatReviewTargets(git)}
-
-## Suggested Checks
-
-${formatReviewChecks(commands, route)}
-
-## Security Overlay
-
-${formatSecurityOverlay(triggers)}
-
-## Findings
-
-| Severity | File/line | Finding | Recommendation |
-| --- | --- | --- | --- |
-|  |  |  |  |
-
-## Evidence Gaps
-
-- Record missing requirements, missing tests, unavailable local services, skipped optional checks, or unavailable rendered evidence here.
-
-## Review Verdict
-
-- Pass / Pass with notes / Changes requested / Blocked:
-- Rationale:
-- Residual risk:
-
-## Calibration Stub
-
-\`\`\`bash
-sdlc calibrate add --route review-only --checks "" --caps "" --outcome "" --route-fit "" --context-missing "" --verification-missing "" --friction "" --process-change-proposed ""
-\`\`\`
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function reviewComplete(repo, options = {}) {
-  const packetPath = resolvePacketPath(repo, options.packet);
-  if (!options.verdict) fail('Pass --verdict "..." so the review completion has a clear outcome.');
-
-  const git = getGitInfo(repo);
-  const entry = `## Review Completion
-
-Completed: ${new Date().toISOString()}
-Repository status: ${formatInlineStatus(git.status)}
-Head: ${git.head || 'unknown'}
-Verdict: ${options.verdict}
-
-### Findings
-
-${formatOptionList(options.findings)}
-
-### Checks
-
-${formatOptionList(options.checks)}
-
-### Caps
-
-${formatOptionList(options.caps)}
-
-### Calibration Command
-
-\`\`\`bash
-sdlc calibrate add --route review-only --checks "${escapeCommandArg(options.checks || '')}" --caps "${escapeCommandArg(options.caps || '')}" --outcome "${escapeCommandArg(options.outcome || options.verdict)}" --route-fit "${escapeCommandArg(options.routeFit || '')}" --context-missing "${escapeCommandArg(options.contextMissing || '')}" --verification-missing "${escapeCommandArg(options.verificationMissing || '')}" --friction "${escapeCommandArg(options.friction || '')}" --process-change-proposed "${escapeCommandArg(options.processChangeProposed || '')}"
-\`\`\`
-`;
-
-  appendPacketCompletion(packetPath, entry);
-  console.log(relative(repo, packetPath));
-}
-
-function releasePacket(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const docs = contextDocCandidates(repo, profile.values);
-  const existingDocs = docs.filter((item) => existsSync(item.path));
-  const triggers = securityTriggers(options.task || 'release handoff push', profile.values);
-  const commits = recentCommits(repo, 5);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-release-packet.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Release Packet
-
-Date: ${new Date().toISOString()}
-Task: ${options.task || 'release / handoff readiness'}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Upstream: ${git.upstream || 'not configured'}
-Ahead/behind: ${git.behind} behind / ${git.ahead} ahead
-Head: ${git.head || 'unknown'}
-Status: ${git.status || 'clean'}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-
-## Release Scope
-
-- No commit, push, merge, deploy, publish, or destructive action was taken by packet generation.
-- The SDLC prepares release readiness/handoff evidence only; it must not automatically merge, deploy, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.
-- Commit and push require explicit human approval.
-- Changed files:
-${indentList(git.changedFiles)}
-- Recent commits:
-${indentList(commits)}
-
-## Context To Inspect
-
-${formatContextDocs(repo, existingDocs)}
-
-## Release Policy
-
-- Policy: ${profile.values.releasePolicy || 'not configured'}
-- Human approval gates: ${profile.values.humanApprovalGates || 'not configured'}
-- Accessibility policy: ${accessibilityPolicy(profile.values)}
-
-## Expected Checks
-
-${formatReleaseChecks(commands)}
-
-## Stop Gates
-
-${formatReleaseStopGates(git, profile.values)}
-
-## Security Overlay
-
-${formatSecurityOverlay(triggers)}
-
-## Release Decision
-
-| Item | Evidence | Status |
-| --- | --- | --- |
-| Scope reviewed |  | pending |
-| Working tree appropriate |  | pending |
-| Required checks pass |  | pending |
-| Branch/upstream correct |  | pending |
-| Human approval captured |  | pending |
-| Git action performed | none by packet generation | pending |
-
-## Handoff Notes
-
-- Release action requested:
-- Verification evidence:
-- Caps:
-- Next actor:
-
-## Calibration Stub
-
-\`\`\`bash
-sdlc calibrate add --route release-push --checks "" --caps "" --outcome "" --route-fit "" --context-missing "" --verification-missing "" --friction "" --process-change-proposed ""
-\`\`\`
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function releaseComplete(repo, options = {}) {
-  const packetPath = resolvePacketPath(repo, options.packet);
-  const action = options.action || '';
-  if (!action) fail('Pass --action "none|commit|push|handoff" so the release completion records what happened.');
-  if (!['none', 'commit', 'push', 'handoff'].includes(action)) fail('Use --action "none", "commit", "push", or "handoff".');
-
-  const git = getGitInfo(repo);
-  const entry = `## Release Completion
-
-Completed: ${new Date().toISOString()}
-Repository status: ${formatInlineStatus(git.status)}
-Branch: ${git.branch || 'unknown'}
-Upstream: ${git.upstream || 'not configured'}
-Ahead/behind: ${git.behind} behind / ${git.ahead} ahead
-Head: ${git.head || 'unknown'}
-Action: ${action}
-Verdict: ${options.verdict || 'not provided'}
-
-### Checks
-
-${formatOptionList(options.checks)}
-
-### Caps
-
-${formatOptionList(options.caps)}
-
-### Git Action Evidence
-
-${formatOptionList(options.evidence || (action === 'none' ? 'No git or release action performed.' : 'Record exact command/result here.'))}
-
-### Calibration Command
-
-\`\`\`bash
-sdlc calibrate add --route release-push --checks "${escapeCommandArg(options.checks || '')}" --caps "${escapeCommandArg(options.caps || '')}" --outcome "${escapeCommandArg(options.outcome || options.verdict || action)}" --route-fit "${escapeCommandArg(options.routeFit || '')}" --context-missing "${escapeCommandArg(options.contextMissing || '')}" --verification-missing "${escapeCommandArg(options.verificationMissing || '')}" --friction "${escapeCommandArg(options.friction || '')}" --process-change-proposed "${escapeCommandArg(options.processChangeProposed || '')}"
-\`\`\`
-`;
-
-  appendPacketCompletion(packetPath, entry);
-  console.log(relative(repo, packetPath));
-}
-
 function qaModeCommand(repo, action, options = {}, rest = []) {
   if (action === 'scenario' && (rest[0] === 'list' || options.list)) return qaScenarioList(repo, options);
   if (action === 'scenario' && (rest[0] === 'show' || options.show)) return qaScenarioShow(repo, rest[1] || options.scenario || options.id, options);
@@ -2824,6 +2584,23 @@ function qaReview(repo, options = {}) {
 
 function smokeDependencies() {
   return { classifyTouchedSurface, smokeStepSuggestions, renderedEvidencePlan, resolvePacketPath, appendPacketCompletion };
+}
+
+function releaseDependencies() {
+  return {
+    accessibilityPolicy,
+    appendPacketCompletion,
+    contextDocCandidates,
+    escapeCommandArg,
+    formatContextDocs,
+    formatReleaseChecks,
+    formatReleaseStopGates,
+    formatReviewChecks,
+    formatReviewTargets,
+    formatSecurityOverlay,
+    recentCommits,
+    resolvePacketPath,
+  };
 }
 
 function validationLadder(repo, options = {}) {
@@ -4748,47 +4525,6 @@ Use this section for human QA testers. Keep it source-code-free and pasteable in
   console.log(relative(repo, outPath));
 }
 
-function releaseOrderNote(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-release-order-note.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Release Order Note
-
-Date: ${new Date().toISOString()}
-Task: ${task || 'not provided'}
-Repository: ${repo}
-
-## Configured Release Context
-
-- Release policy: ${profile.values.releasePolicy || 'not configured'}
-- Release order: ${profile.values.releaseOrder || 'not configured'}
-- Service map: ${profile.values.serviceMap || 'not configured'}
-- Related repositories: ${formatInlineList(splitList(profile.values.relatedRepositories))}
-- Affected units: ${formatInlineList(units.map((unit) => unit.name))}
-- Unit deploy methods: ${formatInlineList(dedupe(units.map((unit) => unit.deployMethod).filter(Boolean)))}
-
-## Human-Controlled Release Notes
-
-- Target branch/process:
-- Required approvals:
-- Included repositories:
-- Included units:
-- Release order:
-- Pipeline/deploy/manual move owner:
-- Smoke check after release/move:
-
-## Hard Stop
-
-- This note does not authorize merge, deploy, release, MR/PR creation, pipeline trigger, branch movement, or manual file movement.
-- Commit and push still require explicit human approval.
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
 function permissionPolicyPacket(repo, options = {}) {
   const task = options.task || '';
   const profile = loadProfile(repo);
@@ -6624,6 +6360,63 @@ function appendPacketCompletion(packetPath, entry) {
 
 function humanize(value) {
   return value.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function contextDocCandidates(repo, profile) {
+  const candidates = [
+    { label: 'AGENTS.md', path: join(repo, 'AGENTS.md') },
+    { label: 'SDLC profile JSON', path: join(repo, '.sdlc', 'profile.json') },
+    { label: 'SDLC profile Markdown', path: join(repo, '.sdlc', 'profile.md') },
+    { label: 'Agent-local SDLC profile', path: join(repo, '.ai-local', 'sdlc-profile.md') },
+    { label: 'Agent-local repository setup', path: join(repo, '.ai-local', 'repository-setup.md') },
+    { label: 'Memory context index', path: join(repo, 'docs', 'memory-bank', 'contextIndex.md') },
+    { label: 'Memory active context', path: join(repo, 'docs', 'memory-bank', 'activeContext.md') },
+    { label: 'Context state', path: join(repo, 'docs', 'context-state.md') },
+    { label: 'Application model', path: join(repo, 'docs', 'application-model.md') },
+  ];
+
+  for (const [key, label] of [
+    ['sharedContextRoot', 'Shared context root'],
+    ['productContext', 'Product context'],
+    ['repoContext', 'Repo context'],
+    ['productContextIndex', 'Product context index'],
+    ['repoContextIndex', 'Repo context index'],
+    ['serviceMap', 'Service map'],
+    ['workflowMap', 'Workflow map'],
+    ['releaseOrder', 'Release order'],
+    ['knownFailureModes', 'Known failure modes'],
+  ]) {
+    if (profile[key]) candidates.push({ label, path: resolveContextPath(repo, profile[key]) });
+  }
+
+  return dedupeByPath(candidates);
+}
+
+function dedupeByPath(items) {
+  const seen = new Set();
+  const out = [];
+  for (const item of items) {
+    if (!item.path || seen.has(item.path)) continue;
+    seen.add(item.path);
+    out.push(item);
+  }
+  return out;
+}
+
+function resolveContextPath(repo, value) {
+  const raw = String(value || '').trim();
+  if (!raw) return repo;
+  if (raw.startsWith('~')) return raw;
+  if (raw.startsWith('/')) return raw;
+  return resolve(repo, raw);
+}
+
+function missingSetup(profile, commands) {
+  const missing = [];
+  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) missing.push('no external/shared context paths configured');
+  if (!commands.test) missing.push('no test command discovered');
+  if (!commands.build) missing.push('no build command discovered');
+  return missing;
 }
 
 function formatContextDocs(repo, items) {
