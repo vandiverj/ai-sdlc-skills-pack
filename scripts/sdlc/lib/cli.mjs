@@ -45,7 +45,7 @@ import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
 import { artifactBudget as artifactBudgetCommand, artifactBudgetForRoute, artifactMigrate, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
-import { addEvidenceFromCheck, checksDoctor, checksPlan, checksRun, classifyRunCheckFailure, summarizeCommandOutput } from './checks.mjs';
+import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
 import { primaryQaSteps, qaBuild, qaOutlineForMode, qaValidate } from './qa.mjs';
 import { capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsFallback, toolsStatus } from './tools.mjs';
 import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, findRepoFiles, hasFileExt, inferTestingSurfaces, matchesAny, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
@@ -67,7 +67,7 @@ export async function main(argv) {
   const options = parseOptions(rest);
   const repo = resolve(options.repo || process.cwd());
 
-  if (area === 'run-check') return runCheck(resolve(areaOptions.repo || process.cwd()), parseOptions(argv.slice(1)), argv.slice(1));
+  if (area === 'run-check') return runCheck(resolve(areaOptions.repo || process.cwd()), parseOptions(argv.slice(1)), argv.slice(1), checkDependencies());
   if (area === 'help' && (action === 'prompts' || action === 'prompt')) return helpPrompts();
   if (area === 'help' && action === 'workflow') return helpWorkflow();
   if (area === 'help' && (action === 'onboarding' || action === 'start')) return helpOnboarding();
@@ -815,70 +815,6 @@ ${formatList(contracts)}
 
   safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
-}
-
-function runCheck(repo, options = {}, rawTokens = []) {
-  const name = options.name || options.kind || 'check';
-  const stateInfo = readCurrentStateInfo(repo, options);
-  const task = options.task || stateInfo.state?.task || '';
-  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, task || 'current-task');
-  const delimiter = rawTokens.indexOf('--');
-  const commandTokens = delimiter >= 0 ? rawTokens.slice(delimiter + 1) : [];
-  const start = new Date();
-  let result;
-  if (options.cap) {
-    result = {
-      name,
-      kind: name,
-      mode: 'cap',
-      command: '',
-      status: 'cap',
-      exitCode: '',
-      summary: options.reason || options.cap,
-      startedAt: start.toISOString(),
-      endedAt: new Date().toISOString(),
-    };
-  } else if (options.manual) {
-    result = {
-      name,
-      kind: name,
-      mode: 'manual',
-      command: '',
-      status: options.status || 'pass',
-      exitCode: '',
-      summary: options.manual,
-      startedAt: start.toISOString(),
-      endedAt: new Date().toISOString(),
-    };
-  } else {
-    if (!commandTokens.length) fail('Pass a command after --, or use --manual "..." / --cap "...".');
-    const command = commandTokens[0];
-    const commandArgs = commandTokens.slice(1);
-    const child = spawnSync(command, commandArgs, { cwd: repo, encoding: 'utf8' });
-    const endedAt = new Date().toISOString();
-    const output = `${child.stdout || ''}${child.stderr ? `\nSTDERR:\n${child.stderr}` : ''}`;
-    const outputPath = join(runDir, 'outputs', `${stamp()}-${slug(name)}.log`);
-    safeWriteTextFile(repo, outputPath, output);
-    result = {
-      name,
-      kind: name,
-      mode: 'command',
-      command: commandTokens.join(' '),
-      cwd: repo,
-      status: child.status === 0 ? 'pass' : classifyRunCheckFailure(child),
-      exitCode: child.status ?? '',
-      signal: child.signal || '',
-      summary: summarizeCommandOutput(output),
-      outputPath: relative(repo, outputPath),
-      startedAt: start.toISOString(),
-      endedAt,
-    };
-  }
-  appendControlJsonLine(repo, join(runDir, 'checks.jsonl'), result);
-  addEvidenceFromCheck(repo, runDir, result);
-  appendControlEvent(repo, runDir, 'check', `${name}: ${result.status}`, result);
-  printObject(result);
-  if (result.mode === 'command' && result.exitCode && result.exitCode !== 0) process.exitCode = Number(result.exitCode) || 1;
 }
 
 function qaOutline(repo, options = {}) {
@@ -1895,6 +1831,10 @@ function stateDependencies() {
 
 function graphSearchDependencies() {
   return { changeGraphEdges, changeGraphImplications, classifySearchPath, classifyTouchedSurface, formatSearchGroups, groupBy, searchPattern };
+}
+
+function checkDependencies() {
+  return { appendControlEvent };
 }
 
 function qaScenarios(repo, command, options = {}) {

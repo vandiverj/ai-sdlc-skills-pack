@@ -1,12 +1,76 @@
 import { spawnSync } from 'node:child_process';
-import { join } from 'node:path';
-import { appendControlJsonLine, dedupeBy, escapeCell, fail, printTable, readJsonIfExists, safeWriteJsonFile, writeOrPrint } from './common.mjs';
+import { join, relative } from 'node:path';
+import { appendControlJsonLine, dedupeBy, escapeCell, fail, printObject, printTable, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, slug, stamp, writeOrPrint } from './common.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
-import { ensureControlRunDir } from './state.mjs';
+import { ensureControlRunDir, readCurrentStateInfo } from './state.mjs';
 import { unitRegistry } from './units.mjs';
 
 function readEvidenceManifest(runDir) {
   return readJsonIfExists(join(runDir, 'evidence.json')) || { captured: [] };
+}
+
+export function runCheck(repo, options = {}, rawTokens = [], dependencies = {}) {
+  const name = options.name || options.kind || 'check';
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const task = options.task || stateInfo.state?.task || '';
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, task || 'current-task');
+  const delimiter = rawTokens.indexOf('--');
+  const commandTokens = delimiter >= 0 ? rawTokens.slice(delimiter + 1) : [];
+  const start = new Date();
+  let result;
+  if (options.cap) {
+    result = {
+      name,
+      kind: name,
+      mode: 'cap',
+      command: '',
+      status: 'cap',
+      exitCode: '',
+      summary: options.reason || options.cap,
+      startedAt: start.toISOString(),
+      endedAt: new Date().toISOString(),
+    };
+  } else if (options.manual) {
+    result = {
+      name,
+      kind: name,
+      mode: 'manual',
+      command: '',
+      status: options.status || 'pass',
+      exitCode: '',
+      summary: options.manual,
+      startedAt: start.toISOString(),
+      endedAt: new Date().toISOString(),
+    };
+  } else {
+    if (!commandTokens.length) fail('Pass a command after --, or use --manual "..." / --cap "...".');
+    const command = commandTokens[0];
+    const commandArgs = commandTokens.slice(1);
+    const child = spawnSync(command, commandArgs, { cwd: repo, encoding: 'utf8' });
+    const endedAt = new Date().toISOString();
+    const output = `${child.stdout || ''}${child.stderr ? `\nSTDERR:\n${child.stderr}` : ''}`;
+    const outputPath = join(runDir, 'outputs', `${stamp()}-${slug(name)}.log`);
+    safeWriteTextFile(repo, outputPath, output);
+    result = {
+      name,
+      kind: name,
+      mode: 'command',
+      command: commandTokens.join(' '),
+      cwd: repo,
+      status: child.status === 0 ? 'pass' : classifyRunCheckFailure(child),
+      exitCode: child.status ?? '',
+      signal: child.signal || '',
+      summary: summarizeCommandOutput(output),
+      outputPath: relative(repo, outputPath),
+      startedAt: start.toISOString(),
+      endedAt,
+    };
+  }
+  appendControlJsonLine(repo, join(runDir, 'checks.jsonl'), result);
+  addEvidenceFromCheck(repo, runDir, result);
+  dependencies.appendControlEvent(repo, runDir, 'check', `${name}: ${result.status}`, result);
+  printObject(result);
+  if (result.mode === 'command' && result.exitCode && result.exitCode !== 0) process.exitCode = Number(result.exitCode) || 1;
 }
 
 export function checksPlan(repo, options = {}) {
