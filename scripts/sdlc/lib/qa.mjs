@@ -566,7 +566,7 @@ function scenarioRetestSection(options = {}) {
 - Notes:`;
 }
 
-function qaAreas(task, files) {
+export function qaAreas(task, files) {
   const areas = impactAreas(task, files);
   const checks = areas.map((area) => `Validate ${area}.`);
   if (files.some((file) => classifyTestingSurface(file) === 'package-tooling')) checks.push('Run a regression smoke path for dependency/package upgrade side effects.');
@@ -574,7 +574,7 @@ function qaAreas(task, files) {
   return dedupe(checks);
 }
 
-function impactAreas(task, files) {
+export function impactAreas(task, files) {
   const text = String(task || '').toLowerCase();
   const surfaces = files.map(classifyTestingSurface);
   const areas = [];
