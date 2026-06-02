@@ -15,7 +15,7 @@ import { detectContextContradictions, evalAddCase, evalReport, evalRun, scenario
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
-import { contextAssemble, contextAudit, contextBudget, contextCompact, contextFreshness, contextLedger, contextPack, contextRestore } from './context.mjs';
+import { contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextFinalCheck, contextFreshness, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextResolve, contextRestore, contextUpdatePlan } from './context.mjs';
 import { learnArchive, learnBacklog, learnCandidates, learnCapture, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck } from './learning.mjs';
 import { taskBundle, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskOpen, taskPreflight, taskQa, taskReview, taskStart, taskStatus, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
@@ -91,16 +91,16 @@ export async function main(argv) {
   if (area === 'context' && action === 'pack') return contextPack(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'audit') return contextAudit(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'freshness') return contextFreshness(repo, options, contextControlDependencies());
-  if (area === 'context' && action === 'conflict-check') return contextConflictCheck(repo, options);
-  if (area === 'context' && (action === 'contradictions' || action === 'check')) return contextContradictions(repo, options);
-  if (area === 'context' && action === 'inventory') return contextInventory(repo, options);
-  if (area === 'context' && action === 'bucket-check') return contextBucketCheck(repo, options);
-  if (area === 'context' && action === 'bucket-confidence') return contextBucketConfidence(repo, options);
-  if (area === 'context' && action === 'resolve') return contextResolve(repo, options);
-  if (area === 'context' && action === 'final-check') return contextFinalCheck(repo, options);
-  if (area === 'context' && action === 'gate') return contextGate(repo, options);
-  if (area === 'context' && action === 'place') return contextPlace(repo, options);
-  if (area === 'context' && action === 'update-plan') return contextUpdatePlan(repo, options);
+  if (area === 'context' && action === 'conflict-check') return contextConflictCheck(repo, options, contextControlDependencies());
+  if (area === 'context' && (action === 'contradictions' || action === 'check')) return contextContradictions(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'inventory') return contextInventory(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'bucket-check') return contextBucketCheck(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'bucket-confidence') return contextBucketConfidence(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'resolve') return contextResolve(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'final-check') return contextFinalCheck(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'gate') return contextGate(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'place') return contextPlace(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'update-plan') return contextUpdatePlan(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'budget') return contextBudget(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'assemble') return contextAssemble(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'compact') return contextCompact(repo, options, contextControlDependencies());
@@ -326,316 +326,6 @@ export async function main(argv) {
   fail(`Unknown command: ${argv.join(' ')}`);
 }
 
-function contextConflictCheck(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so context conflict check can be scoped.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const docs = contextDocCandidates(repo, profile.values);
-  const rows = docs.map((item) => contextFreshnessRow(repo, item, Number(options.days || 60)));
-  const stale = rows.filter((row) => row.status === 'stale');
-  const missing = rows.filter((row) => row.status === 'missing');
-  const contradictions = detectContextContradictions(repo, profile, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json'))), docs, splitList(profile.values.relatedRepositories));
-  const severity = contextConflictSeverity({ stale, missing, contradictions, profile: profile.values });
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Context Conflict Check
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Severity: ${severity}
-
-## Freshness And Ownership
-
-| Document | Status | Age days | Path |
-| --- | --- | --- | --- |
-${rows.map((row) => `| ${escapeCell(row.label)} | ${row.status} | ${row.ageDays} | ${escapeCell(row.path)} |`).join('\n')}
-
-## Contradiction Signals
-
-${formatList(contradictions)}
-
-## Required Agent Behavior
-
-- Treat source code, tests, logs, and current command output as stronger than stale context docs.
-- Use context docs as routing memory, not proof.
-- If stale context affected implementation or QA, record a context update plan or cap before finish.
-- Product-sensitive facts stay in repo/unit/shared context, not global process learning.
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-  if (severity === 'stale-and-risky' || severity === 'conflicting-sources') process.exitCode = 1;
-}
-
-function contextContradictions(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const docs = contextDocCandidates(repo, profile.values);
-  const related = splitList(profile.values.relatedRepositories);
-  const contradictions = detectContextContradictions(repo, profile, commands, docs, related);
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Context Contradiction Check
-
-Date: ${new Date().toISOString()}
-Task: ${task || 'not provided'}
-Repository: ${repo}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-
-## Possible Contradictions
-
-${formatList(contradictions)}
-
-## How To Use This
-
-- Treat these as review prompts, not proof.
-- Source files and runnable commands win over stale context docs.
-- If a contradiction is real and durable, update the repo or shared context docs after the task.
-`;
-
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function contextInventory(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const docs = contextDocCandidates(repo, profile.values);
-  const rows = docs.map((item) => {
-    const path = item.path;
-    const exists = existsSync(path);
-    return {
-      label: item.label,
-      status: exists ? 'present' : 'missing',
-      placement: contextPlacement(repo, path),
-      age: exists ? contextFreshnessRow(repo, item, Number(options.days || 60)).ageDays : '',
-      path: relative(repo, path) || path,
-    };
-  });
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Context Inventory
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-
-## Inventory
-
-| Context | Status | Placement | Age days | Path |
-| --- | --- | --- | --- | --- |
-${rows.map((row) => `| ${escapeCell(row.label)} | ${row.status} | ${row.placement} | ${row.age} | ${escapeCell(row.path)} |`).join('\n')}
-
-## Placement Model
-
-- Temporary task evidence belongs in ignored .ai-local/.
-- Stable repository-specific software facts belong in repo docs when the team accepts tracked docs.
-- Cross-repo product/service/workflow/release facts belong in the shared context root.
-- Process mechanics belong in the SDLC pack, not downstream software memory.
-`;
-
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function contextBucketCheck(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so context bucket placement can be checked.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = optionFiles(options, git.changedFiles);
-  const units = affectedUnits(repo, files, profile, options.unit);
-  const facts = splitList(options.facts || options.fact || '');
-  const rows = units.map((unit) => `| ${escapeCell(unit.name)} | ${escapeCell(unit.path)} | ${escapeCell(unit.contextBucket || 'not configured')} | ${escapeCell(unit.durableContextFile || recommendedContextFile(unit))} | ${escapeCell(unit.testSurface || 'not configured')} |`);
-  const recommendations = [
-    ...units.filter((unit) => !unit.contextBucket).map((unit) => `Configure context bucket for unit "${unit.name}".`),
-    ...units.filter((unit) => !unit.durableContextFile && !profile.values.sharedContextRoot).map((unit) => `Decide durable context file or shared context root for "${unit.name}".`),
-    ...facts.map((fact) => `${fact}: ${contextPlacementRecommendation(fact, profile.values).target}`),
-  ];
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Context Bucket Check
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-
-## Source-Of-Truth Hierarchy
-
-${formatList(['source/logs/tests', 'repo profile', 'unit profile', 'shared context', 'promoted learnings', 'conversation memory'])}
-
-## Affected Unit Context Buckets
-
-| Unit | Path | Context bucket | Durable context file | Testing surface |
-| --- | --- | --- | --- | --- |
-${rows.join('\n')}
-
-## Placement Recommendations
-
-${formatList(recommendations.length ? recommendations : ['No obvious context bucket gaps detected.'])}
-
-## Freshness Windows
-
-- Source/logs/tests: current task evidence.
-- Repo/unit profiles: refresh when deployable unit, context bucket, commands, or test surface changes.
-- Shared context: refresh when cross-repo/product workflow truth changes.
-- Promoted learnings: promote only after review; revisit when repeated failures stop matching reality.
-- Conversation memory: never treat as durable source truth by itself.
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function contextResolve(repo, options = {}) {
-  const targetPath = options.path ? resolve(repo, options.path) : repo;
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const aliases = contextAliases(profile.values);
-  const normalized = normalizeUnitPath(relative(repo, targetPath) || options.path || '.').toLowerCase();
-  const alias = aliases.find((item) => normalized.includes(item.match.toLowerCase()) || String(task).toLowerCase().includes(item.match.toLowerCase()));
-  const unit = affectedUnits(repo, [relative(repo, targetPath)], profile, options.unit)[0];
-  const recommendedBucket = alias?.bucket || unit?.contextBucket || profile.values.productContext || profile.values.repoContext || profile.values.sharedContextRoot || 'not configured';
-  printObject({
-    repository: repo,
-    path: relative(repo, targetPath) || '.',
-    task: task || 'not provided',
-    matchedAlias: alias ? `${alias.match} -> ${alias.bucket}` : 'none',
-    affectedUnit: unit?.name || 'default',
-    recommendedContextBucket: recommendedBucket,
-    durableContextFile: unit?.durableContextFile || recommendedContextFile(unit || { contextBucket: recommendedBucket, path: '.' }),
-    note: alias ? 'alias overrides folder/repo-name intuition' : 'no alias override found',
-  });
-}
-
-function contextFinalCheck(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so final context check can be scoped.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const contextSignals = finalContextSignals(task, git.changedFiles, packets);
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Final Context Check
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-
-## Durable Knowledge Signals
-
-${formatList(contextSignals)}
-
-## Context Placement Decision
-
-- Product-context bucket: ${profile.values.productContext || profile.values.sharedContextRoot || 'not configured'}
-- Repo-context bucket: ${profile.values.repoContext || 'not configured'}
-- Process-learning candidate: ${contextSignals.some((item) => item.includes('process')) ? 'yes' : 'only if verification exposed reusable SDLC behavior'}
-- Sensitive/product-specific detail present: review before sharing in `.agents/learnings`
-
-## Required Question Before Final Handoff
-
-- Did final grep/test/log review discover durable product knowledge?
-- Which bucket owns it?
-- Is it product-specific, process-general, or both?
-- Was the context update done, deferred, or capped?
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function contextPlace(repo, options = {}) {
-  const fact = options.fact || options.text || '';
-  if (!fact) fail('Pass --fact "..." so the SDLC can recommend context placement.');
-  const profile = loadProfile(repo);
-  const recommendation = contextPlacementRecommendation(fact, profile.values);
-  printObject({
-    repository: repo,
-    fact,
-    recommendedPlacement: recommendation.placement,
-    suggestedTarget: recommendation.target,
-    reason: recommendation.reason,
-    trackingRule: recommendation.trackingRule,
-  });
-}
-
-function contextUpdatePlan(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the context update plan can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const route = inferRouteFromTask(task, git, profile.values);
-  const dirtySurfaces = inferDirtySurfaces(task, git);
-  const contracts = inferContracts(task, profile.values);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-context-update-plan.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Context Update Plan
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Route: ${route}
-Status: ${git.status || 'clean'}
-
-## Update Only If Truth Changed
-
-${formatList(contextUpdateTargets(route, dirtySurfaces, contracts, profile.values))}
-
-## Dirty Surfaces
-
-${formatList(dirtySurfaces)}
-
-## Contracts Or Interfaces
-
-${formatList(contracts)}
-
-## Documentation Boundary
-
-- Do not store process flow rediscovery in repo memory docs.
-- Do store software-specific workflow, contract, service, release-order, and architecture facts when they help future agents avoid rediscovery.
-- Prefer code-local docs for public exports, shared types, APIs, invariants, and examples.
-`;
-
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function contextGate(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const rows = contextGateRows(repo, task, profile, git, options);
-  const blocked = rows.filter((row) => row.status === 'block');
-  printObject({ task: task || 'not provided', result: blocked.length ? 'blocked' : rows.some((row) => row.status === 'warn') ? 'warn' : 'pass' });
-  printGateRows(rows);
-  if (blocked.length) process.exitCode = 1;
-}
-
 function getRecipe(route) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
 
@@ -845,7 +535,25 @@ function checkDependencies() {
 }
 
 function contextControlDependencies() {
-  return { classifyTouchedSurface, contextDocCandidates, contextFreshnessRecommendations, contextFreshnessRow, formatCommandList, formatContextDocs, missingSetup };
+  return {
+    classifyTouchedSurface,
+    contextAliases,
+    contextDocCandidates,
+    contextFreshnessRecommendations,
+    contextFreshnessRow,
+    contextGateRows,
+    contextPlacement,
+    contextPlacementRecommendation,
+    contextUpdateTargets,
+    detectContextContradictions,
+    finalContextSignals,
+    findPackets,
+    formatCommandList,
+    formatContextDocs,
+    missingSetup,
+    printGateRows,
+    recommendedContextFile,
+  };
 }
 
 function learningDependencies() {
@@ -1284,34 +992,6 @@ function git(repo, args) {
   } catch {
     return '';
   }
-}
-
-function contextBucketConfidence(repo, options = {}) {
-  const target = options.path || '.';
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const targetPath = resolve(repo, target);
-  const normalized = normalizeUnitPath(relative(repo, targetPath) || target);
-  const aliases = contextAliases(profile.values).filter((item) => normalized.toLowerCase().includes(item.match.toLowerCase()) || task.toLowerCase().includes(item.match.toLowerCase()));
-  const units = affectedUnits(repo, [normalized], profile, options.unit);
-  const candidates = dedupe([
-    ...aliases.map((item) => item.bucket),
-    ...units.map((unit) => unit.contextBucket),
-    profile.values.repoContext,
-    profile.values.productContext,
-    profile.values.sharedContextRoot,
-  ]).filter(Boolean);
-  const confidence = aliases.length === 1 || units.length === 1 && units[0].contextBucket ? 'high' : candidates.length === 1 ? 'medium' : candidates.length > 1 ? 'conflict' : 'low';
-  printObject({
-    repository: repo,
-    path: normalized || '.',
-    task: task || 'not provided',
-    confidence,
-    candidates: candidates.join('; ') || 'none configured',
-    recommended: candidates[0] || 'configure repo/unit/shared context bucket',
-    gate: ['low', 'conflict'].includes(confidence) ? 'ask human before durable context write' : 'safe to use with normal review',
-  });
-  if (['low', 'conflict'].includes(confidence)) process.exitCode = 1;
 }
 
 function evidenceProvenance(repo, options = {}) {
