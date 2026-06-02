@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fail, printObject, slug } from './common.mjs';
+import { appendControlJsonLine, escapeCell, fail, printObject, slug, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { matchRecipes } from './recipes.mjs';
@@ -979,4 +979,28 @@ sdlc run dashboard --task "${escapeCommandArg(task)}"
 `;
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
+}
+
+
+export function evalRun(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const rows = scenarioRegressionCases().map((item) => {
+    const actual = inferRouteFromTask(item.task, git, profile.values);
+    return { name: item.name, expected: item.expectedRoute || '', actual, status: !item.expectedRoute || item.expectedRoute === actual ? 'pass' : 'fail' };
+  });
+  const content = ['# SDLC Eval Report', '', '| Case | Expected | Actual | Status |', '| --- | --- | --- | --- |', ...rows.map((row) => `| ${escapeCell(row.name)} | ${row.expected} | ${row.actual} | ${row.status} |`), ''].join('\n');
+  writeOrPrint(repo, options.out, content);
+  if (rows.some((row) => row.status === 'fail')) process.exitCode = 1;
+}
+
+export function evalAddCase(repo, options = {}) {
+  if (!options.name || !options.task) fail('Pass --name <name> --task "...".');
+  const path = join(repo, '.ai-local', 'sdlc-eval-cases.jsonl');
+  appendControlJsonLine(repo, path, { name: options.name, task: options.task, expectedRoute: options.route || inferRouteFromTask(options.task, getGitInfo(repo), loadProfile(repo).values), createdAt: new Date().toISOString() });
+  console.log(relative(repo, path));
+}
+
+export function evalReport(repo, options = {}) {
+  return evalRun(repo, options);
 }

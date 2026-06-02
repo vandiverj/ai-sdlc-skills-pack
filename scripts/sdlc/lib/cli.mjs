@@ -9,7 +9,7 @@ import { defaultCalibrationPath, defaultFeedbackPath, defaultRunsDir, defaultTra
 import { controlCurrentPointerPath, controlRunDir, controlRunRoot, ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, validStateTransition } from './state.mjs';
 import { matchRecipes, recipeForCompile, recipeRegistry } from './recipes.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
-import { scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
+import { evalAddCase, evalReport, evalRun, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
@@ -8752,29 +8752,6 @@ function dashboard(repo, options = {}) {
   const outPath = options.out ? resolve(repo, options.out) : join(runDir, 'dashboard.md');
   safeWriteTextFile(repo, outPath, `${lines.join('\n')}\n`);
   console.log(relative(repo, outPath));
-}
-
-function evalRun(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const rows = scenarioRegressionCases().map((item) => {
-    const actual = inferRouteFromTask(item.task, git, profile.values);
-    return { name: item.name, expected: item.expectedRoute || '', actual, status: !item.expectedRoute || item.expectedRoute === actual ? 'pass' : 'fail' };
-  });
-  const content = ['# SDLC Eval Report', '', '| Case | Expected | Actual | Status |', '| --- | --- | --- | --- |', ...rows.map((row) => `| ${escapeCell(row.name)} | ${row.expected} | ${row.actual} | ${row.status} |`), ''].join('\n');
-  writeOrPrint(repo, options.out, content);
-  if (rows.some((row) => row.status === 'fail')) process.exitCode = 1;
-}
-
-function evalAddCase(repo, options = {}) {
-  if (!options.name || !options.task) fail('Pass --name <name> --task "...".');
-  const path = join(repo, '.ai-local', 'sdlc-eval-cases.jsonl');
-  appendControlJsonLine(repo, path, { name: options.name, task: options.task, expectedRoute: options.route || inferRouteFromTask(options.task, getGitInfo(repo), loadProfile(repo).values), createdAt: new Date().toISOString() });
-  console.log(relative(repo, path));
-}
-
-function evalReport(repo, options = {}) {
-  return evalRun(repo, options);
 }
 
 function learnExport(repo, options = {}) {
