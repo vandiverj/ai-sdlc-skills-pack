@@ -283,7 +283,26 @@ export function installCheck(repo, _options = {}, dependencies = {}) {
 }
 
 
-function readinessChecks(repo, profile, commands, existingDocs, related) {
+export function setupFixPlan(gaps, profile, commands) {
+  const plan = [];
+  const add = (item) => {
+    const normalized = item.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!plan.some((existing) => existing.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() === normalized)) plan.push(item);
+  };
+  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) add('Configure shared/product/repo context paths in `.ai-local/sdlc-profile.md`, using external storage when multiple repos need the same context.');
+  if (!commands.test) add('Add or record the narrowest reliable test command.');
+  if (!commands.build) add('Add or record build/typecheck command when the repo can support it.');
+  if (!profile.verificationMaturity) add('Record verification maturity so final gates can choose automated checks versus manual QA scripts.');
+  if (!profile.releasePolicy) add('Record release policy and approval gates before using release packets for push/deploy work.');
+  if (!profile.approvedTools && !profile.blockedTools) add('Record approved/blocked tools and sensitive-data restrictions.');
+  for (const gap of gaps) {
+    if (['context', 'commands', 'release', 'security'].includes(gap.area)) continue;
+    add(gap.fix);
+  }
+  return plan;
+}
+
+export function readinessChecks(repo, profile, commands, existingDocs, related) {
   const values = profile.values;
   return [
     { area: 'context', status: profile.path ? 'ready' : 'missing', fix: 'create .ai-local/sdlc-profile.md with sdlc profile init' },
@@ -298,6 +317,33 @@ function readinessChecks(repo, profile, commands, existingDocs, related) {
     { area: 'security', status: values.ticketMcpAvailability || values.databaseMcpAvailability ? 'ready' : 'partial', fix: 'record optional ticket/database MCP availability or mark unavailable/blocked' },
     { area: 'multi-repo', status: related.length === 0 || values.serviceMap || values.productContextIndex ? 'ready' : 'partial', fix: 'add service map/product context index for related repositories' },
   ];
+}
+
+export function readinessStatus(checks, area) {
+  const relevant = checks.filter((item) => item.area === area);
+  if (!relevant.length) return 'unknown';
+  if (relevant.every((item) => item.status === 'ready')) return 'ready';
+  if (relevant.some((item) => item.status === 'missing')) return 'missing';
+  return 'partial';
+}
+
+export function missingSetup(profile, commands) {
+  const missing = [];
+  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) missing.push('no external/shared context paths configured');
+  if (!commands.test) missing.push('no test command discovered');
+  if (!commands.build) missing.push('no build command discovered');
+  return missing;
+}
+
+export function formatCommandList(commands, route) {
+  const selected = new Set(['test']);
+  if (['standard', 'release-push', 'multi-repo-integration', 'ui-rendered-review', 'bugfix-live-system'].includes(route)) selected.add('build');
+  if (route === 'ui-rendered-review') selected.add('rendered');
+  if (route === 'release-push') selected.add('lint');
+  const lines = Object.entries(commands)
+    .filter(([key, command]) => command && (selected.has(key) || ['install', 'dev'].includes(key)))
+    .map(([key, command]) => `- ${key}: \`${command}\``);
+  return lines.length ? lines.join('\n') : '- none discovered';
 }
 
 function requiresRenderedReview(repo) {

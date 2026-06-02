@@ -32,7 +32,7 @@ import { classifyRuntimeSurface, classifyTouchedSurface, needsManualQa } from '.
 import { accessibilityPolicy, formatAccessibilityPolicy, formatSecurityOverlay, releaseComplete, releaseOrderNote, releasePacket, reviewComplete, reviewPacket } from './release.mjs';
 import { renderEvidencePacket, renderedEvidencePlan, renderPlan, renderSmoke } from './render.mjs';
 import { permissionPolicyPacket, riskAgentic, safetyFinish, safetyPreflight, toolAuditPacket } from './safety.mjs';
-import { doctorFull, health, installCheck, processHealth, setupBootstrap, setupDoctor } from './health.mjs';
+import { doctorFull, formatCommandList, health, installCheck, missingSetup, processHealth, readinessChecks, readinessStatus, setupBootstrap, setupDoctor, setupFixPlan } from './health.mjs';
 import { actionPreview, completeCheck, completeExplain, completeWaive, finalGate, finalGateOpenItems, finishPacket, gitGuard, gitPacket, suggestedFinalGateCommand } from './finish.mjs';
 import { scopeCheck, scopeExpect } from './scope.mjs';
 import { fixturePlan, testBootstrapPlan, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
@@ -607,75 +607,8 @@ function git(repo, args) {
   }
 }
 
-function setupFixPlan(gaps, profile, commands) {
-  const plan = [];
-  const add = (item) => {
-    const normalized = item.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-    if (!plan.some((existing) => existing.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() === normalized)) plan.push(item);
-  };
-  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) add('Configure shared/product/repo context paths in `.ai-local/sdlc-profile.md`, using external storage when multiple repos need the same context.');
-  if (!commands.test) add('Add or record the narrowest reliable test command.');
-  if (!commands.build) add('Add or record build/typecheck command when the repo can support it.');
-  if (!profile.verificationMaturity) add('Record verification maturity so final gates can choose automated checks versus manual QA scripts.');
-  if (!profile.releasePolicy) add('Record release policy and approval gates before using release packets for push/deploy work.');
-  if (!profile.approvedTools && !profile.blockedTools) add('Record approved/blocked tools and sensitive-data restrictions.');
-  for (const gap of gaps) {
-    if (['context', 'commands', 'release', 'security'].includes(gap.area)) continue;
-    add(gap.fix);
-  }
-  return plan;
-}
-
 function humanize(value) {
   return value.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase());
-}
-
-function readinessChecks(repo, profile, commands, existingDocs, related) {
-  const values = profile.values;
-  return [
-    { area: 'context', status: profile.path ? 'ready' : 'missing', fix: 'create .ai-local/sdlc-profile.md with sdlc profile init' },
-    { area: 'context', status: existingDocs.some((item) => item.label === 'AGENTS.md') ? 'ready' : 'partial', fix: 'add or update AGENTS.md with repo commands and conventions' },
-    { area: 'context', status: values.sharedContextRoot || values.productContext || values.repoContext || values.productContextIndex ? 'ready' : 'partial', fix: 'configure shared/product/repo context paths when the repo participates in larger systems' },
-    { area: 'commands', status: commands.test ? 'ready' : 'missing', fix: 'record a test command in the SDLC profile or package scripts' },
-    { area: 'commands', status: commands.build ? 'ready' : 'partial', fix: 'record a build/typecheck command when applicable' },
-    { area: 'commands', status: commands.rendered || !requiresRenderedReview(repo) ? 'ready' : 'partial', fix: 'record rendered UI review command/tool if the repo has visible UI' },
-    { area: 'commands', status: values.verificationMaturity ? 'ready' : 'partial', fix: 'record verification maturity so final gates can choose automated checks versus manual QA scripts' },
-    { area: 'release', status: values.releasePolicy || values.humanApprovalGates ? 'ready' : 'partial', fix: 'record release policy and human approval gates' },
-    { area: 'security', status: values.approvedTools || values.blockedTools || values.sensitiveDataRestrictions ? 'ready' : 'partial', fix: 'record approved/blocked tools and sensitive data restrictions' },
-    { area: 'security', status: values.ticketMcpAvailability || values.databaseMcpAvailability ? 'ready' : 'partial', fix: 'record optional ticket/database MCP availability or mark unavailable/blocked' },
-    { area: 'multi-repo', status: related.length === 0 || values.serviceMap || values.productContextIndex ? 'ready' : 'partial', fix: 'add service map/product context index for related repositories' },
-  ];
-}
-
-function readinessStatus(checks, area) {
-  const relevant = checks.filter((item) => item.area === area);
-  if (!relevant.length) return 'unknown';
-  if (relevant.every((item) => item.status === 'ready')) return 'ready';
-  if (relevant.some((item) => item.status === 'missing')) return 'missing';
-  return 'partial';
-}
-
-function requiresRenderedReview(repo) {
-  return existsSync(join(repo, 'src')) || existsSync(join(repo, 'app')) || existsSync(join(repo, 'pages'));
-}
-
-function missingSetup(profile, commands) {
-  const missing = [];
-  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) missing.push('no external/shared context paths configured');
-  if (!commands.test) missing.push('no test command discovered');
-  if (!commands.build) missing.push('no build command discovered');
-  return missing;
-}
-
-function formatCommandList(commands, route) {
-  const selected = new Set(['test']);
-  if (['standard', 'release-push', 'multi-repo-integration', 'ui-rendered-review', 'bugfix-live-system'].includes(route)) selected.add('build');
-  if (route === 'ui-rendered-review') selected.add('rendered');
-  if (route === 'release-push') selected.add('lint');
-  const lines = Object.entries(commands)
-    .filter(([key, command]) => command && (selected.has(key) || ['install', 'dev'].includes(key)))
-    .map(([key, command]) => `- ${key}: \`${command}\``);
-  return lines.length ? lines.join('\n') : '- none discovered';
 }
 
 function groupCounts(values) {
