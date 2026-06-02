@@ -26,6 +26,7 @@ import { smokeComplete, smokePacket } from './smoke.mjs';
 import { releaseComplete, releaseOrderNote, releasePacket, reviewComplete, reviewPacket } from './release.mjs';
 import { renderEvidencePacket, renderedEvidencePlan, renderPlan, renderSmoke } from './render.mjs';
 import { permissionPolicyPacket, riskAgentic, safetyFinish, safetyPreflight, toolAuditPacket } from './safety.mjs';
+import { doctorFull, health, installCheck, processHealth, setupBootstrap, setupDoctor } from './health.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -279,12 +280,12 @@ export async function main(argv) {
   if (area === 'learn' && action === 'export') return learnExport(repo, options);
   if (area === 'learn' && action === 'import') return learnImport(repo, options);
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
-  if (area === 'setup' && action === 'doctor') return setupDoctor(repo, options);
-  if (area === 'setup' && action === 'bootstrap') return setupBootstrap(repo, options);
-  if (area === 'doctor' && action === 'full') return doctorFull(repo, options);
-  if (area === 'install' && action === 'check') return installCheck(repo, options);
-  if (area === 'health') return health(repo, areaOptions);
-  if (area === 'process' && action === 'health') return processHealth(repo, options);
+  if (area === 'setup' && action === 'doctor') return setupDoctor(repo, options, healthDependencies());
+  if (area === 'setup' && action === 'bootstrap') return setupBootstrap(repo, options, healthDependencies());
+  if (area === 'doctor' && action === 'full') return doctorFull(repo, options, healthDependencies());
+  if (area === 'install' && action === 'check') return installCheck(repo, options, healthDependencies());
+  if (area === 'health') return health(resolve(areaOptions.repo || process.cwd()), areaOptions, healthDependencies());
+  if (area === 'process' && action === 'health') return processHealth(repo, options, healthDependencies());
   if (area === 'policy' && action === 'check') return policyCheck(repo, options);
   if (area === 'policy' && action === 'explain') return policyExplain(repo, options);
   if (area === 'policy' && action === 'list') return policyList(repo, options);
@@ -2605,6 +2606,29 @@ function releaseDependencies() {
   };
 }
 
+function healthDependencies() {
+  return {
+    agentsRoot,
+    completionTrackedPacketKinds,
+    contextDocCandidates,
+    contextInventory,
+    detectCiSystems,
+    detectDeploySystems,
+    detectTestFrameworks,
+    findPackets,
+    formatCounts,
+    groupCounts,
+    learnedFlowCandidates,
+    normalizeArray,
+    processProposals,
+    readCalibrationRows,
+    readiness,
+    setupFixPlan,
+    sharedContextDetails,
+    sharedContextReachability,
+  };
+}
+
 function validationLadder(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the validation ladder can be scoped.');
@@ -3923,259 +3947,6 @@ function readiness(repo) {
     recommendedSetupFixes: fixes.join('; ') || 'none',
     recommendedNextCommand: score < 75 ? 'sdlc setup doctor' : 'sdlc context pack --task "..."',
   });
-}
-
-function health(repo) {
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const docs = contextDocCandidates(repo, profile.values);
-  const existingDocs = docs.filter((item) => existsSync(item.path));
-  const related = splitList(profile.values.relatedRepositories);
-  const checks = readinessChecks(repo, profile, commands, existingDocs, related);
-  const packets = findPackets(repo, {});
-  const calibrationRows = readCalibrationRows(repo, { allowMissing: true }).filter((row) => !row.parseError);
-  const readinessScore = Math.round((checks.filter((item) => item.status === 'ready').length / checks.length) * 100);
-  const openPackets = packets.filter((packet) => !packet.completed && completionTrackedPacketKinds().includes(packet.kind));
-
-  printObject({
-    repository: repo,
-    readiness: `${readinessScore}%`,
-    branch: git.branch || 'unknown',
-    status: git.status || 'clean',
-    packets: packets.length,
-    openPackets: openPackets.length,
-    calibrationRows: calibrationRows.length,
-    relatedRepositories: related.length,
-    recommendedNextCommand: openPackets.length ? `sdlc done check --route ${openPackets[0].route || openPackets[0].kind} --packet ${relative(repo, openPackets[0].path)}` : 'sdlc context pack --task "..."',
-  });
-
-  console.log('\n## Readiness Gaps\n');
-  console.log(formatList(checks.filter((item) => item.status !== 'ready').map((item) => `${item.area}: ${item.fix}`)));
-  console.log('\n## Open Packets\n');
-  console.log(formatList(openPackets.map((packet) => `${relative(repo, packet.path)} (${packet.kind})`)));
-}
-
-function processHealth(repo, options = {}) {
-  const rows = readCalibrationRows(repo, { ...options, allowMissing: true }).filter((row) => !row.parseError);
-  const packets = findPackets(repo, {});
-  const caps = groupCounts(rows.flatMap((row) => normalizeArray(row.caps)));
-  const routeFit = groupCounts(rows.map((row) => row.routeFit).filter(Boolean));
-  const openPackets = packets.filter((packet) => !packet.completed && completionTrackedPacketKinds().includes(packet.kind));
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Process Health
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Calibration rows: ${rows.length}
-Packets: ${packets.length}
-Open packets: ${openPackets.length}
-
-## Repeated Caps
-
-${formatCounts(caps)}
-
-## Route Fit Signals
-
-${formatCounts(routeFit)}
-
-## Open Packets
-
-${formatList(openPackets.map((packet) => `${packet.kind}: ${relative(repo, packet.path)}`))}
-
-## Suggested Improvements
-
-${formatList(processProposals(caps, routeFit, [], [], []))}
-
-## Learned Flow Candidates
-
-${formatList(learnedFlowCandidates(rows))}
-`;
-
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function setupDoctor(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const docs = contextDocCandidates(repo, profile.values);
-  const existingDocs = docs.filter((item) => existsSync(item.path));
-  const related = splitList(profile.values.relatedRepositories);
-  const checks = readinessChecks(repo, profile, commands, existingDocs, related);
-  const gaps = checks.filter((item) => item.status !== 'ready');
-  const profilePath = profile.path ? relative(repo, profile.path) : '.ai-local/sdlc-profile.md';
-  const stack = detectStack(repo);
-  const packageManager = detectPackageManager(repo);
-  const testFrameworks = detectTestFrameworks(repo, packageJson);
-  const ciSystems = detectCiSystems(repo);
-  const deploySystems = detectDeploySystems(repo);
-
-  const lines = [
-    '# SDLC Setup Doctor',
-    '',
-    `Repository: ${repo}`,
-    `Profile: ${profilePath}`,
-    `Detected stack: ${stack.join(', ') || 'generic'}`,
-    `Package manager: ${packageManager || 'not detected'}`,
-    `Test framework hints: ${testFrameworks.join(', ') || 'not detected'}`,
-    `CI hints: ${ciSystems.join(', ') || 'not detected'}`,
-    `Deployment hints: ${deploySystems.join(', ') || 'not detected'}`,
-    `Shared context reachable: ${sharedContextReachability(repo, profile.values)}`,
-    '',
-    '## Readiness Gaps',
-    '',
-    ...gaps.map((item) => `- ${item.area}: ${item.fix}`),
-    ...(gaps.length ? [] : ['- none']),
-    '',
-    '## Suggested Profile Fields',
-    '',
-    'Copy or adapt these fields into the local SDLC profile. Keep personal paths and local evidence ignored unless the repo explicitly approves sharing a sanitized variant.',
-    '',
-    '```text',
-    '- Rendered UI review command: npm run dev',
-    '- Accessibility review policy: optional',
-    '- Verification maturity: no automated tests / manual QA only / smoke tests / partial automated tests / mature CI',
-    '- Release policy: local commit/push only after tests/build pass and human approval',
-    '- Human approval gates: commit, push, dependency install, external service calls, destructive commands; merge/deploy/release actions are project-specific human processes',
-    '- Approved tools: git, npm scripts, local browser/rendered inspection, SDLC helper',
-    '- Blocked tools: credentialed production writes, destructive Git commands, dependency installs without approval',
-    '- Sensitive data restrictions: no secrets, credentials, customer data, or private transcripts in tracked docs/evidence',
-    '```',
-    '',
-    '## Stack Detection',
-    '',
-    ...stack.map((item) => `- ${item}`),
-    ...(stack.length ? [] : ['- generic / no known stack markers detected']),
-    '',
-    '## Tooling Detection',
-    '',
-    `- Package manager: ${packageManager || 'not detected'}`,
-    ...testFrameworks.map((item) => `- Test framework: ${item}`),
-    ...(testFrameworks.length ? [] : ['- Test framework: not detected']),
-    ...ciSystems.map((item) => `- CI: ${item}`),
-    ...(ciSystems.length ? [] : ['- CI: not detected']),
-    ...deploySystems.map((item) => `- Deploy/release indicator: ${item}`),
-    ...(deploySystems.length ? [] : ['- Deploy/release indicator: not detected']),
-    '',
-    '## Shared Context Detection',
-    '',
-    ...sharedContextDetails(repo, profile.values),
-    '',
-    '## Useful Commands',
-    '',
-    '```bash',
-    'sdlc readiness',
-    'sdlc context restore',
-    'sdlc context pack --task "..."',
-    '```',
-  ];
-
-  if (options.fixPlan) {
-    lines.push(
-      '',
-      '## Fix Plan',
-      '',
-      ...setupFixPlan(gaps, profile.values, commands).map((item, index) => `${index + 1}. ${item}`),
-    );
-  }
-
-  console.log(lines.join('\n'));
-}
-
-function setupBootstrap(repo, options = {}) {
-  mkdirSync(defaultRunsDir(repo), { recursive: true });
-  const profilePath = join(repo, '.ai-local', 'sdlc-profile.md');
-  const created = [];
-  if (!existsSync(profilePath)) {
-    profileInit(repo, { sharedContextRoot: options.sharedContextRoot || '' });
-    created.push(relative(repo, profilePath));
-  }
-
-  for (const dir of ['.ai-local/sdlc-runs', '.ai-local/rendered']) {
-    const path = join(repo, dir);
-    if (!existsSync(path)) {
-      mkdirSync(path, { recursive: true });
-      created.push(dir);
-    }
-  }
-
-  const profile = loadProfile(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const stack = detectStack(repo);
-  const setupPath = join(repo, '.ai-local', 'repository-setup.md');
-  if (!existsSync(setupPath)) {
-    const content = `# Repository Setup
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-
-## Detected Shape
-
-- Stack: ${formatInlineList(stack)}
-- Package manager: ${detectPackageManager(repo) || 'not detected'}
-- Test frameworks: ${formatInlineList(detectTestFrameworks(repo, packageJson))}
-- CI: ${formatInlineList(detectCiSystems(repo))}
-- Deployment hints: ${formatInlineList(detectDeploySystems(repo))}
-
-## Commands
-
-- Test command: ${commands.test || 'not configured'}
-- Build command: ${commands.build || 'not configured'}
-- Lint/typecheck/format commands: ${commands.lint || 'not configured'}
-- Rendered UI review command: ${commands.rendered || 'not configured'}
-
-## Human-Controlled Boundaries
-
-- Commit requires explicit human approval.
-- Push requires explicit human approval.
-- Merge/deploy/release/pipeline/file movement remains project-specific and human-controlled.
-`;
-    writeFileSync(setupPath, content, 'utf8');
-    created.push(relative(repo, setupPath));
-  }
-
-  printObject({
-    repository: repo,
-    created: created.join(', ') || 'none; setup files already existed',
-    recommendedNextCommand: 'sdlc setup doctor --fix-plan',
-  });
-}
-
-function doctorFull(repo, options = {}) {
-  console.log('# SDLC Doctor Full\n');
-  console.log('## Readiness\n');
-  readiness(repo, options);
-  console.log('\n## Setup Doctor\n');
-  setupDoctor(repo, { ...options, fixPlan: true });
-  console.log('\n## Context Inventory\n');
-  contextInventory(repo, options);
-  console.log('\n## Install Check\n');
-  installCheck(repo, options);
-}
-
-function installCheck(repo) {
-  const profile = loadProfile(repo);
-  const helperPath = join(agentsRoot, 'bin', 'sdlc');
-  const checks = [
-    ['Helper CLI', existsSync(helperPath), helperPath],
-    ['Profile', Boolean(profile.path), profile.path || '.ai-local/sdlc-profile.md'],
-    ['Local evidence directory', existsSync(defaultRunsDir(repo)), defaultRunsDir(repo)],
-    ['Agent prompt docs', existsSync(join(agentsRoot, 'templates', 'docs', 'agents', 'sdlc-agent-prompts.md')), join(agentsRoot, 'templates', 'docs', 'agents', 'sdlc-agent-prompts.md')],
-    ['Shared context configured', Boolean(profile.values.sharedContextRoot || profile.values.productContext || profile.values.repoContext), profile.values.sharedContextRoot || profile.values.productContext || profile.values.repoContext || 'not configured'],
-  ];
-  printObject({ repository: repo });
-  console.log('\n| Check | Status | Detail |');
-  console.log('| --- | --- | --- |');
-  for (const [name, pass, detail] of checks) console.log(`| ${escapeCell(name)} | ${pass ? 'pass' : 'open'} | ${escapeCell(detail)} |`);
 }
 
 function handoff(repo) {
@@ -6010,6 +5781,80 @@ function appendPacketCompletion(packetPath, entry) {
 
 function humanize(value) {
   return value.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function readinessChecks(repo, profile, commands, existingDocs, related) {
+  const values = profile.values;
+  return [
+    { area: 'context', status: profile.path ? 'ready' : 'missing', fix: 'create .ai-local/sdlc-profile.md with sdlc profile init' },
+    { area: 'context', status: existingDocs.some((item) => item.label === 'AGENTS.md') ? 'ready' : 'partial', fix: 'add or update AGENTS.md with repo commands and conventions' },
+    { area: 'context', status: values.sharedContextRoot || values.productContext || values.repoContext || values.productContextIndex ? 'ready' : 'partial', fix: 'configure shared/product/repo context paths when the repo participates in larger systems' },
+    { area: 'commands', status: commands.test ? 'ready' : 'missing', fix: 'record a test command in the SDLC profile or package scripts' },
+    { area: 'commands', status: commands.build ? 'ready' : 'partial', fix: 'record a build/typecheck command when applicable' },
+    { area: 'commands', status: commands.rendered || !requiresRenderedReview(repo) ? 'ready' : 'partial', fix: 'record rendered UI review command/tool if the repo has visible UI' },
+    { area: 'commands', status: values.verificationMaturity ? 'ready' : 'partial', fix: 'record verification maturity so final gates can choose automated checks versus manual QA scripts' },
+    { area: 'release', status: values.releasePolicy || values.humanApprovalGates ? 'ready' : 'partial', fix: 'record release policy and human approval gates' },
+    { area: 'security', status: values.approvedTools || values.blockedTools || values.sensitiveDataRestrictions ? 'ready' : 'partial', fix: 'record approved/blocked tools and sensitive data restrictions' },
+    { area: 'security', status: values.ticketMcpAvailability || values.databaseMcpAvailability ? 'ready' : 'partial', fix: 'record optional ticket/database MCP availability or mark unavailable/blocked' },
+    { area: 'multi-repo', status: related.length === 0 || values.serviceMap || values.productContextIndex ? 'ready' : 'partial', fix: 'add service map/product context index for related repositories' },
+  ];
+}
+
+function readinessStatus(checks, area) {
+  const relevant = checks.filter((item) => item.area === area);
+  if (!relevant.length) return 'unknown';
+  if (relevant.every((item) => item.status === 'ready')) return 'ready';
+  if (relevant.some((item) => item.status === 'missing')) return 'missing';
+  return 'partial';
+}
+
+function requiresRenderedReview(repo) {
+  return existsSync(join(repo, 'src')) || existsSync(join(repo, 'app')) || existsSync(join(repo, 'pages'));
+}
+
+function contextFreshnessRow(repo, item, days) {
+  if (!existsSync(item.path)) return { label: item.label, status: 'missing', ageDays: '', path: relative(repo, item.path) || item.path };
+  const stats = statSync(item.path);
+  const ageDays = Math.max(0, Math.floor((Date.now() - stats.mtimeMs) / 86400000));
+  return { label: item.label, status: ageDays > days ? 'stale' : 'fresh', ageDays, path: relative(repo, item.path) || '.' };
+}
+
+function contextFreshnessRecommendations(existingRows, staleRows, profile) {
+  const recommendations = [];
+  if (!existingRows.length) recommendations.push('No context docs found; run setup bootstrap/doctor and create the smallest useful repo or shared context docs.');
+  if (staleRows.length) recommendations.push(`Review stale docs before trusting them: ${staleRows.map((row) => row.label).join(', ')}.`);
+  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) recommendations.push('Configure external shared context root when this repository participates in larger multi-repo systems.');
+  if (!recommendations.length) recommendations.push('Context docs are present and within the freshness window; still cross-check source files touched by the task.');
+  return recommendations;
+}
+
+function contextPlacement(repo, path) {
+  const relativePath = relative(repo, path);
+  if (!relativePath || relativePath.startsWith('..')) return 'external/shared';
+  if (relativePath.startsWith('.ai-local')) return 'local ignored evidence/context';
+  if (relativePath.startsWith('docs/')) return 'tracked repo software memory';
+  if (['AGENTS.md', '.sdlc/profile.md', '.sdlc/profile.json'].includes(relativePath)) return 'tracked process/setup';
+  return 'repo-local';
+}
+
+function contextPlacementRecommendation(fact, profile = {}) {
+  const text = String(fact || '').toLowerCase();
+  if (matchesAny(text, ['test result', 'command output', 'verification', 'screenshot', 'smoke', 'temporary', 'today', 'this task'])) {
+    return { placement: 'ignored local task evidence', target: '.ai-local/sdlc-runs/', reason: 'The fact sounds task-specific or ephemeral.', trackingRule: 'Do not track unless sanitized and intentionally promoted.' };
+  }
+  if (matchesAny(text, ['learning', 'process lesson', 'route gap', 'workflow miss', 'case id', 'testing surface'])) {
+    return { placement: 'sanitized SDLC learning or process-learning event', target: 'learnings/ for redacted shared lessons, or project-local docs/process-improvement for product-specific details', reason: 'The fact appears to improve the SDLC process rather than define product behavior.', trackingRule: 'Separate portable process guidance from product/client details before committing to the skills pack.' };
+  }
+  if (matchesAny(text, ['service map', 'cross repo', 'cross-repo', 'workflow map', 'release order', 'multiple repositories', 'product-wide'])) {
+    return { placement: 'external shared context', target: profile.sharedContextRoot || profile.serviceMap || profile.workflowMap || 'shared context root', reason: 'The fact affects more than one repository.', trackingRule: 'Keep secrets/customer data out; use sanitized shared docs.' };
+  }
+  if (matchesAny(text, ['api contract', 'public api', 'api', 'calls', 'schema', 'event', 'message', 'integration', 'database', 'sql', 'stores', 'data', 'business rule', 'user workflow', 'workflow'])) {
+    return { placement: 'repo or shared software memory', target: profile.repoContext || profile.productContext || 'docs/context-state.md or shared context root', reason: 'The fact is durable software behavior future agents should not rediscover.', trackingRule: 'Track in repo docs only when team-approved; otherwise use shared context.' };
+  }
+  if (matchesAny(text, ['sdlc', 'agent should', 'process', 'gate', 'skill', 'router'])) {
+    return { placement: 'SDLC process pack', target: '.agents skills/references/templates', reason: 'The fact changes how agents should work rather than how the software behaves.', trackingRule: 'Keep reusable process guidance in the SDLC pack.' };
+  }
+  return { placement: 'repo-local context or task evidence', target: profile.repoContext || '.ai-local/ until durability is clear', reason: 'Durability and scope are unclear.', trackingRule: 'Start local; promote only after it proves reusable.' };
 }
 
 function contextDocCandidates(repo, profile) {
