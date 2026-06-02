@@ -37,6 +37,7 @@ import { scorecardSummary, scorecardTask, scorecardTrends, traceAttach, traceEve
 import { automationBudget, feedbackCapture, feedbackQuick, feedbackReview, feedbackSummary, onboardingPilot, sdlcEvent } from './adoption.mjs';
 import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calibratePropose, calibrateSummary, learnedFlowCandidates, processProposals, readCalibrationRows } from './calibration.mjs';
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, readiness as statusReadiness } from './status.mjs';
+import { intakeCheck, intakePacket } from './intake.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -78,8 +79,8 @@ export async function main(argv) {
   if (area === 'config' && action === 'diff') return configDiff(repo, options);
   if (area === 'config' && action === 'export') return configExport(repo, options);
   if (area === 'config' && action === 'import') return configImport(repo, options);
-  if (area === 'intake' && action === 'packet') return intakePacket(repo, options);
-  if (area === 'intake' && action === 'check') return intakeCheck(repo, options);
+  if (area === 'intake' && action === 'packet') return intakePacket(repo, options, intakeDependencies());
+  if (area === 'intake' && action === 'check') return intakeCheck(repo, options, intakeDependencies());
   if (area === 'context' && action === 'restore') return contextRestore(repo, options);
   if (area === 'context' && action === 'pack') return contextPack(repo, options);
   if (area === 'context' && action === 'audit') return contextAudit(repo, options);
@@ -2370,6 +2371,10 @@ function statusDependencies() {
   };
 }
 
+function intakeDependencies() {
+  return { caseIdPolicy, requiresCaseId, taskCaseId, taskType };
+}
+
 function validationLadder(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the validation ladder can be scoped.');
@@ -3196,22 +3201,6 @@ function git(repo, args) {
   }
 }
 
-function intakeCheck(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const caseId = taskCaseId(task, options, profile.values);
-  const open = intakeOpenItems(task, profile.values, caseId);
-  printObject({
-    repository: repo,
-    task: task || 'not provided',
-    caseId: caseId || 'not provided',
-    caseIdPolicy: caseIdPolicy(profile.values),
-    status: open.length ? 'open' : 'ready',
-    openItems: open.join('; ') || 'none',
-  });
-  if (requiresCaseId(profile.values) && !caseId) process.exitCode = 1;
-}
-
 function contextBucketConfidence(repo, options = {}) {
   const target = options.path || '.';
   const task = options.task || '';
@@ -3442,16 +3431,6 @@ function learnBacklog(repo, options = {}) {
     const candidate = firstMatch(text, /^- Implementation candidate:\s*(.+)$/m) || firstMatch(text, /^Candidate implementation:\s*(.+)$/m) || 'not specified';
     console.log(`| ${file} | ${state} | ${escapeCell(candidate)} |`);
   }
-}
-
-function intakeOpenItems(task, profile = {}, caseId = '') {
-  const open = [];
-  if (!task) open.push('task statement missing');
-  if (requiresCaseId(profile) && !caseId) open.push('case ID required before commit message suggestion');
-  if (!profile.releasePolicy) open.push('release/commit/push policy not configured');
-  if (!profile.qaOwnership && !profile.qaOwner) open.push('QA ownership model not configured');
-  if (!profile.repoContext && !profile.productContext && !profile.sharedContextRoot) open.push('context bucket not configured');
-  return open;
 }
 
 function provenanceRows(repo, task, git, packets) {

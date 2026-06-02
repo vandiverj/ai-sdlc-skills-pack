@@ -733,48 +733,6 @@ function boolText(value) {
   return 'unknown';
 }
 
-function intakePacket(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so intake can be scoped.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const caseId = taskCaseId(task, options, profile.values);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-intake-packet.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Intake Packet
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Case ID: ${caseId || 'not provided'}
-Source system: ${options.source || options.sourceSystem || 'not provided'}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Suggested route: ${inferRouteFromTask(task, git, profile.values)}
-Task type: ${taskType(task)}
-
-## Identity And Ownership
-
-- Affected product/repo/unit: ${options.unit || 'infer from changed files/profile'}
-- QA ownership: ${options.qaOwner || profile.values.qaOwnership || 'decide during impact/QA handoff'}
-- Commit-message case ID policy: ${caseIdPolicy(profile.values)}
-- Proposed commit prefix: ${caseId ? `${caseId}:` : requiresCaseId(profile.values) ? 'blocked until case ID is known' : 'optional'}
-
-## Required Early Decisions
-
-${formatList(intakeOpenItems(task, profile.values, caseId))}
-
-## Next Commands
-
-\`\`\`bash
-sdlc recipe match --task "${escapeCommandArg(task)}"
-sdlc run dashboard --task "${escapeCommandArg(task)}"
-\`\`\`
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-
 export function evalRun(repo, options = {}) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
