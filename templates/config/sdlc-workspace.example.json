@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "sdlc-workspace-v1",
+  "sharedContextRoot": "/path/to/shared/context",
+  "artifactRoot": ".ai-local/sdlc-runs",
+  "runtimeAdapter": "augment",
+  "repositories": [
+    {
+      "name": "main-site",
+      "path": "../main-site",
+      "role": "rendered-ui"
+    },
+    {
+      "name": "api",
+      "path": "../api",
+      "role": "api"
+    }
+  ],
+  "capabilities": {
+    "ticketMcp": "optional",
+    "databaseMcp": "optional"
+  }
+}

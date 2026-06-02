@@ -539,3 +539,31 @@ rather than active context routing.
 
 ## Next skills
 Usually one of: `classify-work`, `context`, `planning`, `implementation`, `quality`, `review`, `release`, `agents`, `tools`, `process-learning`, `setup-sdlc-in-repo`, `grill-me`, or `test-skill-behavior`.
+
+## Global-Local Configuration And Prompt Context
+
+When a repository has the SDLC helper CLI available, prefer local deterministic context assembly before loading broad process or repository documents.
+
+Default start sequence for non-tiny tasks:
+
+```bash
+sdlc config validate
+sdlc capability snapshot
+sdlc context budget --task "..."
+sdlc context assemble --phase planning --task "..."
+sdlc recipe compile --task "..."
+sdlc evidence plan --task "..."
+```
+
+Use the assembled context packet as the first prompt context projection. Do not load archived plans, full reference folders, raw command logs, or unrelated repo docs unless the packet is insufficient and there is a specific reason.
+
+For later phases, ask the CLI for a new packet instead of carrying the whole previous chat:
+
+- intake: `sdlc context assemble --phase intake --task "..."`
+- planning: `sdlc context assemble --phase planning --task "..."`
+- implementation: `sdlc context assemble --phase implementation --task "..."`
+- verification: `sdlc context assemble --phase verification --task "..."`
+- QA: `sdlc context assemble --phase qa --task "..."`
+- finish: `sdlc context assemble --phase finish --task "..."`
+
+The model may request additional files or code snippets, but it should state why they are needed.

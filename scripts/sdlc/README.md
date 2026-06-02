@@ -176,3 +176,40 @@ sdlc learn backlog
 ## Human QA
 
 `sdlc qa script` generates Markdown manual QA scripts for human testers and YouTrack paste-in. It does not assume QA testers use AI, inspect code, run developer commands, or know the SDLC.
+
+## Global-Local Configuration And Context Budgeting
+
+The SDLC is intended to be installed globally under the user `.agents` folder, then made specific through repository/workspace configuration and local artifacts.
+
+Recommended local-first flow:
+
+```bash
+sdlc config normalize
+sdlc config validate
+sdlc capability snapshot
+sdlc context budget --task "..."
+sdlc context assemble --phase planning --task "..."
+sdlc recipe compile --task "..."
+sdlc evidence plan --task "..."
+sdlc checks plan
+```
+
+Key commands added for the global-local model:
+
+- `sdlc config normalize|validate|explain|diff|export|import`: create and review a machine-readable local repository profile.
+- `sdlc workspace graph|impact`: summarize multi-repo and multi-project topology for the current task.
+- `sdlc unit list|resolve|context`: map files and units to testing surfaces and context buckets.
+- `sdlc capability snapshot|doctor|fallback`: record optional tool/MCP/browser/database/ticket capabilities without making them mandatory.
+- `sdlc recipe compile|explain` and `sdlc evidence plan`: turn task/route/profile signals into deterministic evidence requirements.
+- `sdlc checks plan|run|doctor`: normalize configured build/test/lint checks and capture evidence locally.
+- `sdlc index build|query`: build a deterministic local metadata index without requiring RAG or vectors.
+- `sdlc context budget|assemble|compact|ledger`: manage prompt context size through phase-specific context packets.
+- `sdlc qa build|validate`: produce and structurally validate human-followable Markdown QA scripts.
+- `sdlc policy list|validate-config|simulate`: explain high-impact action policy before the agent attempts it.
+- `sdlc adapter generate`: generate runtime-specific usage guidance for Augment, Auggie, Codex, Claude, or generic agents.
+- `sdlc dashboard`: produce a compact local status artifact.
+- `sdlc eval run|add-case|report`: regression-test SDLC routing and evidence behavior.
+- `sdlc learn export|import`: move sanitized learning candidates between environments.
+- `sdlc upgrade plan|apply|explain`: update local SDLC artifacts without merging, deploying, or overwriting team configuration.
+
+Context rule: durable state lives in local files; prompts should receive the smallest useful phase packet. Prefer `sdlc context assemble --phase <phase>` over copying full strategy docs, archived plans, raw logs, or unrelated repository memory into the model.

@@ -32,6 +32,13 @@ async function main(argv) {
   if (area === 'profile' && action === 'init') return profileInit(repo, options);
   if (area === 'profile' && action === 'audit') return profileAudit(repo, options);
   if (area === 'profile' && action === 'suggest') return profileSuggest(repo, options);
+  if (area === 'profile' && action === 'doctor') return profileDoctor(repo, options);
+  if (area === 'config' && action === 'normalize') return configNormalize(repo, options);
+  if (area === 'config' && action === 'validate') return configValidate(repo, options);
+  if (area === 'config' && action === 'explain') return configExplain(repo, options);
+  if (area === 'config' && action === 'diff') return configDiff(repo, options);
+  if (area === 'config' && action === 'export') return configExport(repo, options);
+  if (area === 'config' && action === 'import') return configImport(repo, options);
   if (area === 'intake' && action === 'packet') return intakePacket(repo, options);
   if (area === 'intake' && action === 'check') return intakeCheck(repo, options);
   if (area === 'context' && action === 'restore') return contextRestore(repo, options);
@@ -48,6 +55,10 @@ async function main(argv) {
   if (area === 'context' && action === 'gate') return contextGate(repo, options);
   if (area === 'context' && action === 'place') return contextPlace(repo, options);
   if (area === 'context' && action === 'update-plan') return contextUpdatePlan(repo, options);
+  if (area === 'context' && action === 'budget') return contextBudget(repo, options);
+  if (area === 'context' && action === 'assemble') return contextAssemble(repo, options);
+  if (area === 'context' && action === 'compact') return contextCompact(repo, options);
+  if (area === 'context' && action === 'ledger') return contextLedger(repo, options);
   if (area === 'change' && (action === 'graph' || action === 'graph-lite')) return changeGraph(repo, options);
   if (area === 'search' && action === 'classify') return searchClassify(repo, options);
   if (area === 'search' && action === 'classify-results') return searchClassifyResults(repo, options);
@@ -57,6 +68,8 @@ async function main(argv) {
   if (area === 'recipe' && action === 'list') return recipeList(repo, options);
   if (area === 'recipe' && action === 'review') return recipeReview(repo, options);
   if (area === 'recipe' && action === 'retire') return recipeRetire(repo, options);
+  if (area === 'recipe' && action === 'compile') return recipeCompile(repo, options);
+  if (area === 'recipe' && action === 'explain') return recipeExplain(repo, options);
   if (area === 'task' && action === 'id') return taskId(repo, options);
   if (area === 'task' && action === 'current') return taskCurrent(repo, options);
   if (area === 'task' && action === 'preflight') return taskPreflight(repo, options);
@@ -94,6 +107,8 @@ async function main(argv) {
   if (area === 'workspace' && action === 'packet') return workspacePacket(repo, options);
   if (area === 'workspace' && action === 'map') return workspaceMap(repo, options);
   if (area === 'workspace' && action === 'ledger') return workspaceLedger(repo, options);
+  if (area === 'workspace' && action === 'graph') return workspaceGraph(repo, options);
+  if (area === 'workspace' && action === 'impact') return workspaceImpact(repo, options);
   if (area === 'workmode' && action === 'detect') return workmodeDetect(repo, options);
   if (area === 'surface' && (action === 'list' || action === 'taxonomy')) return surfaceList();
   if (area === 'surface' && action === 'detect') return surfaceDetect(repo, options);
@@ -101,6 +116,9 @@ async function main(argv) {
   if (area === 'unit' && action === 'detect') return unitDetect(repo, options);
   if (area === 'unit' && action === 'doctor') return unitDoctor(repo, options);
   if (area === 'unit' && action === 'profile') return unitProfile(repo, options);
+  if (area === 'unit' && action === 'list') return unitList(repo, options);
+  if (area === 'unit' && action === 'resolve') return unitResolve(repo, options);
+  if (area === 'unit' && action === 'context') return unitContext(repo, options);
   if (area === 'touched' && action === 'packet') return touchedPacket(repo, options);
   if (area === 'touched' && action === 'update') return touchedUpdate(repo, options);
   if (area === 'impact' && action === 'packet') return impactPacket(repo, options);
@@ -117,6 +135,8 @@ async function main(argv) {
   if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi', 'interactive', 'cli', 'job', 'docs'].includes(action)) return qaModeCommand(repo, action, options, rest);
   if (area === 'qa' && action === 'complete') return qaComplete(repo, options);
   if (area === 'qa' && action === 'review') return qaReview(repo, options);
+  if (area === 'qa' && action === 'build') return qaBuild(repo, options);
+  if (area === 'qa' && action === 'validate') return qaValidate(repo, options);
   if (area === 'smoke' && action === 'packet') return smokePacket(repo, options);
   if (area === 'smoke' && action === 'complete') return smokeComplete(repo, options);
   if (area === 'multi' && action === 'status') return multiStatus(repo, options);
@@ -149,6 +169,14 @@ async function main(argv) {
   if (area === 'tools' && action === 'detect') return toolsDetect(repo, options);
   if (area === 'tools' && action === 'status') return toolsStatus(repo, options);
   if (area === 'tools' && action === 'fallback') return toolsFallback(repo, options);
+  if (area === 'capability' && action === 'snapshot') return capabilitySnapshot(repo, options);
+  if (area === 'capability' && action === 'doctor') return capabilityDoctor(repo, options);
+  if (area === 'capability' && action === 'fallback') return capabilityFallback(repo, options);
+  if (area === 'checks' && action === 'plan') return checksPlan(repo, options);
+  if (area === 'checks' && action === 'run') return checksRun(repo, options);
+  if (area === 'checks' && action === 'doctor') return checksDoctor(repo, options);
+  if (area === 'index' && action === 'build') return indexBuild(repo, options);
+  if (area === 'index' && action === 'query') return indexQuery(repo, options);
   if (area === 'automation' && action === 'budget') return automationBudget(repo, options);
   if (area === 'event' && ['prompt-submit', 'post-edit', 'pre-stop', 'approval-request'].includes(action)) return sdlcEvent(repo, action, options);
   if (area === 'hooks' && action === 'plan') return hooksPlan(repo, options);
@@ -171,6 +199,7 @@ async function main(argv) {
   if (area === 'evidence' && action === 'required') return evidenceRequired(repo, options);
   if (area === 'evidence' && action === 'status') return evidenceStatus(repo, options);
   if (area === 'evidence' && action === 'add') return evidenceAdd(repo, options);
+  if (area === 'evidence' && action === 'plan') return evidencePlan(repo, options);
   if (area === 'verify' && action === 'packet') return verifyPacket(repo, options);
   if (area === 'verify' && action === 'complete') return verifyComplete(repo, options);
   if (area === 'verify') return verify(resolve(areaOptions.repo || process.cwd()), areaOptions);
@@ -182,6 +211,17 @@ async function main(argv) {
   if (area === 'complete' && action === 'check') return completeCheck(repo, options);
   if (area === 'complete' && action === 'explain') return completeExplain(repo, options);
   if (area === 'complete' && action === 'waive') return completeWaive(repo, options);
+  if (area === 'artifact' && action === 'validate') return artifactValidate(repo, options);
+  if (area === 'artifact' && action === 'summarize') return artifactSummarize(repo, options);
+  if (area === 'artifact' && action === 'migrate') return artifactMigrate(repo, options);
+  if (area === 'dashboard') return dashboard(resolve(areaOptions.repo || repo), areaOptions);
+  if (area === 'adapter' && action === 'generate') return adapterGenerate(repo, options);
+  if (area === 'eval' && action === 'run') return evalRun(repo, options);
+  if (area === 'eval' && action === 'add-case') return evalAddCase(repo, options);
+  if (area === 'eval' && action === 'report') return evalReport(repo, options);
+  if (area === 'upgrade' && action === 'plan') return upgradePlan(repo, options);
+  if (area === 'upgrade' && action === 'apply') return upgradeApply(repo, options);
+  if (area === 'upgrade' && action === 'explain') return upgradeExplain(repo, options);
   if (area === 'scope' && action === 'expect') return scopeExpect(repo, options);
   if (area === 'scope' && action === 'check') return scopeCheck(repo, options);
   if (area === 'gates') return gates(repo, areaOptions);
@@ -208,6 +248,8 @@ async function main(argv) {
   if (area === 'learn' && action === 'suggest') return learnSuggest(repo, options);
   if (area === 'learn' && action === 'backlog') return learnBacklog(repo, options);
   if (area === 'learn' && action === 'promote') return learnPromote(repo, options);
+  if (area === 'learn' && action === 'export') return learnExport(repo, options);
+  if (area === 'learn' && action === 'import') return learnImport(repo, options);
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'setup' && action === 'doctor') return setupDoctor(repo, options);
   if (area === 'setup' && action === 'bootstrap') return setupBootstrap(repo, options);
@@ -217,6 +259,9 @@ async function main(argv) {
   if (area === 'process' && action === 'health') return processHealth(repo, options);
   if (area === 'policy' && action === 'check') return policyCheck(repo, options);
   if (area === 'policy' && action === 'explain') return policyExplain(repo, options);
+  if (area === 'policy' && action === 'list') return policyList(repo, options);
+  if (area === 'policy' && action === 'validate-config') return policyValidateConfig(repo, options);
+  if (area === 'policy' && action === 'simulate') return policySimulate(repo, options);
   if (area === 'render' && action === 'plan') return renderPlan(repo, options);
   if (area === 'render' && action === 'evidence') return renderEvidencePacket(repo, options);
   if (area === 'render' && action === 'smoke') return renderSmoke(repo, options);
@@ -246,6 +291,13 @@ Usage:
   sdlc profile init [--repo <path>] [--shared-context-root <path>]
   sdlc profile audit [--repo <path>]
   sdlc profile suggest --task "..." [--repo <path>]
+  sdlc profile doctor [--repo <path>]
+  sdlc config normalize [--repo <path>] [--out <path>]
+  sdlc config validate [--repo <path>]
+  sdlc config explain [--repo <path>]
+  sdlc config diff [--repo <path>]
+  sdlc config export --sanitized [--repo <path>] [--out <path>]
+  sdlc config import --file <path> [--repo <path>] [--out <path>]
   sdlc intake packet --task "..." [--case <id>] [--repo <path>] [--out <path>]
   sdlc intake check --task "..." [--repo <path>]
   sdlc context restore [--repo <path>] [--include-related-repos]
@@ -261,6 +313,10 @@ Usage:
   sdlc context final-check --task "..." [--repo <path>] [--out <path>]
   sdlc context place --fact "..." [--repo <path>]
   sdlc context update-plan --task "..." [--repo <path>] [--out <path>]
+  sdlc context budget [--task "..."] [--phase intake|planning|implementation|verification|qa|finish|learning] [--repo <path>]
+  sdlc context assemble --phase <phase> [--task "..."] [--repo <path>] [--out <path>]
+  sdlc context compact [--task "..."] [--repo <path>] [--out <path>]
+  sdlc context ledger [--task "..."] [--repo <path>]
   sdlc change graph --task "..." [--repo <path>] [--out <path>]
   sdlc search classify --pattern "..." [--scope <path>] [--repo <path>] [--out <path>]
   sdlc search classify-results --pattern "..." [--scope <path>] [--repo <path>] [--out <path>]
@@ -270,6 +326,8 @@ Usage:
   sdlc recipe list [--repo <path>]
   sdlc recipe review [--since YYYY-MM-DD] [--repo <path>]
   sdlc recipe retire --recipe <id> --reason "..." [--repo <path>] [--out <path>]
+  sdlc recipe compile --task "..." [--repo <path>] [--out <path>]
+  sdlc recipe explain --recipe <id> [--repo <path>]
   sdlc task id --task "..." [--repo <path>]
   sdlc task current [--repo <path>]
   sdlc task preflight --task "..." [--repo <path>] [--lock] [--out <path>]
@@ -309,6 +367,8 @@ Usage:
   sdlc workspace packet --task "..." [--repo <path>] [--out <path>]
   sdlc workspace map --task "..." [--repo <path>] [--out <path>]
   sdlc workspace ledger --task "..." [--repo <path>] [--out <path>] [--refresh]
+  sdlc workspace graph [--repo <path>] [--out <path>]
+  sdlc workspace impact --task "..." [--repo <path>] [--out <path>]
   sdlc workmode detect [--task "..."] [--repo <path>]
   sdlc surface list
   sdlc surface detect [--task "..."] [--repo <path>] [--files "a,b"]
@@ -316,6 +376,9 @@ Usage:
   sdlc unit detect [--task "..."] [--repo <path>] [--files "a,b"]
   sdlc unit doctor [--repo <path>] [--out <path>]
   sdlc unit profile --unit <name> [--repo <path>]
+  sdlc unit list [--repo <path>]
+  sdlc unit resolve --path <path> [--repo <path>]
+  sdlc unit context --unit <name> [--repo <path>]
   sdlc touched packet [--repo <path>] [--out <path>]
   sdlc touched update --surface <kind> [--evidence "..."] [--repo-name <name>] [--repo <path>]
   sdlc impact packet --task "..." [--repo <path>] [--out <path>]
@@ -331,6 +394,8 @@ Usage:
   sdlc qa compare --packet <path> [--repo <path>]
   sdlc qa ui|api|data|integration|scenario|multi|interactive|cli|job|docs --task "..." [--repo <path>] [--scenario <id>] [--out <path>]
   sdlc qa complete --packet <path> --status "draft|ready|blocked" [--caps "..."]
+  sdlc qa build --task "..." [--repo <path>] [--out <path>]
+  sdlc qa validate --packet <path> [--repo <path>]
   sdlc qa review --packet <path> [--repo <path>]
   sdlc smoke packet --task "..." [--repo <path>] [--out <path>]
   sdlc smoke complete --packet <path> --status "pass|fail|blocked" [--steps "..."] [--caps "..."]
@@ -364,6 +429,14 @@ Usage:
   sdlc tools detect [--repo <path>]
   sdlc tools status --task "..." [--repo <path>]
   sdlc tools fallback --task "..." [--repo <path>]
+  sdlc capability snapshot [--repo <path>] [--out <path>]
+  sdlc capability doctor [--repo <path>]
+  sdlc capability fallback --capability <name> [--task "..."] [--repo <path>]
+  sdlc checks plan [--repo <path>] [--out <path>]
+  sdlc checks run [--profile standard] [--repo <path>]
+  sdlc checks doctor [--repo <path>]
+  sdlc index build [--repo <path>] [--out <path>]
+  sdlc index query --kind docs|tests|api|config [--unit <name>] [--repo <path>]
   sdlc run-check --name <name> -- <command...>
   sdlc automation budget --route <route> [--repo <path>]
   sdlc event prompt-submit|post-edit|pre-stop|approval-request [--task "..."] [--repo <path>]
@@ -387,6 +460,7 @@ Usage:
   sdlc evidence required --task "..." [--repo <path>]
   sdlc evidence status --task "..." [--repo <path>]
   sdlc evidence add --kind <kind> --summary "..." [--repo <path>]
+  sdlc evidence plan --task "..." [--repo <path>] [--out <path>]
   sdlc verify packet --task "..." [--repo <path>] [--out <path>]
   sdlc verify complete --packet <path> --checks "..." [--caps "..."]
   sdlc verify [--repo <path>] [--commands test,build]
@@ -398,6 +472,17 @@ Usage:
   sdlc complete check --task "..." [--repo <path>]
   sdlc complete explain --task "..." [--repo <path>]
   sdlc complete waive --gate <id> --reason "..." [--owner "..."] [--repo <path>]
+  sdlc artifact validate [--repo <path>] [--task-id <id>]
+  sdlc artifact summarize [--repo <path>] [--out <path>]
+  sdlc artifact migrate [--repo <path>]
+  sdlc dashboard [--repo <path>] [--out <path>]
+  sdlc adapter generate --runtime augment|auggie|codex|claude|generic [--repo <path>] [--out <path>]
+  sdlc eval run [--repo <path>] [--out <path>]
+  sdlc eval add-case --name <name> --task "..." [--route <route>] [--repo <path>]
+  sdlc eval report [--repo <path>] [--out <path>]
+  sdlc upgrade plan [--repo <path>] [--out <path>]
+  sdlc upgrade apply [--repo <path>] [--write]
+  sdlc upgrade explain [--repo <path>]
   sdlc scope expect --files "a,b" [--repo <path>]
   sdlc scope check --task "..." [--repo <path>]
   sdlc gates [--task "..."] [--repo <path>]
@@ -428,6 +513,9 @@ Usage:
   sdlc health [--repo <path>]
   sdlc process health [--repo <path>] [--out <path>]
   sdlc policy check --task "..." [--action commit|push|ticket-update|db-query|install|network] [--repo <path>]
+  sdlc policy list [--repo <path>]
+  sdlc policy validate-config [--repo <path>]
+  sdlc policy simulate --action commit|push|ticket-update|db-query|merge|deploy|network|install [--task "..."] [--repo <path>]
   sdlc policy explain --gate <id> [--repo <path>]
   sdlc setup doctor [--repo <path>] [--fix-plan]
   sdlc setup bootstrap [--repo <path>] [--shared-context-root <path>]
@@ -6746,7 +6834,9 @@ ${risks.map((item) => `| ${escapeCell(item.risk)} | ${item.status} | ${escapeCel
 
 function loadProfile(repo) {
   const candidates = [
+    join(repo, 'sdlc.config.json'),
     join(repo, '.sdlc', 'profile.json'),
+    join(repo, '.ai-local', 'sdlc-profile.json'),
     join(repo, '.sdlc', 'profile.md'),
     join(repo, '.ai-local', 'sdlc-profile.md'),
     join(repo, '.ai-local', 'repository-setup.md'),
@@ -6756,7 +6846,7 @@ function loadProfile(repo) {
     if (!existsSync(candidate)) continue;
     if (candidate.endsWith('.json')) {
       const json = readJsonIfExists(candidate) || {};
-      return { path: candidate, values: normalizeKeys(json), units: normalizeUnits(json.units || []) };
+      return { path: candidate, values: normalizeProfileJsonValues(json), units: normalizeUnits(json.units || []) };
     }
     const text = readFileSync(candidate, 'utf8');
     return { path: candidate, values: parseMarkdownProfile(text), units: parseProfileUnits(text) };
@@ -6771,6 +6861,37 @@ function parseMarkdownProfile(text) {
     const match = line.match(/^\s*(?:-\s*)?([^:#|]+):\s*(.*)$/);
     if (!match) continue;
     values[toCamel(match[1].trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'))] = match[2].trim();
+  }
+  return values;
+}
+
+function normalizeProfileJsonValues(json = {}) {
+  const values = normalizeKeys(json);
+  if (json.repository && typeof json.repository === 'object') {
+    values.repository = json.repository.name || values.repository || '';
+    values.repositoryRole = json.repository.kind || values.repositoryRole || '';
+  }
+  if (json.context && typeof json.context === 'object') {
+    values.sharedContextRoot = json.context.sharedRoot || values.sharedContextRoot || '';
+    values.productContext = json.context.product || values.productContext || '';
+    values.repoContext = json.context.repo || values.repoContext || '';
+    values.evidenceOutputLocation = json.context.output || values.evidenceOutputLocation || '';
+  }
+  for (const item of Array.isArray(json.commands) ? json.commands : []) {
+    if (item.kind === 'test') values.testCommand = item.command;
+    if (item.kind === 'build') values.buildCommand = item.command;
+    if (item.kind === 'lint') values.lintTypecheckFormatCommands = item.command;
+    if (item.kind === 'dev') values.devServerCommand = item.command;
+    if (item.kind === 'rendered') values.renderedUiReviewCommand = item.command;
+  }
+  if (json.capabilities && typeof json.capabilities === 'object') {
+    values.ticketMcpAvailability = json.capabilities.ticketMcp || values.ticketMcpAvailability || '';
+    values.databaseMcpAvailability = json.capabilities.databaseMcp || values.databaseMcpAvailability || '';
+  }
+  if (json.policy && typeof json.policy === 'object') {
+    values.releasePolicy = json.policy.release || values.releasePolicy || '';
+    values.humanApprovalGates = json.policy.approvalGates || values.humanApprovalGates || '';
+    values.sensitiveDataRestrictions = json.policy.sensitiveData || values.sensitiveDataRestrictions || '';
   }
   return values;
 }
@@ -6804,8 +6925,8 @@ function normalizeUnits(units) {
     .map((unit, index) => normalizeKeys(unit || { name: `unit-${index + 1}` }))
     .map((unit) => ({
       name: unit.name || unit.unit || unit.id || 'default',
-      path: unit.path || '.',
-      type: unit.type || unit.stack || '',
+      path: unit.path || unit.root || '.',
+      type: unit.type || unit.kind || unit.stack || '',
       testSurface: unit.testSurface || unit.testingSurface || '',
       contextBucket: unit.contextBucket || '',
       durableContextFile: unit.durableContextFile || unit.contextFile || '',
@@ -11008,6 +11129,666 @@ function learningSuggestionsFromRun(repo, runDir, task) {
   if (checks.some((check) => check.status === 'cap')) suggestions.push('Evidence caps were recorded; consider setup/profile changes if this repeats.');
   if (matchesAny(String(task || '').toLowerCase(), ['fixture', 'battle soccer'])) suggestions.push('Fixture validation used; split portable process lessons from product-specific game facts.');
   return dedupe(suggestions);
+}
+
+
+function profileDoctor(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
+  const gaps = profileCapabilityGaps(repo, profile.values, commands);
+  const units = unitRegistry(repo, profile);
+  const rows = [
+    { check: 'profile', status: profile.path ? 'pass' : 'warn', detail: profile.path ? relative(repo, profile.path) : 'no profile found' },
+    { check: 'units', status: units.length ? 'pass' : 'warn', detail: units.map((unit) => `${unit.name}:${unit.path}:${unit.testSurface || 'surface?'}`).join(', ') || 'none' },
+    { check: 'commands', status: commands.test || commands.build ? 'pass' : 'warn', detail: Object.entries(commands).filter(([, value]) => value).map(([key, value]) => `${key}=${value}`).join('; ') || 'no commands discovered' },
+    { check: 'gaps', status: gaps.length ? 'warn' : 'pass', detail: gaps.join('; ') || 'no major gaps' },
+  ];
+  printTable(['Check', 'Status', 'Detail'], rows.map((row) => [row.check, row.status, row.detail]));
+  if (rows.some((row) => row.status === 'warn')) process.exitCode = 1;
+}
+
+function configNormalize(repo, options = {}) {
+  const normalized = normalizedSdlcProfile(repo, options);
+  const outPath = options.out ? resolve(repo, options.out) : join(repo, '.ai-local', 'sdlc-profile.json');
+  safeWriteJsonFile(repo, outPath, normalized);
+  console.log(relative(repo, outPath));
+}
+
+function configValidate(repo, options = {}) {
+  const profile = normalizedSdlcProfile(repo, options);
+  const findings = validateNormalizedProfile(profile);
+  printTable(['Status', 'Finding'], findings.map((item) => [item.status, item.message]));
+  if (findings.some((item) => item.status === 'block' || item.status === 'warn')) process.exitCode = 1;
+}
+
+function configExplain(repo, options = {}) {
+  const profile = normalizedSdlcProfile(repo, options);
+  const profileSource = loadProfile(repo);
+  const lines = [
+    '# SDLC Config Explanation', '',
+    `Repository: ${repo}`,
+    `Profile source: ${profileSource.path ? relative(repo, profileSource.path) : 'none'}`,
+    `Schema: ${profile.schemaVersion}`,
+    '', '## Route/Evidence Inputs', '',
+    `- Repository kind: ${profile.repository.kind || 'not configured'}`,
+    `- Units: ${profile.units.map((unit) => `${unit.id || unit.name} (${unit.kind || unit.type || 'generic'} / ${unit.testSurface || 'surface?'})`).join(', ') || 'none'}`,
+    `- Commands: ${profile.commands.map((command) => `${command.kind}:${command.command}`).join('; ') || 'none'}`,
+    `- Capability overlays: ${Object.entries(profile.capabilities).map(([key, value]) => `${key}=${value}`).join(', ')}`,
+    `- Context roots: ${[profile.context.sharedRoot, profile.context.product, profile.context.repo].filter(Boolean).join('; ') || 'not configured'}`,
+    '', '## Next Useful Commands', '', '```bash',
+    'sdlc config validate', 'sdlc capability snapshot', 'sdlc recipe compile --task "..."', 'sdlc context assemble --phase planning --task "..."', '```',
+  ];
+  console.log(lines.join('\n'));
+}
+
+function configDiff(repo, options = {}) {
+  const tracked = readJsonIfExists(join(repo, 'sdlc.config.json')) || readJsonIfExists(join(repo, '.sdlc', 'profile.json')) || {};
+  const local = readJsonIfExists(join(repo, '.ai-local', 'sdlc-profile.json')) || {};
+  const left = flattenObject(tracked);
+  const right = flattenObject(local);
+  const keys = dedupe([...Object.keys(left), ...Object.keys(right)]).sort();
+  const rows = keys.map((key) => [key, String(left[key] ?? ''), String(right[key] ?? '')]).filter((row) => row[1] !== row[2]);
+  if (!rows.length) console.log('No tracked/local JSON profile differences detected.');
+  else printTable(['Key', 'Tracked', 'Local'], rows.slice(0, 80));
+}
+
+function configExport(repo, options = {}) {
+  const profile = normalizedSdlcProfile(repo, options);
+  const sanitized = sanitizePortableObject(profile);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), 'sdlc-profile.sanitized.json');
+  safeWriteJsonFile(repo, outPath, sanitized);
+  console.log(relative(repo, outPath));
+}
+
+function configImport(repo, options = {}) {
+  if (!options.file) fail('Pass --file <path>.');
+  const input = readJsonIfExists(resolve(repo, options.file));
+  if (!input) fail(`Could not read JSON config import file: ${options.file}`);
+  const outPath = options.out ? resolve(repo, options.out) : join(repo, '.ai-local', 'sdlc-profile.json');
+  safeWriteJsonFile(repo, outPath, { ...input, importedAt: new Date().toISOString() });
+  console.log(relative(repo, outPath));
+}
+
+function workspaceGraph(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const repos = workspaceRepos(repo, options);
+  const units = unitRegistry(repo, profile);
+  const lines = ['# SDLC Workspace Graph', '', `Root: ${repo}`, '', '## Repositories', ''];
+  for (const item of repos) lines.push(`- ${item.name}: ${item.path} (${item.exists ? 'found' : 'missing'})`);
+  lines.push('', '## Units', '');
+  for (const unit of units) lines.push(`- ${unit.name}: ${unit.path} | ${unit.type || 'generic'} | ${unit.testSurface || 'surface?'}`);
+  lines.push('', '## Edges', '');
+  const related = splitList(profile.values.relatedRepositories);
+  if (related.length) for (const item of related) lines.push(`- ${basename(repo)} -> ${item}`);
+  else lines.push('- No related repositories configured.');
+  writeOrPrint(repo, options.out, `${lines.join('\n')}\n`);
+}
+
+function workspaceImpact(repo, options = {}) {
+  const task = options.task || '';
+  const git = getGitInfo(repo);
+  const profile = loadProfile(repo);
+  const files = optionFiles(options, git.changedFiles);
+  const units = affectedUnits(repo, files, profile, options.unit);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const lines = ['# SDLC Workspace Impact', '', `Task: ${task || 'not provided'}`, '', '## Changed Files', '', ...formatList(files).split('\n'), '', '## Affected Units', '', ...formatList(units.map((unit) => `${unit.name} (${unit.path}) -> ${unit.testSurface || 'surface?'}`)).split('\n'), '', '## Testing Surfaces', '', ...formatList(surfaces).split('\n')];
+  writeOrPrint(repo, options.out, `${lines.join('\n')}\n`);
+}
+
+function unitList(repo, options = {}) {
+  const units = unitRegistry(repo, loadProfile(repo));
+  printTable(['Unit', 'Path', 'Type', 'Surface', 'Context'], units.map((unit) => [unit.name, unit.path, unit.type, unit.testSurface, unit.contextBucket || '']));
+}
+
+function unitResolve(repo, options = {}) {
+  const path = options.path || options.file || '';
+  if (!path) fail('Pass --path <path>.');
+  const unit = affectedUnits(repo, [path], loadProfile(repo), options.unit)[0];
+  printObject({ path, unit: unit?.name || 'none', unitPath: unit?.path || '', testSurface: unit?.testSurface || '', contextBucket: unit?.contextBucket || '' });
+}
+
+function unitContext(repo, options = {}) {
+  const name = options.unit || options.name || '';
+  if (!name) fail('Pass --unit <name>.');
+  const unit = unitRegistry(repo, loadProfile(repo)).find((item) => item.name.toLowerCase() === String(name).toLowerCase());
+  if (!unit) fail(`Unit not found: ${name}`);
+  printObject({ unit: unit.name, path: unit.path, contextBucket: unit.contextBucket || 'not configured', durableContextFile: unit.durableContextFile || 'not configured', localProfile: unit.localProfile ? relative(repo, unit.localProfile) : 'not found' });
+}
+
+function capabilitySnapshot(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
+  const rows = capabilityRows(repo, profile.values, commands);
+  const snapshot = { schema: 'sdlc-capability-snapshot-v1', timestamp: new Date().toISOString(), repo, rows };
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), 'capability-snapshot.json');
+  safeWriteJsonFile(repo, outPath, snapshot);
+  printTable(['Capability', 'Status', 'Detail'], rows.map((row) => [row.name, row.status, row.detail]));
+  console.log(`Snapshot: ${relative(repo, outPath)}`);
+}
+
+function capabilityDoctor(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
+  const rows = capabilityRows(repo, profile.values, commands);
+  const warnings = rows.filter((row) => ['missing', 'unknown', 'unavailable'].includes(row.status));
+  printTable(['Capability', 'Status', 'Recovery'], rows.map((row) => [row.name, row.status, capabilityRecovery(row.name, row.status)]));
+  if (warnings.length) process.exitCode = 1;
+}
+
+function capabilityFallback(repo, options = {}) {
+  const capability = options.capability || options.name || '';
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const surfaces = inferTestingSurfaces(repo, task, getGitInfo(repo).changedFiles, profile);
+  const fallback = capability ? fallbackForCapability(capability, task, surfaces) : toolFallbacksForTask(task, surfaces, profile.values).join('\n');
+  console.log(fallback);
+}
+
+function recipeCompile(repo, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const recipes = matchRecipes(task, git, profile.values);
+  const plan = { schema: 'sdlc-compiled-recipe-v1', task, route, recipes: recipes.map(recipeForCompile), evidence: evidenceRequirementsForTask(repo, task, route, git, profile, options), generatedAt: new Date().toISOString() };
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${slug(task || route)}-recipe-plan.json`);
+  safeWriteJsonFile(repo, outPath, plan);
+  console.log(relative(repo, outPath));
+}
+
+function recipeExplain(repo, options = {}) {
+  const id = options.recipe || options.id || options.route || '';
+  const item = recipeRegistry().find((recipe) => recipe.id === id) || null;
+  if (!item) fail(`Recipe not found: ${id}`);
+  printObject({ id: item.id, status: item.status, owner: item.owner, triggers: item.triggers.join(', '), requiredProof: item.requiredProof.join('; '), command: item.command, qaAdditions: item.qaAdditions.join('; ') });
+}
+
+function evidencePlan(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const rows = evidenceRequirementsForTask(repo, task, route, git, profile, options);
+  const content = ['# SDLC Evidence Plan', '', `Task: ${task}`, `Route: ${route}`, '', '| Evidence | Level | Summary |', '| --- | --- | --- |', ...rows.map((row) => `| ${escapeCell(row.id)} | ${row.level} | ${escapeCell(row.summary)} |`), ''].join('\n');
+  writeOrPrint(repo, options.out, content);
+}
+
+function artifactValidate(repo, options = {}) {
+  const info = readCurrentStateInfo(repo, options);
+  const runDir = info.runDir || defaultRunsDir(repo);
+  const findings = artifactFindings(runDir);
+  printTable(['Status', 'Artifact', 'Detail'], findings.map((item) => [item.status, item.artifact, item.detail]));
+  if (findings.some((item) => item.status === 'block')) process.exitCode = 1;
+}
+
+function artifactSummarize(repo, options = {}) {
+  const info = readCurrentStateInfo(repo, options);
+  const runDir = info.runDir || defaultRunsDir(repo);
+  const findings = artifactFindings(runDir);
+  const lines = ['# SDLC Artifact Summary', '', `Run root: ${runDir}`, '', '| Status | Artifact | Detail |', '| --- | --- | --- |', ...findings.map((item) => `| ${item.status} | ${escapeCell(item.artifact)} | ${escapeCell(item.detail)} |`), ''];
+  writeOrPrint(repo, options.out, lines.join('\n'));
+}
+
+function artifactMigrate(repo, options = {}) {
+  const info = readCurrentStateInfo(repo, options);
+  const runDir = info.runDir || ensureControlRunDir(repo, options, options.task || 'migration');
+  const marker = join(runDir, 'artifact-migration.json');
+  safeWriteJsonFile(repo, marker, { schema: 'sdlc-artifact-migration-v1', migratedAt: new Date().toISOString(), action: 'no-op-current-version' });
+  console.log(relative(repo, marker));
+}
+
+function checksPlan(repo, options = {}) {
+  const commands = checkCommandRecords(repo, options);
+  const lines = ['# SDLC Check Plan', '', '| Kind | Unit | Command | Required |', '| --- | --- | --- | --- |', ...commands.map((cmd) => `| ${cmd.kind} | ${escapeCell(cmd.unit || 'repo')} | ${escapeCell(cmd.command || 'not configured')} | ${cmd.required ? 'yes' : 'no'} |`), ''];
+  writeOrPrint(repo, options.out, lines.join('\n'));
+}
+
+function checksRun(repo, options = {}) {
+  const commands = checkCommandRecords(repo, options).filter((item) => item.command);
+  if (!commands.length) fail('No configured build/test/check commands found. Run sdlc checks doctor or configure the repo profile.');
+  const runDir = ensureControlRunDir(repo, options, options.task || 'checks');
+  for (const item of commands) {
+    const result = spawnSync(item.command, { cwd: repo, shell: true, encoding: 'utf8' });
+    const check = { timestamp: new Date().toISOString(), name: `${item.kind}-${item.unit || 'repo'}`, kind: item.kind, command: item.command, status: result.status === 0 ? 'pass' : classifyRunCheckFailure(result), exitCode: result.status, summary: summarizeCommandOutput(`${result.stdout || ''}\n${result.stderr || ''}`) };
+    appendControlJsonLine(repo, join(runDir, 'checks.jsonl'), check);
+    addEvidenceFromCheck(repo, runDir, check);
+    console.log(`${check.name}: ${check.status}`);
+    if (result.status !== 0) process.exitCode = 1;
+  }
+}
+
+function checksDoctor(repo, options = {}) {
+  const commands = checkCommandRecords(repo, options);
+  const missing = commands.filter((item) => item.required && !item.command);
+  printTable(['Kind', 'Unit', 'Status', 'Detail'], commands.map((item) => [item.kind, item.unit || 'repo', item.command ? 'configured' : item.required ? 'missing' : 'optional', item.command || 'configure in profile/unit']));
+  if (missing.length) process.exitCode = 1;
+}
+
+function indexBuild(repo, options = {}) {
+  const files = scanIndexFiles(repo);
+  const records = files.map((file) => indexRecord(repo, file));
+  const outPath = options.out ? resolve(repo, options.out) : join(repo, '.ai-local', 'sdlc-index.json');
+  safeWriteJsonFile(repo, outPath, { schema: 'sdlc-local-index-v1', generatedAt: new Date().toISOString(), repo, records });
+  console.log(`${records.length} records -> ${relative(repo, outPath)}`);
+}
+
+function indexQuery(repo, options = {}) {
+  const indexPath = options.index ? resolve(repo, options.index) : join(repo, '.ai-local', 'sdlc-index.json');
+  const index = readJsonIfExists(indexPath);
+  if (!index) fail('No index found. Run sdlc index build first.');
+  const kind = options.kind || '';
+  const unit = options.unit || '';
+  const topic = String(options.topic || options.q || '').toLowerCase();
+  const rows = (index.records || []).filter((record) => (!kind || record.kind === kind) && (!unit || record.unit === unit) && (!topic || `${record.path} ${record.headings || ''}`.toLowerCase().includes(topic))).slice(0, Number(options.limit || 80));
+  printTable(['Kind', 'Unit', 'Path', 'Summary'], rows.map((row) => [row.kind, row.unit || '', row.path, row.summary || '']));
+}
+
+function qaBuild(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = optionFiles(options, git.changedFiles);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const mode = qaModeForSurfaces(surfaces, task);
+  const outline = qaOutlineForMode(mode, task, files, surfaces);
+  const lines = ['# QA Test Script', '', `Task: ${task}`, `Mode: ${mode}`, '', '## Preconditions', '', ...outline.preconditions.map((item) => `- ${item}`), '', '## Primary Test Steps', '', ...outline.primary, '', '## Regression Checks', '', ...outline.regression.map((item) => `- ${item}`), '', '## Caps Or Setup Gaps', '', ...outline.caps.map((item) => `- ${item}`), ''];
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${slug(task)}-qa-script.md`);
+  safeWriteTextFile(repo, outPath, lines.join('\n'));
+  console.log(relative(repo, outPath));
+}
+
+function qaValidate(repo, options = {}) {
+  const packet = options.packet || options.file || '';
+  if (!packet) fail('Pass --packet <path>.');
+  const full = resolve(repo, packet);
+  const text = existsSync(full) ? readFileSync(full, 'utf8') : '';
+  const findings = [];
+  for (const section of ['Preconditions', 'Primary Test Steps', 'Regression Checks']) if (!new RegExp(`##\\s+${section}`, 'i').test(text)) findings.push({ status: 'block', section, detail: 'missing required QA section' });
+  if (!/expected|confirm|verify|should/i.test(text)) findings.push({ status: 'warn', section: 'expected-results', detail: 'few explicit expected-result words detected' });
+  if (!findings.length) findings.push({ status: 'pass', section: 'qa-script', detail: 'required structure present' });
+  printTable(['Status', 'Section', 'Detail'], findings.map((item) => [item.status, item.section, item.detail]));
+  if (findings.some((item) => item.status === 'block')) process.exitCode = 1;
+}
+
+function policyList(repo, options = {}) {
+  const profile = loadProfile(repo).values;
+  const rows = ['commit', 'push', 'merge', 'deploy', 'ticket-update', 'db-query', 'install', 'network'].flatMap((action) => policyRowsForAction(repo, options.task || '', action, profile).map((row) => [action, row.id, row.status, row.detail]));
+  printTable(['Action', 'Gate', 'Status', 'Detail'], rows);
+}
+
+function policyValidateConfig(repo, options = {}) {
+  const profile = loadProfile(repo).values;
+  const findings = [];
+  if (!profile.releasePolicy && !profile.humanApprovalGates) findings.push(['warn', 'release policy/human approval gates not configured']);
+  if (!profile.sensitiveDataRestrictions) findings.push(['warn', 'sensitive data restrictions not configured']);
+  if (profile.databaseMcpAvailability === 'available' && !profile.databaseAllowedOperations) findings.push(['warn', 'database MCP available but allowed operations not configured']);
+  if (profile.ticketMcpAvailability === 'available' && !profile.ticketSensitiveDataRules) findings.push(['warn', 'ticket MCP available but sensitive data rules not configured']);
+  if (!findings.length) findings.push(['pass', 'policy config has core fields']);
+  printTable(['Status', 'Finding'], findings);
+  if (findings.some((row) => row[0] === 'warn')) process.exitCode = 1;
+}
+
+function policySimulate(repo, options = {}) {
+  const action = options.action || '';
+  if (!action) fail('Pass --action <action>.');
+  const rows = policyRowsForAction(repo, options.task || '', action, loadProfile(repo).values);
+  printTable(['Gate', 'Status', 'Decision', 'Next'], rows.map((row) => [row.id, row.status, policyDecision(row.status), row.next || '']));
+  if (rows.some((row) => row.status === 'block')) process.exitCode = 1;
+}
+
+function contextBudget(repo, options = {}) {
+  const rows = contextBudgetRows(repo, options);
+  printTable(['Source', 'Approx Tokens', 'Status', 'Note'], rows.map((row) => [row.source, row.tokens, row.status, row.note]));
+  const total = rows.reduce((sum, row) => sum + row.tokens, 0);
+  console.log(`Total approximate tokens: ${total}`);
+  if (rows.some((row) => row.status === 'warn')) process.exitCode = 1;
+}
+
+function contextAssemble(repo, options = {}) {
+  const phase = options.phase || 'planning';
+  const packet = buildContextPacket(repo, phase, options);
+  const outPath = options.out ? resolve(repo, options.out) : join(ensureControlRunDir(repo, options, options.task || phase), 'context', `${phase}.context.md`);
+  safeWriteTextFile(repo, outPath, renderContextPacket(packet));
+  appendContextLedger(repo, outPath, packet);
+  console.log(relative(repo, outPath));
+}
+
+function contextCompact(repo, options = {}) {
+  const info = readCurrentStateInfo(repo, options);
+  const state = readCurrentState(repo, options) || synthesizeState(repo, options.task || '', options);
+  const manifest = info.runDir ? readEvidenceManifest(info.runDir) : { required: [], captured: [] };
+  const lines = ['# SDLC Compact Context', '', `Task: ${state.task || options.task || 'not provided'}`, `Route: ${state.route || 'unknown'}`, `Stage: ${state.stage || 'unknown'}`, '', '## Evidence Snapshot', '', ...formatList((manifest.captured || []).map((item) => `${item.kind}: ${item.summary}`).slice(-12)).split('\n'), '', '## Next Action', '', nextActionForStage(state.stage || 'intake', state.task || options.task || '')];
+  const outPath = options.out ? resolve(repo, options.out) : join(ensureControlRunDir(repo, options, options.task || 'compact'), 'context', 'compact.context.md');
+  safeWriteTextFile(repo, outPath, `${lines.join('\n')}\n`);
+  console.log(relative(repo, outPath));
+}
+
+function contextLedger(repo, options = {}) {
+  const info = readCurrentStateInfo(repo, options);
+  const ledgers = [];
+  if (info.runDir) ledgers.push(join(info.runDir, 'context', 'context-ledger.jsonl'));
+  const root = defaultRunsDir(repo);
+  if (existsSync(root)) {
+    for (const file of readdirSync(root)) {
+      const candidate = join(root, file, 'context', 'context-ledger.jsonl');
+      if (existsSync(candidate)) ledgers.push(candidate);
+    }
+  }
+  const rows = dedupe(ledgers).flatMap((ledger) => readJsonLines(ledger));
+  if (!rows.length) return console.log('No context ledger rows found. Run sdlc context assemble first.');
+  printTable(['Time', 'Phase', 'Tokens', 'Path'], rows.map((row) => [row.timestamp, row.phase, row.approxTokens, row.path]));
+}
+
+function dashboard(repo, options = {}) {
+  const state = readCurrentState(repo, options) || loadRunState(repo, options.task || '') || synthesizeState(repo, options.task || '', options);
+  const runDir = readCurrentStateInfo(repo, options).runDir || defaultRunsDir(repo);
+  const findings = artifactFindings(runDir);
+  const lines = ['# SDLC Dashboard', '', `Task: ${state.task || options.task || 'not provided'}`, `Route: ${state.route || 'unknown'}`, `Stage: ${state.stage || state.status || 'unknown'}`, '', '## Artifact Health', '', '| Status | Artifact | Detail |', '| --- | --- | --- |', ...findings.map((item) => `| ${item.status} | ${escapeCell(item.artifact)} | ${escapeCell(item.detail)} |`), '', '## Next Action', '', nextActionForStage(state.stage || 'intake', state.task || options.task || '')];
+  const outPath = options.out ? resolve(repo, options.out) : join(runDir, 'dashboard.md');
+  safeWriteTextFile(repo, outPath, `${lines.join('\n')}\n`);
+  console.log(relative(repo, outPath));
+}
+
+function adapterGenerate(repo, options = {}) {
+  const runtime = options.runtime || 'generic';
+  const lines = ['# SDLC Runtime Adapter', '', `Runtime: ${runtime}`, '', '## How To Use', '', '- Ask the agent: `Use SDLC for this task: <task>`.', '- For review: `Use SDLC and review the current completion state of this task: <task>`.', '- Start from local context packets instead of loading every SDLC document.', '', '## Required First Commands', '', '```bash', 'sdlc config validate', 'sdlc capability snapshot', 'sdlc context assemble --phase planning --task "..."', '```', '', '## Context Rules', '', '- Do not load archived plans unless the user asks for historical provenance.', '- Prefer `sdlc context assemble --phase <phase>` over broad document dumps.', '- Use `sdlc context budget` when prompt size feels high.', '- Ask for more context with a specific reason when the packet is insufficient.', '', '## Boundaries', '', '- Commit and push require explicit human approval.', '- Merge, deploy, release, MR/PR creation, pipeline triggers, and file movement are outside default automation.'];
+  const outPath = options.out ? resolve(repo, options.out) : join(repo, '.ai-local', `sdlc-adapter-${runtime}.md`);
+  safeWriteTextFile(repo, outPath, `${lines.join('\n')}\n`);
+  console.log(relative(repo, outPath));
+}
+
+function evalRun(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const rows = scenarioRegressionCases().map((item) => {
+    const actual = inferRouteFromTask(item.task, git, profile.values);
+    return { name: item.name, expected: item.expectedRoute || '', actual, status: !item.expectedRoute || item.expectedRoute === actual ? 'pass' : 'fail' };
+  });
+  const content = ['# SDLC Eval Report', '', '| Case | Expected | Actual | Status |', '| --- | --- | --- | --- |', ...rows.map((row) => `| ${escapeCell(row.name)} | ${row.expected} | ${row.actual} | ${row.status} |`), ''].join('\n');
+  writeOrPrint(repo, options.out, content);
+  if (rows.some((row) => row.status === 'fail')) process.exitCode = 1;
+}
+
+function evalAddCase(repo, options = {}) {
+  if (!options.name || !options.task) fail('Pass --name <name> --task "...".');
+  const path = join(repo, '.ai-local', 'sdlc-eval-cases.jsonl');
+  appendControlJsonLine(repo, path, { name: options.name, task: options.task, expectedRoute: options.route || inferRouteFromTask(options.task, getGitInfo(repo), loadProfile(repo).values), createdAt: new Date().toISOString() });
+  console.log(relative(repo, path));
+}
+
+function evalReport(repo, options = {}) {
+  return evalRun(repo, options);
+}
+
+function learnExport(repo, options = {}) {
+  const rows = readJsonLines(defaultLearningBacklogPath(repo)).map(sanitizePortableObject);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), 'sdlc-learnings.sanitized.json');
+  safeWriteJsonFile(repo, outPath, { schema: 'sdlc-sanitized-learning-export-v1', exportedAt: new Date().toISOString(), rows });
+  console.log(relative(repo, outPath));
+}
+
+function learnImport(repo, options = {}) {
+  if (!options.file) fail('Pass --file <path>.');
+  const input = readJsonIfExists(resolve(repo, options.file));
+  const rows = Array.isArray(input?.rows) ? input.rows : Array.isArray(input) ? input : [];
+  const target = defaultLearningBacklogPath(repo);
+  for (const row of rows) appendControlJsonLine(repo, target, { ...row, importedAt: new Date().toISOString(), importReviewRequired: true });
+  console.log(`${rows.length} learning rows imported to ${relative(repo, target)}`);
+}
+
+function upgradePlan(repo, options = {}) {
+  const findings = [];
+  if (!existsSync(join(repo, '.ai-local', 'sdlc-profile.json'))) findings.push('Create normalized local profile with sdlc config normalize.');
+  if (!existsSync(join(repo, '.ai-local', 'sdlc-index.json'))) findings.push('Create local deterministic index with sdlc index build.');
+  if (!findings.length) findings.push('No local upgrade actions detected.');
+  const content = ['# SDLC Upgrade Plan', '', ...findings.map((item) => `- ${item}`), ''].join('\n');
+  writeOrPrint(repo, options.out, content);
+}
+
+function upgradeApply(repo, options = {}) {
+  if (!options.write) fail('Dry run only. Pass --write to create/update local SDLC upgrade artifacts.');
+  configNormalize(repo, { ...options, out: join(repo, '.ai-local', 'sdlc-profile.json') });
+  indexBuild(repo, { ...options, out: join(repo, '.ai-local', 'sdlc-index.json') });
+}
+
+function upgradeExplain(repo, options = {}) {
+  console.log('SDLC upgrades are local-first and non-destructive: normalize profile, build local index, validate artifacts, and regenerate runtime adapters. They do not merge, deploy, push, or overwrite team config without explicit file-level action.');
+}
+
+function normalizedSdlcProfile(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const units = unitRegistry(repo, profile);
+  return {
+    schemaVersion: 'sdlc-profile-v1',
+    generatedAt: new Date().toISOString(),
+    repository: { name: profile.values.repository || profile.values.name || basename(repo), path: repo, kind: profile.values.repositoryRole || detectStack(repo).join(', ') || 'generic' },
+    context: { sharedRoot: profile.values.sharedContextRoot || '', product: profile.values.productContext || '', repo: profile.values.repoContext || '', output: profile.values.evidenceOutputLocation || defaultRunsDir(repo) },
+    commands: Object.entries(commands).filter(([, command]) => command).map(([kind, command]) => ({ kind, command })),
+    capabilities: { ticketMcp: profile.values.ticketMcpAvailability || 'unknown', databaseMcp: profile.values.databaseMcpAvailability || 'unknown', browser: profile.values.renderedUiReviewCommand ? 'configured' : 'unknown' },
+    units: units.map((unit) => ({ id: unit.name, root: unit.path, kind: unit.type || 'generic', testSurface: unit.testSurface || '', contextBucket: unit.contextBucket || '', buildCommand: unit.buildCommand || '', testCommand: unit.testCommand || '', deployMethod: unit.deployMethod || '', swaggerOpenapi: unit.swaggerOpenapi || '' })),
+    policy: { release: profile.values.releasePolicy || '', approvalGates: profile.values.humanApprovalGates || '', sensitiveData: profile.values.sensitiveDataRestrictions || '' },
+  };
+}
+
+function validateNormalizedProfile(profile) {
+  const findings = [];
+  if (!profile.repository?.name) findings.push({ status: 'block', message: 'repository.name missing' });
+  if (!profile.units?.length) findings.push({ status: 'warn', message: 'no deployable units configured or inferred' });
+  for (const unit of profile.units || []) {
+    if (!unit.root) findings.push({ status: 'block', message: `unit ${unit.id || '?'} missing root` });
+    if (!unit.testSurface) findings.push({ status: 'warn', message: `unit ${unit.id || '?'} missing testSurface` });
+  }
+  if (!profile.commands?.some((command) => command.kind === 'test')) findings.push({ status: 'warn', message: 'no test command configured/discovered' });
+  if (!profile.context?.sharedRoot && !profile.context?.product && !profile.context?.repo) findings.push({ status: 'warn', message: 'no context root configured' });
+  if (!profile.policy?.release && !profile.policy?.approvalGates) findings.push({ status: 'warn', message: 'release/human approval policy not configured' });
+  if (!findings.length) findings.push({ status: 'pass', message: 'profile passes local validation' });
+  return findings;
+}
+
+function flattenObject(value, prefix = '', out = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    if (prefix) out[prefix] = value;
+    return out;
+  }
+  for (const [key, item] of Object.entries(value)) flattenObject(item, prefix ? `${prefix}.${key}` : key, out);
+  return out;
+}
+
+function sanitizePortableObject(value) {
+  if (Array.isArray(value)) return value.map(sanitizePortableObject);
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [key, item] of Object.entries(value)) out[key] = sanitizePortableObject(item);
+    return out;
+  }
+  if (typeof value !== 'string') return value;
+  return sanitizeOneLine(value)
+    .replace(/\/Users\/[^\s/]+/g, '/Users/[redacted]')
+    .replace(/\b[A-Z]{1,10}-\d{1,8}\b/g, '[ticket-id]')
+    .replace(/\b(?:client|customer|company|tenant)[-_ ]?[A-Za-z0-9]+\b/gi, '[redacted-entity]');
+}
+
+function artifactFindings(runDir) {
+  const expected = ['state.json', 'evidence.json', 'checks.jsonl', 'gates.jsonl', 'waivers.jsonl', 'trace.jsonl'];
+  if (!existsSync(runDir)) return [{ status: 'block', artifact: runDir, detail: 'run directory not found' }];
+  return expected.map((file) => {
+    const path = join(runDir, file);
+    if (!existsSync(path)) return { status: ['waivers.jsonl', 'gates.jsonl'].includes(file) ? 'warn' : 'block', artifact: file, detail: 'missing' };
+    if (file.endsWith('.json') && !readJsonIfExists(path)) return { status: 'block', artifact: file, detail: 'invalid json' };
+    if (file.endsWith('.jsonl') && readJsonLines(path).some((row) => row.parseError)) return { status: 'block', artifact: file, detail: 'invalid jsonl row' };
+    return { status: 'pass', artifact: file, detail: 'present' };
+  });
+}
+
+function capabilityRows(repo, profile, commands) {
+  return [
+    ...toolCapabilityRows(repo, profile, commands),
+    { name: 'workspace-profile', status: existsSync(join(repo, '.ai-local', 'workspace-profile.json')) ? 'available' : 'unknown', detail: '.ai-local/workspace-profile.json' },
+    { name: 'local-index', status: existsSync(join(repo, '.ai-local', 'sdlc-index.json')) ? 'available' : 'unknown', detail: '.ai-local/sdlc-index.json' },
+  ];
+}
+
+function capabilityRecovery(name, status) {
+  if (status === 'available') return 'none';
+  if (name === 'ticket-mcp') return 'paste ticket summary/acceptance criteria or configure optional ticket MCP';
+  if (name === 'database-mcp') return 'use code/schema/log evidence or configure read-only database MCP';
+  if (name === 'rendered-ui') return 'configure rendered UI command or record manual smoke cap';
+  if (name === 'test-command') return 'add focused test command to profile or record no-tests cap';
+  if (name === 'local-index') return 'run sdlc index build';
+  return 'configure profile or use explicit cap';
+}
+
+function fallbackForCapability(capability, task, surfaces) {
+  if (capability.includes('ticket')) return 'Ticket MCP fallback: ask for pasted issue summary, acceptance criteria, relevant comments, and QA expectations; record source as human-provided.';
+  if (capability.includes('database')) return 'Database MCP fallback: use source code, schema files, migrations, tests, sanitized logs, or human-provided aggregate results; never invent data evidence.';
+  if (capability.includes('browser') || capability.includes('render')) return 'Rendered UI fallback: use build/typecheck/unit checks plus a manual smoke cap and QA Markdown steps.';
+  if (capability.includes('test')) return 'Test fallback: run build/typecheck/smoke if available and create a focused manual QA script plus future test recommendation.';
+  return toolFallbacksForTask(task, surfaces, loadProfile(process.cwd()).values).join('\n');
+}
+
+function recipeForCompile(item) {
+  return { id: item.id, status: item.status, owner: item.owner, requiredProof: item.requiredProof, command: item.command, qaAdditions: item.qaAdditions };
+}
+
+function checkCommandRecords(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
+  const rows = [];
+  if (commands.build) rows.push({ kind: 'build', unit: '', command: commands.build, required: false });
+  rows.push({ kind: 'test', unit: '', command: commands.test || '', required: true });
+  if (commands.lint) rows.push({ kind: 'lint', unit: '', command: commands.lint, required: false });
+  for (const unit of unitRegistry(repo, profile)) {
+    if (unit.buildCommand) rows.push({ kind: 'build', unit: unit.name, command: unit.buildCommand, required: false });
+    if (unit.testCommand) rows.push({ kind: 'test', unit: unit.name, command: unit.testCommand, required: true });
+  }
+  return dedupeBy(rows, (row) => `${row.kind}:${row.unit}:${row.command}`);
+}
+
+function scanIndexFiles(repo) {
+  const results = [];
+  const ignored = ['.git', 'node_modules', 'dist', 'build', 'coverage', '.next', '.ai-local/sdlc-runs'];
+  function walk(dir, depth) {
+    if (depth > 5 || results.length > 1200) return;
+    let entries = [];
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      const rel = normalizeUnitPath(relative(repo, full));
+      if (ignored.some((item) => rel === item || rel.startsWith(`${item}/`))) continue;
+      if (entry.isDirectory()) walk(full, depth + 1);
+      else if (indexKind(rel)) results.push(full);
+    }
+  }
+  walk(repo, 0);
+  return results;
+}
+
+function indexKind(rel) {
+  const value = rel.toLowerCase();
+  if (value.endsWith('.md') || value.includes('/docs/')) return 'docs';
+  if (value.includes('test') || value.includes('spec')) return 'tests';
+  if (value.includes('openapi') || value.includes('swagger') || value.endsWith('.http')) return 'api';
+  if (/(package\.json|\.csproj|\.sln|deno\.json|tsconfig\.json|vite\.config|next\.config|appsettings|web\.config)$/.test(value)) return 'config';
+  if (/\.(cs|ts|tsx|js|jsx|asp|aspx|sql)$/.test(value)) return 'code';
+  return '';
+}
+
+function indexRecord(repo, file) {
+  const rel = normalizeUnitPath(relative(repo, file));
+  const text = safeReadSmall(file, 5000);
+  const profile = loadProfile(repo);
+  const unit = affectedUnits(repo, [rel], profile)[0];
+  return { path: rel, kind: indexKind(rel), unit: unit?.name || '', headings: (text.match(/^#{1,4}\s+.+$/gm) || []).slice(0, 10).join(' | '), summary: summarizeIndexFile(rel, text) };
+}
+
+function safeReadSmall(path, limit) {
+  try { return readFileSync(path, 'utf8').slice(0, limit); } catch { return ''; }
+}
+
+function summarizeIndexFile(rel, text) {
+  if (rel.endsWith('package.json')) return 'package manifest';
+  if (rel.endsWith('.csproj')) return 'dotnet project';
+  const first = String(text || '').split(/\r?\n/).map((line) => line.trim()).find(Boolean) || '';
+  return first.slice(0, 120);
+}
+
+function contextBudgetRows(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const state = readCurrentState(repo, options) || loadRunState(repo, options.task || '') || {};
+  const docs = contextDocCandidates(repo, profile.values).filter((item) => existsSync(item.path));
+  return [
+    budgetRow('runtime adapter/global skill prompt', 2500, 'estimate', 'keep static instructions minimal'),
+    budgetRow('repo profile', approxTokens(profile.path ? readFileSync(profile.path, 'utf8') : ''), profile.path ? 'ok' : 'warn', profile.path ? relative(repo, profile.path) : 'missing'),
+    budgetRow('task state', approxTokens(JSON.stringify(state)), state.task || options.task ? 'ok' : 'warn', state.task ? 'current state found' : options.task ? 'task provided without current state file' : 'task not provided'),
+    budgetRow('context docs', docs.reduce((sum, item) => sum + approxTokens(safeReadSmall(item.path, 12000)), 0), docs.length > 4 ? 'warn' : 'ok', `${docs.length} candidate docs`),
+    budgetRow('tool output summaries', 600, 'estimate', 'prefer summaries over raw logs'),
+  ];
+}
+
+function budgetRow(source, tokens, status, note) {
+  return { source, tokens: Math.round(tokens || 0), status, note };
+}
+
+function approxTokens(text) {
+  return Math.ceil(String(text || '').length / 4);
+}
+
+function buildContextPacket(repo, phase, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const files = optionFiles(options, git.changedFiles);
+  const units = affectedUnits(repo, files, profile, options.unit);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const requirements = evidenceRequirementsForTask(repo, task, route, git, profile, options);
+  return { phase, task, route, repo, branch: git.branch, files, units, surfaces, requirements, profilePath: profile.path ? relative(repo, profile.path) : '', nextAction: nextActionForPhase(phase, task) };
+}
+
+function renderContextPacket(packet) {
+  return ['# SDLC Context Packet', '', `Phase: ${packet.phase}`, `Task: ${packet.task || 'not provided'}`, `Route: ${packet.route}`, `Repository: ${packet.repo}`, `Branch: ${packet.branch || 'unknown'}`, '', '## Affected Units', '', ...formatList(packet.units.map((unit) => `${unit.name}: ${unit.path} (${unit.testSurface || 'surface?'})`)).split('\n'), '', '## Changed Files', '', ...formatList(packet.files).split('\n'), '', '## Testing Surfaces', '', ...formatList(packet.surfaces).split('\n'), '', '## Required Evidence', '', ...formatList(packet.requirements.map((item) => `${item.level}: ${item.id} - ${item.summary}`)).split('\n'), '', '## Context Source', '', `- Profile: ${packet.profilePath || 'not found'}`, '- Archived plans excluded by default.', '- Load exact code or docs only when needed for this phase.', '', '## Next Action', '', packet.nextAction, ''].join('\n');
+}
+
+function appendContextLedger(repo, outPath, packet) {
+  const ledger = join(dirname(outPath), 'context-ledger.jsonl');
+  appendControlJsonLine(repo, ledger, { timestamp: new Date().toISOString(), phase: packet.phase, task: packet.task, path: outPath, approxTokens: approxTokens(renderContextPacket(packet)) });
+}
+
+function nextActionForPhase(phase, task) {
+  if (phase === 'intake') return 'sdlc config validate && sdlc capability snapshot';
+  if (phase === 'planning') return `sdlc recipe compile --task "${escapeCommandArg(task || '...')}"`;
+  if (phase === 'implementation') return 'edit within affected units and keep scope ledger current';
+  if (phase === 'verification') return `sdlc checks plan && sdlc evidence plan --task "${escapeCommandArg(task || '...')}"`;
+  if (phase === 'qa') return `sdlc qa build --task "${escapeCommandArg(task || '...')}"`;
+  if (phase === 'finish') return `sdlc complete check --task "${escapeCommandArg(task || '...')}"`;
+  return 'continue with SDLC state/current evidence';
+}
+
+function policyDecision(status) {
+  if (status === 'block') return 'blocked or human approval required';
+  if (status === 'warn') return 'allowed only with review/approval as applicable';
+  return 'allowed within normal SDLC boundaries';
+}
+
+function writeOrPrint(repo, out, content) {
+  if (out) {
+    const outPath = resolve(repo, out);
+    safeWriteTextFile(repo, outPath, content);
+    console.log(relative(repo, outPath));
+  } else console.log(content.trimEnd());
+}
+
+function printTable(headers, rows) {
+  console.log(`| ${headers.map(escapeCell).join(' | ')} |`);
+  console.log(`| ${headers.map(() => '---').join(' | ')} |`);
+  for (const row of rows) console.log(`| ${row.map((cell) => escapeCell(cell ?? '')).join(' | ')} |`);
+}
+function defaultLearningBacklogPath(repo) {
+  return join(repo, '.ai-local', 'sdlc-learning-backlog.jsonl');
 }
 
 function defaultRunsDir(repo) {

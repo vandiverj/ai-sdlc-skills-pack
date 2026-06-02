@@ -257,3 +257,30 @@ Create concrete pattern files only when the project has evidence, examples, or t
 
 ## Next skills
 Usually `agents`, `implementation`, `quality`, `tools`, `context`, or `review`.
+
+## Machine-Readable Local Setup
+
+Repository setup should now prepare both human-readable and machine-readable SDLC configuration when the helper CLI is available.
+
+Preferred setup checks:
+
+```bash
+sdlc profile init
+sdlc config normalize
+sdlc config validate
+sdlc profile doctor
+sdlc capability snapshot
+sdlc index build
+sdlc adapter generate --runtime generic
+```
+
+For multi-project repositories, ensure the profile has one unit per deployable codebase or testing surface. API-only units should declare an API/OpenAPI testing surface so rendered UI review is not selected by mistake.
+
+For multi-repo workspaces, configure a local workspace profile or related repositories and use:
+
+```bash
+sdlc workspace graph
+sdlc workspace impact --task "..."
+```
+
+Tracked config should be sanitized and team-approved. Machine-specific paths, MCP availability, and sensitive context roots belong in `.ai-local` or the developer's external local context root.

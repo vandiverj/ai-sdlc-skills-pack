@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "sdlc-context-budget-v1",
+  "softBudgetTokens": 24000,
+  "phaseBudgets": {
+    "intake": 8000,
+    "planning": 16000,
+    "implementation": 24000,
+    "verification": 16000,
+    "qa": 12000,
+    "finish": 10000
+  },
+  "exclusions": [
+    "archive/**",
+    "node_modules/**",
+    "dist/**",
+    "coverage/**"
+  ],
+  "rawToolOutputPolicy": "summarize-by-default"
+}

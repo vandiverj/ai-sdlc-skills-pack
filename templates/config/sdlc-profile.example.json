@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "sdlc-profile-v1",
+  "repository": {
+    "name": "example-service",
+    "kind": "api"
+  },
+  "context": {
+    "sharedRoot": "",
+    "product": "",
+    "repo": "",
+    "output": ".ai-local/sdlc-runs"
+  },
+  "commands": [
+    {
+      "kind": "test",
+      "command": "npm run test"
+    }
+  ],
+  "capabilities": {
+    "ticketMcp": "unknown",
+    "databaseMcp": "unknown",
+    "browser": "unknown"
+  },
+  "units": [
+    {
+      "id": "api",
+      "root": ".",
+      "kind": "api",
+      "testSurface": "api-contract",
+      "contextBucket": "api"
+    }
+  ],
+  "policy": {
+    "release": "human controlled",
+    "approvalGates": "commit,push",
+    "sensitiveData": "redact product/client data"
+  }
+}

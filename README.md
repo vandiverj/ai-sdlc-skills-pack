@@ -378,3 +378,21 @@ Do not save skill files with a UTF-8 BOM. The Codex skill loader expects the fir
 ## Recent workflow tightening
 
 The workflow now treats `classify-work` as the primary entry point that emits a compact execution contract. It includes `Micro` work, dirty surface routing, mid-stream reclassification, conditional artifact sync, and `review-agent-work` for human review of AI sessions through Git diffs, scoped commits, and verification evidence.
+
+## Global Install, Local Configuration
+
+This skills pack is designed to live globally under your user `.agents` folder so multiple coding agents and repositories can use the same SDLC process. Each repository or workspace then becomes specific through local configuration and artifacts.
+
+Typical first-use flow in a repository:
+
+```bash
+sdlc profile init
+sdlc config normalize
+sdlc config validate
+sdlc capability snapshot
+sdlc context assemble --phase planning --task "describe the task"
+```
+
+The SDLC should not load every process document into every prompt. Use local commands to assemble a small phase-specific context packet, then let the agent request more code or documentation only when needed.
+
+The SDLC never automatically merges, deploys, creates MR/PRs, triggers pipelines, or moves files between environments. Commit and push remain explicit human decisions.

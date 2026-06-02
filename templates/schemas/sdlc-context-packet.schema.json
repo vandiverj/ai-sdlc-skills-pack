@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SDLC Context Packet",
+  "type": "object",
+  "required": [
+    "phase",
+    "route",
+    "repo"
+  ],
+  "properties": {
+    "phase": {
+      "enum": [
+        "intake",
+        "planning",
+        "implementation",
+        "verification",
+        "qa",
+        "finish",
+        "learning"
+      ]
+    },
+    "task": {
+      "type": "string"
+    },
+    "route": {
+      "type": "string"
+    },
+    "repo": {
+      "type": "string"
+    },
+    "units": {
+      "type": "array"
+    },
+    "surfaces": {
+      "type": "array"
+    },
+    "requirements": {
+      "type": "array"
+    }
+  }
+}

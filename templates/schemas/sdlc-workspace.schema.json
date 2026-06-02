@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SDLC Workspace Profile",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "repositories"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "sdlc-workspace-v1"
+    },
+    "sharedContextRoot": {
+      "type": "string"
+    },
+    "artifactRoot": {
+      "type": "string"
+    },
+    "runtimeAdapter": {
+      "type": "string"
+    },
+    "repositories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "path"
+        ]
+      }
+    },
+    "capabilities": {
+      "type": "object"
+    }
+  }
+}

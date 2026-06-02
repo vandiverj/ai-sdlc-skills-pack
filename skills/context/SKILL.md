@@ -41,3 +41,25 @@ Next skill:
 ## Stop Rules
 - Do not use chat history as durable truth when project artifacts disagree.
 - Do not silently update docs to match code before classifying whether code, docs, tests, or requirements are wrong.
+
+## Context Budget Discipline
+
+Context management is now a local artifact workflow, not a prompt dump.
+
+Use these helpers when available:
+
+```bash
+sdlc context budget --task "..."
+sdlc context assemble --phase planning --task "..."
+sdlc context compact --task "..."
+sdlc context ledger --task "..."
+```
+
+Principles:
+
+- Keep durable state in `.ai-local/sdlc-runs/` or configured context roots.
+- Send the model a phase-specific context packet, not every known document.
+- Exclude archived plans by default.
+- Summarize raw tool output before including it in a model prompt.
+- For product-sensitive details, include sanitized summaries unless the local repo policy allows the exact detail.
+- If a packet is insufficient, request the smallest specific additional context needed for the next action.

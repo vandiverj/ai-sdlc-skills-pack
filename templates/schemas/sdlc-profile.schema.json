@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SDLC Repository Profile",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "repository",
+    "units"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "sdlc-profile-v1"
+    },
+    "repository": {
+      "type": "object"
+    },
+    "context": {
+      "type": "object"
+    },
+    "commands": {
+      "type": "array"
+    },
+    "capabilities": {
+      "type": "object"
+    },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "root"
+        ]
+      }
+    },
+    "policy": {
+      "type": "object"
+    }
+  }
+}
