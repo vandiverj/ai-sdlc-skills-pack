@@ -399,8 +399,6 @@ function finishDependencies() {
     controlGateRows,
     finalGateOpenItems,
     findPackets,
-    finishCommitReadiness,
-    finishIntentNotes,
     gitScopeRows,
     proposedCommitMessage,
     readControlJsonLines,
@@ -1216,32 +1214,4 @@ function contextGateRows(repo, task, profile, git, options = {}) {
 
 function escapeCommandArg(value) {
   return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-}
-
-function finishIntentNotes(intent) {
-  if (intent === 'keep-change') {
-    return formatList([
-      'Treat the result as real product work, not a disposable fixture experiment.',
-      'Require verification evidence or explicit caps before recommending a commit.',
-      'Generate a commit preview only after changed-file scope and QA/verification readiness are clear.',
-      'Push, merge, deploy, release, MR/PR creation, pipeline triggers, and file movement still require separate explicit approval.',
-    ]);
-  }
-  if (intent === 'handoff-only') {
-    return formatList([
-      'Prepare evidence, QA Markdown, and next actor notes only.',
-      'Do not recommend commit/push as the default next action unless the human asks.',
-      'Name open caps and owner for the handoff.',
-    ]);
-  }
-  return formatList([
-    'Normal finish decision: summarize proof, caps, QA readiness, and human-controlled Git/release options.',
-  ]);
-}
-
-function finishCommitReadiness(intent, open) {
-  if (intent === 'handoff-only') return 'not requested; handoff evidence only';
-  if (open.length) return 'not ready without accepted caps';
-  if (intent === 'keep-change') return 'ready for explicit human approval after commit preview';
-  return 'ready for explicit human approval only';
 }
