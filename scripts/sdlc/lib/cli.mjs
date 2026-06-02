@@ -33,7 +33,7 @@ import { accessibilityPolicy, formatAccessibilityPolicy, formatSecurityOverlay, 
 import { renderEvidencePacket, renderedEvidencePlan, renderPlan, renderSmoke } from './render.mjs';
 import { permissionPolicyPacket, riskAgentic, safetyFinish, safetyPreflight, toolAuditPacket } from './safety.mjs';
 import { doctorFull, health, installCheck, processHealth, setupBootstrap, setupDoctor } from './health.mjs';
-import { actionPreview, completeCheck, completeExplain, completeWaive, finalGate, finishPacket, gitGuard, gitPacket } from './finish.mjs';
+import { actionPreview, completeCheck, completeExplain, completeWaive, finalGate, finalGateOpenItems, finishPacket, gitGuard, gitPacket, suggestedFinalGateCommand } from './finish.mjs';
 import { scopeCheck, scopeExpect } from './scope.mjs';
 import { fixturePlan, testBootstrapPlan, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
 import { verifyComplete, verifyPacket } from './verify.mjs';
@@ -695,56 +695,6 @@ function runStartGates(route, task, gitInfo, profile) {
   if (gitInfo.status) gates.push('dirty working tree must be scoped');
   gates.push(...securityTriggers(task, profile).map((item) => `security/tool trigger: ${item}`));
   return gates.length ? gates : ['normal route gates only'];
-}
-
-function suggestedFinalGateCommand(gate, task) {
-  if (gate.includes('touched')) return 'sdlc touched packet';
-  if (gate.includes('impact')) return `sdlc impact packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('verification')) return `sdlc verify packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('QA')) return `sdlc qa script --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('smoke')) return `sdlc smoke packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('data')) return `sdlc data packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('integration')) return `sdlc integration packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('test introduction')) return `sdlc test plan --task "${escapeCommandArg(task || 'current task')}"`;
-  return 'sdlc packet status';
-}
-
-function finalGateOpenItems(repo, task, gitInfo, packets) {
-  const profile = loadProfile(repo);
-  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
-  const maturity = verificationMaturity(profile.values, commands);
-  const modes = detectWorkModes(repo, task, profile.values, gitInfo.changedFiles);
-  const surfaces = dedupe(gitInfo.changedFiles.map(classifyTouchedSurface));
-  const taskText = String(task || '').toLowerCase();
-  const hasTouched = packets.some((packet) => packet.kind === 'touched');
-  const hasImpact = packets.some((packet) => packet.kind === 'impact');
-  const hasVerify = packets.some((packet) => packet.kind === 'developer-verification' && packet.completed);
-  const hasQa = packets.some((packet) => packet.kind === 'qa-script');
-  const hasSmoke = packets.some((packet) => packet.kind === 'manual-smoke' && packet.completed);
-  const hasData = packets.some((packet) => packet.kind === 'data');
-  const hasIntegration = packets.some((packet) => packet.kind === 'integration');
-  const hasTestPlan = packets.some((packet) => packet.kind === 'test-plan');
-  const manualQaMaturity = ['manual qa only', 'no automated tests'].some((item) => maturity.toLowerCase().includes(item));
-  const requiresSmoke =
-    manualQaMaturity ||
-    surfaces.includes('frontend/UI') ||
-    modes.includes('manual-QA-heavy') ||
-    matchesAny(taskText, ['manual smoke', 'smoke test', 'no automated tests', 'manual qa']);
-  const requiresData = surfaces.includes('database/storage') || modes.includes('database-heavy') || matchesAny(taskText, ['database', 'sql', 'data storage', 'migration']);
-  const requiresIntegration = surfaces.includes('external integration') || modes.includes('integration-heavy') || matchesAny(taskText, ['third-party', 'third party', 'webhook', 'integration', 'external system']);
-  const requiresTestPlan = manualQaMaturity || surfaces.includes('dependencies') || matchesAny(taskText, ['package', 'dependency', 'upgrade', 'no automated tests', 'missing tests']);
-  const open = [];
-  if (gitInfo.status && !hasTouched) open.push('touched packet missing for dirty work');
-  if (task && !hasImpact) open.push('impact packet missing for scoped task');
-  if (['mature CI', 'partial automated tests', 'smoke tests'].some((item) => maturity.toLowerCase().includes(item.toLowerCase())) && !hasVerify) open.push('developer verification packet completion missing or capped');
-  if (manualQaMaturity && !hasQa) open.push('human QA Markdown script missing for manual-QA/no-tests workflow');
-  if (!hasVerify) open.push('developer verification packet completion missing or capped');
-  if (!hasQa && !manualQaMaturity) open.push('human QA Markdown script missing or explicitly not needed');
-  if (requiresSmoke && !hasSmoke) open.push('manual smoke packet completion missing or capped');
-  if (requiresData && !hasData) open.push('data packet missing for data/storage workflow');
-  if (requiresIntegration && !hasIntegration) open.push('integration packet missing for external integration workflow');
-  if (requiresTestPlan && !hasTestPlan) open.push('test introduction plan missing for no-tests/dependency workflow');
-  return dedupe(open);
 }
 
 function contextUpdateTargets(route, dirtySurfaces, contracts, profile) {
