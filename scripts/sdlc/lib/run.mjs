@@ -4,9 +4,27 @@ import { dedupe, escapeCell, fail, formatInlineList, formatList, printObject, sa
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir, runStatePath } from './paths.mjs';
-import { inferRouteFromTask } from './routes.mjs';
+import { inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { buildRunState, loadRunState, runNextAction } from './runstate.mjs';
 import { affectedUnits, inferTestingSurfaces } from './units.mjs';
+
+export function runStartPacketCommand(route, task) {
+  if (route === 'review-only') return `sdlc review packet --task "${escapeCommandArg(task)}"`;
+  if (route === 'release-push') return 'sdlc release packet';
+  if (route === 'multi-repo-integration') return `sdlc multi packet --task "${escapeCommandArg(task)}"`;
+  if (route === 'contract-first') return `sdlc contract packet --task "${escapeCommandArg(task)}"`;
+  if (route === 'bugfix-live-system') return `sdlc bug evidence --task "${escapeCommandArg(task)}"`;
+  return `sdlc evidence init --route ${route}`;
+}
+
+export function runStartGates(route, task, gitInfo, profile) {
+  const gates = [];
+  if (!profile.releasePolicy && route === 'release-push') gates.push('release policy missing from profile');
+  if (!profile.sharedContextRoot && route === 'multi-repo-integration') gates.push('shared context root or service map may be needed');
+  if (gitInfo.status) gates.push('dirty working tree must be scoped');
+  gates.push(...securityTriggers(task, profile).map((item) => `security/tool trigger: ${item}`));
+  return gates.length ? gates : ['normal route gates only'];
+}
 
 export function runPlan(repo, options = {}) {
   const task = options.task || '';
