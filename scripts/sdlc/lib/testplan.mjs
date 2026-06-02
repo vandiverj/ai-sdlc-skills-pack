@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { dedupe, fail, formatInlineList, formatList, readJsonIfExists, safeWriteTextFile, stamp } from './common.mjs';
+import { dedupe, fail, formatInlineList, formatList, readJsonIfExists, safeWriteTextFile, stamp, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -234,11 +234,127 @@ ${formatList(matchRecipes(task, git, profile.values).map((recipe) => `${recipe.i
   console.log(relative(repo, outPath));
 }
 
+export function testFoothold(repo, options = {}, dependencies = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const surfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const footholds = footholdRecommendations(task, git.changedFiles, surfaces, commands);
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Test Foothold Plan
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+
+## Position
+
+This repo may not have broad automated coverage. The goal is one useful foothold for this task, not a full test backfill.
+
+## Current Signals
+
+- Test command: ${commands.test || 'not configured'}
+- Build command: ${commands.build || 'not configured'}
+- Changed files: ${git.changedFiles.length}
+- Testing surfaces: ${formatInlineList(surfaces)}
+
+## Recommended Footholds
+
+| Priority | Foothold | Effort | Confidence gain | Blast radius |
+| --- | --- | --- | --- | --- |
+${footholds.map((row, index) => `| ${index === 0 ? 'primary' : 'alternative'} | ${row.name} | ${row.effort} | ${row.confidence} | ${row.blastRadius} |`).join('\n')}
+
+## Next Action
+
+${footholds[0]?.command || 'Create a manual smoke/QA cap if no automated foothold is practical.'}
+`;
+  writeOrPrint(repo, outPath, content);
+}
+
+export function fixtureBattleSoccerPlan(repo, options = {}) {
+  const scenarios = battleSoccerScenarios();
+  console.log('# Battle Soccer SDLC Evaluation Suite\n');
+  console.log('| ID | Scope | Task Shape | Proof |');
+  console.log('| --- | --- | --- | --- |');
+  for (const item of scenarios) console.log(`| ${item.id} | ${item.scope} | ${item.task} | ${item.proof} |`);
+}
+
+export function fixtureBattleSoccerRun(repo, options = {}) {
+  const scenario = battleSoccerScenarios().find((item) => item.id === (options.scenario || options.id));
+  if (!scenario) fail(`Pass --scenario with one of: ${battleSoccerScenarios().map((item) => item.id).join(', ')}`);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-battle-soccer-${scenario.id}.md`);
+  const content = `# Battle Soccer Fixture Scenario
+
+Scenario: ${scenario.id}
+Scope: ${scenario.scope}
+Task: ${scenario.task}
+
+## Acceptance
+
+${formatList(scenario.acceptance)}
+
+## SDLC Validation
+
+- Start: \`sdlc start --task "${scenario.task}"\`
+- Verify: ${scenario.proof}
+- QA: produce Markdown if behavior is tester-visible.
+- Finish: keep useful game changes; commit only after human approval.
+`;
+  safeWriteTextFile(repo, outPath, content);
+  console.log(relative(repo, outPath));
+}
+
 function inferBootstrapFramework(repo) {
   if (hasFileExt(repo, ['.csproj', '.sln'])) return 'dotnet';
   if (existsAny(repo, ['package.json'])) return 'node';
   if (existsAny(repo, ['deno.json', 'deno.jsonc'])) return 'deno';
   return 'generic';
+}
+
+function footholdRecommendations(task, files, surfaces, commands) {
+  const text = String(task || '').toLowerCase();
+  if (surfaces.includes('api-contract') || /api|openapi|swagger/.test(text)) return [
+    foothold('API contract check', 'low-medium', 'high for API boundary', 'API/developer surface', 'sdlc qa api --task "<task>"'),
+    foothold('Request/response smoke script', 'medium', 'medium-high', 'single endpoint/workflow', 'sdlc smoke packet --task "<task>"'),
+    foothold('Manual Swagger/OpenAPI QA script', 'low', 'medium', 'human developer testing', 'sdlc qa script --task "<task>"'),
+  ];
+  if (surfaces.includes('data-persistence') || /sql|database|data/.test(text)) return [
+    foothold('Read-only query evidence plan', 'low', 'medium-high for data bug', 'bounded data shape only', 'sdlc data query-plan --task "<task>"'),
+    foothold('Characterization test around data mapper', 'medium', 'high if code-local', 'changed unit only', 'sdlc test suggest --task "<task>"'),
+    foothold('Manual data regression checklist', 'low', 'medium', 'QA/test environment', 'sdlc qa data --task "<task>"'),
+  ];
+  if (surfaces.includes('rendered-product-ui')) return [
+    foothold('Rendered smoke check', 'low-medium', 'high for UI state', 'targeted screen/flow', 'sdlc render plan --task "<task>"'),
+    foothold('Component/interaction test', 'medium', 'high if harness exists', 'changed component only', 'sdlc test suggest --task "<task>"'),
+    foothold('Human QA Markdown script', 'low', 'medium', 'tester-visible workflow', 'sdlc qa ui --task "<task>"'),
+  ];
+  if (commands.test) return [
+    foothold('Focused existing test command', 'low', 'medium', 'existing harness', commands.test),
+    foothold('Changed-function wrapper test', 'medium', 'medium-high', 'changed unit only', 'sdlc test suggest --task "<task>"'),
+    foothold('Manual smoke cap', 'low', 'low-medium', 'task workflow only', 'sdlc smoke packet --task "<task>"'),
+  ];
+  return [
+    foothold('Manual smoke packet', 'low', 'medium for legacy/no-test work', 'task workflow only', 'sdlc smoke packet --task "<task>"'),
+    foothold('Characterization test', 'medium', 'high for regression prevention', 'changed unit only', 'sdlc test suggest --task "<task>"'),
+    foothold('Human QA Markdown script', 'low', 'medium', 'tester-visible workflow', 'sdlc qa script --task "<task>"'),
+  ];
+}
+
+function foothold(name, effort, confidence, blastRadius, command) {
+  return { name, effort, confidence, blastRadius, command };
+}
+
+function battleSoccerScenarios() {
+  return [
+    { id: 'tiny-visual-polish', scope: 'tiny', task: 'Battle Soccer improve one board label or visual state', proof: 'unit test or rendered smoke if UI-visible', acceptance: ['one small visual change', 'no gameplay regression', 'finish-ready explains QA need'] },
+    { id: 'medium-interaction', scope: 'medium', task: 'Battle Soccer add a turn feedback animation or delay', proof: 'npm run test plus rendered/manual smoke', acceptance: ['turn still advances correctly', 'feedback is visible', 'QA script covers player/computer turn'] },
+    { id: 'large-gameplay', scope: 'large', task: 'Battle Soccer add manual component placement before match start', proof: 'tests plus human QA Markdown', acceptance: ['player can place components', 'invalid placement is blocked', 'game start uses placed components'] },
+    { id: 'bugfix-regression', scope: 'bugfix', task: 'Battle Soccer reproduce and fix an invalid attack or placement edge case', proof: 'failing regression test then pass', acceptance: ['bug is reproduced', 'fix is scoped', 'regression evidence captured'] },
+    { id: 'finish-readiness', scope: 'finish', task: 'Battle Soccer review current task readiness for commit', proof: 'finish packet and action preview', acceptance: ['commit/push not automatic', 'open gates listed', 'human decision requested'] },
+  ];
 }
 
 function testBootstrapChecklist(framework) {

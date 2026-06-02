@@ -7,10 +7,17 @@ Usage:
   sdlc prove --task "..." [--repo <path>]
   sdlc qa-ready --task "..." [--repo <path>]
   sdlc finish-ready --task "..." [--repo <path>]
+  sdlc console help
+  sdlc console start|status|next|verify|qa|finish --task "..." [--repo <path>]
+  sdlc welcome [--repo <path>]
+  sdlc setup wizard [--repo <path>]
+  sdlc demo [--task "..."] [--repo <path>]
   sdlc profile show [--repo <path>]
   sdlc help prompts
   sdlc help workflow
   sdlc help onboarding
+  sdlc help local-first
+  sdlc help handoff-packets
   sdlc help route <route>
   sdlc help phase <phase>
   sdlc profile init [--repo <path>] [--shared-context-root <path>]
@@ -44,6 +51,7 @@ Usage:
   sdlc context ledger [--task "..."] [--repo <path>]
   sdlc context decision --task "..." --phase <phase> [--repo <path>] [--out <path>]
   sdlc context why --path <path> --task "..." [--phase <phase>] [--repo <path>]
+  sdlc context prune --task "..." --phase <phase> [--repo <path>] [--out <path>]
   sdlc change graph --task "..." [--repo <path>] [--out <path>]
   sdlc search classify --pattern "..." [--scope <path>] [--repo <path>] [--out <path>]
   sdlc search classify-results --pattern "..." [--scope <path>] [--repo <path>] [--out <path>]
@@ -65,6 +73,7 @@ Usage:
   sdlc task open --task "..." [--repo <path>]
   sdlc task bundle --task "..." [--repo <path>]
   sdlc task status [--task "..."] [--repo <path>]
+  sdlc task journal-check [--task "..."] [--repo <path>] [--json]
   sdlc task doctor --task "..." [--repo <path>]
   sdlc task review --task "..." [--repo <path>]
   sdlc task checkpoint --task "..." [--repo <path>]
@@ -101,6 +110,7 @@ Usage:
   sdlc workspace ledger --task "..." [--repo <path>] [--out <path>] [--refresh]
   sdlc workspace graph [--repo <path>] [--out <path>]
   sdlc workspace impact --task "..." [--repo <path>] [--out <path>]
+  sdlc workspace dependencies --task "..." [--repo <path>]
   sdlc workmode detect [--task "..."] [--repo <path>]
   sdlc surface list
   sdlc surface detect [--task "..."] [--repo <path>] [--files "a,b"]
@@ -150,10 +160,13 @@ Usage:
   sdlc integration packet --task "..." [--repo <path>] [--out <path>]
   sdlc validate ladder --task "..." [--repo <path>] [--out <path>]
   sdlc fixture plan --task "..." [--repo <path>] [--out <path>]
+  sdlc fixture battle-soccer plan [--repo <path>]
+  sdlc fixture battle-soccer run --scenario <id> [--repo <path>]
   sdlc test plan --task "..." [--repo <path>] [--out <path>]
   sdlc test suggest --task "..." [--repo <path>] [--out <path>]
   sdlc test bootstrap-plan --unit <name> --framework dotnet|node|deno|generic [--repo <path>] [--out <path>]
   sdlc test regression-plan --task "..." [--repo <path>] [--out <path>]
+  sdlc test foothold --task "..." [--repo <path>]
   sdlc bug evidence --task "..." [--repo <path>] [--out <path>]
   sdlc bug live-evidence --task "..." [--repo <path>] [--out <path>]
   sdlc bug evidence-check --packet <path> [--repo <path>]
@@ -166,8 +179,27 @@ Usage:
   sdlc command next --task "..." [--repo <path>]
   sdlc command explain --command "..." [--task "..."] [--repo <path>]
   sdlc tools detect [--repo <path>]
+  sdlc tools inventory [--repo <path>] [--json] [--out <path>]
   sdlc tools status --task "..." [--repo <path>]
+  sdlc tools gaps --task "..." [--repo <path>]
+  sdlc tools recommend --task "..." [--repo <path>]
   sdlc tools fallback --task "..." [--repo <path>]
+  sdlc tools experiment add --name <name> --command "..." [--repo <path>]
+  sdlc tools experiment review [--repo <path>]
+  sdlc capabilities negotiate --task "..." [--repo <path>] [--out <path>]
+  sdlc local-first plan --task "..." [--repo <path>] [--out <path>]
+  sdlc prompt clean|structure|audit|score|sanitize --text "..." [--repo <path>]
+  sdlc prompt compile --phase <phase>|--role <role> --task "..." [--repo <path>]
+  sdlc agents plan --task "..." [--repo <path>] [--out <path>]
+  sdlc agents packet --role <role> --task "..." [--repo <path>] [--out <path>]
+  sdlc agents status --task "..." [--repo <path>]
+  sdlc agents lint --packet <path> [--repo <path>]
+  sdlc review local --task "..." [--repo <path>] [--out <path>]
+  sdlc response lint --file <path> [--repo <path>]
+  sdlc qa human-lint --packet <path> [--repo <path>]
+  sdlc acceptance coverage --contract <path> [--repo <path>] [--out <path>]
+  sdlc human review-packet --task "..." [--repo <path>] [--out <path>]
+  sdlc override add --task "..." --gate <id> --reason "..." [--repo <path>]
   sdlc capability snapshot [--repo <path>] [--out <path>]
   sdlc capability doctor [--repo <path>]
   sdlc capability fallback --capability <name> [--task "..."] [--repo <path>]
@@ -180,6 +212,7 @@ Usage:
   sdlc automation budget --route <route> [--repo <path>]
   sdlc event prompt-submit|post-edit|pre-stop|approval-request [--task "..."] [--repo <path>]
   sdlc hooks plan --runtime claude|codex|auggie|augment|generic [--repo <path>] [--out <path>]
+  sdlc hooks audit --runtime claude|codex|auggie|augment|generic [--repo <path>]
   sdlc onboarding pilot [--repo <path>]
   sdlc feedback quick --task "..." [--friction "..."] [--note "..."] [--repo <path>]
   sdlc feedback capture --task "..." --source developer|self|fixture [--repo <path>]
@@ -228,6 +261,7 @@ Usage:
   sdlc complete waive --gate <id> --reason "..." [--owner "..."] [--repo <path>]
   sdlc artifact validate [--repo <path>] [--task-id <id>]
   sdlc artifact summarize [--repo <path>] [--out <path>]
+  sdlc artifact cleanup-plan [--repo <path>] [--run-dir <path>] [--out <path>]
   sdlc artifact migrate [--repo <path>]
   sdlc dashboard [--repo <path>] [--out <path>]
   sdlc adapter generate --runtime augment|auggie|codex|claude|generic [--repo <path>] [--out <path>]
@@ -244,6 +278,7 @@ Usage:
   sdlc scope check --task "..." [--repo <path>]
   sdlc gates [--task "..."] [--repo <path>]
   sdlc handoff draft [--task "..."] [--repo <path>] [--out <path>]
+  sdlc handoff split [--task "..."] [--repo <path>] [--out-dir <path>]
   sdlc calibrate add --route <route> [--repo <path>] [--out <path>]
   sdlc calibrate summary [--repo <path>] [--in <path>] [--out <path>]
   sdlc calibrate inspect [--repo <path>] [--in <path>]
@@ -274,6 +309,7 @@ Usage:
   sdlc process health [--repo <path>] [--out <path>]
   sdlc process dashboard [--repo <path>] [--out <path>]
   sdlc process friction [--repo <path>] [--out <path>]
+  sdlc process review --task "..." [--repo <path>] [--out <path>]
   sdlc policy check --task "..." [--action commit|push|ticket-update|db-query|install|network] [--repo <path>]
   sdlc policy list [--repo <path>]
   sdlc policy validate-config [--repo <path>]
@@ -377,4 +413,53 @@ Use SDLC to review the current completion state of this task: <task>. Tell me wh
 - Commit and push require explicit human approval.
 - Merge, deploy, release, MR/PR creation, pipeline triggers, and manual file movement stay outside default automation.
 - Feedback is local/sanitized by default and is for improving the SDLC, not measuring individual developers.`);
+}
+
+export function helpLocalFirst() {
+  console.log(`# SDLC Local-First Help
+
+Use local-first commands to gather deterministic facts before spending model context on reasoning.
+
+\`\`\`bash
+sdlc tools inventory --repo <path>
+sdlc tools gaps --task "<task>" --repo <path>
+sdlc tools recommend --task "<task>" --repo <path>
+sdlc capabilities negotiate --task "<task>" --repo <path>
+sdlc prompt audit --task "<task>" --repo <path>
+sdlc review local --task "<task>" --repo <path>
+\`\`\`
+
+Behavior contract:
+
+- local facts are evidence,
+- recommendations are suggestions,
+- model output remains judgment until verified,
+- generated artifacts default to ignored .ai-local paths,
+- commit/push/merge/deploy/release stay human-controlled.
+
+Reference: scripts/sdlc/references/local-first-command-contract.md`);
+}
+
+export function helpHandoffPackets() {
+  console.log(`# SDLC Handoff Packet Help
+
+Use handoff packets when they reduce ambiguity, improve verification, support restart, or make human review clearer.
+
+\`\`\`bash
+sdlc agents plan --task "<task>"
+sdlc agents packet --role verification-worker --task "<task>"
+sdlc agents lint --packet <path>
+sdlc agents status --task "<task>"
+\`\`\`
+
+Recommendation levels:
+
+- skip: packet would add overhead,
+- optional: useful if work grows,
+- recommended: likely improves evidence or clarity,
+- strongly-recommended: high-risk, multi-repo, sensitive, release, no-test, or complex handoff work.
+
+Packets are bounded work orders, not autonomous subagents.
+
+Reference: scripts/sdlc/references/agent-packet-contract.md`);
 }

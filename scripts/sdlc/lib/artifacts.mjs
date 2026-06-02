@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { escapeCell, formatList, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteJsonFile, writeOrPrint } from './common.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -158,6 +158,33 @@ export function artifactSummarize(repo, options = {}) {
   writeOrPrint(repo, options.out, lines.join('\n'));
 }
 
+export function artifactCleanupPlan(repo, options = {}) {
+  const info = readCurrentStateInfo(repo, options);
+  const runDir = options.runDir ? resolve(repo, options.runDir) : info.runDir || defaultRunsDir(repo);
+  const rows = artifactLifecycleRows(runDir);
+  const lines = [
+    '# SDLC Artifact Cleanup Plan',
+    '',
+    `Run root: ${runDir}`,
+    '',
+    'This is recommendation-only. Do not delete, move, archive, or rewrite artifacts without explicit human approval.',
+    '',
+    '| Recommendation | Artifact | Reason |',
+    '| --- | --- | --- |',
+    ...rows.map((row) => `| ${row.recommendation} | ${escapeCell(row.artifact)} | ${escapeCell(row.reason)} |`),
+    '',
+    '## Lifecycle Rules',
+    '',
+    '- Temporary run evidence stays under `.ai-local/sdlc-runs/`.',
+    '- Durable product facts belong in repo/unit/shared context, not transient run packets.',
+    '- Portable SDLC learnings belong in sanitized `.agents/learnings/` candidates.',
+    '- Large command logs should be summarized before prompt use.',
+    '- Cleanup remains a human decision.',
+    '',
+  ];
+  writeOrPrint(repo, options.out, lines.join('\n'));
+}
+
 export function artifactMigrate(repo, options = {}) {
   const info = readCurrentStateInfo(repo, options);
   const runDir = info.runDir || ensureControlRunDir(repo, options, options.task || 'migration');
@@ -176,4 +203,54 @@ export function artifactFindings(runDir) {
     if (file.endsWith('.jsonl') && readJsonLines(path).some((row) => row.parseError)) return { status: 'block', artifact: file, detail: 'invalid jsonl row' };
     return { status: 'pass', artifact: file, detail: 'present' };
   });
+}
+
+function artifactLifecycleRows(runDir) {
+  if (!existsSync(runDir)) return [{ recommendation: 'record cap', artifact: runDir, reason: 'run directory not found' }];
+  const files = listArtifactFiles(runDir).slice(0, 250);
+  if (!files.length) return [{ recommendation: 'record', artifact: runDir, reason: 'no artifacts found' }];
+  return files.map((file) => {
+    const size = safeSize(file.abs);
+    if (/run\.json$|run\.md$|state\.json$|evidence\.json$/.test(file.rel)) return { recommendation: 'keep', artifact: file.rel, reason: 'canonical run/evidence state' };
+    if (/agents\/.+\.md$/.test(file.rel)) return { recommendation: 'keep or summarize', artifact: file.rel, reason: 'handoff packet; summarize if prompt context gets large' };
+    if (/\.jsonl$/.test(file.rel)) return { recommendation: 'summarize', artifact: file.rel, reason: 'event/check log; use summary for prompt context' };
+    if (size > 80_000) return { recommendation: 'summarize', artifact: file.rel, reason: `large artifact (${size} bytes)` };
+    if (/tool-gaps|tools\.json|capability|local-first/i.test(file.rel)) return { recommendation: 'keep for run', artifact: file.rel, reason: 'local-first fact cache; refresh instead of copying into durable docs' };
+    return { recommendation: 'review', artifact: file.rel, reason: 'decide whether temporary evidence, durable context, or learning candidate' };
+  });
+}
+
+function listArtifactFiles(root) {
+  const out = [];
+  function walk(dir, prefix = '', depth = 0) {
+    if (depth > 5) return;
+    let entries = [];
+    try {
+      entries = readdirSync(dir).slice(0, 300);
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const abs = join(dir, entry);
+      const rel = prefix ? `${prefix}/${entry}` : entry;
+      let stat;
+      try {
+        stat = statSync(abs);
+      } catch {
+        continue;
+      }
+      if (stat.isDirectory()) walk(abs, rel, depth + 1);
+      else out.push({ abs, rel });
+    }
+  }
+  walk(root);
+  return out;
+}
+
+function safeSize(path) {
+  try {
+    return statSync(path).size;
+  } catch {
+    return 0;
+  }
 }

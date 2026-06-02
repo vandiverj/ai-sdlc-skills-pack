@@ -1,5 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { formatList, safeWriteTextFile } from './common.mjs';
+import { formatList, printTable, safeWriteTextFile } from './common.mjs';
 
 export function adapterGenerate(repo, options = {}) {
   const runtime = options.runtime || 'generic';
@@ -61,4 +62,35 @@ export function hookPlanEvents(runtime) {
   if (runtime === 'codex') return ['Use available hook/plugin surfaces only where supported; otherwise use agent prompt and CLI commands.', ...common];
   if (['auggie', 'augment'].includes(runtime)) return ['Use IDE/CLI task adapters if available; otherwise invoke `sdlc event ...` from run-sdlc guidance.', ...common];
   return common;
+}
+
+export function hooksAudit(repo, options = {}) {
+  const runtime = String(options.runtime || 'generic').toLowerCase();
+  const candidates = hookConfigCandidates(repo, runtime);
+  const rows = candidates.map((path) => auditHookFile(repo, path));
+  console.log(`# SDLC Hook Audit\n\nRuntime: ${runtime}\nRepository: ${repo}\n`);
+  if (!rows.length) {
+    console.log('No known hook configuration files found. Hooks remain optional.');
+    return;
+  }
+  printTable(['File', 'Status', 'Finding', 'Recommendation'], rows.map((row) => [relative(repo, row.path), row.status, row.finding, row.recommendation]));
+  if (rows.some((row) => row.status === 'block')) process.exitCode = 1;
+}
+
+function hookConfigCandidates(repo, runtime) {
+  const all = [
+    join(repo, '.claude', 'settings.json'),
+    join(repo, '.claude', 'settings.local.json'),
+    join(repo, '.augment', 'settings.json'),
+    join(repo, '.auggie', 'settings.json'),
+    join(repo, '.codex', 'settings.json'),
+  ];
+  return all.filter((path) => existsSync(path));
+}
+
+function auditHookFile(repo, path) {
+  const text = readFileSync(path, 'utf8');
+  if (/merge|deploy|release|pipeline|codepipeline|ticket.*update|db.*write|drop table|delete from/i.test(text)) return { path, status: 'block', finding: 'hook appears to reference protected release/ticket/database actions', recommendation: 'remove automation or require explicit human approval outside hook' };
+  if (/PostToolUse|PreToolUse|UserPromptSubmit|hooks|command/i.test(text)) return { path, status: 'warn', finding: 'hook-like configuration found', recommendation: 'prefer user-level reviewed hooks and avoid recursive execution' };
+  return { path, status: 'pass', finding: 'no risky hook signal detected', recommendation: 'keep hooks optional and local' };
 }

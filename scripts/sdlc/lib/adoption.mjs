@@ -106,6 +106,76 @@ sdlc feedback quick --task "<task>" --friction "<category>" --note "<sanitized n
   console.log(content.trimEnd());
 }
 
+export function welcome(repo, options = {}) {
+  console.log(`# Welcome To The AI SDLC
+
+This pack is usually installed once under your user-level \`.agents\` folder so multiple coding agents and repositories can use the same process.
+
+Start in chat:
+
+\`\`\`text
+Use SDLC for this task: <task>. Determine scope, gather context, implement, verify, generate QA Markdown if needed, and stop before commit or push.
+\`\`\`
+
+Small CLI fallback:
+
+\`\`\`bash
+sdlc console help
+sdlc start --task "<task>"
+sdlc next --task "<task>"
+sdlc finish-ready --task "<task>"
+\`\`\`
+
+The SDLC will not automatically merge, deploy, release, push, post ticket updates, or mutate databases.
+`);
+}
+
+export function setupWizard(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const gitInfo = getGitInfo(repo);
+  printObject({
+    repository: repo,
+    branch: gitInfo.branch || 'unknown',
+    profile: profile.path ? relative(repo, profile.path) : 'missing',
+    nextSetupCommand: profile.path ? 'sdlc setup doctor --fix-plan' : 'sdlc setup bootstrap',
+    firstTaskCommand: 'sdlc start --task "<small safe task>"',
+  });
+  console.log('\n## Wizard Steps\n');
+  console.log(formatList([
+    'Confirm this repo can keep .ai-local ignored/local.',
+    'Create or review .ai-local/sdlc-profile.md.',
+    'Map deployable units when one repo contains multiple projects.',
+    'Configure shared context root only for sanitized/local product memory.',
+    'Run one tiny pilot task before high-risk production work.',
+  ]));
+}
+
+export function demo(repo, options = {}) {
+  const task = options.task || 'tiny safe SDLC demo task';
+  console.log(`# SDLC Demo
+
+Try this in chat:
+
+\`\`\`text
+Use SDLC for this tiny safe task: ${task}. Determine scope, make the change, verify it, and stop at the finish decision before commit or push.
+\`\`\`
+
+Or inspect the CLI path:
+
+\`\`\`bash
+sdlc start --task "${escapeCommandArg(task)}"
+sdlc next --task "${escapeCommandArg(task)}"
+sdlc console status --task "${escapeCommandArg(task)}"
+\`\`\`
+
+After the run:
+
+\`\`\`text
+Use SDLC to capture feedback on this run. Keep it sanitized and local unless I approve sharing.
+\`\`\`
+`);
+}
+
 export function feedbackQuick(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so feedback can be tied to a run.');

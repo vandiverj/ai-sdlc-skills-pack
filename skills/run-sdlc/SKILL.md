@@ -75,7 +75,50 @@ sdlc qa-ready --task "<human task>"
 sdlc finish-ready --task "<human task>"
 ```
 
+`sdlc start` and `sdlc console start` create a canonical task run journal under `.ai-local/sdlc-runs/<task-id>/run.md` and `run.json`. Prefer `sdlc next --task "<human task>"` when deciding what to do next; it should return one primary action, why it matters, the command or prompt to use, affected evidence, any human decision, and a fallback.
+
+Use process modes to keep the workflow proportional:
+
+```bash
+sdlc mode detect --task "<human task>"
+sdlc mode explain --mode legacy
+```
+
+Use `quick`, `normal`, `legacy`, `multi-repo`, `ticket`, `fixture`, `sensitive`, or `exploratory` as route modifiers, not replacements for judgment.
+
 The command planner and guide are paved paths, not mandatory golden flows. Use them to reduce visible command clutter. If the agent skips a recommended evidence command or adds a heavier one, explain why in terms of route, risk, surface, or missing proof.
+
+Before spending model context on mechanical discovery, use the local-first control plane for Standard+ work, risky work, cross-repo work, API/data work, no-test work, or rough voice-dictated prompts:
+
+```bash
+sdlc tools inventory --repo <repo>
+sdlc tools gaps --task "<human task>" --repo <repo>
+sdlc tools recommend --task "<human task>" --repo <repo>
+sdlc capabilities negotiate --task "<human task>" --repo <repo>
+sdlc prompt audit --task "<human task>" --repo <repo>
+```
+
+The original human prompt remains authoritative. Prompt cleanup is suggestion-first and must not silently rewrite product terms, ticket IDs, file paths, branch names, code symbols, API names, or user constraints. Use `sdlc prompt compile --phase <phase> --task "<human task>"` or `sdlc prompt compile --role <role> --task "<human task>"` when a bounded paste-ready prompt is useful.
+
+Use bounded agent handoff packets when they reduce ambiguity, organize verification/review/release/learning work, or support restart:
+
+```bash
+sdlc agents plan --task "<human task>"
+sdlc agents packet --role verification-worker --task "<human task>"
+sdlc agents lint --packet <path>
+```
+
+Skip packets for tiny work when they add overhead. Packets are work orders for the current agent/human workflow; they are not autonomous subagents.
+
+Use `sdlc task journal-check --task "<human task>"` when a run feels inconsistent, resumed, or partially migrated. Treat warnings as recovery suggestions unless they affect safety, approval, sensitive data, destructive action, or evidence integrity.
+
+When helping another developer adopt the SDLC, keep the visible workflow simple:
+
+```text
+Use SDLC for this task: <task>. Start local-first, preserve my original prompt, gather tool/context facts, verify with local evidence, prepare QA Markdown if needed, and stop before commit or push.
+```
+
+The same prompt style should work in Augment, Auggie CLI, Codex, or another coding agent that can see the user-level `.agents` folder. Runtime-specific adapter support is optional; do not assume every developer has the same MCPs, hooks, browser tools, ticket access, or database access.
 
 Resume or recover unclear work with:
 
@@ -153,6 +196,8 @@ sdlc activity start --task "<human task>" --runtime codex
 sdlc activity command --task "<human task>" --phase verification --command "<command>" --status pass
 sdlc activity cap --task "<human task>" --phase verification --surface browser --reason "<cap>"
 sdlc activity summary --task "<human task>"
+sdlc activity redundancy --task "<human task>"
+sdlc process review --task "<human task>"
 ```
 
 Activity modes are `off`, `light`, `full`, and `debug`. Repo-local config lives in `.ai-local/sdlc-activity-config.json`. Passive/hook capture must honor `off`; direct activity commands are intentional evidence capture. Never record raw ticket text, production rows, secrets, private URLs, customer data, raw logs, or proprietary code snippets in activity events. Use `debug` only for local troubleshooting and treat summaries as process-improvement evidence, not developer performance scoring.

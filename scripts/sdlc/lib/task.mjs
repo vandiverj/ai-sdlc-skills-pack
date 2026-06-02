@@ -12,6 +12,9 @@ import { affectedUnits, inferTestingSurfaces, matchesAny, qaModeForSurfaces } fr
 import { artifactBudgetForRoute, formatArtifactBudget } from './artifacts.mjs';
 import { qaScript } from './qa.mjs';
 import { verificationMaturity } from './assessment.mjs';
+import { loadTaskJournal, upsertTaskJournal } from './journal.mjs';
+import { analyzePrompt } from './prompt.mjs';
+import { buildLocalFirstPlan } from './tools.mjs';
 
 export function taskType(task) {
   const text = String(task || '').toLowerCase();
@@ -248,6 +251,8 @@ export function taskStart(repo, options = {}, deps = {}) {
   const caseId = deps.taskCaseId(task, options, profile.values);
   const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
   const testingSurfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const promptAnalysis = analyzePrompt(task, repo, options);
+  const localFirst = buildLocalFirstPlan(repo, task, options);
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-task-start.md`);
   mkdirSync(dirname(outPath), { recursive: true });
 
@@ -308,6 +313,15 @@ ${formatList(triggers)}
 `;
 
   safeWriteTextFile(repo, outPath, content);
+  upsertTaskJournal(repo, task, {
+    route,
+    status: 'started',
+    mode: modes[0] || 'normal',
+    promptAnalysis,
+    localFirst,
+    packets: [{ kind: 'task-start', path: relative(repo, outPath) }],
+    nextRecommendedAction: `sdlc next --task "${deps.escapeCommandArg(task)}"`,
+  }, options);
   console.log(relative(repo, outPath));
 }
 
@@ -375,6 +389,7 @@ export function taskStatus(repo, options = {}, deps = {}) {
   const packets = deps.findPackets(repo, {});
   const open = deps.finalGateOpenItems(repo, task, git, packets);
   const metrics = deps.taskMetrics(repo, task, git, packets);
+  const journal = task ? loadTaskJournal(repo, task, options) : {};
   printObject({
     repository: repo,
     task: task || 'not provided',
@@ -384,7 +399,8 @@ export function taskStatus(repo, options = {}, deps = {}) {
     packets: packets.length,
     finalGate: open.length ? 'open' : 'ready with explicit human approval',
     openGates: open.join('; ') || 'none detected',
-    suggestedNextCommand: open[0] ? deps.suggestedFinalGateCommand(open[0], task) : 'sdlc task finish --task "..."',
+    journal: journal.paths?.markdown ? relative(repo, journal.paths.markdown) : 'missing',
+    suggestedNextCommand: journal.nextRecommendedAction || (open[0] ? deps.suggestedFinalGateCommand(open[0], task) : 'sdlc task finish --task "..."'),
   });
   console.log('\n## Metrics\n');
   console.log(formatList(Object.entries(metrics).map(([key, value]) => `${deps.humanize(key)}: ${value}`)));
@@ -597,6 +613,14 @@ ${deps.confidenceBlock({
   })}
 `;
   writeFileSync(outPath, content, 'utf8');
+  upsertTaskJournal(repo, task, {
+    route,
+    status: open.length ? 'finish-blocked' : 'finish-ready',
+    packets: [{ kind: 'task-finish', path: relative(repo, outPath) }],
+    evidenceCaptured: deps.taskEvidenceSummary(repo, packets),
+    finalHandoffSummary: open.length ? `Open gates: ${open.join('; ')}` : 'Ready for explicit human finish decision.',
+    nextRecommendedAction: open[0] ? deps.suggestedFinalGateCommand(open[0], task) : 'Ask human to choose no action / commit only / commit and push.',
+  }, options);
   console.log(relative(repo, outPath));
   if (open.length) process.exitCode = 1;
 }

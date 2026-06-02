@@ -183,6 +183,103 @@ Use this section for human QA testers. Keep it source-code-free and pasteable in
   console.log(relative(repo, outPath));
 }
 
+export function handoffSplit(repo, options = {}, deps = {}) {
+  const task = options.task || '';
+  const outDir = options.outDir ? resolve(repo, options.outDir) : join(defaultRunsDir(repo), 'handoff');
+  mkdirSync(outDir, { recursive: true });
+  const gitInfo = getGitInfo(repo);
+  const packets = deps.findPackets(repo, {});
+  const common = {
+    task: task || 'not provided',
+    repo,
+    branch: gitInfo.branch || 'unknown',
+    head: gitInfo.head || 'unknown',
+    status: gitInfo.status || 'clean',
+  };
+  const agentEvidence = `# SDLC Agent Evidence
+
+Task: ${common.task}
+Repository: ${common.repo}
+Branch: ${common.branch}
+Head: ${common.head}
+Status: ${common.status}
+
+## Packet Links
+
+${formatList(packets.map((packet) => `${packet.kind}: ${relative(repo, packet.path)}`))}
+
+## Agent Notes
+
+- Include route reasoning, caps, command evidence, and internal process notes here.
+- Keep this local unless explicitly approved for sharing.
+`;
+  const humanHandoff = `# Human Handoff
+
+Task: ${common.task}
+Branch: ${common.branch}
+Status: ${common.status}
+
+## Summary
+
+-
+
+## What Changed
+
+-
+
+## Verification
+
+-
+
+## Risks Or Caps
+
+-
+
+## Next Human Decision
+
+- Commit/push/release actions require explicit human approval.
+`;
+  const qaScript = `# QA Script
+
+Task: ${common.task}
+
+## Scope
+
+-
+
+## Preconditions
+
+-
+
+## Test Steps
+
+1.
+
+## Expected Results
+
+-
+
+## Regression Areas
+
+-
+
+## Notes
+
+- This script is for human QA testers. It does not require AI.
+`;
+  const files = [
+    ['agent-evidence.md', agentEvidence],
+    ['human-handoff.md', humanHandoff],
+    ['qa-script.md', qaScript],
+  ];
+  for (const [name, text] of files) safeWriteTextFile(repo, join(outDir, name), text);
+  printObject({
+    agentEvidence: relative(repo, join(outDir, 'agent-evidence.md')),
+    humanHandoff: relative(repo, join(outDir, 'human-handoff.md')),
+    qaScript: relative(repo, join(outDir, 'qa-script.md')),
+  });
+}
+
 export function dashboard(repo, options = {}, deps = {}) {
   const state = readCurrentState(repo, options) || loadRunState(repo, options.task || '') || deps.synthesizeState(repo, options.task || '', options);
   const runDir = readCurrentStateInfo(repo, options).runDir || defaultRunsDir(repo);

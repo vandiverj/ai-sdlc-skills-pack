@@ -7,6 +7,8 @@ import { loadProfile } from './profile.mjs';
 import { matchRecipes } from './recipes.mjs';
 import { inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { detectStack } from './units.mjs';
+import { analyzePrompt } from './prompt.mjs';
+import { recommendAgentPackets } from './agentpackets.mjs';
 
 const modulePath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(modulePath), '..', '..', '..');
@@ -76,8 +78,30 @@ export function scenarioTest(repo, options = {}) {
   }
 
   if (results.some((result) => !result.pass)) process.exitCode = 1;
+  const promptResults = promptRegressionCases().map((item) => {
+    const analysis = analyzePrompt(item.task, repo, options);
+    const pass = (!item.noRiskTerms || analysis.riskTerms.length === 0) &&
+      (!item.expectedRiskTerms || item.expectedRiskTerms.every((term) => analysis.riskTerms.includes(term))) &&
+      (!item.expectedDenials || item.expectedDenials.every((term) => analysis.denials.includes(term))) &&
+      (!item.expectedCorrections || item.expectedCorrections.every((term) => analysis.corrections.some((row) => row.original === term)));
+    return { ...item, analysis, pass };
+  });
+  for (const result of promptResults) {
+    console.log(`${result.pass ? 'PASS' : 'FAIL'} prompt ${result.name}: risk=${result.analysis.riskTerms.join(',') || 'none'} denials=${result.analysis.denials.join(',') || 'none'}`);
+    if (!result.pass) console.log(`  task: ${result.task}`);
+  }
+  const agentResults = agentRegressionCases().map((item) => {
+    const rows = recommendAgentPackets(repo, item.task, options);
+    const pass = Object.entries(item.expected || {}).every(([role, recommendation]) => rows.find((row) => row.role === role)?.recommendation === recommendation);
+    return { ...item, rows, pass };
+  });
+  for (const result of agentResults) {
+    console.log(`${result.pass ? 'PASS' : 'FAIL'} agents ${result.name}: ${result.rows.map((row) => `${row.role}=${row.recommendation}`).join(', ')}`);
+    if (!result.pass) console.log(`  task: ${result.task}`);
+  }
+  if (promptResults.some((result) => !result.pass) || agentResults.some((result) => !result.pass)) process.exitCode = 1;
   if (options.verbose) {
-    console.log(`\nScenarios tested: ${results.length}`);
+    console.log(`\nScenarios tested: ${results.length}; prompt checks: ${promptResults.length}; agent checks: ${agentResults.length}`);
   }
 }
 
@@ -369,6 +393,56 @@ export function scenarioRegressionCases() {
       task: 'promote generated SPA artifacts from a build-only Webpack app into a host repository while preserving host pages',
       expectedRoute: 'standard',
       expectedRecipes: ['spa-artifact-promotion'],
+    },
+  ];
+}
+
+export function promptRegressionCases() {
+  return [
+    {
+      name: 'soccer is not soc',
+      task: 'Battle Soccer validation',
+      noRiskTerms: true,
+    },
+    {
+      name: 'sql no push sensitive',
+      task: 'Production SQL bug; do not push; QA needs markdown',
+      expectedRiskTerms: ['production', 'sql'],
+      expectedDenials: ['do not push'],
+    },
+    {
+      name: 'dictation typo suggestions',
+      task: 'implment the walid API tess',
+      expectedCorrections: ['implment', 'walid', 'tess'],
+    },
+  ];
+}
+
+export function agentRegressionCases() {
+  return [
+    {
+      name: 'battle soccer verify only',
+      task: 'Battle Soccer validation verify game behavior',
+      expected: {
+        'verification-worker': 'recommended',
+        'independent-reviewer': 'skip',
+      },
+    },
+    {
+      name: 'production multi repo database qa',
+      task: 'production multi-repo SQL bug with manual QA handoff and no automated tests',
+      expected: {
+        'verification-worker': 'strongly-recommended',
+        'independent-reviewer': 'strongly-recommended',
+        'release-handoff-worker': 'strongly-recommended',
+      },
+    },
+    {
+      name: 'process learning',
+      task: 'review SDLC process learning and repeated friction',
+      expected: {
+        'process-learning-reviewer': 'recommended',
+      },
     },
   ];
 }

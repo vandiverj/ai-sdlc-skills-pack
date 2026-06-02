@@ -14,14 +14,14 @@ import { ensureEvidenceManifest, evidenceAdd, evidenceGap, evidenceInit, evidenc
 import { detectCiSystems, detectDeploySystems, detectTestFrameworks, sharedContextDetails, sharedContextReachability } from './environment.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { detectContextContradictions, evalAddCase, evalCase, evalCompare, evalReport, evalRun, evalSuite, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
-import { adapterGenerate, hooksPlan } from './adapters.mjs';
+import { adapterGenerate, hooksAudit, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
-import { contextAliases, contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextDecision, contextDocCandidates, contextFinalCheck, contextFreshness, contextFreshnessRecommendations, contextFreshnessRow, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextPlacement, contextPlacementRecommendation, contextResolve, contextRestore, contextUpdatePlan, contextUpdateTargets, contextWhy, finalContextSignals, formatContextDocs, recommendedContextFile } from './context.mjs';
+import { contextAliases, contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextDecision, contextDocCandidates, contextFinalCheck, contextFreshness, contextFreshnessRecommendations, contextFreshnessRow, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextPlacement, contextPlacementRecommendation, contextPrune, contextResolve, contextRestore, contextUpdatePlan, contextUpdateTargets, contextWhy, finalContextSignals, formatContextDocs, recommendedContextFile } from './context.mjs';
 import { learnArchive, learnBacklog, learnCandidates, learnCapture, learnDedupe, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnProposeChange, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck, learnWorkbench } from './learning.mjs';
 import { caseIdPolicy, expectedQaNeed, proposedCommitMessage, requiresCaseId, shouldSuggestTestPlan, taskBundle, taskCaseId, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskLedgerRows, taskMetrics, taskOpen, taskPreflight, taskQa, taskReview, taskRunId, taskStart, taskStatus, taskType, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
-import { workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
+import { workspaceDependencies, workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
 import { multiLedger, multiPacket, multiQa, multiStatus } from './multi.mjs';
 import { contractCheck, contractPacket, contractTask } from './contract.mjs';
 import { dataBoundary, dataEvidence, dataPacket, dataQueryPlan } from './data.mjs';
@@ -32,33 +32,40 @@ import { classifyRuntimeSurface, classifyTouchedSurface, needsManualQa } from '.
 import { accessibilityPolicy, formatAccessibilityPolicy, formatSecurityOverlay, releaseComplete, releaseOrderNote, releasePacket, reviewComplete, reviewPacket } from './release.mjs';
 import { renderEvidencePacket, renderedEvidencePlan, renderPlan, renderSmoke } from './render.mjs';
 import { instructionAudit, permissionPolicyPacket, riskAgentic, riskAgenticPreflight, safetyFinish, safetyPreflight, toolAuditPacket } from './safety.mjs';
-import { doctorFull, formatCommandList, formatCounts, groupCounts, health, installCheck, missingSetup, normalizeArray, processDashboard, processFriction, processHealth, readinessChecks, readinessStatus, setupBootstrap, setupDoctor, setupFixPlan } from './health.mjs';
+import { doctorFull, formatCommandList, formatCounts, groupCounts, health, installCheck, missingSetup, normalizeArray, processDashboard, processFriction, processHealth, processReview, readinessChecks, readinessStatus, setupBootstrap, setupDoctor, setupFixPlan } from './health.mjs';
 import { actionPreview, completeCheck, completeExplain, completeWaive, finalGate, finalGateOpenItems, finishPacket, gitGuard, gitPacket, suggestedFinalGateCommand } from './finish.mjs';
 import { scopeCheck, scopeExpect } from './scope.mjs';
-import { fixturePlan, testBootstrapPlan, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
+import { fixtureBattleSoccerPlan, fixtureBattleSoccerRun, fixturePlan, testBootstrapPlan, testFoothold, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
 import { verifyComplete, verifyLadder, verifyPacket, verifyRun } from './verify.mjs';
 import { doneCheck, packetStatus, routeProof, routeRetire, routeStart } from './routepackets.mjs';
 import { bugEvidenceCheck, bugEvidencePacket, bugLiveEvidence, bugNextCommand, bugWorkflowPacket, commandClassify, dotnetEfcoreDiagnose, fixScope, patternAnalog } from './diagnostics.mjs';
 import { commandExplain, commandHelpPhase, commandHelpRoute, commandNext, commandPlan } from './commandplan.mjs';
 import { guideFinish, guideStart, guideStatus } from './guide.mjs';
+import { consoleFinish, consoleHelp, consoleNext, consoleQa, consoleStart, consoleStatus, consoleVerify } from './console.mjs';
+import { modeDetect, modeExplain } from './modes.mjs';
+import { journalCheck } from './journal.mjs';
 import { scorecardSummary, scorecardTask, scorecardTrends, traceAttach, traceEvent, traceExport, traceFinish, traceStart } from './telemetry.mjs';
 import { activityCommand } from './activity.mjs';
-import { automationBudget, feedbackCapture, feedbackQuick, feedbackReview, feedbackSummary, onboardingPilot, sdlcEvent } from './adoption.mjs';
+import { automationBudget, demo, feedbackCapture, feedbackQuick, feedbackReview, feedbackSummary, onboardingPilot, sdlcEvent, setupWizard, welcome } from './adoption.mjs';
 import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calibratePropose, calibrateSummary, learnedFlowCandidates, processProposals, readCalibrationRows } from './calibration.mjs';
-import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, readiness as statusReadiness } from './status.mjs';
+import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, handoffSplit as statusHandoffSplit, readiness as statusReadiness } from './status.mjs';
 import { intakeCheck, intakePacket } from './intake.mjs';
 import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
 import { confidenceBlock, detectWorkModes, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, inferVerificationMaturity, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verificationMaturity, verify, workmodeDetect } from './assessment.mjs';
 import { changeGraph, changeGraphEdges, changeGraphImplications, classifySearchPath, formatSearchGroups, groupBy, searchClassify, searchPattern, searchRetireCheck } from './graphsearch.mjs';
 import { createServices } from './services.mjs';
-import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
+import { helpHandoffPackets, helpLocalFirst, helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policySimulate, policyValidateConfig } from './policy.mjs';
-import { artifactBudget, artifactBudgetForRoute, artifactMigrate, artifactSpaPlan, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
+import { artifactBudget, artifactBudgetForRoute, artifactCleanupPlan, artifactMigrate, artifactSpaPlan, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
 import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
 import { impactAreas, primaryQaSteps, qaAreas, qaBuild, qaCompare, qaComplete, qaCoverage, qaHandoff, qaLint, qaModeCommand, qaOutline, qaOutlineForMode, qaReview, qaScenarios, qaScript, qaValidate } from './qa.mjs';
-import { capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsFallback, toolsStatus } from './tools.mjs';
+import { capabilitiesNegotiate, capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, localFirstPlan, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsExperimentAdd, toolsExperimentReview, toolsFallback, toolsGaps, toolsInventory, toolsRecommend, toolsStatus } from './tools.mjs';
 import { affectedUnits, classifyTestingSurface, detectPackageManager, inferTestingSurfaces, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitResolve } from './units.mjs';
 import { contextGateRows, controlGateRows } from './gates.mjs';
+import { promptAudit, promptClean, promptCompile, promptSanitize, promptScore, promptStructure } from './prompt.mjs';
+import { agentsLint, agentsPacket, agentsPlan, agentsStatus } from './agentpackets.mjs';
+import { acceptanceCoverage, humanReviewPacket, qaHumanLint, responseLint, reviewLocal } from './localreview.mjs';
+import { overrideAdd } from './overrides.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(scriptPath), '..', '..', '..');
@@ -78,14 +85,16 @@ export async function main(argv) {
   const repo = resolve(options.repo || process.cwd());
 
   if (area === 'run-check') return runCheck(resolve(areaOptions.repo || process.cwd()), parseOptions(argv.slice(1)), argv.slice(1), checkDependencies());
-  if (area === 'start') return guideStart(resolve(areaOptions.repo || process.cwd()), areaOptions);
-  if (area === 'next') return commandNext(resolve(areaOptions.repo || process.cwd()), areaOptions);
+  if (area === 'start') return consoleStart(resolve(areaOptions.repo || process.cwd()), areaOptions, consoleDependencies());
+  if (area === 'next') return consoleNext(resolve(areaOptions.repo || process.cwd()), areaOptions, consoleDependencies());
   if (area === 'prove') return evidenceMatrix(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'qa-ready') return qaCoverage(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'finish-ready') return completeCheck(resolve(areaOptions.repo || process.cwd()), areaOptions, finishDependencies());
   if (area === 'help' && (action === 'prompts' || action === 'prompt')) return helpPrompts();
   if (area === 'help' && action === 'workflow') return helpWorkflow();
   if (area === 'help' && (action === 'onboarding' || action === 'start')) return helpOnboarding();
+  if (area === 'help' && action === 'local-first') return helpLocalFirst();
+  if (area === 'help' && (action === 'handoff-packets' || action === 'agents')) return helpHandoffPackets();
   if (area === 'help' && action === 'route') return commandHelpRoute(repo, rest[0] || options.route, options);
   if (area === 'help' && action === 'phase') return commandHelpPhase(repo, rest[0] || options.phase, options);
   if (area === 'profile' && action === 'show') return profileShow(repo);
@@ -121,6 +130,7 @@ export async function main(argv) {
   if (area === 'context' && action === 'ledger') return contextLedger(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'decision') return contextDecision(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'why') return contextWhy(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'prune') return contextPrune(repo, options, contextControlDependencies());
   if (area === 'change' && (action === 'graph' || action === 'graph-lite')) return changeGraph(repo, options, graphSearchDependencies());
   if (area === 'search' && action === 'classify') return searchClassify(repo, options, graphSearchDependencies());
   if (area === 'search' && action === 'classify-results') return searchClassify(repo, options, graphSearchDependencies());
@@ -142,6 +152,7 @@ export async function main(argv) {
   if (area === 'task' && (action === 'open')) return taskOpen(repo, options, taskDependencies());
   if (area === 'task' && (action === 'bundle')) return taskBundle(repo, options, taskDependencies());
   if (area === 'task' && action === 'status') return taskStatus(repo, options, taskDependencies());
+  if (area === 'task' && action === 'journal-check') return journalCheck(repo, options);
   if (area === 'task' && action === 'doctor') return taskDoctor(repo, options, taskDependencies());
   if (area === 'task' && (action === 'review' || action === 'checkpoint')) return taskReview(repo, options, taskDependencies());
   if (area === 'task' && action === 'ledger') return taskLedger(repo, options, taskDependencies());
@@ -165,6 +176,15 @@ export async function main(argv) {
   if (area === 'run' && action === 'dashboard') return runDashboard(repo, options, runActionDependencies());
   if (area === 'run' && action === 'start') return runStart(repo, options, runLifecycleDependencies());
   if (area === 'run' && action === 'finish') return runFinish(repo, options, runLifecycleDependencies());
+  if (area === 'console' && (!action || action === 'help')) return consoleHelp();
+  if (area === 'console' && action === 'start') return consoleStart(repo, options, consoleDependencies());
+  if (area === 'console' && action === 'status') return consoleStatus(repo, options);
+  if (area === 'console' && action === 'next') return consoleNext(repo, options, consoleDependencies());
+  if (area === 'console' && action === 'verify') return consoleVerify(repo, options, consoleDependencies());
+  if (area === 'console' && action === 'qa') return consoleQa(repo, options);
+  if (area === 'console' && action === 'finish') return consoleFinish(repo, options);
+  if (area === 'mode' && action === 'detect') return modeDetect(repo, options);
+  if (area === 'mode' && action === 'explain') return modeExplain(repo, rest[0] || options.mode);
   if (area === 'guide' && action === 'start') return guideStart(repo, options);
   if (area === 'guide' && action === 'status') return guideStatus(repo, options);
   if (area === 'guide' && action === 'finish') return guideFinish(repo, options);
@@ -176,6 +196,7 @@ export async function main(argv) {
   if (area === 'workspace' && action === 'ledger') return workspaceLedger(repo, options);
   if (area === 'workspace' && action === 'graph') return workspaceGraph(repo, options);
   if (area === 'workspace' && action === 'impact') return workspaceImpact(repo, options);
+  if (area === 'workspace' && action === 'dependencies') return workspaceDependencies(repo, options);
   if (area === 'workmode' && action === 'detect') return workmodeDetect(repo, options, assessmentDependencies());
   if (area === 'surface' && (action === 'list' || action === 'taxonomy')) return surfaceList();
   if (area === 'surface' && action === 'detect') return surfaceDetect(repo, options);
@@ -225,10 +246,13 @@ export async function main(argv) {
   if (area === 'integration' && action === 'packet') return integrationPacket(repo, options, { classifyTouchedSurface });
   if (area === 'validate' && action === 'ladder') return validationLadder(repo, options, assessmentDependencies());
   if (area === 'fixture' && action === 'plan') return fixturePlan(repo, options, testPlanDependencies());
+  if (area === 'fixture' && action === 'battle-soccer' && rest[0] === 'plan') return fixtureBattleSoccerPlan(repo, options);
+  if (area === 'fixture' && action === 'battle-soccer' && rest[0] === 'run') return fixtureBattleSoccerRun(repo, options);
   if (area === 'test' && action === 'plan') return testPlan(repo, options, testPlanDependencies());
   if (area === 'test' && action === 'suggest') return testSuggest(repo, options, testPlanDependencies());
   if (area === 'test' && action === 'bootstrap-plan') return testBootstrapPlan(repo, options, testPlanDependencies());
   if (area === 'test' && action === 'regression-plan') return testRegressionPlan(repo, options, testPlanDependencies());
+  if (area === 'test' && action === 'foothold') return testFoothold(repo, options, testPlanDependencies());
   if (area === 'bug' && (action === 'evidence' || action === 'packet')) return bugEvidencePacket(repo, options, diagnosticsDependencies());
   if (area === 'bug' && action === 'live-evidence') return bugLiveEvidence(repo, options, diagnosticsDependencies());
   if (area === 'bug' && action === 'evidence-check') return bugEvidenceCheck(repo, options, diagnosticsDependencies());
@@ -243,6 +267,29 @@ export async function main(argv) {
   if (area === 'tools' && action === 'detect') return toolsDetect(repo, options);
   if (area === 'tools' && action === 'status') return toolsStatus(repo, options);
   if (area === 'tools' && action === 'fallback') return toolsFallback(repo, options);
+  if (area === 'tools' && action === 'inventory') return toolsInventory(repo, options);
+  if (area === 'tools' && action === 'gaps') return toolsGaps(repo, options);
+  if (area === 'tools' && action === 'recommend') return toolsRecommend(repo, options);
+  if (area === 'tools' && action === 'experiment' && rest[0] === 'add') return toolsExperimentAdd(repo, options);
+  if (area === 'tools' && action === 'experiment' && rest[0] === 'review') return toolsExperimentReview(repo, options);
+  if ((area === 'capabilities' || area === 'capability') && action === 'negotiate') return capabilitiesNegotiate(repo, options);
+  if (area === 'local-first' && action === 'plan') return localFirstPlan(repo, options);
+  if (area === 'prompt' && action === 'clean') return promptClean(repo, options);
+  if (area === 'prompt' && action === 'structure') return promptStructure(repo, options);
+  if (area === 'prompt' && action === 'audit') return promptAudit(repo, options);
+  if (area === 'prompt' && action === 'score') return promptScore(repo, options);
+  if (area === 'prompt' && action === 'sanitize') return promptSanitize(repo, options);
+  if (area === 'prompt' && action === 'compile') return promptCompile(repo, options);
+  if (area === 'agents' && action === 'plan') return agentsPlan(repo, options);
+  if (area === 'agents' && action === 'packet') return agentsPacket(repo, options);
+  if (area === 'agents' && action === 'status') return agentsStatus(repo, options);
+  if (area === 'agents' && action === 'lint') return agentsLint(repo, options);
+  if (area === 'review' && action === 'local') return reviewLocal(repo, options);
+  if (area === 'response' && action === 'lint') return responseLint(repo, options);
+  if (area === 'qa' && action === 'human-lint') return qaHumanLint(repo, options);
+  if (area === 'acceptance' && action === 'coverage') return acceptanceCoverage(repo, options);
+  if (area === 'human' && action === 'review-packet') return humanReviewPacket(repo, options);
+  if (area === 'override' && action === 'add') return overrideAdd(repo, options);
   if (area === 'capability' && action === 'snapshot') return capabilitySnapshot(repo, options);
   if (area === 'capability' && action === 'doctor') return capabilityDoctor(repo, options);
   if (area === 'capability' && action === 'fallback') return capabilityFallback(repo, options);
@@ -254,6 +301,10 @@ export async function main(argv) {
   if (area === 'automation' && action === 'budget') return automationBudget(repo, options);
   if (area === 'event' && ['prompt-submit', 'post-edit', 'pre-stop', 'approval-request'].includes(action)) return sdlcEvent(repo, action, options);
   if (area === 'hooks' && action === 'plan') return hooksPlan(repo, options);
+  if (area === 'hooks' && action === 'audit') return hooksAudit(repo, options);
+  if (area === 'welcome') return welcome(resolve(areaOptions.repo || process.cwd()), areaOptions);
+  if (area === 'setup' && action === 'wizard') return setupWizard(repo, options);
+  if (area === 'demo') return demo(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'onboarding' && action === 'pilot') return onboardingPilot(repo, options);
   if (area === 'feedback' && action === 'quick') return feedbackQuick(repo, options);
   if (area === 'feedback' && action === 'capture') return feedbackCapture(repo, options);
@@ -292,6 +343,7 @@ export async function main(argv) {
   if (area === 'complete' && action === 'waive') return completeWaive(repo, options, finishDependencies());
   if (area === 'artifact' && action === 'validate') return artifactValidate(repo, options);
   if (area === 'artifact' && action === 'summarize') return artifactSummarize(repo, options);
+  if (area === 'artifact' && action === 'cleanup-plan') return artifactCleanupPlan(repo, options);
   if (area === 'artifact' && action === 'migrate') return artifactMigrate(repo, options);
   if (area === 'artifact' && (action === 'spa-plan' || action === 'spa')) return artifactSpaPlan(repo, options);
   if (area === 'dashboard') return statusDashboard(resolve(areaOptions.repo || repo), areaOptions, statusDependencies());
@@ -309,6 +361,7 @@ export async function main(argv) {
   if (area === 'scope' && action === 'check') return scopeCheck(repo, options, scopeDependencies());
   if (area === 'gates') return statusGates(repo, areaOptions, statusDependencies());
   if (area === 'handoff' && action === 'draft') return statusHandoffDraft(repo, options, statusDependencies());
+  if (area === 'handoff' && action === 'split') return statusHandoffSplit(repo, options, statusDependencies());
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
   if (area === 'calibrate' && action === 'summary') return calibrateSummary(repo, options);
   if (area === 'calibrate' && action === 'inspect') return calibrateInspect(repo, options);
@@ -345,6 +398,7 @@ export async function main(argv) {
   if (area === 'process' && action === 'health') return processHealth(repo, options, healthDependencies());
   if (area === 'process' && action === 'dashboard') return processDashboard(repo, options, healthDependencies());
   if (area === 'process' && action === 'friction') return processFriction(repo, options, healthDependencies());
+  if (area === 'process' && action === 'review') return processReview(repo, options, healthDependencies());
   if (area === 'policy' && action === 'check') return policyCheck(repo, options);
   if (area === 'policy' && action === 'explain') return policyExplain(repo, options);
   if (area === 'policy' && action === 'list') return policyList(repo, options);
@@ -526,6 +580,14 @@ function runActionDependencies() {
 
 function runLifecycleDependencies() {
   return { doneChecksForRoute, findLatestPacket, readPacket, resolvePacketPath, runStartGates, runStartPacketCommand };
+}
+
+function consoleDependencies() {
+  return {
+    finalGateOpenItems,
+    findPackets,
+    suggestedFinalGateCommand,
+  };
 }
 
 function stateDependencies() {

@@ -151,6 +151,54 @@ ${formatList([
   writeOrPrintProcess(repo, options.out, content);
 }
 
+export function processReview(repo, options = {}, dependencies = {}) {
+  const packets = dependencies.findPackets(repo, {});
+  const activityRows = findRunFiles(repo, 'activity.jsonl').flatMap((file) => readJsonLines(file));
+  const feedbackRows = findRunFiles(repo, 'feedback.jsonl').flatMap((file) => readJsonLines(file));
+  const contextLedgers = findRunFiles(repo, 'context-ledger.jsonl');
+  const openPackets = packets.filter((packet) => !packet.completed && dependencies.completionTrackedPacketKinds().includes(packet.kind));
+  const repeated = activityRows.filter((row) => row.status === 'repeat' || /repeat|rerun|again|same command/i.test(`${row.intent || ''} ${row.target || ''}`));
+  const content = `# SDLC Process Review
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Task: ${options.task || 'not provided'}
+
+## Signals
+
+- Packets: ${packets.length}
+- Open tracked packets: ${openPackets.length}
+- Activity events: ${activityRows.length}
+- Repeated activity signals: ${repeated.length}
+- Feedback rows: ${feedbackRows.length}
+- Context ledgers: ${contextLedgers.length}
+
+## Findings
+
+${formatList([
+  openPackets.length ? 'Some tracked packets remain open; finish claims should name the missing evidence, waiver, or cap.' : 'No open tracked packets detected.',
+  activityRows.length ? 'Activity evidence is available for redundancy review.' : 'No activity telemetry captured; review is based on packets and run artifacts only.',
+  repeated.length ? 'Repeated activity suggests an opportunity for a deterministic helper, clearer next action, or better context selection.' : 'No repeated activity signal detected.',
+  contextLedgers.length > 2 ? 'Multiple context ledgers exist; verify prompt context stayed phase-scoped.' : 'No obvious context overload signal.',
+  feedbackRows.length ? 'Developer feedback exists and should be grouped before process changes.' : 'No developer feedback captured.',
+])}
+
+## Recommendations
+
+${formatList([
+  'Use `sdlc next --task "..."` for one recommended next action before asking the model to reason broadly.',
+  'Use `sdlc context prune --task "..." --phase <phase>` when context feels heavy.',
+  'Use `sdlc activity redundancy --task "..."` only when telemetry was intentionally enabled.',
+  'Promote process changes only after repeated sanitized signals, not a single awkward run.',
+])}
+
+## Privacy Boundary
+
+This review is for process improvement, not developer performance scoring. Keep raw prompts, client details, production logs, and proprietary data local.
+`;
+  writeOrPrintProcess(repo, options.out, content);
+}
+
 function findRunFiles(repo, name) {
   const root = defaultRunsDir(repo);
   if (!existsSync(root)) return [];

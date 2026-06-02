@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { appendControlJsonLine, dedupe, escapeCell, escapeCommandArg, fail, formatInlineList, formatList, optionFiles, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, splitList, stamp } from './common.mjs';
+import { appendControlJsonLine, dedupe, escapeCell, escapeCommandArg, fail, formatInlineList, formatList, optionFiles, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, splitList, stamp, writeOrPrint } from './common.mjs';
 import { evidenceRequirementsForTask, readEvidenceManifest } from './evidence.mjs';
 import { getGitInfo } from './git.mjs';
 import { safeReadSmall } from './index.mjs';
@@ -840,6 +840,55 @@ export function contextGate(repo, options = {}, deps = {}) {
   printObject({ task: task || 'not provided', result: blocked.length ? 'blocked' : rows.some((row) => row.status === 'warn') ? 'warn' : 'pass' });
   deps.printGateRows(rows);
   if (blocked.length) process.exitCode = 1;
+}
+
+export function contextPrune(repo, options = {}, deps = {}) {
+  const phase = options.phase || 'planning';
+  const packet = buildContextPacket(repo, phase, options);
+  const maxTokens = Number(options.maxTokens || contextPhaseBudget(phase));
+  const rows = [
+    ...packet.units.map((unit) => includeRow(`unit:${unit.name}`, unit.path, 'include', 'affected deployable/code unit')),
+    ...packet.files.map((file) => includeRow('changed-file', file, 'include', 'changed or explicitly selected file')),
+    ...packet.requirements.map((item) => includeRow(`evidence:${item.id}`, item.summary, 'include', `${item.level} evidence requirement`)),
+    includeRow('archive', 'archive/', 'exclude', 'archived research/plans are provenance, not active context'),
+    includeRow('raw-output', 'tool output/logs', 'summarize', 'include summaries, not multiline raw output'),
+    includeRow('sensitive-detail', 'tickets/database/client data', 'sanitize', 'use sanitized summary unless local policy permits exact detail'),
+  ];
+  const estimated = approxTokens(renderContextPacket(packet));
+  const content = `# SDLC Context Prune Decision
+
+Date: ${new Date().toISOString()}
+Task: ${packet.task || 'not provided'}
+Phase: ${phase}
+Repository: ${repo}
+Route: ${packet.route}
+Estimated packet tokens: ${estimated}
+Budget: ${maxTokens}
+Budget status: ${estimated > maxTokens ? 'over-budget' : 'within-budget'}
+
+| Source | Target | Decision | Reason |
+| --- | --- | --- | --- |
+${rows.map((row) => `| ${row.source} | ${row.target} | ${row.decision} | ${row.reason} |`).join('\n')}
+
+## Next Action
+
+${estimated > maxTokens ? 'Reduce context to affected files, units, and acceptance criteria before prompting the model.' : 'Use the pruned context packet for this phase.'}
+`;
+  writeOrPrint(repo, options.out, content);
+  if (estimated > maxTokens) process.exitCode = 1;
+}
+
+function includeRow(source, target, decision, reason) {
+  return { source, target, decision, reason };
+}
+
+function contextPhaseBudget(phase) {
+  if (phase === 'intake') return 2500;
+  if (phase === 'implementation') return 5000;
+  if (phase === 'verification') return 4000;
+  if (phase === 'qa') return 3500;
+  if (phase === 'finish') return 3000;
+  return 4500;
 }
 
 function contextBudgetRows(repo, options = {}, deps = {}) {

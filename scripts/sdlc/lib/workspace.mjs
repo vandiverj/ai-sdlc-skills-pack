@@ -221,6 +221,47 @@ export function workspaceImpact(repo, options = {}) {
   writeOrPrint(repo, options.out, `${lines.join('\n')}\n`);
 }
 
+export function workspaceDependencies(repo, options = {}) {
+  const task = options.task || '';
+  const repos = workspaceRepos(repo, options);
+  const outPath = options.out ? resolve(repo, options.out) : join(repo, '.ai-local', 'sdlc-workspace-map.md');
+  const jsonPath = options.jsonOut ? resolve(repo, options.jsonOut) : join(repo, '.ai-local', 'sdlc-workspace-map.json');
+  const dependencies = repos.flatMap((item) => {
+    const profile = loadProfile(item.path);
+    return unitRegistry(item.path, profile).map((unit) => ({
+      repository: item.label,
+      path: relative(repo, item.path) || '.',
+      unit: unit.name,
+      unitPath: unit.path,
+      deploymentBoundary: unit.deployMethod || 'not configured',
+      testSurface: unit.testSurface || 'not configured',
+      contextBucket: unit.contextBucket || 'not configured',
+      apiBoundary: unit.api || unit.contract || '',
+      dataDependency: unit.database || unit.data || '',
+      integration: unit.integration || unit.provider || '',
+      qaSurface: unit.qaSurface || unit.testSurface || 'not configured',
+    }));
+  });
+  const md = `# SDLC Workspace Dependency Map
+
+Date: ${new Date().toISOString()}
+Task: ${task || 'not provided'}
+Workspace root: ${repo}
+
+| Repository | Unit | Deployment boundary | Test surface | Context bucket | API | Data | Integration | QA surface |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+${dependencies.map((item) => `| ${escapeCell(item.repository)} | ${escapeCell(item.unit)} | ${escapeCell(item.deploymentBoundary)} | ${escapeCell(item.testSurface)} | ${escapeCell(item.contextBucket)} | ${escapeCell(item.apiBoundary)} | ${escapeCell(item.dataDependency)} | ${escapeCell(item.integration)} | ${escapeCell(item.qaSurface)} |`).join('\n')}
+
+## Notes
+
+- Manually curate missing API/data/integration/release-order details when auto-detection is insufficient.
+- This map is local context by default and should not contain client secrets or production data.
+`;
+  safeWriteTextFile(repo, outPath, md);
+  safeWriteTextFile(repo, jsonPath, `${JSON.stringify({ schema: 'sdlc-workspace-dependencies-v1', task, generatedAt: new Date().toISOString(), dependencies }, null, 2)}\n`);
+  printObject({ markdown: relative(repo, outPath), json: relative(repo, jsonPath), units: dependencies.length });
+}
+
 export function workspaceRepos(repo, options = {}) {
   const profile = loadProfile(repo);
   const repos = [{ label: basename(repo), path: repo }];

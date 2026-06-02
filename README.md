@@ -39,6 +39,7 @@ Use SDLC to explain where we are, what is missing, and what I should decide next
 CLI shortcuts for the same lightweight workflow:
 
 ```bash
+sdlc console help
 sdlc start --task "<task>"
 sdlc next --task "<task>"
 sdlc prove --task "<task>"
@@ -46,12 +47,52 @@ sdlc qa-ready --task "<task>"
 sdlc finish-ready --task "<task>"
 ```
 
+`sdlc start` creates a canonical task run journal under `.ai-local/sdlc-runs/<task-id>/run.md` and `run.json`. `sdlc next` reads the journal and current evidence to recommend one next action instead of exposing the full expert command surface.
+
 For a route-aware command list instead of the full CLI surface:
 
 ```bash
 sdlc command plan --task "<task>"
 sdlc guide start --task "<task>"
 ```
+
+## Local-First Control Plane
+
+The SDLC should gather deterministic local facts before asking the model to reason. For medium, risky, cross-repo, API/data, or no-test work, these commands help reduce prompt/context load:
+
+```bash
+sdlc tools inventory --repo <path>
+sdlc tools gaps --task "<task>" --repo <path>
+sdlc tools recommend --task "<task>" --repo <path>
+sdlc capabilities negotiate --task "<task>" --repo <path>
+sdlc prompt audit --task "<task>" --repo <path>
+sdlc agents plan --task "<task>" --repo <path>
+sdlc review local --task "<task>" --repo <path>
+```
+
+Use `sdlc prompt compile --phase <phase> --task "<task>"` or `sdlc prompt compile --role <role> --task "<task>"` when you want a bounded, paste-ready prompt that includes the original human intent, cleaned prompt suggestion, local tool facts, constraints, approvals, and evidence boundaries.
+
+Agent handoff packets are optional bounded work orders. They help organize verification, review, QA handoff, release handoff, and learning work, but tiny tasks can skip them when they add overhead.
+
+Helpful discovery commands:
+
+```bash
+sdlc help local-first
+sdlc help handoff-packets
+sdlc task journal-check --task "<task>"
+```
+
+Use these prompts in Augment, Codex, Auggie CLI, or another coding agent that can see your user-level `.agents` folder:
+
+```text
+Use SDLC for this task: <task>. Start local-first, preserve my original prompt, gather tool/context facts, implement only the scoped change, verify with local evidence, prepare QA Markdown if needed, and stop before commit or push.
+```
+
+```text
+Use SDLC to review current state for this task: <task>. Run the local-first/journal checks, summarize what is proved, inferred, capped, and what I should decide next.
+```
+
+Skip handoff packets when the task is tiny, low-risk, easy to verify, and unlikely to be interrupted. Use them when the task is high-risk, cross-repo, sensitive, no-test/manual-QA heavy, or would benefit from separated verification/review.
 
 If you need a test script for human QA:
 
@@ -97,6 +138,9 @@ Use SDLC to capture feedback on this SDLC run. Keep it sanitized and local unles
 CLI shortcut:
 
 ```bash
+sdlc welcome
+sdlc setup wizard
+sdlc demo
 sdlc onboarding pilot
 sdlc feedback quick --task "<task>" --friction "what do I type?" --note "sanitized note"
 ```
@@ -137,9 +181,11 @@ Do not record raw ticket text, production rows, secrets, private URLs, customer 
 - Restore and check repository, workspace, unit, and context state.
 - Help plan and implement scoped changes.
 - Track touched files, affected units, testing surfaces, and QA impact.
+- Maintain a canonical per-task run journal for resuming and next-action guidance.
 - Record deterministic task state, required evidence, command checks, completion gates, policy checks, scope guards, and learning suggestions in local ignored run artifacts.
 - Select task-shape evidence recipes for route retirement, live bugs, EF Core/SQL Server failures, interactive/stateful features, fixture validation with kept changes, API-only work, multi-repo QA, no-test legacy work, command failures, context-bucket saves, ticket evidence, and read-only database evidence.
 - Generate human-readable Markdown QA scripts.
+- Split handoff output into agent evidence, human handoff, and QA script artifacts when needed.
 - Produce verification, review, release, handoff, trace, feedback, provenance, QA handoff, and finish evidence.
 - Prepare commit/push recommendations after verification.
 
