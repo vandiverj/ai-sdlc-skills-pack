@@ -4,7 +4,7 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteJsonFile, safeWriteTextFile, slug, stamp, toCamel, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
-import { discoverCommands, loadProfile, normalizeKeys, profileInit, profileShow } from './profile.mjs';
+import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultCalibrationPath, defaultFeedbackPath, defaultRunsDir, defaultTracePath, runStatePath } from './paths.mjs';
 import { controlCurrentPointerPath, controlRunDir, controlRunRoot, ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, validStateTransition } from './state.mjs';
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
@@ -6414,35 +6414,6 @@ function intakeCheck(repo, options = {}) {
   if (requiresCaseId(profile.values) && !caseId) process.exitCode = 1;
 }
 
-function profileAudit(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
-  const missing = profileCapabilityGaps(repo, profile.values, commands);
-  printObject({
-    repository: repo,
-    profile: profile.path ? relative(repo, profile.path) : 'not found',
-    status: missing.length ? 'partial' : 'ready',
-    gaps: missing.join('; ') || 'none',
-  });
-  if (missing.length) process.exitCode = 1;
-}
-
-function profileSuggest(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const recipes = matchRecipes(task, git, profile.values);
-  console.log(`# SDLC Profile Suggestions
-
-Task: ${task || 'not provided'}
-Repository: ${repo}
-
-## Suggested Profile Additions
-
-${formatList(profileSuggestionsForTask(task, profile.values, recipes))}
-`);
-}
-
 function contextBucketConfidence(repo, options = {}) {
   const target = options.path || '.';
   const task = options.task || '';
@@ -6912,37 +6883,6 @@ function intakeOpenItems(task, profile = {}, caseId = '') {
   if (!profile.qaOwnership && !profile.qaOwner) open.push('QA ownership model not configured');
   if (!profile.repoContext && !profile.productContext && !profile.sharedContextRoot) open.push('context bucket not configured');
   return open;
-}
-
-function profileCapabilityGaps(repo, profile = {}, commands = {}) {
-  const gaps = [];
-  if (!profile.requireCaseIdInCommitMessages && !profile.commitMessageFormat) gaps.push('case-ID/commit message convention not configured');
-  if (!profile.qaOwnership && !profile.qaOwner) gaps.push('QA ownership model not configured');
-  if (!profile.releasePolicy && !profile.humanApprovalGates) gaps.push('release/commit/push policy not configured');
-  if (!commands.test) gaps.push('test command not configured/discovered');
-  if (!commands.build) gaps.push('build command not configured/discovered');
-  if (!profile.contextAliases && !profile.repoContext && !profile.productContext && !profile.sharedContextRoot) gaps.push('context bucket mapping not configured');
-  if (!profile.sensitiveDataRestrictions) gaps.push('sensitive data/log handling not configured');
-  if (!profile.archivedPaths && !profile.generatedPaths && !profile.dependencyPaths) gaps.push('archived/generated/dependency folder classification not configured');
-  if (unitRegistry(repo, { values: profile }).length <= 1 && hasMultiProjectSignals(repo)) gaps.push('multi-project unit mappings may be needed');
-  return gaps;
-}
-
-function profileSuggestionsForTask(task, profile = {}, recipes = []) {
-  const suggestions = profileCapabilityGaps(process.cwd(), profile, {}).slice(0, 8);
-  if (recipes.some((item) => item.id === 'route-retirement')) suggestions.push('Add archived/generated/dependency path classifications before route retirement work.');
-  if (recipes.some((item) => item.id === 'multi-repo-qa-handoff')) suggestions.push('Add related repositories, service map, and shared context root.');
-  if (recipes.some((item) => item.id.includes('efcore'))) suggestions.push('Add database/provider evidence handling and SQL log redaction rules.');
-  if (recipes.some((item) => item.id === 'ticket-evidence') && !profile.ticketMcpAvailability) suggestions.push('Record ticket system/YouTrack MCP availability or fallback intake fields.');
-  if (recipes.some((item) => item.id === 'database-evidence') && !profile.databaseMcpAvailability) suggestions.push('Record read-only database MCP availability, allowed environments, allowed operations, and redaction rules.');
-  if (recipes.some((item) => item.id === 'interactive-stateful-feature') && !profile.renderedUiReviewCommand) suggestions.push('Record the strongest available rendered/interactive validation command or cap for stateful workflows.');
-  if (recipes.some((item) => item.id === 'fixture-validation-kept-change')) suggestions.push('Record fixture-app policy: when useful validation changes should be kept, verified, and commit-previewed.');
-  if (!suggestions.length) suggestions.push('No obvious profile additions for this task.');
-  return dedupe(suggestions);
-}
-
-function hasMultiProjectSignals(repo) {
-  return findFilesByExt(repo, ['.csproj', '.fsproj', '.vbproj'], 3, 3).length > 1 || findFilesByName(repo, ['package.json'], 3, 3).length > 1;
 }
 
 function provenanceRows(repo, task, git, packets) {
@@ -8284,21 +8224,6 @@ function learningSuggestionsFromRun(repo, runDir, task) {
   if (checks.some((check) => check.status === 'cap')) suggestions.push('Evidence caps were recorded; consider setup/profile changes if this repeats.');
   if (matchesAny(String(task || '').toLowerCase(), ['fixture', 'battle soccer'])) suggestions.push('Fixture validation used; split portable process lessons from product-specific game facts.');
   return dedupe(suggestions);
-}
-
-function profileDoctor(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
-  const gaps = profileCapabilityGaps(repo, profile.values, commands);
-  const units = unitRegistry(repo, profile);
-  const rows = [
-    { check: 'profile', status: profile.path ? 'pass' : 'warn', detail: profile.path ? relative(repo, profile.path) : 'no profile found' },
-    { check: 'units', status: units.length ? 'pass' : 'warn', detail: units.map((unit) => `${unit.name}:${unit.path}:${unit.testSurface || 'surface?'}`).join(', ') || 'none' },
-    { check: 'commands', status: commands.test || commands.build ? 'pass' : 'warn', detail: Object.entries(commands).filter(([, value]) => value).map(([key, value]) => `${key}=${value}`).join('; ') || 'no commands discovered' },
-    { check: 'gaps', status: gaps.length ? 'warn' : 'pass', detail: gaps.join('; ') || 'no major gaps' },
-  ];
-  printTable(['Check', 'Status', 'Detail'], rows.map((row) => [row.check, row.status, row.detail]));
-  if (rows.some((row) => row.status === 'warn')) process.exitCode = 1;
 }
 
 function workspaceGraph(repo, options = {}) {
