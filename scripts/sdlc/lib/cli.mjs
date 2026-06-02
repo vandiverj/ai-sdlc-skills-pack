@@ -31,6 +31,7 @@ import { actionPreview, completeCheck, completeExplain, completeWaive, finalGate
 import { scopeCheck, scopeExpect } from './scope.mjs';
 import { fixturePlan, testBootstrapPlan, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
 import { verifyComplete, verifyPacket } from './verify.mjs';
+import { doneCheck, packetStatus, routeProof, routeRetire, routeStart } from './routepackets.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -38,7 +39,7 @@ import { artifactBudget as artifactBudgetCommand, artifactBudgetForRoute, artifa
 import { addEvidenceFromCheck, checksDoctor, checksPlan, checksRun, classifyRunCheckFailure, summarizeCommandOutput } from './checks.mjs';
 import { primaryQaSteps, qaBuild, qaOutlineForMode, qaValidate } from './qa.mjs';
 import { capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsFallback, toolsStatus } from './tools.mjs';
-import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, hasFileExt, inferTestingSurfaces, matchesAny, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
+import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, findRepoFiles, hasFileExt, inferTestingSurfaces, matchesAny, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(scriptPath), '..', '..', '..');
@@ -122,11 +123,11 @@ export async function main(argv) {
   if (area === 'state' && action === 'advance') return stateAdvance(repo, options);
   if (area === 'state' && action === 'blockers') return stateBlockers(repo, options);
   if (area === 'state' && action === 'explain') return stateExplain(repo, options);
-  if (area === 'route' && action === 'start') return routeStart(repo, rest[0] || options.route, options);
-  if (area === 'route' && action === 'retire') return routeRetire(repo, options);
-  if (area === 'route' && action === 'proof') return routeProof(repo, options);
-  if (area === 'packet' && action === 'status') return packetStatus(repo, options);
-  if (area === 'done' && action === 'check') return doneCheck(repo, options);
+  if (area === 'route' && action === 'start') return routeStart(repo, rest[0] || options.route, options, routePacketDependencies());
+  if (area === 'route' && action === 'retire') return routeRetire(repo, options, routePacketDependencies());
+  if (area === 'route' && action === 'proof') return routeProof(repo, options, routePacketDependencies());
+  if (area === 'packet' && action === 'status') return packetStatus(repo, options, routePacketDependencies());
+  if (area === 'done' && action === 'check') return doneCheck(repo, options, routePacketDependencies());
   if (area === 'run' && action === 'plan') return runPlan(repo, options);
   if (area === 'run' && action === 'status') return runStatus(repo, options, runActionDependencies());
   if (area === 'run' && action === 'next') return runNext(repo, options, runActionDependencies());
@@ -933,180 +934,6 @@ ${formatList([
     console.log(content.trimEnd());
   }
   if (activeOld.length || !activeNew.length) process.exitCode = 1;
-}
-
-function routeStart(repo, route, options = {}) {
-  if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const recipe = getRecipe(route);
-  const task = options.task || '';
-  const triggers = securityTriggers(task, profile.values);
-  const accessibility = accessibilityPolicy(profile.values);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(route)}-route.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Route Packet
-
-Date: ${new Date().toISOString()}
-Route: ${route}
-Task: ${task || 'not provided'}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Upstream: ${git.upstream || 'not configured'}
-Ahead/behind: ${git.behind} behind / ${git.ahead} ahead
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-
-## Route Recipe
-
-${recipe}
-
-## Route Checklist
-
-- [ ] Restore or generate the context pack for this task.
-- [ ] Confirm required context docs are present or document the cap.
-- [ ] Confirm human consent gates before risky edits or release actions.
-- [ ] Execute the minimum route checks needed for this work class.
-- [ ] Record verification evidence and unresolved caps.
-- [ ] Add a calibration row when the route completes or is abandoned.
-
-## Commands Available
-
-${formatCommandList(commands, route)}
-
-## Security Overlay
-
-${formatSecurityOverlay(triggers)}
-
-## Accessibility Policy
-
-${formatAccessibilityPolicy(accessibility, route)}
-
-## Evidence Skeleton
-
-| Item | Evidence | Status |
-| --- | --- | --- |
-| Context restored |  | pending |
-| Scope confirmed |  | pending |
-| Implementation/review completed |  | pending |
-| Verification run |  | pending |
-| Security/tool triggers checked |  | pending |
-| Accessibility checked or capped according to policy |  | pending |
-| Context docs updated if truth changed |  | pending |
-| Calibration captured |  | pending |
-
-## Calibration Stub
-
-\`\`\`bash
-sdlc calibrate add --route ${route} --checks "" --caps "" --outcome "" --route-fit "" --context-missing "" --verification-missing "" --friction "" --process-change-proposed ""
-\`\`\`
-`;
-
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function routeRetire(repo, options = {}) {
-  const task = options.task || '';
-  const oldPattern = options.old || options.oldPattern || '';
-  const newPattern = options.new || options.newPattern || '';
-  if (!task) fail('Pass --task "..." so route retirement evidence can be scoped.');
-  if (!oldPattern || !newPattern) fail('Pass --old <pattern> and --new <pattern>.');
-  const scope = options.scope ? resolve(repo, options.scope) : repo;
-  const oldResults = searchPattern(scope, oldPattern).map((item) => ({ ...item, category: classifySearchPath(relative(repo, item.path)) }));
-  const newResults = searchPattern(scope, newPattern).map((item) => ({ ...item, category: classifySearchPath(relative(repo, item.path)) }));
-  const activeOld = oldResults.filter((item) => item.category === 'active source/page reference');
-  const activeNew = newResults.filter((item) => item.category === 'active source/page reference');
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-route-retirement.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Route Retirement Packet
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Scope: ${relative(repo, scope) || '.'}
-Old route/pattern: ${oldPattern}
-New route/pattern: ${newPattern}
-Result: ${activeOld.length ? 'open - old active references remain' : activeNew.length ? 'ready-looking' : 'open - no new active references found'}
-
-## Active Callers Expected
-
-- to be filled by the agent/human for the route replacement task
-
-## Positive Search: New Route
-
-${formatSearchGroups(repo, groupBy(newResults, (item) => item.category))}
-
-## Negative Search: Old Route
-
-${formatSearchGroups(repo, groupBy(oldResults, (item) => item.category))}
-
-## Remaining Old References Classification
-
-${formatList(oldResults.map((item) => `${item.category}: ${relative(repo, item.path)}:${item.line}`))}
-
-## Manual QA Expectations
-
-- Validate the user/API/download/workflow behavior that should now use the new route.
-- Confirm the old failure, log, or bad route is absent in QA/staging when that evidence is available.
-- Archived/generated/dependency references are not failures unless the task explicitly targets them.
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-  if (activeOld.length || !activeNew.length) process.exitCode = 1;
-}
-
-function packetStatus(repo, options = {}) {
-  const packets = findPackets(repo, options);
-  const trackedKinds = completionTrackedPacketKinds();
-  const rows = packets.map((packet) => ({
-    file: relative(repo, packet.path),
-    kind: packet.kind,
-    completed: trackedKinds.includes(packet.kind) ? (packet.completed ? 'yes' : 'no') : 'n/a',
-    verdict: packet.verdict || '',
-    action: packet.action || '',
-    head: packet.head || '',
-  }));
-
-  printObject({
-    repository: repo,
-    packets: rows.length,
-    openPackets: rows.filter((row) => row.completed === 'no').length,
-    completedPackets: rows.filter((row) => row.completed === 'yes').length,
-    latestPacket: rows[0]?.file || 'none',
-  });
-
-  if (rows.length) {
-    console.log('\n| Packet | Kind | Completed | Verdict | Action | Head |');
-    console.log('| --- | --- | --- | --- | --- | --- |');
-    for (const row of rows) {
-      console.log(`| ${escapeCell(row.file)} | ${row.kind} | ${row.completed} | ${escapeCell(row.verdict)} | ${escapeCell(row.action)} | ${row.head} |`);
-    }
-  }
-}
-
-function doneCheck(repo, options = {}) {
-  const route = options.route || '';
-  if (!route) fail('Pass --route <route> so done checks can be route-specific.');
-
-  const git = getGitInfo(repo);
-  const packet = options.packet ? readPacket(repo, resolvePacketPath(repo, options.packet)) : findLatestPacket(repo, route);
-  const checks = doneChecksForRoute(route, git, packet);
-  const pass = checks.every((item) => item.status === 'pass' || item.status === 'note');
-
-  printObject({
-    repository: repo,
-    route,
-    packet: packet ? relative(repo, packet.path) : 'none',
-    result: pass ? 'pass' : 'open',
-  });
-  console.log('\n| Check | Status | Detail |');
-  console.log('| --- | --- | --- |');
-  for (const check of checks) console.log(`| ${escapeCell(check.name)} | ${check.status} | ${escapeCell(check.detail)} |`);
-  if (!pass) process.exitCode = 1;
 }
 
 function stateInit(repo, options = {}) {
@@ -2498,6 +2325,26 @@ function testPlanDependencies() {
 
 function verifyDependencies() {
   return { appendPacketCompletion, formatCommandList, inferVerificationMaturity, resolvePacketPath };
+}
+
+function routePacketDependencies() {
+  return {
+    accessibilityPolicy,
+    classifySearchPath,
+    completionTrackedPacketKinds,
+    doneChecksForRoute,
+    findLatestPacket,
+    findPackets,
+    formatAccessibilityPolicy,
+    formatCommandList,
+    formatSearchGroups,
+    formatSecurityOverlay,
+    getRecipe,
+    groupBy,
+    readPacket,
+    resolvePacketPath,
+    searchPattern,
+  };
 }
 
 function validationLadder(repo, options = {}) {
@@ -4232,10 +4079,6 @@ function contextBucketConfidence(repo, options = {}) {
 
 function searchClassifyResults(repo, options = {}) {
   return searchClassify(repo, options);
-}
-
-function routeProof(repo, options = {}) {
-  return routeRetire(repo, options);
 }
 
 function qaHandoff(repo, options = {}) {
