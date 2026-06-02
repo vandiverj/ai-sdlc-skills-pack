@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { defaultRunsDir } from './paths.mjs';
-import { fail, formatList, printObject, stamp } from './common.mjs';
+import { escapeCommandArg, fail, formatList, printObject, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { inferRouteFromTask } from './routes.mjs';
@@ -71,8 +71,4 @@ function intakeOpenItems(task, profile = {}, caseId = '', deps = {}) {
   if (!profile.qaOwnership && !profile.qaOwner) open.push('QA ownership model not configured');
   if (!profile.repoContext && !profile.productContext && !profile.sharedContextRoot) open.push('context bucket not configured');
   return open;
-}
-
-function escapeCommandArg(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

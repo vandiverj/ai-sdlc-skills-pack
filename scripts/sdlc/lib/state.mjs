@@ -1,16 +1,12 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
-import { appendControlJsonLine, fail, formatList, optionFiles, printGateRows, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, slug, splitList, stamp } from './common.mjs';
+import { appendControlJsonLine, escapeCommandArg, fail, formatList, optionFiles, printGateRows, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, slug, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { matchRecipes } from './recipes.mjs';
 import { inferRouteFromTask } from './routes.mjs';
 import { affectedUnits, inferTestingSurfaces } from './units.mjs';
-
-function escapeCommandArg(value) {
-  return String(value || '').replace(/"/g, '\"');
-}
 
 export function controlRunRoot(repo, options = {}) {
   return options.outRoot ? resolve(repo, options.outRoot) : defaultRunsDir(repo);

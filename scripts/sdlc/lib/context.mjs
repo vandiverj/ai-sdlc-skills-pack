@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatList, optionFiles, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, splitList, stamp } from './common.mjs';
+import { appendControlJsonLine, dedupe, escapeCell, escapeCommandArg, fail, formatInlineList, formatList, optionFiles, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { evidenceRequirementsForTask, readEvidenceManifest } from './evidence.mjs';
 import { getGitInfo } from './git.mjs';
 import { safeReadSmall } from './index.mjs';
@@ -808,8 +808,4 @@ function synthesizeFallbackState(repo, task, options = {}) {
 
 function slugLike(value) {
   return String(value || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
-}
-
-function escapeCommandArg(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

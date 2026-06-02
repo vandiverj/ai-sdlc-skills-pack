@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { dedupe, optionFiles, readJsonIfExists, slug } from './common.mjs';
+import { dedupe, escapeCommandArg, optionFiles, readJsonIfExists, slug } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { artifactBudgetForRoute } from './artifacts.mjs';
@@ -54,8 +54,4 @@ export function runNextAction(repo, state, git, dependencies = {}) {
   if (!packets.some((packet) => packet.kind === 'developer-verification')) return `sdlc verify packet --task "${escapeCommandArg(task)}"`;
   if (open.length) return suggestedFinalGateCommand(open[0], task);
   return `sdlc task finish --task "${escapeCommandArg(task)}"`;
-}
-
-function escapeCommandArg(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

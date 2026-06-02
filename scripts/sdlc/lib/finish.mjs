@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { appendControlJsonLine, dedupe, fail, formatInlineList, formatList, indentList, printGateRows, printObject, readJsonIfExists, safeWriteTextFile, stamp } from './common.mjs';
+import { appendControlJsonLine, dedupe, escapeCommandArg, fail, formatInlineList, formatList, indentList, printGateRows, printObject, readJsonIfExists, safeWriteTextFile, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -335,9 +335,6 @@ function actionCommandHint(action) {
   return 'provide --command "..." for exact preview';
 }
 
-function escapeCommandArg(value) {
-  return String(value).replace(/["\\]/g, '\\$&');
-}
 
 function matchesAny(text, needles) {
   return needles.some((needle) => text.includes(needle));

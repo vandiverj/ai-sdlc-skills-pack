@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { dedupe, escapeCell, fail, formatList, printObject, slug, stamp } from './common.mjs';
+import { dedupe, escapeCell, escapeCommandArg, fail, formatList, printObject, slug, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -268,8 +268,4 @@ Repository: ${repo}
 `;
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
-}
-
-function escapeCommandArg(value) {
-  return String(value).replace(/["\\]/g, '\\$&');
 }

@@ -1,4 +1,4 @@
-import { fail, printGateRows, printObject, printTable } from './common.mjs';
+import { escapeCommandArg, fail, printGateRows, printObject, printTable } from './common.mjs';
 import { loadProfile } from './profile.mjs';
 
 function dedupe(values) {
@@ -13,9 +13,6 @@ function matchesAny(text, needles) {
   return needles.some((needle) => text.includes(needle));
 }
 
-function escapeCommandArg(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-}
 
 function securityTriggers(task, profile = {}) {
   const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();

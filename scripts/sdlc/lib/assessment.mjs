@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { defaultRunsDir } from './paths.mjs';
-import { dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, optionFiles, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
+import { dedupe, escapeCell, escapeCommandArg, fail, formatInlineList, formatInlineStatus, formatList, optionFiles, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { detectStack, inferTestingSurfaces, matchesAny } from './units.mjs';
@@ -285,8 +285,4 @@ function renderVerification(results) {
   const lines = ['# SDLC Verification', '', `Date: ${new Date().toISOString()}`, '', '| Check | Command | Result | Exit code |', '| --- | --- | --- | --- |'];
   for (const result of results) lines.push(`| ${result.key} | ${escapeCell(result.command || 'not configured')} | ${result.status} | ${result.code ?? ''} |`);
   return `${lines.join('\n')}\n`;
-}
-
-function escapeCommandArg(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { dedupe, escapeCell, fail, formatInlineList, formatList, printObject, safeWriteTextFile, slug, stamp } from './common.mjs';
+import { dedupe, escapeCell, escapeCommandArg, fail, formatInlineList, formatList, printObject, safeWriteTextFile, slug, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir, runStatePath } from './paths.mjs';
@@ -197,8 +197,4 @@ ${formatList(open)}
   } else {
     console.log(content.trimEnd());
   }
-}
-
-function escapeCommandArg(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

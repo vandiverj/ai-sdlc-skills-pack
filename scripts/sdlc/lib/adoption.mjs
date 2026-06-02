@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultFeedbackPath, defaultRunsDir } from './paths.mjs';
-import { fail, formatList, printObject, readJsonLines, stamp } from './common.mjs';
+import { escapeCommandArg, fail, formatList, printObject, readJsonLines, stamp } from './common.mjs';
 import { git, getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { inferRouteFromTask } from './routes.mjs';
@@ -345,8 +345,4 @@ function sanitizeOneLine(value) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 500);
-}
-
-function escapeCommandArg(value) {
-  return String(value || '').replace(/"/g, '\\"');
 }
