@@ -45,7 +45,7 @@ import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calib
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, readiness as statusReadiness } from './status.mjs';
 import { intakeCheck, intakePacket } from './intake.mjs';
 import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
-import { confidenceBlock, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verify, workmodeDetect } from './assessment.mjs';
+import { confidenceBlock, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, inferVerificationMaturity, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verificationMaturity, verify, workmodeDetect } from './assessment.mjs';
 import { changeGraph, searchClassify, searchRetireCheck } from './graphsearch.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
@@ -789,10 +789,6 @@ function detectWorkModes(repo, task, profile = {}, files = []) {
   return dedupe(modes);
 }
 
-function verificationMaturity(profile, commands) {
-  return profile.verificationMaturity || inferVerificationMaturity(commands);
-}
-
 function contextUpdateTargets(route, dirtySurfaces, contracts, profile) {
   const targets = [];
   if (!profile.sharedContextRoot && route === 'multi-repo-integration') targets.push('SDLC profile: configure shared context root or related repository map');
@@ -1005,12 +1001,6 @@ function changeGraphImplications(graph, task, files) {
   if (!implications.length && files.length === 0) implications.push('No changed files yet; use this graph after initial implementation or with explicit task surfaces.');
   if (!implications.length) implications.push('No extra graph implication detected; keep evidence scoped to the task.');
   return implications;
-}
-
-function inferVerificationMaturity(commands) {
-  if (commands.test && commands.build && commands.lint) return 'partial automated tests';
-  if (commands.test) return 'smoke tests or partial automated tests';
-  return 'manual QA only / no automated tests configured';
 }
 
 function groupCounts(values) {

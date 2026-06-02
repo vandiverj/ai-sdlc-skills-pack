@@ -7,6 +7,16 @@ import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { detectStack, inferTestingSurfaces, matchesAny } from './units.mjs';
 
+export function verificationMaturity(profile, commands) {
+  return profile.verificationMaturity || inferVerificationMaturity(commands);
+}
+
+export function inferVerificationMaturity(commands) {
+  if (commands.test && commands.build && commands.lint) return 'partial automated tests';
+  if (commands.test) return 'smoke tests or partial automated tests';
+  return 'manual QA only / no automated tests configured';
+}
+
 export function fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers) {
   const reasons = [];
   const files = git.changedFiles || [];
