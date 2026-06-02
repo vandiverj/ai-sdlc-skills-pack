@@ -57,6 +57,8 @@ sdlc intake packet --task "<human task>"
 sdlc recipe match --task "<human task>"
 sdlc run dashboard --task "<human task>"
 sdlc task preflight --task "<human task>"
+sdlc state init --task "<human task>"
+sdlc evidence required --task "<human task>"
 ```
 
 Resume or recover unclear work with:
@@ -71,7 +73,9 @@ Use `sdlc task fast-pass --task "<human task>"` when the work is clearly micro/t
 At closeout, prefer one finish surface:
 
 ```bash
+sdlc complete check --task "<human task>"
 sdlc finish packet --task "<human task>"
+sdlc git guard --action commit
 sdlc action preview --action commit
 ```
 
@@ -90,6 +94,8 @@ sdlc release packet
 Common implementation evidence:
 
 ```bash
+sdlc run-check --name test -- <project test command>
+sdlc run-check --name build -- <project build command>
 sdlc touched packet
 sdlc impact packet --task "<human task>"
 sdlc interaction packet --task "<human task>"
@@ -112,9 +118,14 @@ sdlc fixture plan --task "<human task>"
 sdlc learn from-run --task "<human task>"
 sdlc command classify --command "<command>" --status <code> --stderr "<stderr>"
 sdlc context bucket-confidence --path <path> --task "<human task>"
+sdlc tools status --task "<human task>"
+sdlc scope check --task "<human task>"
+sdlc policy check --task "<human task>"
 ```
 
-Done checks are route-specific. Treat open checks as unresolved gates unless the human explicitly accepts the cap. The helper checks evidence shape for review-only, release-push, standard, ui-rendered-review, bugfix-regression, bugfix-live-system, weak-test-legacy, multi-repo-integration, contract-first, and tiny-docs routes; it does not replace source review or judgment.
+Use the deterministic control plane when the task is Standard or larger, when work may be interrupted, or when completion evidence matters. `state`, `evidence`, `run-check`, `complete`, `scope`, `tools`, and `policy` commands move repeatable process facts out of model memory. Tiny/Micro work may stay lighter, but still needs changed-files awareness, one verification path or cap, and a final confidence block.
+
+Done checks are route-specific. Treat open checks as unresolved gates unless the human explicitly accepts the cap. The helper checks evidence shape for review-only, release-push, standard, ui-rendered-review, bugfix-regression, bugfix-live-system, weak-test-legacy, multi-repo-integration, contract-first, and tiny-docs routes; `sdlc complete check` adds control-plane state/evidence/gate validation. Neither replaces source review, human approval, or command interpretation.
 
 Every route, including fast-pass, keeps the quality floor: changed-files awareness, at least one verification path or explicit cap, surface-correct evidence, context placement decision when durable knowledge changed, human QA Markdown when testers are involved, developer-controlled finish, and a final confidence summary that separates proved facts, inferred facts, remaining human judgment, and safe next action.
 
@@ -129,6 +140,7 @@ Use recipe overlays when the task shape calls for specific proof. Recipes are ad
 - Database evidence: plan bounded read-only metadata/aggregate/existence evidence first; redact summaries; never infer permission for writes, migrations, backfills, stored procedure execution, deploy, or release.
 - Interactive/stateful features: capture the starting state, action sequence, state changes, feedback/animation, recovery path, and strongest available validation ladder.
 - Fixture validation with kept changes: treat useful fixture changes as real product work; verify, review, and prepare commit preview only after explicit finish intent.
+- Deterministic completion: record state, required evidence, command results, scope, policy, and waivers locally before claiming done.
 - Context saves: run bucket confidence and split product-specific facts from portable process lessons before promoting learnings.
 
 When the developer is unsure where things stand, use `sdlc task doctor --task "<human task>"` and summarize only the current route, recipes, evidence, missing gates, QA readiness, and next decision.

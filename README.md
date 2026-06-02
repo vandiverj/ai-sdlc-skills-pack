@@ -92,6 +92,7 @@ Feedback is for improving the SDLC, not measuring individual developer performan
 - Restore and check repository, workspace, unit, and context state.
 - Help plan and implement scoped changes.
 - Track touched files, affected units, testing surfaces, and QA impact.
+- Record deterministic task state, required evidence, command checks, completion gates, policy checks, scope guards, and learning suggestions in local ignored run artifacts.
 - Select task-shape evidence recipes for route retirement, live bugs, EF Core/SQL Server failures, interactive/stateful features, fixture validation with kept changes, API-only work, multi-repo QA, no-test legacy work, command failures, context-bucket saves, ticket evidence, and read-only database evidence.
 - Generate human-readable Markdown QA scripts.
 - Produce verification, review, release, handoff, trace, feedback, provenance, QA handoff, and finish evidence.
@@ -129,6 +130,9 @@ Use SDLC to explain where we are in this task, what evidence exists, what is mis
 CLI shortcut:
 
 ```bash
+sdlc state explain
+sdlc evidence status --task "<task>"
+sdlc complete explain --task "<task>"
 sdlc task doctor --task "<task>"
 sdlc finish packet --task "<task>"
 sdlc action preview --action commit
@@ -142,7 +146,7 @@ sdlc action preview --action commit
 - `agents/` - portable Markdown definitions for optional specialist, worker, reviewer, and handoff agents.
 - `agent-contracts/` - legacy compatibility role contracts kept until downstream references move to `agents/`.
 - `scripts/` - repository maintenance checks for skill file format and related rails.
-- `bin/sdlc` and `scripts/sdlc/` - small dependency-free helper CLI for task open/start/current/id/bundle/status/review/checkpoint/ledger/verify/QA/finish/complete, readiness, health, setup bootstrap/doctor/full doctor/install check, profile, context restore/audit/freshness/contradiction/inventory/place/update plans, change graph lite, workspace map/work-mode detection, deployable unit maps, testing-surface detection, safe learning capture/review/promotion, run start/finish, touched/impact/interaction/QA/manual-smoke/verification packets, validation ladders, fixture plans, route packets, review/release packets, packet completion/status, gates, done checks, multi-repo ledger/QA, contract, data, integration, live-system bug evidence, test-plan/test-suggest and handoff draft packets, security permission/tool audits, scenario validation/testing, rendered plan/evidence/smoke, verification, calibration/learned-flow promotion, and handoff mechanics.
+- `bin/sdlc` and `scripts/sdlc/` - small dependency-free helper CLI for task open/start/current/id/bundle/status/review/checkpoint/ledger/verify/QA/finish/complete, deterministic state/evidence/run-check/complete/scope/policy control-plane records, readiness, health, setup bootstrap/doctor/full doctor/install check, profile, context restore/audit/freshness/contradiction/inventory/place/update plans, change graph lite, workspace map/work-mode detection, deployable unit maps, testing-surface detection, safe learning capture/review/promotion, run start/finish, touched/impact/interaction/QA/manual-smoke/verification packets, validation ladders, fixture plans, route packets, review/release packets, packet completion/status, gates, done checks, multi-repo ledger/QA, contract, data, integration, live-system bug evidence, test-plan/test-suggest and handoff draft packets, security permission/tool audits, scenario validation/testing, rendered plan/evidence/smoke, verification, calibration/learned-flow promotion, and handoff mechanics.
 - `templates/` - starter docs, external context-root templates, SDLC scenarios, and feature context templates.
 
 ## Common Agent Prompts

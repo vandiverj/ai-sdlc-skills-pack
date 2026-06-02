@@ -24,6 +24,7 @@ async function main(argv) {
   const options = parseOptions(rest);
   const repo = resolve(options.repo || process.cwd());
 
+  if (area === 'run-check') return runCheck(resolve(areaOptions.repo || process.cwd()), parseOptions(argv.slice(1)), argv.slice(1));
   if (area === 'help' && (action === 'prompts' || action === 'prompt')) return helpPrompts();
   if (area === 'help' && action === 'workflow') return helpWorkflow();
   if (area === 'help' && (action === 'onboarding' || action === 'start')) return helpOnboarding();
@@ -44,6 +45,7 @@ async function main(argv) {
   if (area === 'context' && action === 'bucket-confidence') return contextBucketConfidence(repo, options);
   if (area === 'context' && action === 'resolve') return contextResolve(repo, options);
   if (area === 'context' && action === 'final-check') return contextFinalCheck(repo, options);
+  if (area === 'context' && action === 'gate') return contextGate(repo, options);
   if (area === 'context' && action === 'place') return contextPlace(repo, options);
   if (area === 'context' && action === 'update-plan') return contextUpdatePlan(repo, options);
   if (area === 'change' && (action === 'graph' || action === 'graph-lite')) return changeGraph(repo, options);
@@ -69,6 +71,11 @@ async function main(argv) {
   if (area === 'task' && action === 'verify') return taskVerify(repo, options);
   if (area === 'task' && action === 'qa') return taskQa(repo, options);
   if (area === 'task' && (action === 'finish' || action === 'complete')) return taskFinish(repo, options);
+  if (area === 'state' && action === 'init') return stateInit(repo, options);
+  if (area === 'state' && action === 'current') return stateCurrent(repo, options);
+  if (area === 'state' && action === 'advance') return stateAdvance(repo, options);
+  if (area === 'state' && action === 'blockers') return stateBlockers(repo, options);
+  if (area === 'state' && action === 'explain') return stateExplain(repo, options);
   if (area === 'route' && action === 'start') return routeStart(repo, rest[0] || options.route, options);
   if (area === 'route' && action === 'retire') return routeRetire(repo, options);
   if (area === 'route' && action === 'proof') return routeProof(repo, options);
@@ -105,6 +112,8 @@ async function main(argv) {
   if (area === 'qa' && (action === 'script' || action === 'packet')) return qaScript(repo, options);
   if (area === 'qa' && action === 'handoff') return qaHandoff(repo, options);
   if (area === 'qa' && action === 'scenarios') return qaScenarios(repo, rest[0] || options.command || 'list', options);
+  if (area === 'qa' && action === 'outline') return qaOutline(repo, options);
+  if (area === 'qa' && action === 'compare') return qaCompare(repo, options);
   if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi', 'interactive', 'cli', 'job', 'docs'].includes(action)) return qaModeCommand(repo, action, options, rest);
   if (area === 'qa' && action === 'complete') return qaComplete(repo, options);
   if (area === 'qa' && action === 'review') return qaReview(repo, options);
@@ -137,6 +146,9 @@ async function main(argv) {
   if (area === 'pattern' && action === 'analog') return patternAnalog(repo, options);
   if (area === 'fix' && action === 'scope') return fixScope(repo, options);
   if (area === 'command' && action === 'classify') return commandClassify(repo, options);
+  if (area === 'tools' && action === 'detect') return toolsDetect(repo, options);
+  if (area === 'tools' && action === 'status') return toolsStatus(repo, options);
+  if (area === 'tools' && action === 'fallback') return toolsFallback(repo, options);
   if (area === 'automation' && action === 'budget') return automationBudget(repo, options);
   if (area === 'event' && ['prompt-submit', 'post-edit', 'pre-stop', 'approval-request'].includes(action)) return sdlcEvent(repo, action, options);
   if (area === 'hooks' && action === 'plan') return hooksPlan(repo, options);
@@ -147,20 +159,31 @@ async function main(argv) {
   if (area === 'feedback' && action === 'summary') return feedbackSummary(repo, options);
   if (area === 'trace' && action === 'start') return traceStart(repo, options);
   if (area === 'trace' && action === 'event') return traceEvent(repo, options);
+  if (area === 'trace' && action === 'attach') return traceAttach(repo, options);
   if (area === 'trace' && action === 'finish') return traceFinish(repo, options);
   if (area === 'trace' && action === 'export') return traceExport(repo, options);
   if (area === 'scorecard' && action === 'task') return scorecardTask(repo, options);
   if (area === 'scorecard' && action === 'summary') return scorecardSummary(repo, options);
+  if (area === 'scorecard' && action === 'trends') return scorecardTrends(repo, options);
   if (area === 'artifact' && action === 'budget') return artifactBudget(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
   if (area === 'evidence' && action === 'provenance') return evidenceProvenance(repo, options);
+  if (area === 'evidence' && action === 'required') return evidenceRequired(repo, options);
+  if (area === 'evidence' && action === 'status') return evidenceStatus(repo, options);
+  if (area === 'evidence' && action === 'add') return evidenceAdd(repo, options);
   if (area === 'verify' && action === 'packet') return verifyPacket(repo, options);
   if (area === 'verify' && action === 'complete') return verifyComplete(repo, options);
   if (area === 'verify') return verify(resolve(areaOptions.repo || process.cwd()), areaOptions);
   if (area === 'final' && action === 'gate') return finalGate(repo, options);
   if (area === 'finish' && action === 'packet') return finishPacket(repo, options);
   if (area === 'git' && action === 'packet') return gitPacket(repo, options);
+  if (area === 'git' && action === 'guard') return gitGuard(repo, options);
   if (area === 'action' && action === 'preview') return actionPreview(repo, options);
+  if (area === 'complete' && action === 'check') return completeCheck(repo, options);
+  if (area === 'complete' && action === 'explain') return completeExplain(repo, options);
+  if (area === 'complete' && action === 'waive') return completeWaive(repo, options);
+  if (area === 'scope' && action === 'expect') return scopeExpect(repo, options);
+  if (area === 'scope' && action === 'check') return scopeCheck(repo, options);
   if (area === 'gates') return gates(repo, areaOptions);
   if (area === 'handoff' && action === 'draft') return handoffDraft(repo, options);
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
@@ -182,6 +205,7 @@ async function main(argv) {
   if (area === 'learn' && action === 'candidates') return learnCandidates(repo, options);
   if (area === 'learn' && action === 'split') return learnSplit(repo, options);
   if (area === 'learn' && action === 'from-run') return learnFromRun(repo, options);
+  if (area === 'learn' && action === 'suggest') return learnSuggest(repo, options);
   if (area === 'learn' && action === 'backlog') return learnBacklog(repo, options);
   if (area === 'learn' && action === 'promote') return learnPromote(repo, options);
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
@@ -191,6 +215,8 @@ async function main(argv) {
   if (area === 'install' && action === 'check') return installCheck(repo, options);
   if (area === 'health') return health(repo, areaOptions);
   if (area === 'process' && action === 'health') return processHealth(repo, options);
+  if (area === 'policy' && action === 'check') return policyCheck(repo, options);
+  if (area === 'policy' && action === 'explain') return policyExplain(repo, options);
   if (area === 'render' && action === 'plan') return renderPlan(repo, options);
   if (area === 'render' && action === 'evidence') return renderEvidencePacket(repo, options);
   if (area === 'render' && action === 'smoke') return renderSmoke(repo, options);
@@ -260,6 +286,11 @@ Usage:
   sdlc task qa --task "..." [--repo <path>]
   sdlc task finish --task "..." [--repo <path>] [--out <path>]
   sdlc task complete --task "..." [--repo <path>] [--out <path>]
+  sdlc state init --task "..." [--repo <path>] [--out-root <path>]
+  sdlc state current [--repo <path>]
+  sdlc state advance --to scoped|implementing|verifying|qa-ready|finish-ready|committed [--reason "..."]
+  sdlc state blockers [--repo <path>]
+  sdlc state explain [--repo <path>]
   sdlc route start <route> [--task "..."] [--repo <path>] [--out <path>]
   sdlc route retire --old <pattern> --new <pattern> --task "..." [--scope <path>] [--repo <path>] [--out <path>]
   sdlc route proof --old <pattern> --new <pattern> --task "..." [--scope <path>] [--repo <path>] [--out <path>]
@@ -296,6 +327,8 @@ Usage:
   sdlc qa script --task "..." [--repo <path>] [--out <path>]
   sdlc qa handoff --task "..." [--repo <path>] [--out <path>]
   sdlc qa scenarios init|list|match [--task "..."] [--repo <path>]
+  sdlc qa outline --task "..." [--repo <path>] [--out <path>]
+  sdlc qa compare --packet <path> [--repo <path>]
   sdlc qa ui|api|data|integration|scenario|multi|interactive|cli|job|docs --task "..." [--repo <path>] [--scenario <id>] [--out <path>]
   sdlc qa complete --packet <path> --status "draft|ready|blocked" [--caps "..."]
   sdlc qa review --packet <path> [--repo <path>]
@@ -328,6 +361,10 @@ Usage:
   sdlc pattern analog --task "..." [--hint "..."] [--repo <path>] [--out <path>]
   sdlc fix scope --task "..." [--repo <path>] [--out <path>]
   sdlc command classify --command "..." --status <code> [--stderr "..."] [--repo <path>]
+  sdlc tools detect [--repo <path>]
+  sdlc tools status --task "..." [--repo <path>]
+  sdlc tools fallback --task "..." [--repo <path>]
+  sdlc run-check --name <name> -- <command...>
   sdlc automation budget --route <route> [--repo <path>]
   sdlc event prompt-submit|post-edit|pre-stop|approval-request [--task "..."] [--repo <path>]
   sdlc hooks plan --runtime claude|codex|auggie|augment|generic [--repo <path>] [--out <path>]
@@ -338,20 +375,31 @@ Usage:
   sdlc feedback summary [--since YYYY-MM-DD] [--repo <path>] [--out <path>]
   sdlc trace start --task "..." [--repo <path>]
   sdlc trace event --type <type> --summary "..." [--repo <path>]
+  sdlc trace attach --type <type> --summary "..." [--repo <path>]
   sdlc trace finish --task "..." [--repo <path>]
   sdlc trace export --trace <path> --format json|otel-lite [--repo <path>] [--out <path>]
   sdlc scorecard task --trace <path> [--repo <path>]
   sdlc scorecard summary [--since YYYY-MM-DD] [--repo <path>]
+  sdlc scorecard trends [--since YYYY-MM-DD] [--repo <path>]
   sdlc artifact budget --route <route> [--repo <path>]
   sdlc evidence init --route <route> [--repo <path>] [--out <path>]
   sdlc evidence provenance --task "..." [--repo <path>] [--out <path>]
+  sdlc evidence required --task "..." [--repo <path>]
+  sdlc evidence status --task "..." [--repo <path>]
+  sdlc evidence add --kind <kind> --summary "..." [--repo <path>]
   sdlc verify packet --task "..." [--repo <path>] [--out <path>]
   sdlc verify complete --packet <path> --checks "..." [--caps "..."]
   sdlc verify [--repo <path>] [--commands test,build]
   sdlc final gate [--task "..."] [--repo <path>]
   sdlc finish packet --task "..." [--intent normal|keep-change|handoff-only] [--repo <path>] [--out <path>]
   sdlc git packet [--repo <path>] [--out <path>]
+  sdlc git guard --action commit|push [--repo <path>]
   sdlc action preview --action commit|push|tool|network|dependency|learning-promotion [--repo <path>] [--command "..."]
+  sdlc complete check --task "..." [--repo <path>]
+  sdlc complete explain --task "..." [--repo <path>]
+  sdlc complete waive --gate <id> --reason "..." [--owner "..."] [--repo <path>]
+  sdlc scope expect --files "a,b" [--repo <path>]
+  sdlc scope check --task "..." [--repo <path>]
   sdlc gates [--task "..."] [--repo <path>]
   sdlc handoff draft [--task "..."] [--repo <path>] [--out <path>]
   sdlc calibrate add --route <route> [--repo <path>] [--out <path>]
@@ -373,11 +421,14 @@ Usage:
   sdlc learn candidates [--since YYYY-MM-DD] [--repo <path>]
   sdlc learn split --packet <path> [--repo <path>] [--out <path>]
   sdlc learn from-run --task "..." [--repo <path>] [--out <path>]
+  sdlc learn suggest --task "..." [--repo <path>]
   sdlc learn backlog [--repo <path>]
   sdlc learn promote --packet <path> --target "process|template|route|context" [--repo <path>] [--out <path>]
   sdlc readiness [--repo <path>]
   sdlc health [--repo <path>]
   sdlc process health [--repo <path>] [--out <path>]
+  sdlc policy check --task "..." [--action commit|push|ticket-update|db-query|install|network] [--repo <path>]
+  sdlc policy explain --gate <id> [--repo <path>]
   sdlc setup doctor [--repo <path>] [--fix-plan]
   sdlc setup bootstrap [--repo <path>] [--shared-context-root <path>]
   sdlc doctor full [--repo <path>]
@@ -1445,6 +1496,463 @@ function doneCheck(repo, options = {}) {
   console.log('| --- | --- | --- |');
   for (const check of checks) console.log(`| ${escapeCell(check.name)} | ${check.status} | ${escapeCell(check.detail)} |`);
   if (!pass) process.exitCode = 1;
+}
+
+function stateInit(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the state can be initialized.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const files = optionFiles(options, git.changedFiles);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const units = affectedUnits(repo, files, profile, options.unit);
+  const recipes = matchRecipes(task, git, profile.values);
+  const runDir = controlRunDir(repo, { ...options, task });
+  const state = {
+    schema: 'sdlc-state-v1',
+    taskId: basename(runDir),
+    task,
+    repo,
+    route,
+    stage: 'intake',
+    status: 'active',
+    branch: git.branch || '',
+    head: git.head || '',
+    affectedUnits: units.map((unit) => unit.name),
+    testingSurfaces: surfaces,
+    selectedRecipes: recipes.map((recipe) => recipe.id),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    nextAction: `sdlc evidence required --task "${escapeCommandArg(task)}"`,
+  };
+  safeWriteJsonFile(repo, join(runDir, 'state.json'), state);
+  safeWriteJsonFile(repo, controlCurrentPointerPath(repo, options), { taskId: state.taskId, path: relative(repo, runDir), updatedAt: state.updatedAt });
+  appendControlEvent(repo, runDir, 'state', 'initialized task state', { task, route, stage: state.stage });
+  ensureEvidenceManifest(repo, runDir, task, route, options);
+  printObject({
+    taskId: state.taskId,
+    route,
+    stage: state.stage,
+    path: relative(repo, runDir),
+    nextAction: state.nextAction,
+  });
+}
+
+function stateCurrent(repo, options = {}) {
+  const state = readCurrentState(repo, options);
+  if (!state) {
+    printObject({ repository: repo, state: 'not initialized', nextAction: 'sdlc state init --task "..."' });
+    return;
+  }
+  printObject({
+    taskId: state.taskId,
+    task: state.task,
+    route: state.route,
+    stage: state.stage,
+    status: state.status,
+    updatedAt: state.updatedAt,
+    nextAction: state.nextAction || 'sdlc state explain',
+  });
+}
+
+function stateAdvance(repo, options = {}) {
+  const to = options.to || '';
+  if (!to) fail('Pass --to <stage>.');
+  const stateInfo = readCurrentStateInfo(repo, options);
+  if (!stateInfo.state) fail('No current state found. Run `sdlc state init --task "..."` first.');
+  const state = stateInfo.state;
+  const valid = validStateTransition(state.stage, to);
+  if (!valid && !options.force) fail(`Invalid state transition ${state.stage} -> ${to}. Pass --force --reason "..." if this is intentional.`);
+  state.stage = to;
+  state.status = to === 'committed' ? 'complete' : 'active';
+  state.updatedAt = new Date().toISOString();
+  state.nextAction = nextActionForStage(to, state.task);
+  safeWriteJsonFile(repo, join(stateInfo.runDir, 'state.json'), state);
+  appendControlEvent(repo, stateInfo.runDir, 'state', `advanced to ${to}`, { from: stateInfo.previousStage, to, forced: !valid, reason: options.reason || '' });
+  printObject({ taskId: state.taskId, stage: state.stage, status: state.status, nextAction: state.nextAction });
+}
+
+function stateBlockers(repo, options = {}) {
+  const stateInfo = readCurrentStateInfo(repo, options);
+  if (!stateInfo.state) fail('No current state found. Run `sdlc state init --task "..."` first.');
+  const rows = controlGateRows(repo, stateInfo.state, stateInfo.runDir, options);
+  const blockers = rows.filter((row) => row.status === 'block');
+  printObject({
+    taskId: stateInfo.state.taskId,
+    blockers: blockers.length,
+    result: blockers.length ? 'blocked' : 'clear',
+  });
+  printGateRows(rows);
+  if (blockers.length) process.exitCode = 1;
+}
+
+function stateExplain(repo, options = {}) {
+  const stateInfo = readCurrentStateInfo(repo, options);
+  if (!stateInfo.state) {
+    printObject({ repository: repo, state: 'not initialized', nextAction: 'sdlc state init --task "..."' });
+    return;
+  }
+  const evidence = readEvidenceManifest(stateInfo.runDir);
+  const checks = readControlJsonLines(join(stateInfo.runDir, 'checks.jsonl'));
+  const waivers = readControlJsonLines(join(stateInfo.runDir, 'waivers.jsonl'));
+  const gates = controlGateRows(repo, stateInfo.state, stateInfo.runDir, options);
+  printObject({
+    taskId: stateInfo.state.taskId,
+    task: stateInfo.state.task,
+    route: stateInfo.state.route,
+    stage: stateInfo.state.stage,
+    status: stateInfo.state.status,
+    requiredEvidence: evidence.required?.length || 0,
+    capturedEvidence: evidence.captured?.length || 0,
+    checks: checks.length,
+    waivers: waivers.length,
+    openBlockers: gates.filter((row) => row.status === 'block').length,
+    nextAction: nextActionFromGates(gates, stateInfo.state.task),
+  });
+  printGateRows(gates);
+}
+
+function evidenceRequired(repo, options = {}) {
+  const task = options.task || readCurrentState(repo, options)?.task || '';
+  if (!task) fail('Pass --task "..." or initialize state first.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const requirements = evidenceRequirementsForTask(repo, task, route, git, profile, options);
+  const runDir = ensureControlRunDir(repo, options, task);
+  const manifest = ensureEvidenceManifest(repo, runDir, task, route, options);
+  manifest.required = requirements;
+  manifest.updatedAt = new Date().toISOString();
+  safeWriteJsonFile(repo, join(runDir, 'evidence.json'), manifest);
+  printObject({ task, route, required: requirements.filter((item) => item.level === 'required').length, recommended: requirements.filter((item) => item.level === 'recommended').length });
+  printEvidenceRows(requirements);
+}
+
+function evidenceStatus(repo, options = {}) {
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const task = options.task || stateInfo.state?.task || '';
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, task || 'current-task');
+  const route = options.route || stateInfo.state?.route || inferRouteFromTask(task, getGitInfo(repo), loadProfile(repo).values);
+  const manifest = ensureEvidenceManifest(repo, runDir, task, route, options);
+  const rows = evidenceStatusRows(repo, runDir, manifest);
+  printObject({ task: task || 'not provided', route, result: rows.some((row) => row.status === 'missing') ? 'open' : 'satisfied' });
+  printEvidenceStatusRows(rows);
+  if (rows.some((row) => row.status === 'missing' && row.level === 'required')) process.exitCode = 1;
+}
+
+function evidenceAdd(repo, options = {}) {
+  const kind = options.kind || '';
+  const summary = options.summary || '';
+  if (!kind || !summary) fail('Pass --kind <kind> and --summary "...".');
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const task = options.task || stateInfo.state?.task || '';
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, task || 'current-task');
+  const manifest = ensureEvidenceManifest(repo, runDir, task, stateInfo.state?.route || options.route || 'standard', options);
+  const item = {
+    id: options.id || `${kind}-${Date.now()}`,
+    kind,
+    summary,
+    path: options.path || '',
+    status: options.status || 'captured',
+    capturedAt: new Date().toISOString(),
+  };
+  manifest.captured = [...(manifest.captured || []), item];
+  manifest.updatedAt = item.capturedAt;
+  safeWriteJsonFile(repo, join(runDir, 'evidence.json'), manifest);
+  appendControlEvent(repo, runDir, 'evidence', `added ${kind} evidence`, item);
+  printObject(item);
+}
+
+function runCheck(repo, options = {}, rawTokens = []) {
+  const name = options.name || options.kind || 'check';
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const task = options.task || stateInfo.state?.task || '';
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, task || 'current-task');
+  const delimiter = rawTokens.indexOf('--');
+  const commandTokens = delimiter >= 0 ? rawTokens.slice(delimiter + 1) : [];
+  const start = new Date();
+  let result;
+  if (options.cap) {
+    result = {
+      name,
+      kind: name,
+      mode: 'cap',
+      command: '',
+      status: 'cap',
+      exitCode: '',
+      summary: options.reason || options.cap,
+      startedAt: start.toISOString(),
+      endedAt: new Date().toISOString(),
+    };
+  } else if (options.manual) {
+    result = {
+      name,
+      kind: name,
+      mode: 'manual',
+      command: '',
+      status: options.status || 'pass',
+      exitCode: '',
+      summary: options.manual,
+      startedAt: start.toISOString(),
+      endedAt: new Date().toISOString(),
+    };
+  } else {
+    if (!commandTokens.length) fail('Pass a command after --, or use --manual "..." / --cap "...".');
+    const command = commandTokens[0];
+    const commandArgs = commandTokens.slice(1);
+    const child = spawnSync(command, commandArgs, { cwd: repo, encoding: 'utf8' });
+    const endedAt = new Date().toISOString();
+    const output = `${child.stdout || ''}${child.stderr ? `\nSTDERR:\n${child.stderr}` : ''}`;
+    const outputPath = join(runDir, 'outputs', `${stamp()}-${slug(name)}.log`);
+    safeWriteTextFile(repo, outputPath, output);
+    result = {
+      name,
+      kind: name,
+      mode: 'command',
+      command: commandTokens.join(' '),
+      cwd: repo,
+      status: child.status === 0 ? 'pass' : classifyRunCheckFailure(child),
+      exitCode: child.status ?? '',
+      signal: child.signal || '',
+      summary: summarizeCommandOutput(output),
+      outputPath: relative(repo, outputPath),
+      startedAt: start.toISOString(),
+      endedAt,
+    };
+  }
+  appendControlJsonLine(repo, join(runDir, 'checks.jsonl'), result);
+  addEvidenceFromCheck(repo, runDir, result);
+  appendControlEvent(repo, runDir, 'check', `${name}: ${result.status}`, result);
+  printObject(result);
+  if (result.mode === 'command' && result.exitCode && result.exitCode !== 0) process.exitCode = Number(result.exitCode) || 1;
+}
+
+function completeCheck(repo, options = {}) {
+  const stateInfo = readCurrentStateInfo(repo, options);
+  if (!stateInfo.state && !options.task) fail('No current state found. Run `sdlc state init --task "..."` or pass --task.');
+  const task = options.task || stateInfo.state.task;
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, task);
+  const state = stateInfo.state || synthesizeState(repo, task, options);
+  const rows = controlGateRows(repo, state, runDir, options);
+  const blocked = rows.filter((row) => row.status === 'block');
+  writeGateRows(repo, runDir, rows);
+  printObject({
+    task,
+    route: state.route,
+    result: blocked.length ? 'blocked' : 'pass',
+    blocked: blocked.length,
+    nextAction: blocked[0]?.next || 'sdlc finish packet --task "..."',
+  });
+  printGateRows(rows);
+  if (blocked.length) process.exitCode = 1;
+}
+
+function completeExplain(repo, options = {}) {
+  completeCheck(repo, options);
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, options.task || 'current-task');
+  const checks = readControlJsonLines(join(runDir, 'checks.jsonl'));
+  const waivers = readControlJsonLines(join(runDir, 'waivers.jsonl'));
+  console.log('\n## Recorded Checks\n');
+  console.log(formatList(checks.map((check) => `${check.name}: ${check.status}${check.command ? ` (${check.command})` : ''}`)));
+  console.log('\n## Waivers\n');
+  console.log(formatList(waivers.map((waiver) => `${waiver.gate}: ${waiver.reason} (${waiver.owner || 'owner not provided'})`)));
+}
+
+function completeWaive(repo, options = {}) {
+  const gate = options.gate || '';
+  const reason = options.reason || '';
+  if (!gate || !reason) fail('Pass --gate <id> and --reason "...".');
+  const stateInfo = readCurrentStateInfo(repo, options);
+  if (!stateInfo.state) fail('No current state found. Run `sdlc state init --task "..."` first.');
+  const waiver = { gate, reason, owner: options.owner || 'human', createdAt: new Date().toISOString() };
+  appendControlJsonLine(repo, join(stateInfo.runDir, 'waivers.jsonl'), waiver);
+  appendControlEvent(repo, stateInfo.runDir, 'waiver', `waived ${gate}`, waiver);
+  printObject(waiver);
+}
+
+function scopeExpect(repo, options = {}) {
+  const files = splitList(options.files || '');
+  if (!files.length) fail('Pass --files "a,b".');
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, options.task || 'current-task');
+  const scope = { files, surfaces: dedupe(files.map(classifyTouchedSurface)), createdAt: new Date().toISOString() };
+  safeWriteJsonFile(repo, join(runDir, 'expected-scope.json'), scope);
+  appendControlEvent(repo, runDir, 'scope', 'expected scope recorded', scope);
+  printObject({ files: files.length, surfaces: scope.surfaces.join(', ') || 'none', path: relative(repo, join(runDir, 'expected-scope.json')) });
+}
+
+function scopeCheck(repo, options = {}) {
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, options.task || 'current-task');
+  const expected = readJsonIfExists(join(runDir, 'expected-scope.json')) || { files: [] };
+  const git = getGitInfo(repo);
+  const unexpected = expected.files?.length ? git.changedFiles.filter((file) => !expected.files.includes(file)) : [];
+  const generated = git.changedFiles.filter((file) => classifyControlPathActivity(file) !== 'active-source');
+  printObject({
+    changedFiles: git.changedFiles.length,
+    expectedFiles: expected.files?.length || 0,
+    unexpected: unexpected.join(', ') || 'none',
+    generatedOrNonActive: generated.join(', ') || 'none',
+    result: unexpected.length || generated.length ? 'review' : 'pass',
+  });
+  if (unexpected.length || generated.length) process.exitCode = 1;
+}
+
+function gitGuard(repo, options = {}) {
+  const action = options.action || '';
+  if (!action) fail('Pass --action commit|push.');
+  const policy = policyRowsForAction(repo, options.task || '', action, loadProfile(repo).values);
+  const scopeRows = gitScopeRows(repo, options);
+  const rows = [...policy, ...scopeRows];
+  const blocked = rows.filter((row) => row.status === 'block');
+  printObject({ action, result: blocked.length ? 'blocked' : 'pass-with-human-approval', blocked: blocked.length });
+  printGateRows(rows);
+  if (blocked.length) process.exitCode = 1;
+}
+
+function toolsDetect(repo, options = {}) {
+  const profile = loadProfile(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const detected = toolCapabilityRows(repo, profile.values, commands);
+  console.log('| Capability | Status | Detail |');
+  console.log('| --- | --- | --- |');
+  for (const row of detected) console.log(`| ${escapeCell(row.name)} | ${row.status} | ${escapeCell(row.detail)} |`);
+}
+
+function toolsStatus(repo, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const surfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const rows = toolCapabilityRows(repo, profile.values, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json'))));
+  const unavailable = rows.filter((row) => row.status !== 'available');
+  printObject({
+    task: task || 'not provided',
+    testingSurfaces: surfaces.join(', ') || 'service-behavior',
+    unavailable: unavailable.map((row) => row.name).join(', ') || 'none detected',
+  });
+  console.log('\n## Fallbacks\n');
+  console.log(formatList(toolFallbacksForTask(task, surfaces, profile.values)));
+}
+
+function toolsFallback(repo, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const surfaces = inferTestingSurfaces(repo, task, getGitInfo(repo).changedFiles, profile);
+  console.log(formatList(toolFallbacksForTask(task, surfaces, profile.values)));
+}
+
+function qaOutline(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = git.changedFiles;
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const mode = options.mode || qaModeForSurfaces(surfaces, task);
+  const outline = qaOutlineForMode(mode, task, files, surfaces);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-qa-outline.md`);
+  const content = `# SDLC QA Outline
+
+Task: ${task}
+Mode: ${mode}
+Testing surfaces: ${formatInlineList(surfaces)}
+
+## In Scope
+
+${formatList(outline.scope)}
+
+## Preconditions
+
+${formatList(outline.preconditions)}
+
+## Primary Test
+
+${formatList(outline.primary)}
+
+## Regression Tests
+
+${formatList(outline.regression)}
+
+## Known Caps / Setup Notes
+
+${formatList(outline.caps)}
+`;
+  safeWriteTextFile(repo, outPath, content);
+  console.log(relative(repo, outPath));
+}
+
+function qaCompare(repo, options = {}) {
+  const packetPath = resolvePacketPath(repo, options.packet);
+  const text = readFileSync(packetPath, 'utf8');
+  const findings = [];
+  if (!packetHas(text, ['## Preconditions'])) findings.push('Missing Preconditions section.');
+  if (!packetHas(text, ['## Test Cases', '### QA-001'])) findings.push('Missing primary test case section.');
+  if (!packetHas(text, ['Regression'])) findings.push('Missing regression coverage.');
+  if (!packetHas(text, ['Known Risks', 'Known Caps', 'Developer caps'])) findings.push('Missing caps/risks section.');
+  if (!packetHas(text, ['QA Completion'])) findings.push('Missing QA completion section.');
+  printObject({ packet: relative(repo, packetPath), result: findings.length ? 'needs review' : 'ready-looking' });
+  console.log(formatList(findings.length ? findings : ['No obvious QA structure gaps detected.']));
+  if (findings.length) process.exitCode = 1;
+}
+
+function contextGate(repo, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const rows = contextGateRows(repo, task, profile, git, options);
+  const blocked = rows.filter((row) => row.status === 'block');
+  printObject({ task: task || 'not provided', result: blocked.length ? 'blocked' : rows.some((row) => row.status === 'warn') ? 'warn' : 'pass' });
+  printGateRows(rows);
+  if (blocked.length) process.exitCode = 1;
+}
+
+function traceAttach(repo, options = {}) {
+  const type = options.type || 'event';
+  const summary = options.summary || '';
+  if (!summary) fail('Pass --summary "...".');
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, options.task || 'current-task');
+  const row = controlTraceRow(repo, { ...options, type, summary });
+  appendControlJsonLine(repo, join(runDir, 'trace.jsonl'), row);
+  console.log(relative(repo, join(runDir, 'trace.jsonl')));
+}
+
+function scorecardTrends(repo, options = {}) {
+  return scorecardSummary(repo, options);
+}
+
+function learnSuggest(repo, options = {}) {
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const task = options.task || stateInfo.state?.task || '';
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, task || 'current-task');
+  const suggestions = learningSuggestionsFromRun(repo, runDir, task);
+  printObject({ task: task || 'not provided', suggestions: suggestions.length });
+  console.log(formatList(suggestions.length ? suggestions : ['No strong process-learning candidate detected from local run records.']));
+}
+
+function policyCheck(repo, options = {}) {
+  const task = options.task || '';
+  const action = options.action || '';
+  const profile = loadProfile(repo);
+  const rows = action ? policyRowsForAction(repo, task, action, profile.values) : policyRowsForTask(repo, task, profile.values);
+  const blocked = rows.filter((row) => row.status === 'block');
+  printObject({ task: task || 'not provided', action: action || 'task', result: blocked.length ? 'blocked' : rows.some((row) => row.status === 'warn') ? 'warn' : 'pass' });
+  printGateRows(rows);
+  if (blocked.length) process.exitCode = 1;
+}
+
+function policyExplain(repo, options = {}) {
+  const gate = options.gate || '';
+  if (!gate) fail('Pass --gate <id>.');
+  const explanations = policyExplanations();
+  printObject({
+    gate,
+    explanation: explanations[gate] || 'No specific explanation found; use `sdlc policy check --task "..."` for current policy rows.',
+  });
 }
 
 function runStart(repo, options = {}) {
@@ -7112,6 +7620,22 @@ function scenarioRegressionCases() {
       expectedRecipes: ['fixture-validation-kept-change'],
     },
     {
+      name: 'deterministic control plane',
+      task: 'use deterministic state evidence run-check and complete check before claiming done',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'completion missing evidence',
+      task: 'block completion when required verification evidence is missing',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'policy blocks push automation',
+      task: 'push branch automatically without human approval',
+      expectedRoute: 'release-push',
+      expectedSecurityOverlay: true,
+    },
+    {
       name: 'dangerous destructive tool',
       task: 'delete files with rm -rf and force push the release',
       expectedSecurityOverlay: true,
@@ -10105,6 +10629,385 @@ function dedupeByPath(items) {
     out.push(item);
   }
   return out;
+}
+
+function controlRunRoot(repo, options = {}) {
+  return options.outRoot ? resolve(repo, options.outRoot) : defaultRunsDir(repo);
+}
+
+function controlCurrentPointerPath(repo, options = {}) {
+  return join(controlRunRoot(repo, options), 'current.json');
+}
+
+function controlRunDir(repo, options = {}) {
+  const root = controlRunRoot(repo, options);
+  const id = options.taskId || `${stamp()}-${slug(options.task || 'task')}`;
+  return join(root, id);
+}
+
+function ensureControlRunDir(repo, options = {}, task = '') {
+  const info = readCurrentStateInfo(repo, options);
+  if (info.runDir) return info.runDir;
+  const runDir = controlRunDir(repo, { ...options, task });
+  mkdirSync(runDir, { recursive: true });
+  return runDir;
+}
+
+function readCurrentState(repo, options = {}) {
+  return readCurrentStateInfo(repo, options).state;
+}
+
+function readCurrentStateInfo(repo, options = {}) {
+  const pointer = readJsonIfExists(controlCurrentPointerPath(repo, options));
+  const runDir = options.taskId ? join(controlRunRoot(repo, options), options.taskId) : pointer?.path ? resolve(repo, pointer.path) : '';
+  const statePath = runDir ? join(runDir, 'state.json') : '';
+  const state = statePath && existsSync(statePath) ? readJsonIfExists(statePath) : null;
+  return { state, runDir, previousStage: state?.stage || '' };
+}
+
+function synthesizeState(repo, task, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  return {
+    taskId: options.taskId || slug(task || 'ad-hoc'),
+    task,
+    repo,
+    route: options.route || inferRouteFromTask(task, git, profile.values),
+    stage: options.stage || 'finish-ready',
+    status: 'ad-hoc',
+  };
+}
+
+function safeWriteJsonFile(repo, outPath, value) {
+  safeWriteTextFile(repo, outPath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function appendControlJsonLine(repo, outPath, value) {
+  try {
+    mkdirSync(dirname(outPath), { recursive: true });
+    appendFileSync(outPath, `${JSON.stringify(value)}\n`, 'utf8');
+  } catch (error) {
+    const message = error && typeof error === 'object' && 'message' in error ? error.message : String(error);
+    const code = error && typeof error === 'object' && 'code' in error ? error.code : '';
+    if (code === 'EPERM' || code === 'EACCES') fail(`Could not write SDLC control record to ${outPath}.\nReason: ${message}\nRecovery: pass --out-root /private/tmp/<dir> or rerun with approval.`);
+    throw error;
+  }
+}
+
+function readControlJsonLines(path) {
+  return readJsonLines(path);
+}
+
+function appendControlEvent(repo, runDir, type, summary, extra = {}) {
+  appendControlJsonLine(repo, join(runDir, 'trace.jsonl'), controlTraceRow(repo, { type, summary, ...extra }));
+}
+
+function controlTraceRow(repo, options = {}) {
+  return {
+    timestamp: new Date().toISOString(),
+    repo,
+    type: options.type || 'event',
+    summary: options.summary || '',
+    route: options.route || '',
+    task: options.task || '',
+    stage: options.stage || '',
+    status: options.status || '',
+    gate: options.gate || '',
+    evidence: options.evidence || '',
+  };
+}
+
+function validStateTransition(from, to) {
+  const order = ['intake', 'scoped', 'implementing', 'verifying', 'qa-ready', 'finish-ready', 'committed'];
+  const fromIndex = order.indexOf(from);
+  const toIndex = order.indexOf(to);
+  if (fromIndex < 0 || toIndex < 0) return false;
+  return toIndex >= fromIndex;
+}
+
+function nextActionForStage(stage, task) {
+  const escaped = escapeCommandArg(task || 'current task');
+  if (stage === 'scoped') return `sdlc state advance --to implementing --reason "scope approved"`;
+  if (stage === 'implementing') return `sdlc run-check --name test -- <project test command>`;
+  if (stage === 'verifying') return `sdlc complete check --task "${escaped}"`;
+  if (stage === 'qa-ready') return `sdlc finish packet --task "${escaped}"`;
+  if (stage === 'finish-ready') return 'sdlc action preview --action commit';
+  if (stage === 'committed') return 'human decides whether push/release process applies';
+  return `sdlc evidence required --task "${escaped}"`;
+}
+
+function ensureEvidenceManifest(repo, runDir, task, route, options = {}) {
+  const path = join(runDir, 'evidence.json');
+  const existing = readJsonIfExists(path);
+  if (existing) return existing;
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const manifest = {
+    schema: 'sdlc-evidence-v1',
+    task,
+    route,
+    required: evidenceRequirementsForTask(repo, task, route, git, profile, options),
+    captured: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  safeWriteJsonFile(repo, path, manifest);
+  return manifest;
+}
+
+function readEvidenceManifest(runDir) {
+  return readJsonIfExists(join(runDir, 'evidence.json')) || { required: [], captured: [] };
+}
+
+function evidenceRequirementsForTask(repo, task, route, git, profile, options = {}) {
+  const files = optionFiles(options, git.changedFiles);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const qaMode = qaModeForSurfaces(surfaces, task);
+  const triggers = securityTriggers(task, profile.values);
+  const recipes = matchRecipes(task, git, profile.values);
+  const requirements = [
+    evidenceRequirement('scope', 'required', 'Task scope/intent is recorded.'),
+    evidenceRequirement('changed-files', 'required', 'Changed files and touched surfaces are known.'),
+    evidenceRequirement('verification', 'required', 'At least one fresh check, smoke, or explicit cap is recorded.'),
+    evidenceRequirement('finish-control', 'required', 'Commit/push/release remains human-controlled.'),
+  ];
+  if (route === 'tiny-docs') requirements.push(evidenceRequirement('diff-hygiene', 'required', 'Diff hygiene check is recorded.'));
+  if (route === 'review-only') requirements.push(evidenceRequirement('review', 'required', 'Review verdict/findings are recorded.'));
+  if (route === 'release-push') requirements.push(evidenceRequirement('release-approval', 'required', 'Release/git action approval boundary is explicit.'));
+  if (route === 'multi-repo-integration') requirements.push(evidenceRequirement('workspace-ledger', 'required', 'Affected repos/units and release order are recorded.'));
+  if (route === 'contract-first') requirements.push(evidenceRequirement('contract', 'required', 'Contract surfaces and compatibility decision are recorded.'));
+  if (route === 'bugfix-live-system') requirements.push(evidenceRequirement('exact-live-evidence', 'required', 'Exact sanitized live/log/request evidence or cap is recorded.'));
+  if (route === 'weak-test-legacy') requirements.push(evidenceRequirement('manual-qa', 'required', 'Manual QA script or explicit cap is recorded.'));
+  if (qaMode !== 'workflow' && qaMode !== 'docs-process') requirements.push(evidenceRequirement('qa-outline', 'recommended', `QA outline/script covers ${qaMode}.`));
+  if (surfaces.includes('rendered-product-ui')) requirements.push(evidenceRequirement('rendered-smoke', 'recommended', 'Rendered/browser smoke or cap is recorded.'));
+  if (surfaces.includes('api-contract')) requirements.push(evidenceRequirement('api-contract', 'recommended', 'API/Swagger/client contract evidence or cap is recorded.'));
+  if (surfaces.includes('data-persistence')) requirements.push(evidenceRequirement('data-evidence', 'recommended', 'Data/storage evidence or cap is recorded.'));
+  if (surfaces.includes('integration-provider')) requirements.push(evidenceRequirement('integration-evidence', 'recommended', 'Integration/provider evidence or cap is recorded.'));
+  if (triggers.length) requirements.push(evidenceRequirement('policy', 'required', `Security/tool triggers checked: ${triggers.join(', ')}.`));
+  for (const recipeItem of recipes) requirements.push(evidenceRequirement(`recipe-${recipeItem.id}`, recipeItem.status === 'experimental' ? 'recommended' : 'required', `${recipeItem.id}: ${recipeItem.requiredProof.join('; ')}`));
+  return dedupeBy(requirements, (item) => item.id);
+}
+
+function evidenceRequirement(id, level, summary) {
+  return { id, level, summary };
+}
+
+function evidenceStatusRows(repo, runDir, manifest) {
+  const checks = readControlJsonLines(join(runDir, 'checks.jsonl'));
+  const captured = manifest.captured || [];
+  return (manifest.required || []).map((req) => {
+    const matched = evidenceRequirementSatisfied(req, captured, checks);
+    return {
+      id: req.id,
+      level: req.level,
+      status: matched ? 'satisfied' : 'missing',
+      summary: req.summary,
+    };
+  });
+}
+
+function evidenceRequirementSatisfied(req, captured, checks) {
+  const haystack = `${captured.map((item) => `${item.kind} ${item.id} ${item.summary}`).join(' ')} ${checks.map((item) => `${item.name} ${item.kind} ${item.status} ${item.summary}`).join(' ')}`.toLowerCase();
+  if (req.id === 'scope') return haystack.includes('scope') || haystack.includes('impact') || haystack.includes('state');
+  if (req.id === 'changed-files') return haystack.includes('touched') || haystack.includes('scope') || haystack.includes('changed');
+  if (req.id === 'verification') return checks.some((check) => ['pass', 'cap'].includes(check.status)) || haystack.includes('verify') || haystack.includes('smoke') || haystack.includes('test') || haystack.includes('build');
+  if (req.id === 'finish-control') return true;
+  if (req.id === 'diff-hygiene') return haystack.includes('diff') || haystack.includes('format');
+  if (req.id === 'manual-qa') return haystack.includes('qa');
+  if (req.id === 'qa-outline') return haystack.includes('qa');
+  if (req.id === 'policy') return haystack.includes('policy') || haystack.includes('security');
+  return haystack.includes(req.id.replace(/^recipe-/, '').replace(/-/g, ' ')) || haystack.includes(req.id);
+}
+
+function addEvidenceFromCheck(repo, runDir, check) {
+  const manifest = readEvidenceManifest(runDir);
+  manifest.captured = [...(manifest.captured || []), {
+    id: `check-${check.name}-${Date.now()}`,
+    kind: check.kind || check.name,
+    summary: `${check.status}: ${check.summary || check.command || check.name}`,
+    path: check.outputPath || '',
+    status: check.status,
+    capturedAt: new Date().toISOString(),
+  }];
+  manifest.updatedAt = new Date().toISOString();
+  safeWriteJsonFile(repo, join(runDir, 'evidence.json'), manifest);
+}
+
+function controlGateRows(repo, state, runDir, options = {}) {
+  const manifest = ensureEvidenceManifest(repo, runDir, state.task, state.route, options);
+  const evidenceRows = evidenceStatusRows(repo, runDir, manifest).map((row) => ({
+    id: `evidence-${row.id}`,
+    status: row.status === 'missing' && row.level === 'required' ? 'block' : row.status === 'missing' ? 'warn' : 'pass',
+    detail: row.summary,
+    next: row.status === 'missing' ? `sdlc evidence add --kind ${row.id} --summary "..."` : '',
+  }));
+  const contextRows = contextGateRows(repo, state.task, loadProfile(repo), getGitInfo(repo), options);
+  const policyRows = policyRowsForTask(repo, state.task, loadProfile(repo).values);
+  const waiverRows = readControlJsonLines(join(runDir, 'waivers.jsonl'));
+  const rows = [...evidenceRows, ...contextRows, ...policyRows];
+  return rows.map((row) => waiverRows.some((waiver) => waiver.gate === row.id) ? { ...row, status: 'waived', detail: `${row.detail} (waived)` } : row);
+}
+
+function writeGateRows(repo, runDir, rows) {
+  for (const row of rows) appendControlJsonLine(repo, join(runDir, 'gates.jsonl'), { ...row, recordedAt: new Date().toISOString() });
+}
+
+function printGateRows(rows) {
+  console.log('\n| Gate | Status | Detail | Next |');
+  console.log('| --- | --- | --- | --- |');
+  for (const row of rows) console.log(`| ${escapeCell(row.id || row.name)} | ${row.status} | ${escapeCell(row.detail || '')} | ${escapeCell(row.next || '')} |`);
+}
+
+function printEvidenceRows(rows) {
+  console.log('\n| Evidence | Level | Summary |');
+  console.log('| --- | --- | --- |');
+  for (const row of rows) console.log(`| ${escapeCell(row.id)} | ${row.level} | ${escapeCell(row.summary)} |`);
+}
+
+function printEvidenceStatusRows(rows) {
+  console.log('\n| Evidence | Level | Status | Summary |');
+  console.log('| --- | --- | --- | --- |');
+  for (const row of rows) console.log(`| ${escapeCell(row.id)} | ${row.level} | ${row.status} | ${escapeCell(row.summary)} |`);
+}
+
+function nextActionFromGates(rows, task) {
+  const open = rows.find((row) => ['block', 'warn'].includes(row.status));
+  return open?.next || `sdlc finish packet --task "${escapeCommandArg(task || 'current task')}"`;
+}
+
+function classifyRunCheckFailure(child) {
+  const stderr = String(child.stderr || '').toLowerCase();
+  if (child.error) return 'tool-failure';
+  if (stderr.includes('operation not permitted') || stderr.includes('permission denied') || stderr.includes('eacces') || stderr.includes('eperm')) return 'sandbox-failure';
+  if (stderr.includes('command not found') || stderr.includes('enoent')) return 'tool-unavailable';
+  return 'fail';
+}
+
+function summarizeCommandOutput(output) {
+  const lines = String(output || '').split(/\r?\n/).filter(Boolean);
+  return lines.slice(-8).join(' | ').slice(0, 1000) || 'no output';
+}
+
+function gitScopeRows(repo, options = {}) {
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const runDir = stateInfo.runDir || '';
+  const expected = runDir ? readJsonIfExists(join(runDir, 'expected-scope.json')) : null;
+  const git = getGitInfo(repo);
+  const rows = [];
+  if (expected?.files?.length) {
+    const unexpected = git.changedFiles.filter((file) => !expected.files.includes(file));
+    rows.push({ id: 'scope-unexpected-files', status: unexpected.length ? 'warn' : 'pass', detail: unexpected.join(', ') || 'actual files match expected scope', next: unexpected.length ? 'review dirty files before commit' : '' });
+  } else {
+    rows.push({ id: 'scope-expected-files', status: git.changedFiles.length ? 'warn' : 'pass', detail: git.changedFiles.length ? 'no expected scope recorded' : 'clean worktree', next: git.changedFiles.length ? 'sdlc scope expect --files "..."' : '' });
+  }
+  if (git.changedFiles.some((file) => classifyControlPathActivity(file) !== 'active-source')) rows.push({ id: 'scope-non-active-files', status: 'warn', detail: 'generated/archived/dependency-like files changed', next: 'review before commit' });
+  return rows;
+}
+
+function classifyControlPathActivity(file) {
+  const value = String(file || '').toLowerCase();
+  if (value.includes('node_modules/') || value.includes('/vendor/') || value.includes('/dist/') || value.includes('/build/') || value.includes('/coverage/')) return 'generated-or-dependency';
+  if (value.includes('/archive/') || value.startsWith('archive/') || value.includes('/archived/')) return 'archived-reference';
+  if (value.endsWith('.min.js') || value.endsWith('.map')) return 'generated-or-dependency';
+  return 'active-source';
+}
+
+function toolCapabilityRows(repo, profile = {}, commands = {}) {
+  const external = externalEvidenceProfile(profile);
+  const packageManager = detectPackageManager(repo);
+  return [
+    { name: 'git', status: commandExists('git') ? 'available' : 'unavailable', detail: 'required for scope and branch evidence' },
+    { name: 'node', status: commandExists('node') ? 'available' : 'unavailable', detail: 'required for SDLC helper execution' },
+    { name: packageManager || 'package-manager', status: packageManager && commandExists(packageManager === 'nuget' ? 'dotnet' : packageManager) ? 'available' : packageManager ? 'unavailable' : 'unknown', detail: packageManager || 'not detected' },
+    { name: 'test-command', status: commands.test ? 'available' : 'unknown', detail: commands.test || 'not configured/discovered' },
+    { name: 'build-command', status: commands.build ? 'available' : 'unknown', detail: commands.build || 'not configured/discovered' },
+    { name: 'rendered-ui', status: profile.renderedUiReviewCommand ? 'available' : 'unknown', detail: profile.renderedUiReviewCommand || 'profile has no rendered UI command' },
+    { name: 'ticket-mcp', status: external.ticket.availability === 'available' ? 'available' : 'optional', detail: external.ticket.availability },
+    { name: 'database-mcp', status: external.database.availability === 'available' ? 'available' : 'optional', detail: external.database.availability },
+    { name: 'evidence-root', status: 'available', detail: defaultRunsDir(repo) },
+  ];
+}
+
+function commandExists(command) {
+  const result = spawnSync('which', [command], { encoding: 'utf8' });
+  return result.status === 0;
+}
+
+function toolFallbacksForTask(task, surfaces, profile = {}) {
+  const external = externalEvidenceProfile(profile);
+  const fallbacks = [];
+  if (external.ticket.availability !== 'available') fallbacks.push('Ticket MCP unavailable/unknown: ask for pasted summary, acceptance criteria, comments, and QA expectations.');
+  if (external.database.availability !== 'available' && (surfaces.includes('data-persistence') || matchesAny(String(task).toLowerCase(), ['database', 'sql']))) fallbacks.push('Database MCP unavailable/unknown: use local code/schema/tests or sanitized human-provided query/log results.');
+  if (surfaces.includes('rendered-product-ui') && !profile.renderedUiReviewCommand) fallbacks.push('Rendered UI command unavailable: use build/typecheck plus manual smoke/render cap.');
+  if (!fallbacks.length) fallbacks.push('No special fallback needed from current task/tool signals.');
+  return fallbacks;
+}
+
+function qaOutlineForMode(mode, task, files, surfaces) {
+  return {
+    scope: dedupe([...qaAreas(task, files), ...surfaces.map((surface) => `Validate ${surface} behavior.`)]).slice(0, 10),
+    preconditions: ['QA environment/build identified.', 'Test account/data identified.', 'Feature flags/config noted when relevant.'],
+    primary: primaryQaSteps(mode).split(/\r?\n/).filter((line) => /^\d+\./.test(line.trim())).map((line) => line.trim()),
+    regression: ['Run the closest existing workflow using the same surface.', 'Check validation/error handling around the changed behavior.', 'Confirm no unrelated visible/API/job/data errors occur.'],
+    caps: ['List unavailable environments, tools, provider sandboxes, test data, or developer-only checks.'],
+  };
+}
+
+function contextGateRows(repo, task, profile, git, options = {}) {
+  const rows = [];
+  const docs = contextDocCandidates(repo, profile.values || profile);
+  const missing = docs.filter((item) => !existsSync(item.path));
+  const stale = docs.map((item) => contextFreshnessRow(repo, item, Number(options.days || 60))).filter((row) => row.status === 'stale');
+  const multi = matchesAny(String(task || '').toLowerCase(), ['multi-repo', 'multi repo', 'multiple repositories', 'workspace', 'deployable codebase', 'multiple projects', 'multi-project', 'multi project']);
+  rows.push({ id: 'context-profile', status: profile.path ? 'pass' : 'warn', detail: profile.path ? `profile ${relative(repo, profile.path)}` : 'profile not found', next: profile.path ? '' : 'sdlc profile init' });
+  rows.push({ id: 'context-missing-docs', status: missing.length > 3 ? 'warn' : 'pass', detail: missing.length ? `${missing.length} context docs missing/unconfigured` : 'no major missing context docs', next: missing.length > 3 ? 'sdlc context inventory' : '' });
+  rows.push({ id: 'context-stale-docs', status: stale.length ? 'warn' : 'pass', detail: stale.length ? `${stale.length} stale context docs` : 'no stale context docs detected', next: stale.length ? `sdlc context freshness --task "${escapeCommandArg(task || 'current task')}"` : '' });
+  rows.push({ id: 'context-unit-map', status: multi && unitRegistry(repo, profile).length <= 1 ? 'block' : 'pass', detail: multi ? 'multi-repo/project task needs unit/workspace mapping' : 'unit map not required by task signals', next: multi ? 'sdlc unit doctor' : '' });
+  return rows;
+}
+
+function policyRowsForTask(repo, task, profile = {}) {
+  const rows = [];
+  const triggers = securityTriggers(task || '', profile);
+  if (triggers.length) rows.push({ id: 'policy-security-triggers', status: 'warn', detail: triggers.join(', '), next: `sdlc policy check --task "${escapeCommandArg(task || '')}"` });
+  if (matchesAny(String(task || '').toLowerCase(), ['merge', 'deploy', 'release', 'pipeline', 'move files'])) rows.push({ id: 'policy-release-boundary', status: 'block', detail: 'merge/deploy/release/pipeline/file movement is never automatic', next: 'human project-specific release process' });
+  if (!rows.length) rows.push({ id: 'policy-default', status: 'pass', detail: 'no high-risk policy trigger detected', next: '' });
+  return rows;
+}
+
+function policyRowsForAction(repo, task, action, profile = {}) {
+  const rows = [];
+  if (action === 'push') rows.push({ id: 'policy-push-approval', status: 'block', detail: 'push requires explicit human approval and is never automatic', next: 'ask human for push approval' });
+  else if (action === 'commit') rows.push({ id: 'policy-commit-approval', status: 'warn', detail: 'commit requires explicit human approval', next: 'sdlc action preview --action commit' });
+  else if (['merge', 'deploy', 'release', 'pipeline'].includes(action)) rows.push({ id: 'policy-release-boundary', status: 'block', detail: `${action} is outside SDLC automation`, next: 'use project-specific human release process' });
+  else if (action === 'ticket-update') rows.push({ id: 'policy-ticket-write', status: 'block', detail: 'ticket writes/status updates require explicit approval', next: 'sdlc ticket update-preview --task "..."' });
+  else if (action === 'db-query') rows.push({ id: 'policy-database-boundary', status: 'warn', detail: 'database access must stay read-only, bounded, and redacted', next: 'sdlc data query-plan --task "..."' });
+  else if (['install', 'network'].includes(action)) rows.push({ id: 'policy-external-action', status: 'warn', detail: `${action} may need approval depending on sandbox/profile`, next: 'sdlc tools status --task "..."' });
+  rows.push(...policyRowsForTask(repo, task, profile).filter((row) => row.id !== 'policy-default'));
+  return rows.length ? rows : [{ id: 'policy-action', status: 'pass', detail: 'no special action policy detected', next: '' }];
+}
+
+function policyExplanations() {
+  return {
+    'policy-push-approval': 'Push changes only after explicit human approval. Commit approval is separate from push approval.',
+    'policy-release-boundary': 'Merge, deploy, release, MR/PR creation, pipeline triggers, and manual file movement are project-specific human processes.',
+    'policy-ticket-write': 'Ticket comments/status/field changes can affect team workflow and require explicit approval.',
+    'policy-database-boundary': 'Read-only database evidence can reduce uncertainty, but writes, migrations, backfills, stored procedure execution, and sensitive row reads are blocked without explicit approval.',
+    'policy-security-triggers': 'Security/tool triggers add review and evidence expectations; they do not automatically authorize action.',
+  };
+}
+
+function learningSuggestionsFromRun(repo, runDir, task) {
+  const checks = readControlJsonLines(join(runDir, 'checks.jsonl'));
+  const gates = readControlJsonLines(join(runDir, 'gates.jsonl'));
+  const waivers = readControlJsonLines(join(runDir, 'waivers.jsonl'));
+  const suggestions = [];
+  if (checks.some((check) => ['sandbox-failure', 'tool-unavailable', 'tool-failure'].includes(check.status))) suggestions.push('Tooling/sandbox failures occurred; consider documenting runtime fallback or command classification guidance.');
+  if (gates.filter((gate) => gate.status === 'block').length > 2) suggestions.push('Multiple blocking gates occurred; review whether preflight should expose these earlier.');
+  if (waivers.length) suggestions.push('Waivers were used; review whether this is a repeated cap or a one-off environment limitation.');
+  if (checks.some((check) => check.status === 'cap')) suggestions.push('Evidence caps were recorded; consider setup/profile changes if this repeats.');
+  if (matchesAny(String(task || '').toLowerCase(), ['fixture', 'battle soccer'])) suggestions.push('Fixture validation used; split portable process lessons from product-specific game facts.');
+  return dedupe(suggestions);
 }
 
 function defaultRunsDir(repo) {

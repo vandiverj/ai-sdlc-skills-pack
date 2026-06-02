@@ -26,6 +26,11 @@ Use `sdlc done check --route <route> --packet <packet>` before final completion 
 For implementation, bugfix, maintenance, optimization, or release-facing work that needs human QA or handoff, prefer the universal evidence set:
 
 - `sdlc task preflight --task "..."` for a one-screen route/unit/surface/context/QA/artifact/confidence decision before editing,
+- `sdlc state init --task "..."`, `sdlc state current`, and `sdlc state explain` for resumable local task state,
+- `sdlc evidence required --task "..."`, `sdlc evidence status --task "..."`, and `sdlc evidence add --kind <kind> --summary "..."` for deterministic evidence expectations and captured proof,
+- `sdlc run-check --name <name> -- <command>` for command evidence with timestamps, exit code, output summary, and product-vs-tool failure classification,
+- `sdlc complete check --task "..."` for local state/evidence/gate validation before completion claims,
+- `sdlc scope check --task "..."`, `sdlc git guard --action commit|push`, and `sdlc policy check --task "..."` for dirty-file scope and human-controlled action boundaries,
 - `sdlc task fast-pass --task "..."` for micro/tiny work that can stay inline while preserving the quality floor,
 - `sdlc task start --task "..."` for the normalized task contract,
 - `sdlc task open --task "..."` for start + context freshness + context contradiction check + change graph + ledger in one checkpoint,
@@ -58,6 +63,7 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc search classify --pattern "..."` when search results may include archived, generated, dependency, test, docs, or active-source references.
 - `sdlc route retire --old "..." --new "..." --task "..."` when replacing routes/endpoints/links and needing positive/negative search evidence.
 - `sdlc command classify --command "..." --status <code> --stderr "..."` when a failed command might be quoting, tooling, sandbox, setup, flaky external, or product failure.
+- `sdlc tools detect`, `sdlc tools status --task "..."`, and `sdlc tools fallback --task "..."` when current runtime capability should be made explicit before selecting evidence paths.
 - `sdlc artifact budget --route <route>` for proportional evidence expectations.
 - `sdlc automation budget --route <route>` and `sdlc hooks plan --runtime <runtime>` when deterministic hook/event automation is being configured.
 - `sdlc risk agentic --task "..."` when tool authority, identity, memory/context, untrusted input, cascading actions, release authority, or sensitive data needs explicit gates.

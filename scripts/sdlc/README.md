@@ -13,11 +13,15 @@ sdlc intake packet --task "<task>"
 sdlc recipe match --task "<task>"
 sdlc run dashboard --task "<task>"
 sdlc task preflight --task "<task>"
+sdlc state init --task "<task>"
+sdlc evidence required --task "<task>"
 ```
 
 During implementation, generate only the evidence that matches the route:
 
 ```bash
+sdlc run-check --name test -- <test command>
+sdlc run-check --name build -- <build command>
 sdlc touched packet
 sdlc impact packet --task "<task>"
 sdlc interaction packet --task "<task>"
@@ -29,8 +33,10 @@ sdlc qa script --task "<task>"
 At the end:
 
 ```bash
+sdlc complete check --task "<task>"
 sdlc finish packet --task "<task>"
 sdlc finish packet --task "<task>" --intent keep-change
+sdlc git guard --action commit
 sdlc action preview --action commit
 sdlc git packet
 ```
@@ -42,6 +48,10 @@ Commit and push still require explicit human approval. The SDLC must not automat
 When the state is unclear:
 
 ```bash
+sdlc state current
+sdlc state explain
+sdlc state blockers
+sdlc complete explain --task "<task>"
 sdlc task doctor --task "<task>"
 sdlc run resume --task "<task>"
 ```
@@ -116,6 +126,22 @@ sdlc data evidence --task "<task>"
 ```
 
 These helpers are capability-aware overlays. They do not require YouTrack or database MCP access, do not execute database queries, and do not post ticket updates. When MCPs are unavailable, use pasted ticket details or sanitized human-provided data/log evidence.
+
+Deterministic control plane:
+
+```bash
+sdlc state init --task "<task>"
+sdlc evidence required --task "<task>"
+sdlc run-check --name test -- <command>
+sdlc evidence status --task "<task>"
+sdlc complete check --task "<task>"
+sdlc scope check --task "<task>"
+sdlc policy check --task "<task>"
+sdlc tools status --task "<task>"
+sdlc learn suggest --task "<task>"
+```
+
+Use this control plane to take repeatable process facts out of the language model. The agent still interprets product intent and code, but the CLI records state, evidence, command results, gates, waivers, policy boundaries, and next actions.
 
 Interactive/stateful feature work:
 
