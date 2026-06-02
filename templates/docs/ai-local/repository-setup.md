@@ -51,6 +51,8 @@ Purpose: first-run and machine/runtime setup profile for the AI SDLC. Keep this 
 - Release order:
 - Known failure modes:
 - Generated artifacts:
+- Scratch scripts: .ai-local/sdlc-scratch/scripts/
+- Scratch script TTL: 7 days by default; cleanup is dry-run unless `--apply` is used
 
 ## Capability Profile
 - Install command:

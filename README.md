@@ -49,6 +49,22 @@ sdlc finish-ready --task "<task>"
 
 `sdlc start` creates a canonical task run journal under `.ai-local/sdlc-runs/<task-id>/run.md` and `run.json`. `sdlc next` reads the journal and current evidence to recommend one next action instead of exposing the full expert command surface.
 
+One-off helper scripts should not be created in the codebase root. If a coding agent needs a temporary PowerShell or shell script for repo-relative work, put it under the ignored local scratch folder:
+
+```text
+.ai-local/sdlc-scratch/scripts/
+```
+
+Scratch scripts have a default 7-day cleanup expectation. Audit and clean them with:
+
+```bash
+sdlc artifact scratch-audit --repo <path>
+sdlc artifact scratch-cleanup --repo <path>
+sdlc artifact scratch-cleanup --repo <path> --apply
+```
+
+The cleanup command is dry-run unless `--apply` is passed and only targets the controlled scratch script folder. Durable project scripts should live in the repo's normal tooling folder and be intentionally reviewed as product changes.
+
 For a route-aware command list instead of the full CLI surface:
 
 ```bash

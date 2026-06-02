@@ -1,7 +1,7 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { escapeCell, formatList, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteJsonFile, writeOrPrint } from './common.mjs';
-import { defaultRunsDir } from './paths.mjs';
+import { defaultRunsDir, defaultScratchScriptsDir } from './paths.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { inferRouteFromTask } from './routes.mjs';
@@ -185,6 +185,97 @@ export function artifactCleanupPlan(repo, options = {}) {
   writeOrPrint(repo, options.out, lines.join('\n'));
 }
 
+export function artifactScratchPolicy(repo, options = {}) {
+  const scratchDir = defaultScratchScriptsDir(repo);
+  const maxAgeDays = Number(options.maxAgeDays || options.ttlDays || 7);
+  const policy = {
+    repository: repo,
+    controlledScratchScriptDir: relative(repo, scratchDir),
+    defaultTtlDays: maxAgeDays,
+    rules: [
+      'Do not create temporary .ps1, .sh, .cmd, .bat, or helper scripts in the repository root or product source folders.',
+      'Place agent-created temporary scripts under `.ai-local/sdlc-scratch/scripts/` unless the user explicitly asks for a durable script.',
+      'Keep `.ai-local/` ignored or locally excluded so scratch scripts do not dirty the product codebase.',
+      'Treat scripts older than the TTL as cleanup candidates when they are not linked to an active run.',
+      'Cleanup is dry-run by default; deletion requires `--apply` and is limited to the controlled scratch script directory.',
+    ],
+    commands: [
+      'sdlc artifact scratch-audit --repo <path>',
+      'sdlc artifact scratch-cleanup --repo <path>',
+      'sdlc artifact scratch-cleanup --repo <path> --apply',
+    ],
+  };
+
+  if (options.json) console.log(JSON.stringify(policy, null, 2));
+  else {
+    console.log('# SDLC Scratch Script Policy\n');
+    console.log(`Controlled folder: ${policy.controlledScratchScriptDir}`);
+    console.log(`Default TTL: ${policy.defaultTtlDays} days\n`);
+    console.log(formatList(policy.rules));
+    console.log('\nUseful commands:\n');
+    console.log(formatList(policy.commands));
+  }
+}
+
+export function artifactScratchAudit(repo, options = {}) {
+  const scratchRel = normalizeRel(relative(repo, defaultScratchScriptsDir(repo)));
+  const changedFiles = getGitInfo(repo).changedFiles;
+  const scriptFiles = changedFiles.filter((file) => /\.(ps1|sh|cmd|bat)$/i.test(file));
+  const rows = scriptFiles.map((file) => {
+    const rel = normalizeRel(file);
+    const controlled = rel.startsWith(`${scratchRel}/`);
+    return {
+      status: controlled ? 'pass' : 'warn',
+      file,
+      recommendation: controlled ? 'scratch script is in controlled local folder' : `move temporary script to ${scratchRel}/ or make the durable intent explicit`,
+    };
+  });
+
+  if (!rows.length) rows.push({ status: 'pass', file: '(none)', recommendation: 'no changed script artifacts detected' });
+
+  if (options.json) console.log(JSON.stringify({ repository: repo, controlledScratchScriptDir: scratchRel, rows }, null, 2));
+  else printTable(['Status', 'File', 'Recommendation'], rows.map((row) => [row.status, row.file, row.recommendation]));
+
+  if (rows.some((row) => row.status === 'warn')) process.exitCode = 1;
+}
+
+export function artifactScratchCleanup(repo, options = {}) {
+  const scratchDir = defaultScratchScriptsDir(repo);
+  const maxAgeDays = Number(options.maxAgeDays || options.ttlDays || 7);
+  const apply = Boolean(options.apply || options.write);
+  const cutoffMs = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+  const rows = scratchCleanupRows(scratchDir, cutoffMs);
+
+  if (apply) {
+    for (const row of rows) {
+      if (row.action !== 'delete') continue;
+      try {
+        unlinkSync(row.abs);
+        row.status = 'deleted';
+      } catch (error) {
+        row.status = 'error';
+        row.reason = `${row.reason}; ${error.message}`;
+      }
+    }
+  }
+
+  const printableRows = rows.map((row) => [row.status || (apply ? row.action : 'dry-run'), relative(repo, row.abs), row.reason]);
+  if (options.json) console.log(JSON.stringify({
+    repository: repo,
+    controlledScratchScriptDir: relative(repo, scratchDir),
+    maxAgeDays,
+    apply,
+    rows: rows.map(({ abs, ...row }) => ({ ...row, file: relative(repo, abs) })),
+  }, null, 2));
+  else {
+    console.log(`# SDLC Scratch Script Cleanup ${apply ? '' : '(dry run)'}\n`);
+    console.log(`Controlled folder: ${relative(repo, scratchDir)}`);
+    console.log(`TTL: ${maxAgeDays} days`);
+    console.log(apply ? 'Deletion applied only inside the controlled scratch folder.\n' : 'Pass --apply to delete cleanup candidates.\n');
+    printTable(['Status', 'File', 'Reason'], printableRows);
+  }
+}
+
 export function artifactMigrate(repo, options = {}) {
   const info = readCurrentStateInfo(repo, options);
   const runDir = info.runDir || ensureControlRunDir(repo, options, options.task || 'migration');
@@ -218,6 +309,26 @@ function artifactLifecycleRows(runDir) {
     if (/tool-gaps|tools\.json|capability|local-first/i.test(file.rel)) return { recommendation: 'keep for run', artifact: file.rel, reason: 'local-first fact cache; refresh instead of copying into durable docs' };
     return { recommendation: 'review', artifact: file.rel, reason: 'decide whether temporary evidence, durable context, or learning candidate' };
   });
+}
+
+function scratchCleanupRows(scratchDir, cutoffMs) {
+  if (!existsSync(scratchDir)) return [{ action: 'keep', status: 'missing', abs: scratchDir, reason: 'controlled scratch folder does not exist' }];
+  const files = listArtifactFiles(scratchDir).filter((file) => /\.(ps1|sh|cmd|bat)$/i.test(file.rel)).slice(0, 500);
+  if (!files.length) return [{ action: 'keep', status: 'empty', abs: scratchDir, reason: 'no scratch scripts found' }];
+  return files.map((file) => {
+    let stat;
+    try {
+      stat = statSync(file.abs);
+    } catch {
+      return { action: 'keep', status: 'unknown', abs: file.abs, reason: 'could not stat file' };
+    }
+    if (stat.mtimeMs < cutoffMs) return { action: 'delete', abs: file.abs, reason: 'older than scratch script TTL' };
+    return { action: 'keep', abs: file.abs, reason: 'inside TTL' };
+  });
+}
+
+function normalizeRel(value) {
+  return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '');
 }
 
 function listArtifactFiles(root) {

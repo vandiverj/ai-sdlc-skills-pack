@@ -24,6 +24,8 @@ Purpose: local repository profile for SDLC helper automation. Keep this file ign
 - Durable docs:
 - Agent-local docs: .ai-local/
 - Evidence output location: .ai-local/sdlc-runs/
+- Temporary script location: .ai-local/sdlc-scratch/scripts/
+- Temporary script TTL: 7 days by default
 - Calibration log: .ai-local/sdlc-calibration.jsonl
 
 ## Commands

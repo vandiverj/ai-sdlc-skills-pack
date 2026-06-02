@@ -5,6 +5,10 @@ export function defaultRunsDir(repo) {
   return join(repo, '.ai-local', 'sdlc-runs');
 }
 
+export function defaultScratchScriptsDir(repo) {
+  return join(repo, '.ai-local', 'sdlc-scratch', 'scripts');
+}
+
 export function defaultCalibrationPath(repo) {
   return join(repo, '.ai-local', 'sdlc-calibration.jsonl');
 }

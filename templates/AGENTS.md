@@ -49,6 +49,7 @@
 - For UI or user-facing workflow changes, inspect the rendered browser/app/device surface when a runnable surface and approved tool are available; otherwise mark product-experience claims unverified.
 - Update context, docs, contracts, and agent instructions only when their surfaces changed.
 - Keep personal or pilot scratch notes out of commits unless explicitly intended; decide whether `.ai-local/` belongs in `.git/info/exclude` or project `.gitignore`.
+- Keep one-off agent helper scripts out of the repository root and product source folders. Use `.ai-local/sdlc-scratch/scripts/` for temporary `.ps1`, `.sh`, `.cmd`, or `.bat` files; clean stale scripts with `sdlc artifact scratch-cleanup`.
 
 ## Agent Strategy
 - Project agent strategy source of truth: `docs/agents/`.
@@ -96,6 +97,7 @@
 - Git identity/privacy:
 - Local-only files:
   - `.ai-local/` policy:
+  - Scratch scripts: `.ai-local/sdlc-scratch/scripts/`
   - Ignored via `.git/info/exclude` or `.gitignore`:
   - Sanitized docs path, if any:
 - Public push/PR checks:

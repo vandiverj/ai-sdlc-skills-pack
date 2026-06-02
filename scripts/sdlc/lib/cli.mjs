@@ -56,7 +56,7 @@ import { changeGraph, changeGraphEdges, changeGraphImplications, classifySearchP
 import { createServices } from './services.mjs';
 import { helpHandoffPackets, helpLocalFirst, helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policySimulate, policyValidateConfig } from './policy.mjs';
-import { artifactBudget, artifactBudgetForRoute, artifactCleanupPlan, artifactMigrate, artifactSpaPlan, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
+import { artifactBudget, artifactBudgetForRoute, artifactCleanupPlan, artifactMigrate, artifactScratchAudit, artifactScratchCleanup, artifactScratchPolicy, artifactSpaPlan, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
 import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
 import { impactAreas, primaryQaSteps, qaAreas, qaBuild, qaCompare, qaComplete, qaCoverage, qaHandoff, qaLint, qaModeCommand, qaOutline, qaOutlineForMode, qaReview, qaScenarios, qaScript, qaValidate } from './qa.mjs';
 import { capabilitiesNegotiate, capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, localFirstPlan, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsExperimentAdd, toolsExperimentReview, toolsFallback, toolsGaps, toolsInventory, toolsRecommend, toolsStatus } from './tools.mjs';
@@ -369,6 +369,9 @@ export async function main(argv) {
   if (area === 'artifact' && action === 'validate') return artifactValidate(repo, options);
   if (area === 'artifact' && action === 'summarize') return artifactSummarize(repo, options);
   if (area === 'artifact' && action === 'cleanup-plan') return artifactCleanupPlan(repo, options);
+  if (area === 'artifact' && action === 'scratch-policy') return artifactScratchPolicy(repo, options);
+  if (area === 'artifact' && action === 'scratch-audit') return artifactScratchAudit(repo, options);
+  if (area === 'artifact' && action === 'scratch-cleanup') return artifactScratchCleanup(repo, options);
   if (area === 'artifact' && action === 'migrate') return artifactMigrate(repo, options);
   if (area === 'artifact' && (action === 'spa-plan' || action === 'spa')) return artifactSpaPlan(repo, options);
   if (area === 'dashboard') return statusDashboard(resolve(areaOptions.repo || repo), areaOptions, statusDependencies());

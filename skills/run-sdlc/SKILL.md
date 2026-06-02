@@ -26,6 +26,8 @@ QA output means Markdown manual quality-assurance test scripts for human testers
 
 The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines. It may prepare evidence, commit summaries, Git action packets, QA scripts, and handoff notes. Commit and push require explicit human approval.
 
+Temporary helper scripts created by the agent are local scratch artifacts, not product code. Do not place one-off `.ps1`, `.sh`, `.cmd`, or `.bat` files in the repository root or product source folders. Use `.ai-local/sdlc-scratch/scripts/` for repo-relative scratch scripts, keep `.ai-local/` ignored/local, and use `sdlc artifact scratch-audit` plus `sdlc artifact scratch-cleanup` to detect and age out stale scratch scripts. Only create a durable repo script when the task explicitly needs project tooling and the file is intentionally reviewed as part of the product diff.
+
 ## Core rule
 Do not run the whole workflow by default. Run the smallest route that prevents the most likely expensive failure.
 
@@ -149,6 +151,7 @@ At closeout, prefer one finish surface:
 ```bash
 sdlc complete check --task "<human task>"
 sdlc finish packet --task "<human task>"
+sdlc artifact scratch-audit
 sdlc git guard --action commit
 sdlc action preview --action commit
 ```

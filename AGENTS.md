@@ -15,7 +15,9 @@ This repository is the reusable AI SDLC skills pack. It is not an application te
 
 - Prefer direct file edits with `apply_patch` when the target files are inside the active writable workspace.
 - When this repo is outside the writable workspace, use small PowerShell scripts with escalation.
-- Keep temporary scripts in the active Codex workspace, not in this repo, and delete them after use.
+- Keep temporary scripts under the target repo's ignored `.ai-local/sdlc-scratch/scripts/` folder, not in the repository root or product source folders. Use `/tmp` or the OS temp directory only when the script does not need repo-relative paths.
+- Treat `.ps1`, `.sh`, `.cmd`, and `.bat` files created for one-off agent work as scratch artifacts with a default 7-day TTL. Run `sdlc artifact scratch-cleanup --repo <path>` for a dry-run cleanup plan, and only delete with `--apply`.
+- If a script should become durable project tooling, put it in the repo's established scripts/tooling folder, document why it is durable, and include it intentionally in the Git diff.
 - Do not use double-quoted PowerShell strings for Markdown content containing backticks.
 - Prefer single-quoted here-strings for Markdown content:
 

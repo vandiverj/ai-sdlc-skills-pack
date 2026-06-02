@@ -251,6 +251,7 @@ export function commandRegistry() {
     reg('integration-packet', 'sdlc integration packet --task "<task>"', 'verification', ['standard'], 'Capture provider/integration evidence expectations.', 'Do not call external systems without approval when risky.', 'integration packet'),
     reg('verify-ladder', 'sdlc verify ladder --task "<task>"', 'verification', ['any'], 'Recommend surface-correct validation levels.', 'Do not treat recommended commands as already executed.', 'verification ladder'),
     reg('qa-coverage', 'sdlc qa coverage --task "<task>"', 'qa', ['any'], 'Check whether QA covers changed surfaces and acceptance criteria.', 'Do not let QA replace developer validation.', 'QA coverage'),
+    reg('scratch-audit', 'sdlc artifact scratch-audit', 'finish', ['any'], 'Detect one-off agent helper scripts that were created outside the controlled `.ai-local` scratch folder.', 'Do not leave temporary scripts dirtying product source folders.', 'scratch artifact audit'),
     reg('complete-check', 'sdlc complete check --task "<task>"', 'finish', ['any'], 'Check deterministic completion gates before claiming done.', 'Open gates require evidence, waiver, or human-accepted cap.', 'completion check'),
     reg('finish-packet', 'sdlc finish packet --task "<task>"', 'finish', ['any'], 'Prepare final evidence and next action summary.', 'Do not commit or push from the packet alone.', 'finish packet'),
     ...recipeCommandRows(),
