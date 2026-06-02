@@ -15,6 +15,7 @@ Use when work touches auth, permissions, secrets, private data, retention, expor
 - Dependency and supply chain: package health, license, provenance, generated code, build scripts, release artifacts, update paths.
 - Operations: failure modes, monitoring, alerting, incident response, rollback, migration safety, support/debug access.
 - AI/agent systems: prompt injection, system prompt exposure, sensitive information disclosure, tool overreach, excessive agency, insecure output handling, retrieval or memory poisoning, vector/embedding leakage, hallucination, cost/resource exhaustion, untrusted tool output.
+- External evidence MCPs: YouTrack/ticket privacy, ticket write authority, database environment boundary, read-only row-level exposure, query redaction, stale read replicas, and the distinction between observed database state and desired product behavior.
 
 ## Output
 ```text

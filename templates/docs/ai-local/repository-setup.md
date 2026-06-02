@@ -75,6 +75,24 @@ Purpose: first-run and machine/runtime setup profile for the AI SDLC. Keep this 
 - Dependency install policy:
 - Secrets handling policy:
 
+## External Evidence Capabilities
+- Ticket system provider:
+- Ticket MCP availability: available / unavailable / blocked / unknown
+- Ticket read issue/comments/attachments:
+- Ticket write comments: approval required / blocked
+- Ticket update fields/status/assignee: approval required / blocked
+- Ticket sensitive data rules:
+- Ticket fallback intake fields:
+- Database evidence provider/context:
+- Database MCP availability: available / unavailable / blocked / unknown
+- Database environments allowed:
+- Database allowed operations:
+- Database blocked operations:
+- Database sensitive schemas/tables/data classes:
+- Database row limit/default aggregation:
+- Database redaction rules:
+- Database fallback evidence path:
+
 ## Quality Capability Notes
 - Available quality rails:
 - Missing but valuable rails:

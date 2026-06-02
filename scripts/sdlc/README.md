@@ -20,6 +20,8 @@ During implementation, generate only the evidence that matches the route:
 ```bash
 sdlc touched packet
 sdlc impact packet --task "<task>"
+sdlc interaction packet --task "<task>"
+sdlc validate ladder --task "<task>"
 sdlc verify packet --task "<task>"
 sdlc qa script --task "<task>"
 ```
@@ -28,6 +30,7 @@ At the end:
 
 ```bash
 sdlc finish packet --task "<task>"
+sdlc finish packet --task "<task>" --intent keep-change
 sdlc action preview --action commit
 sdlc git packet
 ```
@@ -94,6 +97,40 @@ Context or learning placement:
 sdlc context bucket-confidence --path <path> --task "<task>"
 sdlc context final-check --task "<task>"
 sdlc learn split --packet <learning-packet>
+```
+
+Ticket-driven work:
+
+```bash
+sdlc ticket evidence --task "<task>"
+sdlc ticket drift --task "<task>"
+sdlc ticket update-preview --task "<task>"
+```
+
+Read-only database evidence:
+
+```bash
+sdlc data boundary --task "<task>"
+sdlc data query-plan --task "<task>"
+sdlc data evidence --task "<task>"
+```
+
+These helpers are capability-aware overlays. They do not require YouTrack or database MCP access, do not execute database queries, and do not post ticket updates. When MCPs are unavailable, use pasted ticket details or sanitized human-provided data/log evidence.
+
+Interactive/stateful feature work:
+
+```bash
+sdlc interaction packet --task "<task>"
+sdlc validate ladder --task "<task>"
+sdlc qa interactive --task "<task>"
+```
+
+Fixture validation where useful changes are kept:
+
+```bash
+sdlc fixture plan --task "<task>"
+sdlc finish packet --task "<task>" --intent keep-change
+sdlc learn from-run --task "<task>"
 ```
 
 ## Lower-Level Helpers

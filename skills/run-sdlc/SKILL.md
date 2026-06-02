@@ -45,6 +45,8 @@ For repositories containing multiple deployable codebases, reason at `workspace 
 
 Process learnings may be captured in `.agents/learnings/` only after sanitizing product/client details. Keep portable SDLC lessons separate from product-specific durable facts. Product facts usually belong in repo/unit/shared external context, not the skills pack.
 
+Optional external evidence MCPs such as YouTrack and read-only database access are capability-aware overlays, not required dependencies. Use them only when profile/runtime policy allows and they materially reduce task uncertainty. If they are unavailable, use pasted ticket context, local code/tests/docs, and human-provided sanitized logs/query results instead. Read-only access still needs data-boundary care because it can expose private tickets, customer data, proprietary schemas, production records, or secrets.
+
 ## Helper CLI operating model
 Use the CLI as a small set of mechanical helpers, not as a checklist to exhaust.
 
@@ -90,6 +92,8 @@ Common implementation evidence:
 ```bash
 sdlc touched packet
 sdlc impact packet --task "<human task>"
+sdlc interaction packet --task "<human task>"
+sdlc validate ladder --task "<human task>"
 sdlc verify packet --task "<human task>"
 sdlc qa script --task "<human task>"
 ```
@@ -100,6 +104,12 @@ Recipe overlays add proof only when the task shape calls for it:
 sdlc route proof --old "<old route>" --new "<new route>" --task "<human task>"
 sdlc bug live-evidence --task "<human task>"
 sdlc dotnet efcore diagnose --task "<human task>"
+sdlc ticket evidence --task "<human task>"
+sdlc ticket drift --task "<human task>"
+sdlc data query-plan --task "<human task>"
+sdlc data evidence --task "<human task>"
+sdlc fixture plan --task "<human task>"
+sdlc learn from-run --task "<human task>"
 sdlc command classify --command "<command>" --status <code> --stderr "<stderr>"
 sdlc context bucket-confidence --path <path> --task "<human task>"
 ```
@@ -115,6 +125,10 @@ Use recipe overlays when the task shape calls for specific proof. Recipes are ad
 - EF Core SQL Server failures: use the EF Core diagnostic overlay for FK/relationship failures and SQL Server OUTPUT/trigger metadata drift.
 - No-test legacy work: generate a targeted regression or test-bootstrap plan and a human QA handoff rather than pretending broad automated coverage exists.
 - Command failures: classify shell/tooling/setup failures separately from system-under-test failures before using command output as evidence.
+- Ticket evidence: use YouTrack/ticket MCP only when available and allowed; refresh for drift before closeout; preview but do not post updates without explicit approval.
+- Database evidence: plan bounded read-only metadata/aggregate/existence evidence first; redact summaries; never infer permission for writes, migrations, backfills, stored procedure execution, deploy, or release.
+- Interactive/stateful features: capture the starting state, action sequence, state changes, feedback/animation, recovery path, and strongest available validation ladder.
+- Fixture validation with kept changes: treat useful fixture changes as real product work; verify, review, and prepare commit preview only after explicit finish intent.
 - Context saves: run bucket confidence and split product-specific facts from portable process lessons before promoting learnings.
 
 When the developer is unsure where things stand, use `sdlc task doctor --task "<human task>"` and summarize only the current route, recipes, evidence, missing gates, QA readiness, and next decision.

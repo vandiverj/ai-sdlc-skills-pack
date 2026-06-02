@@ -27,6 +27,32 @@ Purpose: record which commands, tools, MCPs, browsers, runtimes, and validation 
 | --- | --- | --- | --- | --- |
 |  |  |  |  |  |
 
+## External Evidence MCPs
+
+These capabilities are optional. Mark them unavailable or blocked when the machine/runtime does not have access.
+
+### Ticket System
+- Provider: YouTrack / other / none
+- MCP availability: available / unavailable / blocked / unknown
+- Read issue: allowed / blocked / approval required
+- Read comments: allowed / blocked / approval required
+- Read attachments/articles: allowed / blocked / approval required
+- Write comments: approval required / blocked
+- Update fields/status/assignee: approval required / blocked
+- Sensitive ticket data rules:
+- Fallback intake fields: summary, acceptance criteria, relevant comments, QA expectations
+
+### Database Evidence
+- Provider/context:
+- MCP availability: available / unavailable / blocked / unknown
+- Environments allowed: dev / QA / staging / production / read replica
+- Allowed operations: metadata read / aggregate SELECT / bounded row-level SELECT / explain plan
+- Blocked operations: INSERT / UPDATE / DELETE / DDL / migration / backfill / job execution / stored procedure execution
+- Sensitive schemas/tables/data classes:
+- Row limit/default aggregation:
+- Redaction rules:
+- Fallback evidence path:
+
 ## Environment Caps
 - Docker/container support:
 - Browser support:

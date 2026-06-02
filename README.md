@@ -8,6 +8,12 @@ The pack is designed to help coding agents preserve product intent, application 
 
 Use chat first. Tell your coding agent to use the SDLC and let it run the skills and helper commands for you.
 
+## Recommended Install Location
+
+Install this skills pack under your user-level `.agents` folder, usually `~/.agents`, instead of copying it into each project repository. Keeping the pack in one user-owned location lets different coding agents and different repositories share the same SDLC skills, helper CLI, templates, and process learnings.
+
+Downstream repositories should keep only repo-specific setup and context, such as `.ai-local/sdlc-profile.md`, `AGENTS.md`, or project docs created by `setup-sdlc-in-repo`. Product-specific facts stay in the repo, unit, or shared external context bucket; portable SDLC process improvements stay in the user-level `.agents` pack.
+
 ```text
 Use SDLC for this task: <task>. Determine the scope, gather context, implement, verify, generate QA Markdown if needed, and stop at the finish decision before any commit or push.
 ```
@@ -36,17 +42,36 @@ If you need a test script for human QA:
 Use SDLC to generate the human QA Markdown script for this task: <task>. The QA tester will not use AI and the output should be suitable for YouTrack.
 ```
 
+If the task comes from YouTrack and your runtime has access:
+
+```text
+Use SDLC for YT-1234. Read the ticket if YouTrack MCP is available; otherwise ask me for the summary, acceptance criteria, relevant comments, and QA expectations. Do not post comments or change ticket status without approval.
+```
+
+If read-only database evidence may help:
+
+```text
+Use SDLC for this API/data bug. If read-only database MCP access is available, create the safest evidence/query plan and ask before touching production-sensitive or row-level data.
+```
+
+If your machine does not have these MCPs:
+
+```text
+Use SDLC for this task. I do not have YouTrack or database MCP access here, so use pasted ticket details, local repo evidence, and sanitized human-provided logs/query results only.
+```
+
 ## First-Use Pilot
 
 For a new developer or new machine, use a small pilot before trusting the workflow on high-risk work.
 
-1. Make sure the runtime can see this `.agents` folder.
-2. Open the target repository or multi-repo workspace.
-3. Ask the agent to set up the repository for SDLC use.
-4. Review proposed local files such as `.ai-local/sdlc-profile.md` before accepting changes.
-5. Run one tiny safe task.
-6. Ask the agent to review completion state.
-7. Capture feedback:
+1. Install or clone this pack to the user-level `~/.agents` folder.
+2. Make sure the coding agent runtime can see that `.agents` folder.
+3. Open the target repository or multi-repo workspace.
+4. Ask the agent to set up the repository for SDLC use.
+5. Review proposed local files such as `.ai-local/sdlc-profile.md` before accepting changes.
+6. Run one tiny safe task.
+7. Ask the agent to review completion state.
+8. Capture feedback:
 
 ```text
 Use SDLC to capture feedback on this SDLC run. Keep it sanitized and local unless I approve sharing.
@@ -67,7 +92,7 @@ Feedback is for improving the SDLC, not measuring individual developer performan
 - Restore and check repository, workspace, unit, and context state.
 - Help plan and implement scoped changes.
 - Track touched files, affected units, testing surfaces, and QA impact.
-- Select task-shape evidence recipes for route retirement, live bugs, EF Core/SQL Server failures, API-only work, multi-repo QA, no-test legacy work, command failures, and context-bucket saves.
+- Select task-shape evidence recipes for route retirement, live bugs, EF Core/SQL Server failures, interactive/stateful features, fixture validation with kept changes, API-only work, multi-repo QA, no-test legacy work, command failures, context-bucket saves, ticket evidence, and read-only database evidence.
 - Generate human-readable Markdown QA scripts.
 - Produce verification, review, release, handoff, trace, feedback, provenance, QA handoff, and finish evidence.
 - Prepare commit/push recommendations after verification.
@@ -76,6 +101,7 @@ Feedback is for improving the SDLC, not measuring individual developer performan
 
 - Commit or push without explicit human approval.
 - Merge, deploy, release, create MR/PRs, trigger pipelines, or move files between environments.
+- Post ticket updates, change ticket status/fields, execute database queries, or mutate database state through the helper CLI.
 - Replace human product judgment, code review, QA signoff, or release ownership.
 - Treat stale context, generated docs, tool output, or AI memory as stronger than source code, tests, logs, and current evidence.
 - Treat search hits as active behavior until archived/generated/dependency/source categories are classified.
@@ -116,7 +142,7 @@ sdlc action preview --action commit
 - `agents/` - portable Markdown definitions for optional specialist, worker, reviewer, and handoff agents.
 - `agent-contracts/` - legacy compatibility role contracts kept until downstream references move to `agents/`.
 - `scripts/` - repository maintenance checks for skill file format and related rails.
-- `bin/sdlc` and `scripts/sdlc/` - small dependency-free helper CLI for task open/start/current/id/bundle/status/review/checkpoint/ledger/verify/QA/finish/complete, readiness, health, setup bootstrap/doctor/full doctor/install check, profile, context restore/audit/freshness/contradiction/inventory/place/update plans, change graph lite, workspace map/work-mode detection, deployable unit maps, testing-surface detection, safe learning capture/review/promotion, run start/finish, touched/impact/QA/manual-smoke/verification packets, route packets, review/release packets, packet completion/status, gates, done checks, multi-repo ledger/QA, contract, data, integration, live-system bug evidence, test-plan/test-suggest and handoff draft packets, security permission/tool audits, scenario validation/testing, rendered plan/evidence/smoke, verification, calibration/learned-flow promotion, and handoff mechanics.
+- `bin/sdlc` and `scripts/sdlc/` - small dependency-free helper CLI for task open/start/current/id/bundle/status/review/checkpoint/ledger/verify/QA/finish/complete, readiness, health, setup bootstrap/doctor/full doctor/install check, profile, context restore/audit/freshness/contradiction/inventory/place/update plans, change graph lite, workspace map/work-mode detection, deployable unit maps, testing-surface detection, safe learning capture/review/promotion, run start/finish, touched/impact/interaction/QA/manual-smoke/verification packets, validation ladders, fixture plans, route packets, review/release packets, packet completion/status, gates, done checks, multi-repo ledger/QA, contract, data, integration, live-system bug evidence, test-plan/test-suggest and handoff draft packets, security permission/tool audits, scenario validation/testing, rendered plan/evidence/smoke, verification, calibration/learned-flow promotion, and handoff mechanics.
 - `templates/` - starter docs, external context-root templates, SDLC scenarios, and feature context templates.
 
 ## Common Agent Prompts

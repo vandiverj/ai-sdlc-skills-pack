@@ -36,6 +36,8 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc context inventory`, `sdlc context bucket-check --task "..."`, `sdlc context resolve --path <path> --task "..."`, `sdlc context final-check --task "..."`, `sdlc context place --fact "..."`, `sdlc context freshness --task "..."`, `sdlc context contradictions --task "..."`, and `sdlc change graph --task "..."` for context placement, confidence, contradiction checks, final verification discoveries, and impact graph-lite,
 - `sdlc touched packet` for changed technical surfaces,
 - `sdlc impact packet --task "..."` for user/system impact,
+- `sdlc interaction packet --task "..."` for games, dashboards, wizards, settings, animation/feedback loops, and other stateful workflows,
+- `sdlc validate ladder --task "..."` to choose the strongest practical validation surface and record fallback caps,
 - `sdlc verify packet --task "..."` for developer/agent verification,
 - `sdlc smoke packet --task "..."` for developer/agent manual smoke evidence before completion, especially UI/manual-QA/no-tests work,
 - `sdlc qa script --task "..."` for Markdown manual QA test scripts that can be pasted into YouTrack,
@@ -48,6 +50,8 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc test suggest --task "..."` when the repo has weak/no tests or a dependency/package upgrade.
 - `sdlc test bootstrap-plan --unit <unit> --framework dotnet|node|deno|generic` when a focused test project/harness must be introduced for the active task.
 - `sdlc data packet --task "..."` and `sdlc integration packet --task "..."` when data/storage or third-party/cross-system behavior is affected.
+- `sdlc data boundary --task "..."`, `sdlc data query-plan --task "..."`, and `sdlc data evidence --task "..."` when read-only database evidence can reduce uncertainty; the helper plans and captures evidence shape but does not execute queries.
+- `sdlc ticket evidence --task "..."`, `sdlc ticket drift --task "..."`, and `sdlc ticket update-preview --task "..."` when a YouTrack/ticket issue provides task intake, acceptance criteria, QA expectations, or closeout notes; posting/updating remains approval-gated.
 - `sdlc bug evidence --task "..."` for live-connected staging/production-safe bug investigations that need exact logs, failing SQL/API/contract evidence, minimal fix discipline, targeted regression, and QA scenario retest.
 - `sdlc bug evidence-check --packet <path>` before closing a live-system bugfix.
 - `sdlc bug reproduce`, `sdlc bug diagnose`, `sdlc bug fix-plan`, `sdlc bug verify`, and `sdlc bug qa` when a live-system bug needs stepwise evidence-first handling.
@@ -58,6 +62,7 @@ For implementation, bugfix, maintenance, optimization, or release-facing work th
 - `sdlc automation budget --route <route>` and `sdlc hooks plan --runtime <runtime>` when deterministic hook/event automation is being configured.
 - `sdlc risk agentic --task "..."` when tool authority, identity, memory/context, untrusted input, cascading actions, release authority, or sensitive data needs explicit gates.
 - `sdlc learn quick`, `sdlc learn capture`, `sdlc learn sanitize`, `sdlc learn sync-check`, `sdlc learn review-cycle`, `sdlc learn archive`, `sdlc learn route`, `sdlc learn summary`, `sdlc learn review`, and `sdlc learn promote` for cross-environment process-learning candidates; keep product/client facts in repo/unit/shared context unless redacted and generalized.
+- `sdlc fixture plan --task "..."`, `sdlc finish packet --task "..." --intent keep-change`, and `sdlc learn from-run --task "..."` when a fixture app is used to validate the SDLC and the resulting product improvement should be kept.
 - `sdlc gates --task "..."` for the open-gate dashboard.
 - `sdlc handoff draft --task "..."` for MR/release/QA/deployment text drafts without creating or triggering anything.
 - `sdlc render plan --task "..."` or `sdlc render evidence --task "..."` for visible UI work when tooling is available or caps must be explicit.
@@ -187,6 +192,87 @@ Done criteria:
 - implementation matches scope,
 - tests/checks support the claim,
 - docs/context are updated when durable truth changed.
+
+### interactive-stateful-feature
+
+Trigger: games, dashboards, wizards, settings/mode changes, animation/feedback loops, or any workflow where user actions change visible or persistent state.
+
+Context packet:
+
+- task preflight with task breadth,
+- interaction packet,
+- affected unit/surface detection,
+- changed files and existing validation commands.
+
+Checks:
+
+- state/domain logic test when practical,
+- build/typecheck,
+- rendered UI/API/CLI/job smoke matching the actual surface,
+- regression path for reset/retry/back/adjacent behavior.
+
+Evidence:
+
+- starting state,
+- action sequence,
+- state changes,
+- expected feedback/animation/result,
+- recovery/reset path,
+- validation ladder and caps.
+
+Stop gates:
+
+- unclear user-facing success state,
+- state changes spread across units without context bucket mapping,
+- no runnable or manual validation surface,
+- animation/feedback added without proving the underlying state transition.
+
+Done criteria:
+
+- primary interaction works,
+- state and feedback agree,
+- nearby regression path is checked or capped,
+- QA Markdown exists when human testers are involved.
+
+### fixture-validation-kept-change
+
+Trigger: Battle Soccer or another fixture app is used to validate the SDLC and the resulting product improvement should be saved.
+
+Context packet:
+
+- fixture plan,
+- task preflight,
+- changed-file scope,
+- validation ladder,
+- finish packet with `--intent keep-change`.
+
+Checks:
+
+- route/breadth classification,
+- tests/build or strongest practical surface check,
+- diff hygiene,
+- rendered/API/CLI/job smoke or explicit cap,
+- commit preview only after verification is summarized.
+
+Evidence:
+
+- why the task tests the SDLC behavior,
+- why the product change is worth keeping,
+- commands/screens/smoke used,
+- QA readiness or cap,
+- process learning review.
+
+Stop gates:
+
+- fixture-only experiment presented as production-ready evidence,
+- useful product changes left unverified,
+- commit/push/merge/deploy/release implied without explicit human approval.
+
+Done criteria:
+
+- useful change is validated like normal product work,
+- SDLC learning is captured separately from product facts,
+- finish packet distinguishes kept change from throwaway process test.
 
 ### bugfix-regression
 
@@ -337,6 +423,83 @@ Done criteria:
 - root cause and fix are evidence-backed,
 - developer validation is separated from QA scenario validation,
 - durable context and sanitized learnings are placed in the correct buckets.
+
+### ticket-evidence
+
+Trigger: YouTrack issue ID/link, ticket-driven work, acceptance criteria, QA case, or issue comments that define scope.
+
+Context packet:
+
+- ticket provider and read mode,
+- issue id/link,
+- summary and acceptance criteria,
+- relevant comments and linked issues,
+- attachments/articles considered only when allowed,
+- fallback pasted context when MCP is unavailable.
+
+Checks:
+
+- ticket evidence is current enough for the task,
+- acceptance criteria are explicit or the gap is surfaced,
+- ticket drift is checked before closeout when MCP is available,
+- ticket write/update actions are previews until explicitly approved.
+
+Evidence:
+
+- ticket evidence packet,
+- drift status or cap,
+- QA Markdown derived from acceptance criteria,
+- update preview when closeout notes are needed.
+
+Stop gates:
+
+- ticket scope changed since task start,
+- private/sensitive ticket data cannot be summarized safely,
+- write-capable ticket action requested without explicit approval.
+
+Done criteria:
+
+- implementation and QA handoff align with current ticket scope or caps are explicit,
+- no raw ticket text is promoted into shared `.agents/learnings`.
+
+### database-evidence
+
+Trigger: read-only database MCP access, SQL/data mismatch, EF/provider issue, report/export bug, API data issue, schema/stored procedure concern, or live-system diagnosis where database state can reduce uncertainty.
+
+Context packet:
+
+- database provider/context,
+- environment and access mode,
+- allowed and blocked operations,
+- sensitive schemas/tables/data classes,
+- redaction rules,
+- fallback evidence path.
+
+Checks:
+
+- query purpose is tied to a task question,
+- metadata/aggregate/existence checks are preferred before row-level reads,
+- production/private row-level evidence is approval-gated,
+- results are reconciled with code, schema, logs, tests, and desired behavior.
+
+Evidence:
+
+- safe query plan,
+- redacted result summary or explicit cap,
+- environment/timestamp/source provenance,
+- confidence and conflicts.
+
+Stop gates:
+
+- query would expose secrets, credentials, broad customer data, or unrelated tenant data,
+- query would mutate data or execute DDL/jobs/stored procedures,
+- wrong environment/read-replica freshness/tenant scope is unresolved.
+
+Done criteria:
+
+- database evidence supports observed state only,
+- desired behavior remains grounded in ticket/spec/product context,
+- raw query output and proprietary schema details are not promoted to shared learnings.
 
 ### review-only
 

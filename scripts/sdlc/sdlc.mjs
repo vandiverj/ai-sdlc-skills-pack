@@ -97,6 +97,7 @@ async function main(argv) {
   if (area === 'touched' && action === 'packet') return touchedPacket(repo, options);
   if (area === 'touched' && action === 'update') return touchedUpdate(repo, options);
   if (area === 'impact' && action === 'packet') return impactPacket(repo, options);
+  if (area === 'interaction' && action === 'packet') return interactionPacket(repo, options);
   if (area === 'review' && action === 'packet') return reviewPacket(repo, options);
   if (area === 'review' && action === 'complete') return reviewComplete(repo, options);
   if (area === 'release' && action === 'packet') return releasePacket(repo, options);
@@ -104,7 +105,7 @@ async function main(argv) {
   if (area === 'qa' && (action === 'script' || action === 'packet')) return qaScript(repo, options);
   if (area === 'qa' && action === 'handoff') return qaHandoff(repo, options);
   if (area === 'qa' && action === 'scenarios') return qaScenarios(repo, rest[0] || options.command || 'list', options);
-  if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi'].includes(action)) return qaModeCommand(repo, action, options, rest);
+  if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi', 'interactive', 'cli', 'job', 'docs'].includes(action)) return qaModeCommand(repo, action, options, rest);
   if (area === 'qa' && action === 'complete') return qaComplete(repo, options);
   if (area === 'qa' && action === 'review') return qaReview(repo, options);
   if (area === 'smoke' && action === 'packet') return smokePacket(repo, options);
@@ -115,7 +116,15 @@ async function main(argv) {
   if (area === 'multi' && action === 'qa') return multiQa(repo, options);
   if (area === 'contract' && action === 'packet') return contractPacket(repo, options);
   if (area === 'data' && action === 'packet') return dataPacket(repo, options);
+  if (area === 'data' && action === 'boundary') return dataBoundary(repo, options);
+  if (area === 'data' && action === 'query-plan') return dataQueryPlan(repo, options);
+  if (area === 'data' && action === 'evidence') return dataEvidence(repo, options);
+  if (area === 'ticket' && action === 'evidence') return ticketEvidence(repo, options);
+  if (area === 'ticket' && action === 'drift') return ticketDrift(repo, options);
+  if (area === 'ticket' && action === 'update-preview') return ticketUpdatePreview(repo, options);
   if (area === 'integration' && action === 'packet') return integrationPacket(repo, options);
+  if (area === 'validate' && action === 'ladder') return validationLadder(repo, options);
+  if (area === 'fixture' && action === 'plan') return fixturePlan(repo, options);
   if (area === 'test' && action === 'plan') return testPlan(repo, options);
   if (area === 'test' && action === 'suggest') return testSuggest(repo, options);
   if (area === 'test' && action === 'bootstrap-plan') return testBootstrapPlan(repo, options);
@@ -172,6 +181,7 @@ async function main(argv) {
   if (area === 'learn' && action === 'promote-check') return learnPromoteCheck(repo, options);
   if (area === 'learn' && action === 'candidates') return learnCandidates(repo, options);
   if (area === 'learn' && action === 'split') return learnSplit(repo, options);
+  if (area === 'learn' && action === 'from-run') return learnFromRun(repo, options);
   if (area === 'learn' && action === 'backlog') return learnBacklog(repo, options);
   if (area === 'learn' && action === 'promote') return learnPromote(repo, options);
   if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
@@ -278,6 +288,7 @@ Usage:
   sdlc touched packet [--repo <path>] [--out <path>]
   sdlc touched update --surface <kind> [--evidence "..."] [--repo-name <name>] [--repo <path>]
   sdlc impact packet --task "..." [--repo <path>] [--out <path>]
+  sdlc interaction packet --task "..." [--repo <path>] [--out <path>]
   sdlc review packet --task "..." [--repo <path>] [--out <path>]
   sdlc review complete --packet <path> --verdict "..." [--findings "..."] [--checks "..."] [--caps "..."]
   sdlc release packet [--task "..."] [--repo <path>] [--out <path>]
@@ -285,7 +296,7 @@ Usage:
   sdlc qa script --task "..." [--repo <path>] [--out <path>]
   sdlc qa handoff --task "..." [--repo <path>] [--out <path>]
   sdlc qa scenarios init|list|match [--task "..."] [--repo <path>]
-  sdlc qa ui|api|data|integration|scenario|multi --task "..." [--repo <path>] [--scenario <id>] [--out <path>]
+  sdlc qa ui|api|data|integration|scenario|multi|interactive|cli|job|docs --task "..." [--repo <path>] [--scenario <id>] [--out <path>]
   sdlc qa complete --packet <path> --status "draft|ready|blocked" [--caps "..."]
   sdlc qa review --packet <path> [--repo <path>]
   sdlc smoke packet --task "..." [--repo <path>] [--out <path>]
@@ -296,7 +307,15 @@ Usage:
   sdlc multi qa --task "..." [--repo <path>] [--out <path>]
   sdlc contract packet --task "..." [--repo <path>] [--out <path>]
   sdlc data packet --task "..." [--repo <path>] [--out <path>]
+  sdlc data boundary --task "..." [--repo <path>]
+  sdlc data query-plan --task "..." [--repo <path>] [--out <path>]
+  sdlc data evidence --task "..." [--repo <path>] [--out <path>]
+  sdlc ticket evidence --task "..." [--repo <path>] [--out <path>]
+  sdlc ticket drift --task "..." [--repo <path>]
+  sdlc ticket update-preview --task "..." [--repo <path>] [--out <path>]
   sdlc integration packet --task "..." [--repo <path>] [--out <path>]
+  sdlc validate ladder --task "..." [--repo <path>] [--out <path>]
+  sdlc fixture plan --task "..." [--repo <path>] [--out <path>]
   sdlc test plan --task "..." [--repo <path>] [--out <path>]
   sdlc test suggest --task "..." [--repo <path>] [--out <path>]
   sdlc test bootstrap-plan --unit <name> --framework dotnet|node|deno|generic [--repo <path>] [--out <path>]
@@ -330,7 +349,7 @@ Usage:
   sdlc verify complete --packet <path> --checks "..." [--caps "..."]
   sdlc verify [--repo <path>] [--commands test,build]
   sdlc final gate [--task "..."] [--repo <path>]
-  sdlc finish packet --task "..." [--repo <path>] [--out <path>]
+  sdlc finish packet --task "..." [--intent normal|keep-change|handoff-only] [--repo <path>] [--out <path>]
   sdlc git packet [--repo <path>] [--out <path>]
   sdlc action preview --action commit|push|tool|network|dependency|learning-promotion [--repo <path>] [--command "..."]
   sdlc gates [--task "..."] [--repo <path>]
@@ -353,6 +372,7 @@ Usage:
   sdlc learn promote-check --packet <path> [--repo <path>]
   sdlc learn candidates [--since YYYY-MM-DD] [--repo <path>]
   sdlc learn split --packet <path> [--repo <path>] [--out <path>]
+  sdlc learn from-run --task "..." [--repo <path>] [--out <path>]
   sdlc learn backlog [--repo <path>]
   sdlc learn promote --packet <path> --target "process|template|route|context" [--repo <path>] [--out <path>]
   sdlc readiness [--repo <path>]
@@ -507,6 +527,10 @@ function profileShow(repo) {
     renderedUiReviewCommand: profile.values.renderedUiReviewCommand || '',
     accessibilityReviewPolicy: accessibilityPolicy(profile.values),
     verificationMaturity: profile.values.verificationMaturity || 'not configured',
+    ticketSystem: profile.values.ticketSystemProvider || profile.values.ticketSystem || 'not configured',
+    ticketMcpAvailability: profile.values.ticketMcpAvailability || 'unknown',
+    databaseEvidenceProvider: profile.values.databaseEvidenceProvider || profile.values.databaseProviderContext || 'not configured',
+    databaseMcpAvailability: profile.values.databaseMcpAvailability || 'unknown',
     detectedStack: detectStack(repo).join(', ') || 'generic',
     evidenceOutputLocation: profile.values.evidenceOutputLocation || defaultRunsDir(repo),
     calibrationLog: profile.values.calibrationLog || defaultCalibrationPath(repo),
@@ -559,6 +583,26 @@ Purpose: local repository profile for SDLC helper automation. Keep this file ign
 - Rendered UI review command:
 - Accessibility review policy: optional
 - Verification maturity: no automated tests / manual QA only / smoke tests / partial automated tests / mature CI
+
+## External Evidence Capabilities
+- Ticket system provider:
+- Ticket MCP availability: available / unavailable / blocked / unknown
+- Ticket read issue: allowed / blocked / approval required
+- Ticket read comments: allowed / blocked / approval required
+- Ticket read attachments/articles: allowed / blocked / approval required
+- Ticket write comments: approval required
+- Ticket update fields/status/assignee: approval required
+- Ticket sensitive data rules:
+- Ticket fallback intake fields: summary, acceptance criteria, relevant comments, QA expectations
+- Database evidence provider:
+- Database MCP availability: available / unavailable / blocked / unknown
+- Database environments allowed: dev / QA / staging / production / read replica
+- Database allowed operations: metadata read / aggregate SELECT / row-level SELECT / explain plan
+- Database blocked operations: INSERT, UPDATE, DELETE, DDL, migration, backfill, job execution, stored procedure execution
+- Database sensitive schemas/tables/data classes:
+- Database row limit/default aggregation:
+- Database redaction rules:
+- Database fallback evidence path:
 
 ## Release
 - Release policy:
@@ -710,7 +754,7 @@ sdlc route start ${route}
 \`\`\`
 `;
 
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -1097,7 +1141,7 @@ ${formatList(contracts)}
 - Prefer code-local docs for public exports, shared types, APIs, invariants, and examples.
 `;
 
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -1141,7 +1185,7 @@ ${formatList(changeGraphImplications(graph, task, files))}
 - Promote repeated, stable edges into shared context docs such as service maps, workflow maps, API contracts, or known failure modes.
 `;
 
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -1299,7 +1343,7 @@ sdlc calibrate add --route ${route} --checks "" --caps "" --outcome "" --route-f
 \`\`\`
 `;
 
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -1443,7 +1487,7 @@ sdlc run finish --route ${route}
 \`\`\`
 `;
 
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -1462,6 +1506,7 @@ function taskPreflight(repo, options = {}) {
   const qaMode = qaModeForSurfaces(surfaces, task);
   const triggers = securityTriggers(task, profile.values);
   const caseId = taskCaseId(task, options, profile.values);
+  const breadth = taskBreadthAssessment(task, files, surfaces);
   const fast = fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers);
   const quality = qualityFloorRows({ task, git, route, units, surfaces, qaMode, profile, packets: findPackets(repo, {}) });
   const budget = artifactBudgetForRoute(route, fast.eligible ? 'micro' : '');
@@ -1475,6 +1520,8 @@ function taskPreflight(repo, options = {}) {
     route,
     confidence,
     fastPassEligible: fast.eligible ? 'yes' : 'no',
+    taskBreadth: breadth.level,
+    taskBreadthSignals: breadth.signals.join(', ') || 'none',
     affectedRepos: splitList(profile.values.relatedRepositories).join(', ') || 'primary repository only / unknown',
     affectedUnits: units.map((unit) => unit.name).join(', ') || 'default',
     contextBuckets: dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)).join(', ') || 'not configured',
@@ -1509,6 +1556,7 @@ Work class: ${taskType(task)}
 Route: ${route}
 Classification confidence: ${confidence}
 Fast-pass eligible: ${fast.eligible ? 'yes' : 'no'}
+Task breadth: ${breadth.level}
 
 ## One-Screen Decision Summary
 
@@ -1518,6 +1566,7 @@ Fast-pass eligible: ${fast.eligible ? 'yes' : 'no'}
 - Testing surfaces: ${formatInlineList(surfaces)}
 - QA mode: ${qaMode}
 - Artifact budget: ${budget.name}
+- Task breadth signals: ${formatInlineList(breadth.signals)}
 - Security/tool triggers: ${triggers.length ? triggers.join('; ') : 'none detected'}
 - Next action: ${next}
 
@@ -1545,7 +1594,7 @@ ${formatList(fast.reasons)}
 
 ${confidenceBlock({ proved: preflightProved(route, units, surfaces, git), inferred: preflightInferred(route, qaMode), human: preflightHumanJudgment(fast, triggers), nextAction: next })}
 `;
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -1559,6 +1608,7 @@ function taskFastPass(repo, options = {}) {
   const units = affectedUnits(repo, files, profile, options.unit);
   const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const triggers = securityTriggers(task, profile.values);
+  const breadth = taskBreadthAssessment(task, files, surfaces);
   const fast = fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers);
   const budget = artifactBudgetForRoute(route, fast.eligible ? 'micro' : '');
   printObject({
@@ -1570,6 +1620,8 @@ function taskFastPass(repo, options = {}) {
     changedFiles: files.length,
     affectedUnits: units.map((unit) => unit.name).join(', ') || 'default',
     testingSurfaces: surfaces.join(', ') || 'service-behavior',
+    taskBreadth: breadth.level,
+    taskBreadthSignals: breadth.signals.join(', ') || 'none',
     nextAction: fast.eligible ? 'Proceed inline with one verification path and final confidence block.' : `Escalate to: sdlc task preflight --task "${escapeCommandArg(task)}" --lock`,
   });
   console.log('\n## Decision Reasons\n');
@@ -1652,7 +1704,7 @@ sdlc task finish --task "${escapeCommandArg(task)}"
 ${formatList(triggers)}
 `;
 
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -1850,7 +1902,7 @@ sdlc task finish --task "${escapeCommandArg(task)}"
 \`\`\`
 `;
 
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -2056,7 +2108,7 @@ ${rows.join('\n')}
 - Sanitization rule:
 - Tracking-system paste format:
 `;
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -2126,7 +2178,7 @@ ${rows.join('\n')}
 - QA script should describe the full tester-visible workflow, not repository internals.
 `;
 
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -2481,7 +2533,55 @@ ${formatList(qaAreas(task, files))}
 - Release/handoff risk:
 `;
 
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
+  console.log(relative(repo, outPath));
+}
+
+function interactionPacket(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the interaction packet can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = git.changedFiles;
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const breadth = taskBreadthAssessment(task, files, surfaces);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-interaction-stateful-feature.md`);
+  const content = `# SDLC Interactive / Stateful Feature Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Task breadth: ${breadth.level}
+
+## Trigger Signals
+
+${formatList(breadth.signals.length ? breadth.signals : ['interactive/stateful recipe selected manually'])}
+
+## Interaction Contract
+
+- Primary actor:
+- Starting state:
+- User action sequence:
+- Mode/settings/state changes:
+- Feedback/animation/response expected:
+- Error/repeat/edge path:
+- Reset/recovery path:
+
+## Required Proof
+
+- State/domain logic test or explicit cap:
+- Build/typecheck:
+- Rendered/execution-path smoke:
+- Happy path:
+- Regression path:
+- QA Markdown when human testers are involved:
+
+## Validation Surface Ladder
+
+${formatValidationLadder(validationLadderRows(task, surfaces))}
+`;
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -2915,6 +3015,10 @@ function qaModeCommand(repo, action, options = {}, rest = []) {
     integration: 'integration-provider',
     scenario: 'scenario-retest',
     multi: 'multi-repo-workflow',
+    interactive: 'interactive-stateful',
+    cli: 'cli-workflow',
+    job: 'background-job',
+    docs: 'docs-process',
   };
   return qaScript(repo, { ...options, mode: modeMap[action] || action });
 }
@@ -2947,6 +3051,8 @@ function qaScript(repo, options = {}) {
   const testingSurfaces = inferTestingSurfaces(repo, task, files, profile);
   const mode = options.mode || qaModeForSurfaces(testingSurfaces, task);
   const sourceHints = qaSourceHints(repo, options);
+  const external = externalEvidenceProfile(profile.values);
+  const ticketId = options.ticket || firstMatch(task, /\b([A-Z][A-Z0-9]+-\d+)\b/) || '';
   const scopeItems = dedupe([...qaAreas(task, files), ...sourceHints.scope]);
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-qa-test-script.md`);
   mkdirSync(dirname(outPath), { recursive: true });
@@ -2958,6 +3064,8 @@ QA Mode: ${mode}
 ## Summary
 
 ${qaSummaryForMode(mode)}
+
+${ticketId || matchesAny(task.toLowerCase(), ['ticket', 'youtrack', 'yt-']) ? `Ticket: ${ticketId || 'provide ticket ID/link if available'}\n` : ''}This script is for human QA testers. It does not assume QA will use AI, inspect source code, run developer commands, or access database/ticket MCP tools.
 
 ## Scope
 
@@ -2986,6 +3094,7 @@ ${sourceHints.scope.length ? `\n### Source Packet Hints\n\n${formatList(sourceHi
 - Required test data:
 - Feature flags/config:
 - External systems/sandbox availability:
+${matchesAny(task.toLowerCase(), ['database', 'sql', 'data', 'db evidence', 'read-only database']) ? '- Database-backed evidence was developer-facing only; QA should validate observable UI/API/export behavior unless explicitly assigned developer testing.\n' : ''}
 
 ## Test Cases
 
@@ -3040,6 +3149,8 @@ ${sourceHints.risks.length ? formatList(sourceHints.risks) : '- none recorded'}
 ## Developer Verification Summary
 
 - Developer/agent checks run:
+- Ticket evidence: ${external.ticket.availability === 'available' ? 'available if route-selected; confirm drift before closeout' : `not assumed (${external.ticket.availability})`}
+- Database evidence: ${external.database.availability === 'available' ? 'available if route-selected; summarize redacted evidence only' : `not assumed (${external.database.availability})`}
 - Known verification caps:
 
 ## QA Completion
@@ -3434,8 +3545,10 @@ function dataPacket(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the data packet can be scoped.');
 
+  const profile = loadProfile(repo);
   const git = getGitInfo(repo);
   const dataFiles = git.changedFiles.filter((file) => classifyTouchedSurface(file) === 'database/storage');
+  const boundary = externalEvidenceProfile(profile.values).database;
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-data-packet.md`);
   mkdirSync(dirname(outPath), { recursive: true });
 
@@ -3462,6 +3575,17 @@ ${formatList(dataFiles.length ? dataFiles : ['No changed data files detected yet
 - QA data setup:
 - Downstream workflows/APIs/pages:
 
+## Read-Only Database Evidence
+
+- MCP availability: ${boundary.availability}
+- Provider/context: ${boundary.provider}
+- Allowed environments: ${boundary.environments}
+- Allowed operations: ${boundary.allowedOperations}
+- Blocked operations: ${boundary.blockedOperations}
+- Sensitive data rules: ${boundary.sensitiveRules}
+- Redaction rules: ${boundary.redactionRules}
+- Evidence use: optional, route-selected, and never permission for write/migration/backfill/deploy actions.
+
 ## Verification
 
 - Automated data/schema check:
@@ -3469,6 +3593,256 @@ ${formatList(dataFiles.length ? dataFiles : ['No changed data files detected yet
 - Environment cap:
 `;
 
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function dataBoundary(repo, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const boundary = externalEvidenceProfile(profile.values).database;
+  const sensitive = externalEvidenceSensitive(task, profile.values, 'database');
+  printObject({
+    repository: repo,
+    task: task || 'not provided',
+    provider: boundary.provider,
+    mcpAvailability: boundary.availability,
+    allowedEnvironments: boundary.environments,
+    allowedOperations: boundary.allowedOperations,
+    blockedOperations: boundary.blockedOperations,
+    sensitiveDataRules: boundary.sensitiveRules,
+    redactionRules: boundary.redactionRules,
+    approvalNeeded: sensitive ? 'yes for production/private row-level data or sensitive schemas' : 'only if profile requires it or query exceeds metadata/aggregate evidence',
+    fallback: boundary.fallback,
+  });
+}
+
+function dataQueryPlan(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the database evidence query plan can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const boundary = externalEvidenceProfile(profile.values).database;
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const sensitive = externalEvidenceSensitive(task, profile.values, 'database');
+  const content = `# SDLC Read-Only Database Query Plan
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+
+## Capability Boundary
+
+- Provider/context: ${boundary.provider}
+- MCP availability: ${boundary.availability}
+- Allowed environments: ${boundary.environments}
+- Allowed operations: ${boundary.allowedOperations}
+- Blocked operations: ${boundary.blockedOperations}
+- Sensitive data rules: ${boundary.sensitiveRules}
+- Redaction rules: ${boundary.redactionRules}
+- Fallback evidence path: ${boundary.fallback}
+
+## Query Purpose
+
+- Question the evidence should answer:
+- Code/API/log behavior this will validate:
+- Environment to inspect:
+- Tenant/customer/test-data boundary:
+
+## Safe Query Shape
+
+${formatList(databaseQueryShape(task, sensitive))}
+
+## Blocked Query Shape
+
+${formatList([
+    'Do not use broad SELECT * row dumps.',
+    'Do not select secrets, credentials, tokens, payment data, private customer data, or unrelated tenant data.',
+    'Do not run INSERT, UPDATE, DELETE, DDL, migrations, backfills, jobs, or stored procedure execution from this evidence step.',
+    'Do not store raw query output in shared .agents learnings or tracked reusable process docs.',
+  ])}
+
+## Evidence Summary To Capture
+
+- Environment:
+- Retrieved at:
+- Query/result type: metadata / aggregate / existence check / bounded sample / human-provided result
+- Tables/views/metadata involved:
+- Result summary with sensitive values redacted:
+- Confidence:
+- Caps:
+
+## Approval Gate
+
+${databaseApprovalGateText(boundary, sensitive)}
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
+function dataEvidence(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the database evidence packet can be scoped.');
+  const profile = loadProfile(repo);
+  const boundary = externalEvidenceProfile(profile.values).database;
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-database-evidence.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Database Evidence Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+
+## Capability
+
+- Provider/context: ${boundary.provider}
+- MCP availability: ${boundary.availability}
+- Access mode: read-only evidence, if available and allowed
+
+## Evidence
+
+- Environment:
+- Retrieved at:
+- Query purpose:
+- Tables/views/metadata involved:
+- Sensitive data risk:
+- Allowed query shape used:
+- Blocked query shape avoided:
+- Row limit or aggregation:
+- Redaction applied:
+- Result confidence:
+- Result summary:
+- Caps:
+
+## Source Truth Reconciliation
+
+- Code/schema/logs/tests checked:
+- Conflicts found:
+- Desired product behavior source:
+- Follow-up context owner:
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function ticketEvidence(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the ticket evidence packet can be scoped.');
+  const profile = loadProfile(repo);
+  const ticket = externalEvidenceProfile(profile.values).ticket;
+  const ticketId = options.ticket || firstMatch(task, /\b([A-Z][A-Z0-9]+-\d+)\b/) || 'not provided';
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-ticket-evidence.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Ticket Evidence Packet
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+
+## Capability
+
+- Provider: ${ticket.provider}
+- MCP availability: ${ticket.availability}
+- Read issue: ${ticket.readIssue}
+- Read comments: ${ticket.readComments}
+- Read attachments/articles: ${ticket.readAttachments}
+- Write comments: ${ticket.writeComments}
+- Update fields/status/assignee: ${ticket.updateFields}
+
+## Ticket Intake
+
+- Issue id/link: ${ticketId}
+- Read mode: MCP / pasted / unavailable
+- Retrieved at:
+- Title/summary:
+- Acceptance criteria:
+- Reporter/requester notes:
+- Relevant comments:
+- Linked issues:
+- Attachments/articles considered:
+- Inferred scope:
+- Open questions:
+- Privacy caps:
+- Drift check needed before closeout: yes
+
+## Fallback If MCP Is Unavailable
+
+Ask the developer for:
+
+${formatList(ticketFallbackFields(ticket))}
+
+## Approval Boundary
+
+- Reading ticket evidence follows the configured profile boundary.
+- Posting comments, changing status, assigning, updating fields, or creating issues requires explicit human approval.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function ticketDrift(repo, options = {}) {
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const ticket = externalEvidenceProfile(profile.values).ticket;
+  const ticketId = options.ticket || firstMatch(task, /\b([A-Z][A-Z0-9]+-\d+)\b/) || 'not provided';
+  printObject({
+    repository: repo,
+    task: task || 'not provided',
+    ticket: ticketId,
+    provider: ticket.provider,
+    mcpAvailability: ticket.availability,
+    action: ticket.availability === 'available' ? 'refresh ticket title, description, acceptance criteria, comments, linked issues, and attachments before claiming done' : 'ask developer whether ticket changed since task start',
+    stopGate: 'if acceptance criteria, scope, priority, or QA expectations changed, summarize delta and reclassify before closeout',
+  });
+}
+
+function ticketUpdatePreview(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the ticket update preview can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const ticket = externalEvidenceProfile(profile.values).ticket;
+  const ticketId = options.ticket || firstMatch(task, /\b([A-Z][A-Z0-9]+-\d+)\b/) || 'not provided';
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-ticket-update-preview.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Ticket Update Preview
+
+Ticket: ${ticketId}
+Task: ${task}
+Branch: ${git.branch || 'unknown'}
+
+## Proposed Comment
+
+### Implementation Summary
+
+- TBD
+
+### Developer Verification
+
+- TBD
+
+### QA Notes
+
+- TBD
+
+### Known Caps / Follow-Up
+
+- TBD
+
+## Approval Boundary
+
+- Provider: ${ticket.provider}
+- MCP availability: ${ticket.availability}
+- Write comments: ${ticket.writeComments}
+- Update fields/status/assignee: ${ticket.updateFields}
+- This file is a preview only. Do not post, change status, assign, update fields, create issues, merge, deploy, release, or trigger pipelines without explicit human approval.
+`;
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
 }
@@ -3514,6 +3888,86 @@ ${formatList(integrationFiles.length ? integrationFiles : ['No changed integrati
 `;
 
   writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+function validationLadder(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the validation ladder can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = optionFiles(options, git.changedFiles);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const rows = validationLadderRows(task, surfaces);
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Validation Surface Ladder
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Detected surfaces: ${formatInlineList(surfaces)}
+
+${formatValidationLadder(rows)}
+
+## Rule
+
+Use the strongest available validation surface. If a stronger surface is unavailable, record the fallback and cap instead of claiming it passed.
+`;
+  if (outPath) {
+    safeWriteTextFile(repo, outPath, content);
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
+function fixturePlan(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the fixture validation plan can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = git.changedFiles;
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-fixture-validation-plan.md`);
+  const content = `# SDLC Fixture Validation Plan
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Intent: keep-change / throwaway-test / process-only
+
+## Mixed-Scope Task Set
+
+### Small
+- Copy/label polish:
+- Minor feedback state:
+- One focused test:
+
+### Medium
+- Settings/mode behavior:
+- Stateful UI/API/CLI flow:
+- Validation path:
+
+### Large
+- Multi-surface feature:
+- Integration or release/QA handoff:
+- Cross-module regression:
+
+## Required Proof
+
+- Preflight route and breadth:
+- Changed-files scope:
+- Tests/build or surface-equivalent verification:
+- Rendered/API/CLI/job/data smoke or explicit cap:
+- QA Markdown if testers are involved:
+- Commit preview when changes are kept:
+
+## Validation Ladder
+
+${formatValidationLadder(validationLadderRows(task, surfaces))}
+`;
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -5857,20 +6311,50 @@ function normalizeUnits(units) {
 function fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers) {
   const reasons = [];
   const files = git.changedFiles || [];
+  const breadth = taskBreadthAssessment(task, files, surfaces);
   const related = splitList(profile.values.relatedRepositories);
   const riskyRoute = ['release-push', 'multi-repo-integration', 'contract-first', 'bugfix-live-system', 'weak-test-legacy'].includes(route);
   const securityLike = triggers.length > 0;
   const multiContext = related.length > 0 || units.length > 1 || dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)).length > 1;
   const irreversible = matchesAny(task, ['delete', 'drop', 'truncate', 'migrate production', 'deploy', 'release', 'merge', 'pipeline']);
-  const eligible = !riskyRoute && !securityLike && !multiContext && !irreversible && files.length <= 5;
+  const broadTask = breadth.level !== 'narrow';
+  const eligible = !riskyRoute && !securityLike && !multiContext && !irreversible && !broadTask && files.length <= 5;
   reasons.push(eligible ? 'Eligible: one small scope, no risk triggers, no multi-context ambiguity.' : 'Not eligible for micro/tiny fast-pass.');
   if (riskyRoute) reasons.push(`Route ${route} needs normal preflight.`);
   if (securityLike) reasons.push(`Security/tool triggers present: ${triggers.join('; ')}.`);
   if (multiContext) reasons.push('Multiple repos, units, or context buckets require normal preflight.');
   if (irreversible) reasons.push('Task wording suggests irreversible/release/data action.');
+  if (broadTask) reasons.push(`Task breadth is ${breadth.level}: ${breadth.signals.join('; ')}.`);
   if (files.length > 5) reasons.push(`Changed files count ${files.length} exceeds fast-pass threshold.`);
   if (surfaces.includes('rendered-product-ui')) reasons.push('Rendered UI work can still be fast-pass only with rendered/behavior evidence.');
   return { eligible, reasons };
+}
+
+function taskBreadthAssessment(task, files = [], surfaces = []) {
+  const text = String(task || '').toLowerCase();
+  const signals = [];
+  const broadPhrases = [
+    'full game',
+    'fuller product',
+    'closer to a full',
+    'more fully developed',
+    'complete experience',
+    'polish experience',
+    'multiple improvements',
+    'bring it more',
+    'whole workflow',
+    'end-to-end',
+  ];
+  const interactionPhrases = ['interactive', 'stateful', 'workflow', 'settings', 'mode', 'difficulty', 'animation', 'feedback', 'dashboard', 'wizard', 'multi-step', 'gameplay', 'turn'];
+  if (matchesAny(text, broadPhrases)) signals.push('broad product/experience wording');
+  if (matchesAny(text, interactionPhrases)) signals.push('interactive/stateful behavior');
+  if (matchesAny(text, ['logic', 'rules', 'ai behavior', 'computer opponent', 'smart opponent'])) signals.push('domain logic or AI behavior');
+  if (matchesAny(text, ['qa', 'test plan', 'human tester', 'manual test'])) signals.push('QA/handoff expectation');
+  const surfaceCount = dedupe(surfaces.filter(Boolean)).length;
+  if (surfaceCount > 1) signals.push(`${surfaceCount} testing surfaces`);
+  if (files.length > 5) signals.push(`${files.length} changed files`);
+  const level = signals.length >= 2 || files.length > 5 ? 'broad' : signals.length === 1 ? 'moderate' : 'narrow';
+  return { level, signals };
 }
 
 function routeConfidence({ task, route, files, units, surfaces, profile, triggers }) {
@@ -6339,23 +6823,91 @@ function classifyTestingSurface(file) {
 function qaModeForSurfaces(surfaces, task = '') {
   const text = String(task || '').toLowerCase();
   if (matchesAny(text, ['scenario', 'retest'])) return 'scenario-retest';
+  if (matchesAny(text, ['interactive', 'stateful', 'game', 'gameplay', 'difficulty', 'settings', 'animation', 'mode', 'wizard', 'dashboard'])) return 'interactive-stateful';
+  if (matchesAny(text, ['cli', 'command line', 'terminal command'])) return 'cli-workflow';
+  if (matchesAny(text, ['worker', 'background job', 'queue', 'scheduled job', 'import job', 'export job'])) return 'background-job';
   if (surfaces.includes('api-contract')) return 'api-contract';
   if (surfaces.includes('rendered-product-ui')) return 'ui-workflow';
   if (surfaces.includes('data-persistence')) return 'data-persistence';
   if (surfaces.includes('integration-provider')) return 'integration-provider';
+  if (surfaces.includes('background-job')) return 'background-job';
+  if (surfaces.includes('docs-process')) return 'docs-process';
   return 'workflow';
 }
 
 function qaSummaryForMode(mode) {
   if (mode === 'api-contract') return 'Validate the changed API behavior through Swagger/OpenAPI, an approved API client, or documented request/response evidence. This Markdown is for human QA or developer-test handoff and does not assume QA will inspect source code or use AI.';
+  if (mode === 'cli-workflow') return 'Validate the changed command-line behavior through command execution, help/version smoke, expected output, and error handling. This script is for human or developer-test handoff and should name exact commands when safe.';
+  if (mode === 'background-job') return 'Validate the changed background job, queue, import/export, or scheduled process through a dry-run, sandbox execution, logs, output files, or explicit environment caps.';
   if (mode === 'data-persistence') return 'Validate the changed data behavior with QA-safe data setup, visible application/API evidence, and approved SQL/log checks when available. This script is for human testers and tracking-system paste-in.';
   if (mode === 'integration-provider') return 'Validate the provider or cross-system behavior through sandbox-safe requests, callbacks, exports/imports, or logs approved for QA. This script does not require source-code inspection.';
+  if (mode === 'interactive-stateful') return 'Validate the changed interactive or stateful workflow, including setup, mode/settings changes, primary user path, feedback/animation, reset/recovery, and nearby regression behavior.';
   if (mode === 'multi-repo-workflow') return 'Validate the full tester-visible workflow that spans repositories or deployable units. The script should hide repository mechanics and focus on environment, steps, expected results, and release-order caps.';
+  if (mode === 'docs-process') return 'Validate the documentation/process change by checking the intended reader path, links, examples, and whether current instructions match source truth.';
   if (mode === 'scenario-retest') return 'Validate the named QA/business scenario in the target environment and record pass/fail evidence for the tracking ticket.';
   return 'Validate the changed behavior for this task and regression-test the affected site/application areas. This Markdown is intended to be pasted into YouTrack and followed by human QA testers. It does not assume QA will use AI, inspect source code, run developer commands, or know the SDLC.';
 }
 
+function validationLadderRows(task, surfaces = []) {
+  const text = String(task || '').toLowerCase();
+  const rows = [];
+  const add = (surface, steps) => rows.push({ surface, steps });
+  if (surfaces.includes('rendered-product-ui') || matchesAny(text, ['ui', 'screen', 'browser', 'rendered', 'interactive', 'game', 'dashboard', 'form'])) {
+    add('UI / rendered product', ['browser/rendered automation', 'local dev server smoke', 'screenshot or manual rendered notes', 'build-only cap']);
+  }
+  if (surfaces.includes('api-contract') || matchesAny(text, ['api', 'swagger', 'openapi', 'endpoint', 'contract'])) {
+    add('API / contract', ['automated API/integration test', 'Swagger/API-client smoke', 'contract/static review', 'build-only cap']);
+  }
+  if (matchesAny(text, ['cli', 'command line', 'terminal command'])) {
+    add('CLI / command workflow', ['command execution test', 'golden output or snapshot', 'help/version command smoke', 'static review cap']);
+  }
+  if (surfaces.includes('background-job') || matchesAny(text, ['worker', 'job', 'queue', 'import', 'export', 'scheduled'])) {
+    add('Backend job / worker', ['unit/integration test', 'local job dry-run', 'log/queue/data evidence', 'static review cap']);
+  }
+  if (surfaces.includes('data-persistence') || matchesAny(text, ['database', 'sql', 'migration', 'data'])) {
+    add('Database / data', ['migration/schema test', 'read-only safe evidence', 'generated SQL/log review', 'manual DBA/developer cap']);
+  }
+  if (surfaces.includes('integration-provider') || matchesAny(text, ['webhook', 'provider', 'third-party', 'integration'])) {
+    add('External integration', ['sandbox integration test', 'provider/API callback smoke', 'contract/log evidence', 'integration cap']);
+  }
+  if (surfaces.includes('docs-process') || matchesAny(text, ['docs', 'readme', 'process'])) {
+    add('Docs / process', ['render/link/example check', 'source-truth comparison', 'reader-path review', 'docs-only cap']);
+  }
+  if (!rows.length) add('Generic service behavior', ['focused unit/integration test', 'build/typecheck', 'manual smoke', 'static review cap']);
+  return rows;
+}
+
+function formatValidationLadder(rows) {
+  return rows.map((row) => `### ${row.surface}\n\n${row.steps.map((step, index) => `${index + 1}. ${step}`).join('\n')}`).join('\n\n');
+}
+
 function primaryQaSteps(mode) {
+  if (mode === 'interactive-stateful') {
+    return `1. Start from the default or documented initial state.
+   - Expected: The starting state, available controls, and instructions are visible.
+2. Change the relevant setting/mode or complete the first step of the workflow.
+   - Expected: The UI or tool clearly reflects the new state.
+3. Complete the primary changed interaction path.
+   - Expected: The user-visible feedback, animation/status/result, and saved/transient state match the task.
+4. Use reset, back, retry, or an adjacent regression path.
+   - Expected: The workflow recovers cleanly and nearby behavior still works.`;
+  }
+  if (mode === 'cli-workflow') {
+    return `1. Run the primary changed command with QA-safe input.
+   - Expected: Exit code, output, and side effects match the task.
+2. Run help/version or a nearby existing command.
+   - Expected: Existing command behavior remains stable.
+3. Run an expected error or validation case.
+   - Expected: The command fails safely with a clear message.`;
+  }
+  if (mode === 'background-job') {
+    return `1. Trigger or dry-run the affected job in an approved non-production environment.
+   - Expected: The job starts with expected inputs and no unexpected errors.
+2. Inspect approved output, logs, queue state, files, or downstream observable behavior.
+   - Expected: The job result matches the task.
+3. Run or inspect the closest existing job path.
+   - Expected: Existing job behavior remains stable.`;
+  }
   if (mode === 'api-contract') {
     return `1. Open the Swagger/OpenAPI page or approved API client for the affected endpoint.
    - Expected: The endpoint is available in the target environment.
@@ -6363,6 +6915,14 @@ function primaryQaSteps(mode) {
    - Expected: Expected status and response body match the task.
 3. Confirm any observable side effect, such as saved data, returned state, or safe log evidence.
    - Expected: The API behavior matches the fixed or new behavior without unrelated errors.`;
+  }
+  if (mode === 'docs-process') {
+    return `1. Open the changed documentation/process entry point.
+   - Expected: The intended reader can find the changed information.
+2. Follow links, commands, examples, or referenced paths.
+   - Expected: They are current and match the source truth.
+3. Check an adjacent existing instruction.
+   - Expected: The change did not contradict nearby guidance.`;
   }
   if (mode === 'scenario-retest') {
     return `1. Open the named QA scenario in the target environment.
@@ -6537,6 +7097,19 @@ function scenarioRegressionCases() {
       name: 'ui animation delay',
       task: 'add animation and a short delay so the computer attack feels like a turn occurred',
       expectedRoute: 'ui-rendered-review',
+      expectedRecipes: ['interactive-stateful-feature'],
+    },
+    {
+      name: 'broad interactive feature',
+      task: 'bring this interactive dashboard closer to a complete product with settings, animation feedback, tests, and QA',
+      expectedRoute: 'ui-rendered-review',
+      expectedRecipes: ['interactive-stateful-feature'],
+    },
+    {
+      name: 'fixture kept change',
+      task: 'use the Battle Soccer fixture app to test SDLC and keep useful changes with a commit preview',
+      expectedRoute: 'standard',
+      expectedRecipes: ['fixture-validation-kept-change'],
     },
     {
       name: 'dangerous destructive tool',
@@ -6717,6 +7290,48 @@ function scenarioRegressionCases() {
       task: 'classify a ParserError quoting command failed result before using it as evidence',
       expectedRoute: 'standard',
       expectedRecipes: ['command-tooling-failure'],
+    },
+    {
+      name: 'youtrack ticket intake',
+      task: 'use SDLC for YT-1234 from YouTrack and generate QA from the acceptance criteria',
+      expectedRoute: 'standard',
+      expectedRecipes: ['ticket-evidence'],
+      expectedSecurityOverlay: true,
+    },
+    {
+      name: 'youtrack unavailable fallback',
+      task: 'use SDLC for a ticket when YouTrack MCP is unavailable and ask for pasted acceptance criteria',
+      expectedRoute: 'standard',
+      expectedRecipes: ['ticket-evidence'],
+      expectedSecurityOverlay: true,
+    },
+    {
+      name: 'ticket write approval gate',
+      task: 'prepare a YouTrack ticket update comment but do not post or change status without approval',
+      expectedRoute: 'standard',
+      expectedRecipes: ['ticket-evidence'],
+      expectedSecurityOverlay: true,
+    },
+    {
+      name: 'api database evidence',
+      task: 'investigate an API-only Swagger bug with read-only database MCP evidence and a safe query plan',
+      expectedRoute: 'standard',
+      expectedRecipes: ['api-only-openapi', 'database-evidence'],
+      expectedSecurityOverlay: true,
+    },
+    {
+      name: 'sensitive production database cap',
+      task: 'query production customer row-level data through native SOC database MCP to debug a bug',
+      expectedRoute: 'bugfix-regression',
+      expectedRecipes: ['database-evidence'],
+      expectedSecurityOverlay: true,
+    },
+    {
+      name: 'learning rejects raw ticket database',
+      task: 'split learning from raw YouTrack comments and database query results without sharing private details',
+      expectedRoute: 'standard',
+      expectedRecipes: ['ticket-evidence', 'database-evidence'],
+      expectedSecurityOverlay: true,
     },
   ];
 }
@@ -6964,11 +7579,11 @@ function inferLikelyRoute(gitInfo) {
 function inferRouteFromTask(task, gitInfo, profile = {}) {
   const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();
   const explicitNonUiApi = matchesAny(text, ['api-only', 'api only', 'swagger', 'openapi', 'developer testing']) && matchesAny(text, ['no rendered product ui', 'not rendered product ui', 'no browser ui', 'no user interface', 'without ui']);
-  if (matchesAny(text, ['review', 'inspect', 'audit']) && matchesAny(text, ['without edit', 'without making edit', 'no edit', 'read-only', 'read only'])) return 'review-only';
+  if (hasReviewIntent(text) && matchesAny(text, ['without edit', 'without making edit', 'no edit', 'read-only', 'read only'])) return 'review-only';
   if (matchesAny(text, ['multi-repo', 'multi repo', 'cross repo', 'multiple service', 'multiple repo', 'multiple repositories', 'five repositories', 'several repositories', 'workspace', 'release order'])) return 'multi-repo-integration';
   if (matchesAny(text, ['contract', 'interface', 'public api', 'sdk', 'cli flag', 'config format', 'event schema', 'message schema'])) return 'contract-first';
   if (!matchesAny(text, ['separately deployed', 'deployable codebase', 'deployable api', 'deployable project']) && (matchesAny(text, ['release', 'push', 'deploy', 'merge']) || (text.includes('handoff') && !matchesAny(text, ['qa handoff', 'manual qa', 'test script'])))) return 'release-push';
-  if (matchesAny(text, ['review', 'inspect', 'audit'])) return 'review-only';
+  if (hasReviewIntent(text)) return 'review-only';
   if (explicitNonUiApi || (matchesAny(text, ['swagger', 'openapi', 'api-only', 'api only', 'developer testing']) && !matchesAny(text, ['user interface', 'visible ui', 'rendered product ui']))) return 'standard';
   if (matchesAny(text, ['multi-project repository', 'multiple projects', 'multiple codebases', 'multiple code bases', 'deployable codebase', 'deployable api codebase'])) return 'standard';
   if (matchesAny(text, ['weak test', 'coverage', 'missing test', 'no automated tests']) || (text.includes('legacy') && matchesAny(text, ['test', 'coverage', 'regression']))) return 'weak-test-legacy';
@@ -6976,7 +7591,7 @@ function inferRouteFromTask(task, gitInfo, profile = {}) {
   if (matchesAny(text, ['user interface', 'rendered product ui', 'visible ui', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'board', 'placement', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
   if (matchesAny(text, ['staging log', 'production log', 'sql log', 'foreign key', 'fk ', 'live-connected', 'live connected'])) return 'bugfix-live-system';
   if (matchesAny(text, ['docs', 'readme', 'markdown']) && !gitInfo.status) return 'tiny-docs';
-  if (matchesAny(text, ['bug', 'fix', 'regression', 'broken', 'failing', 'failure'])) return 'bugfix-regression';
+  if (hasBugfixIntent(text)) return 'bugfix-regression';
   return inferLikelyRoute(gitInfo) === 'tiny-docs' ? 'tiny-docs' : 'standard';
 }
 
@@ -7010,6 +7625,8 @@ function securityTriggers(task, profile = {}) {
   if (matchesAny(text, ['dependency', 'package', 'install', 'npm install', 'pip install', 'cargo add', 'plugin'])) triggers.push('new dependency or tool install');
   if (matchesAny(text, ['external api', 'webhook', 'http', 'curl', 'network', 'third party', 'third-party'])) triggers.push('external API or network call');
   if (matchesAny(text, ['mcp', 'tool install', 'plugin install', 'connector'])) triggers.push('MCP/tool install');
+  if (matchesAny(text, ['youtrack', 'ticket', 'issue id', 'acceptance criteria', 'yt-'])) triggers.push('ticket-system evidence');
+  if (matchesAny(text, ['database mcp', 'read-only database', 'read only database', 'db mcp', 'native soc', 'production data', 'row-level', 'query production'])) triggers.push('database evidence boundary');
   if (matchesAny(text, ['credentialed write', 'write action', 'push', 'deploy', 'publish'])) triggers.push('credentialed write action');
   if (matchesAny(text, ['production', 'prod', 'deploy', 'release'])) triggers.push('production or release surface');
   if (matchesAny(text, ['cross repo', 'multi repo', 'multi-repo', 'release order'])) triggers.push('cross-repo release order');
@@ -7021,6 +7638,74 @@ function securityTriggers(task, profile = {}) {
 
 function matchesAny(text, needles) {
   return needles.some((needle) => text.includes(needle));
+}
+
+function hasReviewIntent(text) {
+  return /\b(review|inspect|audit)\b/.test(text);
+}
+
+function hasBugfixIntent(text) {
+  return /\b(bug|fix|regression|broken|failing|failure)\b/.test(text);
+}
+
+function externalEvidenceProfile(profile = {}) {
+  return {
+    ticket: {
+      provider: profile.ticketSystemProvider || profile.ticketSystem || 'not configured',
+      availability: profile.ticketMcpAvailability || 'unknown',
+      readIssue: profile.ticketReadIssue || 'unknown',
+      readComments: profile.ticketReadComments || 'unknown',
+      readAttachments: profile.ticketReadAttachmentsArticles || profile.ticketReadAttachments || 'unknown',
+      writeComments: profile.ticketWriteComments || 'approval required',
+      updateFields: profile.ticketUpdateFieldsStatusAssignee || profile.ticketUpdateFields || 'approval required',
+      sensitiveRules: profile.ticketSensitiveDataRules || profile.sensitiveDataRestrictions || 'not configured',
+      fallbackFields: profile.ticketFallbackIntakeFields || 'summary, acceptance criteria, relevant comments, QA expectations',
+    },
+    database: {
+      provider: profile.databaseEvidenceProvider || profile.databaseProviderContext || 'not configured',
+      availability: profile.databaseMcpAvailability || 'unknown',
+      environments: profile.databaseEnvironmentsAllowed || 'not configured',
+      allowedOperations: profile.databaseAllowedOperations || 'metadata read / aggregate SELECT / bounded row-level SELECT when approved',
+      blockedOperations: profile.databaseBlockedOperations || 'INSERT, UPDATE, DELETE, DDL, migration, backfill, job execution, stored procedure execution',
+      sensitiveRules: profile.databaseSensitiveSchemasTablesDataClasses || profile.sensitiveDataRestrictions || 'not configured',
+      rowLimit: profile.databaseRowLimitDefaultAggregation || 'prefer aggregate/existence checks; row samples only when justified',
+      redactionRules: profile.databaseRedactionRules || profile.sensitiveLogHandling || 'redact secrets, customer data, private URLs, identifiers, and raw row values before shared learning',
+      fallback: profile.databaseFallbackEvidencePath || 'human-provided sanitized log/query result or local code/schema/test evidence',
+    },
+  };
+}
+
+function externalEvidenceSensitive(task, profile = {}, kind = 'database') {
+  const text = `${task} ${profile.classification || ''} ${profile.repositoryRole || ''}`.toLowerCase();
+  if (matchesAny(text, ['production', 'prod', 'customer', 'client', 'private', 'secret', 'credential', 'token', 'payment', 'financial', 'health', 'tenant', 'soc'])) return true;
+  if (kind === 'database' && matchesAny(text, ['row-level', 'raw row', 'select *', 'backfill', 'migration', 'delete', 'update'])) return true;
+  if (kind === 'ticket' && matchesAny(text, ['attachment', 'screenshot', 'private comment', 'customer report'])) return true;
+  return false;
+}
+
+function databaseQueryShape(task, sensitive) {
+  const text = task.toLowerCase();
+  const shape = [
+    'Start with metadata checks: table/view existence, column mapping, constraints, indexes, trigger/provider metadata, or stored procedure definition when allowed.',
+    'Use aggregate/existence checks before row-level reads: counts, min/max timestamps, status distribution, or existence of expected related records.',
+    'Scope by environment, tenant/test account, time window, and known case identifier.',
+    'Capture summarized results, not raw row dumps.',
+  ];
+  if (matchesAny(text, ['api', 'swagger', 'openapi', 'endpoint'])) shape.push('Map query purpose to the API response field or status being validated.');
+  if (matchesAny(text, ['ef core', 'trigger', 'output clause', 'foreign key', 'fk'])) shape.push('Inspect provider-specific metadata or generated SQL evidence before changing save order or schema.');
+  if (sensitive) shape.push('Stop for approval before production/private row-level inspection; prefer redacted aggregate evidence or human-provided sanitized result.');
+  return shape;
+}
+
+function databaseApprovalGateText(boundary, sensitive) {
+  if (sensitive) return '- Approval required before inspecting production/private row-level or sensitive data.';
+  if (boundary.availability !== 'available') return '- Database MCP capability is not confirmed available; use fallback evidence or ask before relying on MCP access.';
+  return '- No extra approval when staying inside configured read-only metadata/aggregate/test-data boundary; ask if uncertain.';
+}
+
+function ticketFallbackFields(ticket) {
+  const fields = splitList(ticket.fallbackFields);
+  return fields.length ? fields : ['issue summary', 'acceptance criteria', 'relevant comments', 'QA expectations'];
 }
 
 function profileToken(value) {
@@ -7084,6 +7769,11 @@ function readinessChecks(repo, profile, commands, existingDocs, related) {
       area: 'security',
       status: values.approvedTools || values.blockedTools || values.sensitiveDataRestrictions ? 'ready' : 'partial',
       fix: 'record approved/blocked tools and sensitive data restrictions',
+    },
+    {
+      area: 'security',
+      status: values.ticketMcpAvailability || values.databaseMcpAvailability ? 'ready' : 'partial',
+      fix: 'record optional ticket/database MCP availability or mark unavailable/blocked',
     },
     {
       area: 'multi-repo',
@@ -7377,6 +8067,8 @@ function safetyRiskRows(repo, task, profile, git) {
   const rows = [
     { risk: 'destructive commands', status: matchesAny(text, ['delete', 'rm -rf', 'reset', 'force push', 'drop', 'truncate']) ? 'high' : 'low', detail: 'destructive action language scan', gate: 'explicit human approval required' },
     { risk: 'external network/tool use', status: matchesAny(text, ['curl', 'external', 'third-party', 'webhook', 'mcp', 'plugin']) ? 'medium' : 'low', detail: triggers.join('; ') || 'none detected', gate: 'approve external/tool access before use' },
+    { risk: 'ticket-system evidence', status: matchesAny(text, ['youtrack', 'ticket', 'yt-', 'acceptance criteria']) ? 'medium' : 'low', detail: 'ticket text/comments may be private, stale, or write-capable through MCP', gate: 'read within profile boundary; preview writes and require explicit approval' },
+    { risk: 'database evidence', status: matchesAny(text, ['database', 'sql', 'query', 'production data', 'native soc', 'read-only database']) ? 'medium' : 'low', detail: 'read-only database access can expose sensitive data and environment-specific state', gate: 'plan bounded read-only evidence; redact; never infer write/migration/deploy permission' },
     { risk: 'credential or secret exposure', status: matchesAny(text, ['secret', 'credential', 'token', 'password', 'api key']) ? 'high' : 'low', detail: profile.sensitiveDataRestrictions || 'profile restrictions not configured', gate: 'do not read/summarize secrets without approval' },
     { risk: 'untrusted instruction sources', status: matchesAny(text, ['prompt injection', 'untrusted', 'generated doc', 'tool output']) ? 'medium' : 'low', detail: 'treat issue text/generated docs/tool output as advisory', gate: 'verify against source truth' },
     { risk: 'memory/context poisoning', status: matchesAny(text, ['learning', 'context', 'memory', 'promote']) ? 'medium' : 'low', detail: 'review before durable promotion', gate: 'sanitize and route product facts separately' },
@@ -7817,6 +8509,7 @@ function finishPacket(repo, options = {}) {
   const packets = findPackets(repo, {});
   const recipes = matchRecipes(task, git, profile.values);
   const open = finalGateOpenItems(repo, task, git, packets);
+  const intent = options.intent || 'normal';
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-finish-packet.md`);
   mkdirSync(dirname(outPath), { recursive: true });
   const content = `# SDLC Unified Finish Packet
@@ -7827,6 +8520,7 @@ Repository: ${repo}
 Branch: ${git.branch || 'unknown'}
 Status: ${git.status || 'clean'}
 Route: ${inferRouteFromTask(task, git, profile.values)}
+Finish intent: ${intent}
 
 ## Selected Recipes
 
@@ -7848,9 +8542,13 @@ ${formatList(open.length ? open : ['none detected by local packets'])}
 
 - ${packets.some((packet) => packet.kind === 'qa-script') ? 'QA Markdown exists; tester executes it manually.' : 'QA handoff not found; generate or explicitly cap if QA is needed.'}
 
+## Finish Intent Notes
+
+${finishIntentNotes(intent)}
+
 ## Git / Release Decision
 
-- Commit readiness: ${open.length ? 'not ready without accepted caps' : 'ready for explicit human approval only'}
+- Commit readiness: ${finishCommitReadiness(intent, open)}
 - Push readiness: explicit human approval only
 - Merge/deploy/release/MR/PR/pipeline/manual file movement: never automatic
 
@@ -7860,7 +8558,7 @@ ${formatList(open.length ? open : ['none detected by local packets'])}
 ${open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc action preview --action commit'}
 \`\`\`
 `;
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -7924,13 +8622,78 @@ ${extractLearningSection(text, 'Product-Specific Durable Fact') || extractLearni
 
 ## Sensitive / Redacted Detail
 
-- Confirm no raw prompts, source snippets, production logs, private URLs, customer/client names, credentials, or secrets are promoted.
+- Confirm no raw prompts, source snippets, ticket bodies, issue comments, private URLs, customer/client names, credentials, secrets, raw logs, row-level database data, or proprietary schema details are promoted.
+- Keep issue IDs, table names, record IDs, tenant/customer identifiers, and query results out of shared .agents/learnings unless sanitized into a generalized process pattern.
 
 ## Candidate Owner
 
-- process / template / route / context / parked
+- process / template / route / context / ticket-intake-pattern / ticket-qa-pattern / database-diagnosis-pattern / database-redaction-pattern / external-evidence-capability-gap / parked
 `;
-  writeFileSync(outPath, content, 'utf8');
+  safeWriteTextFile(repo, outPath, content);
+  console.log(relative(repo, outPath));
+}
+
+function learnFromRun(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the run learning review can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packets = findPackets(repo, {});
+  const route = inferRouteFromTask(task, git, profile.values);
+  const recipes = matchRecipes(task, git, profile.values);
+  const surfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const breadth = taskBreadthAssessment(task, git.changedFiles, surfaces);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-run-learning-review.md`);
+  const content = `# SDLC Run Learning Review
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Route: ${route}
+Task breadth: ${breadth.level}
+Testing surfaces: ${formatInlineList(surfaces)}
+Recipes: ${formatInlineList(recipes.map((recipe) => recipe.id))}
+
+## Evidence Signals
+
+- Changed files: ${git.changedFiles.length}
+- Packets found: ${packets.length}
+- Breadth signals: ${formatInlineList(breadth.signals)}
+- Current evidence: ${formatInlineList(taskEvidenceSummary(repo, packets))}
+
+## Review Prompts
+
+1. Route fit: Did the selected route prevent the most likely expensive failure?
+2. Context quality: Which repo/unit/shared context was missing, stale, or useful?
+3. Validation surface: Was the strongest practical surface used, or was a cap recorded?
+4. Tool availability: Did unavailable MCPs, browser, database, ticket, or runtime tools change the evidence path?
+5. Developer friction: What slowed the developer down without improving product quality?
+6. QA handoff: Could a human tester follow the Markdown without AI, source access, or developer command knowledge?
+7. Kept-change fixture value: If this was a fixture app, did the final product improve in a way worth committing?
+8. Portable process lesson: What generalized SDLC rule, helper, or template should be considered?
+
+## Candidate Learning Split
+
+### Portable Process Lesson
+
+-
+
+### Product-Specific Durable Fact
+
+-
+
+### Sensitive / Redacted Detail
+
+- Confirm no raw ticket text, private URLs, customer data, secrets, raw logs, row-level database data, or proprietary schema details are promoted.
+
+## Recommended Follow-Up
+
+\`\`\`bash
+sdlc learn split --packet ${relative(repo, outPath)}
+\`\`\`
+`;
+  safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
 }
 
@@ -7961,6 +8724,8 @@ function recipeRegistry() {
   return [
     recipe('route-retirement', 'active', ['retire', 'replace old', 'legacy route', 'old route', 'download route', 'old active callers', 'active callers'], ['positive search for new active callers', 'negative search for old active callers', 'remaining references classified'], 'sdlc route proof --old <old> --new <new> --task "..."', ['include old/new behavior and absence checks in QA']),
     recipe('live-system-bug', 'active', ['staging log', 'production log', 'live bug', 'sql log', 'exact error', 'support report'], ['sanitized exact error/log', 'minimal reproduction or cap', 'smallest fix hypothesis'], 'sdlc bug live-evidence --task "..."', ['include root cause, retest steps, and expected absence of old error']),
+    recipe('interactive-stateful-feature', 'active', ['interactive', 'stateful', 'gameplay', 'game', 'settings', 'difficulty', 'animation', 'feedback', 'dashboard', 'wizard', 'mode', 'turn'], ['interaction contract', 'state/domain logic test or cap', 'surface-correct smoke', 'human QA path when applicable'], 'sdlc interaction packet --task "..."', ['include starting state, changed setting/mode, primary interaction, feedback/animation, recovery/reset, and regression path']),
+    recipe('fixture-validation-kept-change', 'active', ['fixture', 'validation fixture', 'battle soccer', 'kept change', 'keep changes', 'save changes', 'commit fixture', 'test sdlc'], ['preflight route and breadth', 'changed-file scope', 'tests/build or surface verification', 'commit preview when kept'], 'sdlc fixture plan --task "..."', ['treat useful fixture improvements like product work and keep commit/release decisions explicit']),
     recipe('efcore-sqlserver-trigger-output', 'experimental', ['ef core', 'sql server', 'trigger', 'output clause', 'usesqloutputclause', 'hastrigger'], ['exact SQL Server error/table', 'trigger-backed table list', 'mapped DbContext intersection', 'metadata regression test'], 'sdlc dotnet efcore diagnose --task "..."', ['record SQL Server smoke cap separately from metadata test']),
     recipe('efcore-fk-relationship', 'experimental', ['foreign key', ' fk ', 'relationship', 'savechanges', 'company_id'], ['exact FK table/columns', 'relationship invariant', 'analogous working path', 'focused regression test'], 'sdlc dotnet efcore diagnose --task "..."', ['include scenario retest and invariant expectation']),
     recipe('no-test-legacy', 'active', ['no automated tests', 'manual qa', 'weak test', 'missing test', 'legacy site fix where no automated tests'], ['test bootstrap decision', 'manual smoke cap', 'QA Markdown'], 'sdlc test regression-plan --task "..."', ['include manual QA owner and future test recommendation']),
@@ -7969,6 +8734,8 @@ function recipeRegistry() {
     recipe('test-bootstrap', 'active', ['add test project', 'bootstrap test', 'new test project', 'missing harness'], ['project reference', 'package/reference validation', 'focused test command'], 'sdlc test bootstrap-plan --unit <unit> --framework dotnet', ['record dependency warnings separately']),
     recipe('command-tooling-failure', 'active', ['parsererror', 'quote', 'syntax', 'command failed', 'operation not permitted', 'sandbox'], ['failure classified', 'corrected rerun result or cap'], 'sdlc command classify --command "..." --status <code>', ['do not treat invocation failure as product evidence']),
     recipe('context-bucket-save', 'active', ['context', 'learning', 'durable fact', 'legacyapi', 'shared context'], ['bucket confidence', 'product vs process split', 'final context checkpoint'], 'sdlc context bucket-confidence --path <path> --task "..."', ['confirm context updated/deferred/capped']),
+    recipe('ticket-evidence', 'active', ['youtrack', 'ticket', 'yt-', 'issue id', 'acceptance criteria', 'qa case'], ['ticket source and read mode', 'acceptance criteria or confirmed gap', 'drift check before closeout'], 'sdlc ticket evidence --task "..."', ['translate acceptance criteria into tester steps']),
+    recipe('database-evidence', 'active', ['database mcp', 'read-only database', 'read only database', 'database evidence', 'database query', 'db evidence', 'sql evidence', 'query plan', 'native soc', 'data mismatch'], ['read-only boundary', 'safe query plan', 'redacted result summary or cap'], 'sdlc data query-plan --task "..."', ['describe observable behavior and safe test data, not raw SQL']),
   ];
 }
 
@@ -8023,6 +8790,10 @@ function profileSuggestionsForTask(task, profile = {}, recipes = []) {
   if (recipes.some((item) => item.id === 'route-retirement')) suggestions.push('Add archived/generated/dependency path classifications before route retirement work.');
   if (recipes.some((item) => item.id === 'multi-repo-qa-handoff')) suggestions.push('Add related repositories, service map, and shared context root.');
   if (recipes.some((item) => item.id.includes('efcore'))) suggestions.push('Add database/provider evidence handling and SQL log redaction rules.');
+  if (recipes.some((item) => item.id === 'ticket-evidence') && !profile.ticketMcpAvailability) suggestions.push('Record ticket system/YouTrack MCP availability or fallback intake fields.');
+  if (recipes.some((item) => item.id === 'database-evidence') && !profile.databaseMcpAvailability) suggestions.push('Record read-only database MCP availability, allowed environments, allowed operations, and redaction rules.');
+  if (recipes.some((item) => item.id === 'interactive-stateful-feature') && !profile.renderedUiReviewCommand) suggestions.push('Record the strongest available rendered/interactive validation command or cap for stateful workflows.');
+  if (recipes.some((item) => item.id === 'fixture-validation-kept-change')) suggestions.push('Record fixture-app policy: when useful validation changes should be kept, verified, and commit-previewed.');
   if (!suggestions.length) suggestions.push('No obvious profile additions for this task.');
   return dedupe(suggestions);
 }
@@ -8032,12 +8803,15 @@ function hasMultiProjectSignals(repo) {
 }
 
 function provenanceRows(repo, task, git, packets) {
+  const profile = loadProfile(repo);
+  const external = externalEvidenceProfile(profile.values);
   const rows = [
     { source: 'source code', trust: 'authoritative', freshness: git.status ? 'current dirty worktree' : 'current clean worktree', note: `${git.changedFiles.length} changed file(s)` },
     { source: 'tests/current command output', trust: 'strong current evidence', freshness: 'current when run this task', note: packets.some((packet) => packet.kind === 'developer-verification') ? 'verification packet found' : 'not found' },
     { source: 'runtime logs/database/provider evidence', trust: matchesAny(task.toLowerCase(), ['log', 'sql', 'provider', 'staging', 'production']) ? 'strong when sanitized and exact' : 'not used', freshness: 'task-specific', note: 'capture exact failing table/endpoint/status when relevant' },
+    { source: 'read-only database MCP evidence', trust: external.database.availability === 'available' ? 'strong for observed state when bounded and redacted' : 'not available/unknown unless human provides sanitized result', freshness: 'environment-specific', note: 'proves observed state, not desired product behavior; record environment/time/caps' },
     { source: 'human task statement', trust: 'intent source', freshness: 'current request', note: task },
-    { source: 'issue/ticket text', trust: 'advisory until verified', freshness: 'external', note: 'verify against source/logs/tests' },
+    { source: 'issue/ticket text', trust: 'scope/acceptance source when current; advisory when stale or conflicting', freshness: external.ticket.availability === 'available' ? 'refreshable through ticket MCP' : 'pasted or unavailable', note: 'verify drift before closeout when ticket MCP is available' },
     { source: 'generated docs/previous agent output', trust: 'advisory', freshness: 'unknown', note: 'never use as proof without source check' },
     { source: 'context docs', trust: 'routing memory', freshness: 'check freshness/conflicts', note: 'source code/tests/logs win when conflicting' },
   ];
@@ -9355,6 +10129,55 @@ function escapeCell(value) {
 
 function escapeCommandArg(value) {
   return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function finishIntentNotes(intent) {
+  if (intent === 'keep-change') {
+    return formatList([
+      'Treat the result as real product work, not a disposable fixture experiment.',
+      'Require verification evidence or explicit caps before recommending a commit.',
+      'Generate a commit preview only after changed-file scope and QA/verification readiness are clear.',
+      'Push, merge, deploy, release, MR/PR creation, pipeline triggers, and file movement still require separate explicit approval.',
+    ]);
+  }
+  if (intent === 'handoff-only') {
+    return formatList([
+      'Prepare evidence, QA Markdown, and next actor notes only.',
+      'Do not recommend commit/push as the default next action unless the human asks.',
+      'Name open caps and owner for the handoff.',
+    ]);
+  }
+  return formatList([
+    'Normal finish decision: summarize proof, caps, QA readiness, and human-controlled Git/release options.',
+  ]);
+}
+
+function finishCommitReadiness(intent, open) {
+  if (intent === 'handoff-only') return 'not requested; handoff evidence only';
+  if (open.length) return 'not ready without accepted caps';
+  if (intent === 'keep-change') return 'ready for explicit human approval after commit preview';
+  return 'ready for explicit human approval only';
+}
+
+function safeWriteTextFile(repo, outPath, content) {
+  try {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+  } catch (error) {
+    const message = error && typeof error === 'object' && 'message' in error ? error.message : String(error);
+    const code = error && typeof error === 'object' && 'code' in error ? error.code : '';
+    if (code === 'EPERM' || code === 'EACCES') {
+      fail([
+        `Could not write SDLC evidence to ${outPath}.`,
+        `Reason: ${message}`,
+        'Recovery:',
+        '- rerun the command with approval/escalation when the repo is outside the writable sandbox,',
+        '- or pass --out /private/tmp/<file>.md,',
+        '- or record an explicit evidence-path cap in the final summary.',
+      ].join('\n'));
+    }
+    throw error;
+  }
 }
 
 function fail(message) {

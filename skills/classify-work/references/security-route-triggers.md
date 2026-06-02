@@ -12,6 +12,8 @@ Escalate when task text, profile metadata, diff contents, or runtime actions inv
 - new dependency, package, plugin, connector, or tool install,
 - external API call, webhook, network call, or third-party service,
 - MCP/tool install or expanded tool permission,
+- YouTrack/ticket MCP access to private ticket content, comments, attachments, users, or write-capable issue actions,
+- database MCP access to non-public data, production/staging state, proprietary schemas, row-level data, or query results,
 - credentialed write action such as push, publish, deploy, or production mutation,
 - production repository or production-impacting release,
 - cross-repo release order,
