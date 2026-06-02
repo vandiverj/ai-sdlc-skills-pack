@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
-import { fail, formatList, printGateRows, printObject, readJsonIfExists, safeWriteJsonFile, slug, splitList, stamp } from './common.mjs';
+import { fail, formatList, optionFiles, printGateRows, printObject, readJsonIfExists, safeWriteJsonFile, slug, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -178,9 +178,4 @@ export function stateExplain(repo, options = {}, dependencies = {}) {
     nextAction: dependencies.nextActionFromGates(gates, stateInfo.state.task),
   });
   printGateRows(gates);
-}
-
-function optionFiles(options, fallback = []) {
-  if (!options.files) return fallback;
-  return splitList(options.files).map((file) => file.trim()).filter(Boolean);
 }

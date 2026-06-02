@@ -1,13 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
-import { dedupe, dedupeBy, escapeCell, fail, formatInlineStatus, formatList, printObject, printTable, readJsonIfExists } from './common.mjs';
+import { dedupe, dedupeBy, escapeCell, fail, formatInlineStatus, formatList, optionFiles, printObject, printTable, readJsonIfExists } from './common.mjs';
 import { discoverCommands, loadProfile, parseMarkdownProfile } from './profile.mjs';
 import { getGitInfo } from './git.mjs';
 
-
-function optionFiles(options, fallback = []) {
-  return options.files ? String(options.files).split(/[,;\n]/).map((item) => item.trim()).filter(Boolean) : fallback;
-}
 
 function escapeCommandArg(value) {
   return String(value).replace(/\\/g, '\\\\').replace(/\"/g, '\\\"');

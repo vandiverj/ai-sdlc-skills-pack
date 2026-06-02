@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
-import { dedupe, escapeCell, fail, formatInlineStatus, formatList, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp, writeOrPrint } from './common.mjs';
+import { dedupe, escapeCell, fail, formatInlineStatus, formatList, optionFiles, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -268,9 +268,4 @@ function dedupeRepos(repos) {
     out.push({ ...item, path });
   }
   return out;
-}
-
-function optionFiles(options, fallback = []) {
-  if (!options.files) return fallback;
-  return splitList(options.files).map((file) => file.trim()).filter(Boolean);
 }

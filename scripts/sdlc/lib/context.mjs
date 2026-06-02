@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatList, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, splitList, stamp } from './common.mjs';
+import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatList, optionFiles, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { evidenceRequirementsForTask, readEvidenceManifest } from './evidence.mjs';
 import { getGitInfo } from './git.mjs';
 import { safeReadSmall } from './index.mjs';
@@ -15,10 +15,6 @@ export function recommendedContextFile(unit) {
   if (unit.contextBucket) return `${unit.contextBucket}/context.md`;
   if (unit.path && unit.path !== '.') return `${unit.path}/.ai-local/sdlc-profile.md`;
   return '.ai-local/sdlc-profile.md';
-}
-
-function optionFiles(options, fallback = []) {
-  return options.files ? String(options.files).split(/[,;\n]/).map((item) => item.trim()).filter(Boolean) : fallback;
 }
 
 export function contextBudget(repo, options = {}, deps = {}) {
