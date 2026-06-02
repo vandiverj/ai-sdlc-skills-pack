@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
 import { fail, formatInlineStatus } from './common.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -8,6 +8,16 @@ export function resolvePacketPath(repo, packet) {
   const path = resolve(repo, packet);
   if (!existsSync(path)) fail(`Packet not found: ${relative(repo, path)}`);
   return path;
+}
+
+export function completionTrackedPacketKinds() {
+  return ['review', 'release', 'developer-verification', 'qa-script', 'manual-smoke'];
+}
+
+export function appendPacketCompletion(packetPath, entry) {
+  const existing = readFileSync(packetPath, 'utf8');
+  const separator = existing.endsWith('\n') ? '\n' : '\n\n';
+  writeFileSync(packetPath, `${existing}${separator}${entry}`, 'utf8');
 }
 
 export function findPackets(repo, options = {}) {

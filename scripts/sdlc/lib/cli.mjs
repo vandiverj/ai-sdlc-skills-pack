@@ -6,7 +6,7 @@ import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, form
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
-import { doneChecksForRoute, findLatestPacket, findPackets, firstMatch, packetHas, readPacket, resolvePacketPath } from './packets.mjs';
+import { appendPacketCompletion, completionTrackedPacketKinds, doneChecksForRoute, findLatestPacket, findPackets, firstMatch, packetHas, readPacket, resolvePacketPath } from './packets.mjs';
 import { runDashboard, runFinish, runNext, runPlan, runResume, runStart, runStatus } from './run.mjs';
 import { ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, stateAdvance, stateBlockers, stateCurrent, stateExplain, stateInit } from './state.mjs';
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
@@ -861,16 +861,6 @@ function setupFixPlan(gaps, profile, commands) {
     add(gap.fix);
   }
   return plan;
-}
-
-function completionTrackedPacketKinds() {
-  return ['review', 'release', 'developer-verification', 'qa-script', 'manual-smoke'];
-}
-
-function appendPacketCompletion(packetPath, entry) {
-  const existing = readFileSync(packetPath, 'utf8');
-  const separator = existing.endsWith('\n') ? '\n' : '\n\n';
-  writeFileSync(packetPath, `${existing}${separator}${entry}`, 'utf8');
 }
 
 function humanize(value) {
