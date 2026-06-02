@@ -76,6 +76,11 @@ export function splitList(value) {
   return String(value || '').split(/[,;\n]/).map((item) => item.trim()).filter(Boolean);
 }
 
+export function optionFiles(options, fallback = []) {
+  if (!options.files) return fallback;
+  return splitList(options.files).map((file) => file.trim()).filter(Boolean);
+}
+
 export function formatList(items) {
   if (!items.length) return '- none';
   return items.map((item) => `- ${item}`).join('\n');

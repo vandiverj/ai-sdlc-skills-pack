@@ -2,10 +2,142 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { defaultRunsDir } from './paths.mjs';
-import { escapeCell, fail, formatInlineList, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
+import { dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
-import { detectStack, inferTestingSurfaces } from './units.mjs';
+import { detectStack, inferTestingSurfaces, matchesAny } from './units.mjs';
+
+export function fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers) {
+  const reasons = [];
+  const files = git.changedFiles || [];
+  const breadth = taskBreadthAssessment(task, files, surfaces);
+  const related = splitList(profile.values.relatedRepositories);
+  const riskyRoute = ['release-push', 'multi-repo-integration', 'contract-first', 'bugfix-live-system', 'weak-test-legacy'].includes(route);
+  const securityLike = triggers.length > 0;
+  const multiContext = related.length > 0 || units.length > 1 || dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)).length > 1;
+  const irreversible = matchesAny(task, ['delete', 'drop', 'truncate', 'migrate production', 'deploy', 'release', 'merge', 'pipeline']);
+  const broadTask = breadth.level !== 'narrow';
+  const eligible = !riskyRoute && !securityLike && !multiContext && !irreversible && !broadTask && files.length <= 5;
+  reasons.push(eligible ? 'Eligible: one small scope, no risk triggers, no multi-context ambiguity.' : 'Not eligible for micro/tiny fast-pass.');
+  if (riskyRoute) reasons.push(`Route ${route} needs normal preflight.`);
+  if (securityLike) reasons.push(`Security/tool triggers present: ${triggers.join('; ')}.`);
+  if (multiContext) reasons.push('Multiple repos, units, or context buckets require normal preflight.');
+  if (irreversible) reasons.push('Task wording suggests irreversible/release/data action.');
+  if (broadTask) reasons.push(`Task breadth is ${breadth.level}: ${breadth.signals.join('; ')}.`);
+  if (files.length > 5) reasons.push(`Changed files count ${files.length} exceeds fast-pass threshold.`);
+  if (surfaces.includes('rendered-product-ui')) reasons.push('Rendered UI work can still be fast-pass only with rendered/behavior evidence.');
+  return { eligible, reasons };
+}
+
+export function taskBreadthAssessment(task, files = [], surfaces = []) {
+  const text = String(task || '').toLowerCase();
+  const signals = [];
+  const broadPhrases = [
+    'full game',
+    'fuller product',
+    'closer to a full',
+    'more fully developed',
+    'complete experience',
+    'polish experience',
+    'multiple improvements',
+    'bring it more',
+    'whole workflow',
+    'end-to-end',
+  ];
+  const interactionPhrases = ['interactive', 'stateful', 'workflow', 'settings', 'mode', 'difficulty', 'animation', 'feedback', 'dashboard', 'wizard', 'multi-step', 'gameplay', 'turn'];
+  if (matchesAny(text, broadPhrases)) signals.push('broad product/experience wording');
+  if (matchesAny(text, interactionPhrases)) signals.push('interactive/stateful behavior');
+  if (matchesAny(text, ['logic', 'rules', 'ai behavior', 'computer opponent', 'smart opponent'])) signals.push('domain logic or AI behavior');
+  if (matchesAny(text, ['qa', 'test plan', 'human tester', 'manual test'])) signals.push('QA/handoff expectation');
+  const surfaceCount = dedupe(surfaces.filter(Boolean)).length;
+  if (surfaceCount > 1) signals.push(`${surfaceCount} testing surfaces`);
+  if (files.length > 5) signals.push(`${files.length} changed files`);
+  const level = signals.length >= 2 || files.length > 5 ? 'broad' : signals.length === 1 ? 'moderate' : 'narrow';
+  return { level, signals };
+}
+
+export function routeConfidence({ task, route, files, units, surfaces, profile, triggers }) {
+  let score = 60;
+  if (task) score += 10;
+  if (route && route !== 'standard') score += 5;
+  if (files.length) score += 5;
+  if (units.length && units.every((unit) => unit.contextBucket && unit.testSurface)) score += 10;
+  if (surfaces.length) score += 5;
+  if (profile.path) score += 5;
+  if (triggers.length) score -= 10;
+  if (score >= 85) return 'high';
+  if (score >= 65) return 'medium';
+  return 'low';
+}
+
+export function qualityFloorRows({ task, git, units, surfaces, qaMode, packets }) {
+  const hasVerificationPacket = packets.some((packet) => ['developer-verification', 'manual-smoke', 'route', 'review', 'release'].includes(packet.kind));
+  const hasQa = packets.some((packet) => packet.kind === 'qa-script');
+  const durableContextLikely = matchesAny(task, ['context', 'docs', 'learning', 'process', 'workflow', 'scenario', 'api contract', 'deployable unit']);
+  return [
+    { item: 'Changed-files awareness', status: git.changedFiles.length || git.status === '' ? 'pass' : 'note', detail: `${git.changedFiles.length} changed file(s); status ${formatInlineStatus(git.status)}` },
+    { item: 'One verification path', status: hasVerificationPacket ? 'pass' : 'open', detail: hasVerificationPacket ? 'evidence packet present' : 'run/check one relevant automated, manual, rendered, API, or data path' },
+    { item: 'Surface-correct evidence', status: surfaces.length ? 'pass' : 'open', detail: surfaces.join(', ') || 'surface not detected' },
+    { item: 'Context placement decision', status: durableContextLikely || units.some((unit) => unit.contextBucket) ? 'note' : 'open', detail: durableContextLikely ? 'durable context likely; decide bucket' : formatInlineList(units.map((unit) => unit.contextBucket).filter(Boolean)) || 'not configured' },
+    { item: 'Human QA readiness', status: qaMode && (hasQa || !requiresHumanQa(task, surfaces)) ? 'note' : 'open', detail: requiresHumanQa(task, surfaces) ? 'QA Markdown needed when handing to testers' : 'QA optional for this route' },
+    { item: 'Developer finish control', status: 'pass', detail: 'commit/push require approval; merge/deploy/release forbidden by default' },
+    { item: 'Confidence summary', status: 'open', detail: 'include proved/inferred/human-judgment/safe-next-action at final response' },
+  ];
+}
+
+function requiresHumanQa(task, surfaces) {
+  return matchesAny(task, ['qa', 'tester', 'youtrack', 'ticket', 'production issue']) || surfaces.some((surface) => ['rendered-product-ui', 'api-contract', 'data-persistence', 'integration-provider'].includes(surface));
+}
+
+export function formatQualityFloorTable(rows) {
+  return `| Item | Status | Detail |
+| --- | --- | --- |
+${rows.map((row) => `| ${escapeCell(row.item)} | ${row.status} | ${escapeCell(row.detail)} |`).join('\n')}`;
+}
+
+export function safeDefaultsForPreflight(route, fast, profile) {
+  return [
+    fast.eligible ? 'Use inline fast-pass unless new risk appears.' : 'Use normal preflight packet before implementation.',
+    'Do not commit or push without explicit human approval.',
+    'Do not merge, deploy, release, create MR/PR, trigger pipeline, or move files between environments.',
+    profile.accessibilityReviewPolicy ? `Accessibility policy: ${profile.accessibilityReviewPolicy}.` : 'Accessibility is optional unless profile/human requires it.',
+    `Route ${route} uses the minimum evidence needed for the likely failure mode.`,
+  ];
+}
+
+export function preflightProved(route, units, surfaces, git) {
+  return [`route selected as ${route}`, `${units.length} affected unit candidate(s)`, `${surfaces.length || 1} testing surface candidate(s)`, `git status observed as ${formatInlineStatus(git.status)}`];
+}
+
+export function preflightInferred(route, qaMode) {
+  return [`QA mode inferred as ${qaMode}`, `artifact budget inferred from route ${route}`];
+}
+
+export function preflightHumanJudgment(fast, triggers) {
+  const items = [];
+  if (!fast.eligible) items.push('confirm normal-route scope before implementation when ambiguity matters');
+  if (triggers.length) items.push('approve or cap security/tool-triggered actions before use');
+  items.push('approve commit/push choice at finish');
+  return items;
+}
+
+export function confidenceBlock({ proved = [], inferred = [], human = [], nextAction = '' }) {
+  return `### Proved
+
+${formatList(proved)}
+
+### Inferred
+
+${formatList(inferred)}
+
+### Needs Human Judgment
+
+${formatList(human)}
+
+### Safe Next Action
+
+- ${nextAction || 'continue with the smallest route that satisfies the quality floor'}`;
+}
 
 export function workmodeDetect(repo, options = {}, deps = {}) {
   const task = options.task || '';
