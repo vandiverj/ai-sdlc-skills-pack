@@ -14,6 +14,7 @@ import { evalAddCase, evalReport, evalRun, scenarioList, scenarioShow, scenarioT
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
+import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -8319,25 +8320,6 @@ function learnImport(repo, options = {}) {
   const target = defaultLearningBacklogPath(repo);
   for (const row of rows) appendControlJsonLine(repo, target, { ...row, importedAt: new Date().toISOString(), importReviewRequired: true });
   console.log(`${rows.length} learning rows imported to ${relative(repo, target)}`);
-}
-
-function upgradePlan(repo, options = {}) {
-  const findings = [];
-  if (!existsSync(join(repo, '.ai-local', 'sdlc-profile.json'))) findings.push('Create normalized local profile with sdlc config normalize.');
-  if (!existsSync(join(repo, '.ai-local', 'sdlc-index.json'))) findings.push('Create local deterministic index with sdlc index build.');
-  if (!findings.length) findings.push('No local upgrade actions detected.');
-  const content = ['# SDLC Upgrade Plan', '', ...findings.map((item) => `- ${item}`), ''].join('\n');
-  writeOrPrint(repo, options.out, content);
-}
-
-function upgradeApply(repo, options = {}) {
-  if (!options.write) fail('Dry run only. Pass --write to create/update local SDLC upgrade artifacts.');
-  configNormalize(repo, { ...options, out: join(repo, '.ai-local', 'sdlc-profile.json') });
-  indexBuild(repo, { ...options, out: join(repo, '.ai-local', 'sdlc-index.json') });
-}
-
-function upgradeExplain(repo, options = {}) {
-  console.log('SDLC upgrades are local-first and non-destructive: normalize profile, build local index, validate artifacts, and regenerate runtime adapters. They do not merge, deploy, push, or overwrite team config without explicit file-level action.');
 }
 
 function sanitizePortableObject(value) {
