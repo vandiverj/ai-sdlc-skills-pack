@@ -4,12 +4,11 @@ import { dedupe, fail, formatList, formatOptionList, stamp } from './common.mjs'
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
+import { classifyTouchedSurface } from './surface.mjs';
 
 export function smokePacket(repo, options = {}, dependencies = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the manual smoke packet can be scoped.');
-  const classifyTouchedSurface = dependencies.classifyTouchedSurface || (() => 'unknown');
-  const smokeStepSuggestions = dependencies.smokeStepSuggestions || (() => ['Run the changed workflow and one nearby regression path.']);
   const renderedEvidencePlan = dependencies.renderedEvidencePlan || (() => ['Rendered evidence not inferred. Record cap if unavailable.']);
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
@@ -69,6 +68,25 @@ ${formatList(renderedEvidencePlan(task, files, profile.values))}
 `;
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
+}
+
+function smokeStepSuggestions(task, files) {
+  const text = String(task || '').toLowerCase();
+  const surfaces = dedupe(files.map(classifyTouchedSurface));
+  const steps = ['Open or invoke the primary changed workflow and confirm the intended behavior.'];
+  if (surfaces.includes('frontend/UI') || matchesAny(text, ['ui', 'screen', 'page', 'animation', 'game'])) {
+    steps.push('Render the affected UI locally and inspect the changed state on desktop and a narrow/mobile viewport when practical.');
+  }
+  if (surfaces.includes('backend/API')) steps.push('Exercise the affected API/service path with the smallest available local or QA-safe request.');
+  if (surfaces.includes('database/storage')) steps.push('Confirm changed data reads/writes with safe test data and record any migration/backfill cap.');
+  if (surfaces.includes('external integration')) steps.push('Use a sandbox/mock path or record the exact external integration cap.');
+  if (surfaces.includes('dependencies')) steps.push('Run the closest startup/build/test path to catch dependency upgrade regressions.');
+  steps.push('Check the nearest unchanged workflow so QA receives one regression path, not only the happy path.');
+  return dedupe(steps);
+}
+
+function matchesAny(value, needles) {
+  return needles.some((needle) => value.includes(needle));
 }
 
 export function smokeComplete(repo, options = {}, dependencies = {}) {

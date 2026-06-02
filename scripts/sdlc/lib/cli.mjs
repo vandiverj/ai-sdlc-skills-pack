@@ -28,6 +28,7 @@ import { dataBoundary, dataEvidence, dataPacket, dataQueryPlan } from './data.mj
 import { ticketDrift, ticketEvidence, ticketUpdatePreview } from './ticket.mjs';
 import { integrationPacket } from './integration.mjs';
 import { smokeComplete, smokePacket } from './smoke.mjs';
+import { classifyRuntimeSurface, classifyTouchedSurface, needsManualQa } from './surface.mjs';
 import { accessibilityPolicy, formatAccessibilityPolicy, formatSecurityOverlay, releaseComplete, releaseOrderNote, releasePacket, reviewComplete, reviewPacket } from './release.mjs';
 import { renderEvidencePacket, renderedEvidencePlan, renderPlan, renderSmoke } from './render.mjs';
 import { permissionPolicyPacket, riskAgentic, safetyFinish, safetyPreflight, toolAuditPacket } from './safety.mjs';
@@ -354,7 +355,7 @@ function qaDependencies() {
 }
 
 function smokeDependencies() {
-  return { classifyTouchedSurface, smokeStepSuggestions, renderedEvidencePlan, resolvePacketPath, appendPacketCompletion };
+  return { renderedEvidencePlan, resolvePacketPath, appendPacketCompletion };
 }
 
 function releaseDependencies() {
@@ -1373,39 +1374,6 @@ function formatCommandList(commands, route) {
   return lines.length ? lines.join('\n') : '- none discovered';
 }
 
-function classifyTouchedSurface(file) {
-  const value = String(file || '').toLowerCase();
-  if (/\.(asp|asa|aspx|ascx)$/.test(value)) return 'frontend/UI';
-  if (/\.(tsx|jsx|css|scss|html|vue|svelte)$/.test(value)) return 'frontend/UI';
-  if (/\.(cs|vb|fs|go|rs|java|kt|php|rb|py)$/.test(value)) return 'backend/API';
-  if (/\.(sql)$/.test(value) || value.includes('migration') || value.includes('schema')) return 'database/storage';
-  if (value.includes('contract') || value.includes('openapi') || value.includes('swagger') || value.includes('proto')) return 'contracts/interfaces';
-  if (value.includes('integration') || value.includes('webhook') || value.includes('vendor') || value.includes('third')) return 'external integration';
-  if (value.includes('package.json') || value.includes('package-lock') || value.includes('pnpm-lock') || value.includes('yarn.lock') || value.includes('deno.json')) return 'dependencies';
-  if (value.includes('.env') || value.includes('config') || value.includes('appsettings') || value.includes('pipeline') || value.includes('docker')) return 'config/environment';
-  if (/\.(test|spec)\./.test(value) || value.includes('__tests__') || value.includes('/tests/')) return 'tests';
-  if (value.endsWith('.md') || value.includes('/docs/')) return 'docs/context';
-  if (value.includes('/scripts/') || value.includes('/tools/') || value.includes('/bin/')) return 'scripts/tooling';
-  if (value.includes('/dist/') || value.includes('/build/') || value.includes('/generated/')) return 'generated/build artifacts';
-  return 'source/other';
-}
-
-function classifyRuntimeSurface(file) {
-  const value = String(file || '').toLowerCase();
-  if (/\.(asp|asa)$/.test(value)) return 'ASP Classic';
-  if (/\.(cs|csproj|sln)$/.test(value)) return '.NET';
-  if (/\.(sql)$/.test(value)) return 'SQL/database';
-  if (value.includes('deno.json') || value.includes('jsr.json')) return 'Deno/JSR';
-  if (value.includes('package.json') || /\.(ts|tsx|js|jsx)$/.test(value)) return 'Node/TypeScript';
-  if (value.includes('next.config')) return 'Next.js';
-  if (value.includes('docker') || value.includes('pipeline') || value.includes('workflow')) return 'deployment/tooling';
-  return 'generic';
-}
-
-function needsManualQa(file) {
-  return ['frontend/UI', 'backend/API', 'database/storage', 'external integration', 'contracts/interfaces', 'config/environment', 'dependencies'].includes(classifyTouchedSurface(file));
-}
-
 function impactAreas(task, files, profile = {}) {
   const text = `${task} ${profile.repositoryRole || ''}`.toLowerCase();
   const areas = [];
@@ -1575,20 +1543,6 @@ function qaReviewFindings(text) {
   if (!isApiMode && /Navigate to the affected area/i.test(text)) findings.push('Step may be too vague: name the affected page/workflow when known.');
   if (isApiMode && !/Expected status|Expected response|Request payload/i.test(text)) findings.push('API QA script should include request payload and expected status/response.');
   return dedupe(findings);
-}
-
-function smokeStepSuggestions(task, files) {
-  const surfaces = dedupe(files.map(classifyTouchedSurface));
-  const steps = ['Open or invoke the primary changed workflow and confirm the intended behavior.'];
-  if (surfaces.includes('frontend/UI') || matchesAny(task.toLowerCase(), ['ui', 'screen', 'page', 'animation', 'game'])) {
-    steps.push('Render the affected UI locally and inspect the changed state on desktop and a narrow/mobile viewport when practical.');
-  }
-  if (surfaces.includes('backend/API')) steps.push('Exercise the affected API/service path with the smallest available local or QA-safe request.');
-  if (surfaces.includes('database/storage')) steps.push('Confirm changed data reads/writes with safe test data and record any migration/backfill cap.');
-  if (surfaces.includes('external integration')) steps.push('Use a sandbox/mock path or record the exact external integration cap.');
-  if (surfaces.includes('dependencies')) steps.push('Run the closest startup/build/test path to catch dependency upgrade regressions.');
-  steps.push('Check the nearest unchanged workflow so QA receives one regression path, not only the happy path.');
-  return dedupe(steps);
 }
 
 function inferVerificationMaturity(commands) {
