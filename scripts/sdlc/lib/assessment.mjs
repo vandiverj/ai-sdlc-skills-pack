@@ -139,6 +139,39 @@ ${formatList(human)}
 - ${nextAction || 'continue with the smallest route that satisfies the quality floor'}`;
 }
 
+export function validationLadderRows(task, surfaces = []) {
+  const text = String(task || '').toLowerCase();
+  const rows = [];
+  const add = (surface, steps) => rows.push({ surface, steps });
+  if (surfaces.includes('rendered-product-ui') || matchesAny(text, ['ui', 'screen', 'browser', 'rendered', 'interactive', 'game', 'dashboard', 'form'])) {
+    add('UI / rendered product', ['browser/rendered automation', 'local dev server smoke', 'screenshot or manual rendered notes', 'build-only cap']);
+  }
+  if (surfaces.includes('api-contract') || matchesAny(text, ['api', 'swagger', 'openapi', 'endpoint', 'contract'])) {
+    add('API / contract', ['automated API/integration test', 'Swagger/API-client smoke', 'contract/static review', 'build-only cap']);
+  }
+  if (matchesAny(text, ['cli', 'command line', 'terminal command'])) {
+    add('CLI / command workflow', ['command execution test', 'golden output or snapshot', 'help/version command smoke', 'static review cap']);
+  }
+  if (surfaces.includes('background-job') || matchesAny(text, ['worker', 'job', 'queue', 'import', 'export', 'scheduled'])) {
+    add('Backend job / worker', ['unit/integration test', 'local job dry-run', 'log/queue/data evidence', 'static review cap']);
+  }
+  if (surfaces.includes('data-persistence') || matchesAny(text, ['database', 'sql', 'migration', 'data'])) {
+    add('Database / data', ['migration/schema test', 'read-only safe evidence', 'generated SQL/log review', 'manual DBA/developer cap']);
+  }
+  if (surfaces.includes('integration-provider') || matchesAny(text, ['webhook', 'provider', 'third-party', 'integration'])) {
+    add('External integration', ['sandbox integration test', 'provider/API callback smoke', 'contract/log evidence', 'integration cap']);
+  }
+  if (surfaces.includes('docs-process') || matchesAny(text, ['docs', 'readme', 'process'])) {
+    add('Docs / process', ['render/link/example check', 'source-truth comparison', 'reader-path review', 'docs-only cap']);
+  }
+  if (!rows.length) add('Generic service behavior', ['focused unit/integration test', 'build/typecheck', 'manual smoke', 'static review cap']);
+  return rows;
+}
+
+export function formatValidationLadder(rows) {
+  return rows.map((row) => `### ${row.surface}\n\n${row.steps.map((step, index) => `${index + 1}. ${step}`).join('\n')}`).join('\n\n');
+}
+
 export function workmodeDetect(repo, options = {}, deps = {}) {
   const task = options.task || '';
   const profile = loadProfile(repo);
