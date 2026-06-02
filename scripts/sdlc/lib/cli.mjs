@@ -38,7 +38,7 @@ import { scopeCheck, scopeExpect } from './scope.mjs';
 import { fixturePlan, testBootstrapPlan, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
 import { verifyComplete, verifyPacket } from './verify.mjs';
 import { doneCheck, packetStatus, routeProof, routeRetire, routeStart } from './routepackets.mjs';
-import { bugEvidenceCheck, bugEvidencePacket, bugLiveEvidence, bugWorkflowPacket, commandClassify, dotnetEfcoreDiagnose, fixScope, patternAnalog } from './diagnostics.mjs';
+import { bugEvidenceCheck, bugEvidencePacket, bugLiveEvidence, bugNextCommand, bugWorkflowPacket, commandClassify, dotnetEfcoreDiagnose, fixScope, patternAnalog } from './diagnostics.mjs';
 import { scorecardSummary, scorecardTask, scorecardTrends, traceAttach, traceEvent, traceExport, traceFinish, traceStart } from './telemetry.mjs';
 import { automationBudget, feedbackCapture, feedbackQuick, feedbackReview, feedbackSummary, onboardingPilot, sdlcEvent } from './adoption.mjs';
 import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calibratePropose, calibrateSummary, learnedFlowCandidates, processProposals, readCalibrationRows } from './calibration.mjs';
@@ -591,12 +591,6 @@ function taskDependencies() {
     verifyDependencies,
     verifyPacket,
   };
-}
-
-function bugNextCommand(action, task) {
-  const order = ['reproduce', 'diagnose', 'fix-plan', 'verify', 'qa'];
-  const next = order[order.indexOf(action) + 1] || 'qa';
-  return action === 'qa' ? `sdlc qa scenario --task "${escapeCommandArg(task)}"` : `sdlc bug ${next} --task "${escapeCommandArg(task)}"`;
 }
 
 function git(repo, args) {

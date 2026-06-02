@@ -6,6 +6,12 @@ import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { affectedUnits, inferTestingSurfaces, matchesAny } from './units.mjs';
 
+export function bugNextCommand(action, task) {
+  const order = ['reproduce', 'diagnose', 'fix-plan', 'verify', 'qa'];
+  const next = order[order.indexOf(action) + 1] || 'qa';
+  return action === 'qa' ? `sdlc qa scenario --task "${escapeCommandArg(task)}"` : `sdlc bug ${next} --task "${escapeCommandArg(task)}"`;
+}
+
 export function bugEvidencePacket(repo, options = {}, dependencies = {}) {
   const { taskCaseId } = dependencies;
   const task = options.task || '';
@@ -262,4 +268,8 @@ Repository: ${repo}
 `;
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
+}
+
+function escapeCommandArg(value) {
+  return String(value).replace(/["\\]/g, '\\$&');
 }
