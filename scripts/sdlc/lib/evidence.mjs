@@ -9,6 +9,7 @@ import { matchRecipes } from './recipes.mjs';
 import { inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { externalEvidenceProfile } from './tools.mjs';
 import { inferTestingSurfaces, matchesAny, qaModeForSurfaces } from './units.mjs';
+import { taskContract } from './contract.mjs';
 
 export function evidenceInit(repo, options = {}) {
   const route = options.route || 'standard';
@@ -118,6 +119,26 @@ export function evidencePlan(repo, options = {}) {
   writeOrPrint(repo, options.out, content);
 }
 
+export function evidenceMatrix(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const matrix = buildEvidenceMatrix(repo, task, options);
+  const content = renderEvidenceMatrix(matrix);
+  writeOrPrint(repo, options.out, content);
+}
+
+export function evidenceGap(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const matrix = buildEvidenceMatrix(repo, task, options);
+  const gaps = matrix.rows.filter((row) => row.status !== 'satisfied');
+  printObject({ task, route: matrix.route, criteria: matrix.rows.length, gaps: gaps.length, result: gaps.some((row) => row.required) ? 'open' : 'advisory' });
+  console.log('\n| Criterion | Status | Gap | Next |');
+  console.log('| --- | --- | --- | --- |');
+  for (const row of gaps) console.log(`| ${escapeCell(row.criterion)} | ${row.status} | ${escapeCell(row.gap)} | ${escapeCell(row.next)} |`);
+  if (gaps.some((row) => row.required)) process.exitCode = 1;
+}
+
 export function evidenceProvenance(repo, options = {}, deps = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "...".');
@@ -146,6 +167,95 @@ ${rows.map((row) => `| ${escapeCell(row.source)} | ${row.trust} | ${row.freshnes
   } else {
     console.log(content.trimEnd());
   }
+}
+
+export function buildEvidenceMatrix(repo, task, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const runDir = readCurrentStateInfo(repo, options).runDir || ensureControlRunDir(repo, options, task);
+  const manifest = ensureEvidenceManifest(repo, runDir, task, route, options);
+  const contract = loadTaskContract(repo, task, options) || taskContract(repo, task, { route, git, profile, task });
+  const captured = [...(manifest.captured || []), ...readJsonLines(join(runDir, 'checks.jsonl')).map((row) => ({ kind: row.name || row.type || 'check', summary: row.summary || row.command || '', status: row.status === 0 || row.status === 'pass' ? 'captured' : row.status || 'captured' }))];
+  const rows = (contract.acceptanceCriteria || []).map((criterion) => {
+    const proofNeeded = contract.evidenceRequired?.find((item) => item.criterionId === criterion.id)?.proofNeeded || proofForText(criterion.text, contract.testingSurfaces || []);
+    const matched = captured.find((item) => evidenceMatchesCriterion(item, criterion, proofNeeded));
+    return {
+      criterionId: criterion.id,
+      criterion: criterion.text,
+      proofNeeded,
+      evidence: matched ? matched.summary || matched.kind : '',
+      status: matched ? 'satisfied' : 'missing',
+      required: true,
+      gap: matched ? '' : `No captured evidence mapped to ${criterion.id}.`,
+      next: matched ? 'none' : nextEvidenceCommand(contract, criterion, proofNeeded),
+      qa: qaImplication(contract, criterion, matched),
+    };
+  });
+  return { schema: 'sdlc-evidence-matrix-v1', generatedAt: new Date().toISOString(), task, route, runDir, contractSource: contract.source || 'generated', testingSurfaces: contract.testingSurfaces || [], qaMode: contract.qaMode || 'workflow', rows };
+}
+
+function renderEvidenceMatrix(matrix) {
+  return `# SDLC Evidence Matrix
+
+Date: ${matrix.generatedAt}
+Task: ${matrix.task}
+Route: ${matrix.route}
+QA mode: ${matrix.qaMode}
+Testing surfaces: ${(matrix.testingSurfaces || []).join(', ') || 'unknown'}
+
+| Criterion | Proof needed | Status | Evidence | QA implication | Next |
+| --- | --- | --- | --- | --- | --- |
+${matrix.rows.map((row) => `| ${escapeCell(row.criterion)} | ${escapeCell(row.proofNeeded)} | ${row.status} | ${escapeCell(row.evidence || 'none')} | ${escapeCell(row.qa)} | ${escapeCell(row.next)} |`).join('\n')}
+`;
+}
+
+function loadTaskContract(repo, task, options = {}) {
+  if (options.contract) return readJsonIfExists(resolve(repo, options.contract));
+  const runDir = readCurrentStateInfo(repo, options).runDir || '';
+  if (runDir) {
+    const current = readJsonIfExists(join(runDir, 'task-contract.json'));
+    if (current) return current;
+  }
+  return null;
+}
+
+function evidenceMatchesCriterion(item, criterion, proofNeeded) {
+  const text = `${item.kind || ''} ${item.summary || ''} ${item.path || ''}`.toLowerCase();
+  const words = String(criterion.text || '').toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length > 4);
+  if (words.some((word) => text.includes(word))) return true;
+  if (/api|endpoint|swagger/i.test(proofNeeded) && /api|contract|swagger|test|check/i.test(text)) return true;
+  if (/render|browser|ui/i.test(proofNeeded) && /render|browser|ui|smoke|screenshot/i.test(text)) return true;
+  if (/data|database|query/i.test(proofNeeded) && /data|database|query|sql/i.test(text)) return true;
+  if (/diff|docs/i.test(proofNeeded) && /diff|docs|markdown|check/i.test(text)) return true;
+  return /verification|test|build|smoke|manual/i.test(text);
+}
+
+function proofForText(text, surfaces) {
+  if (surfaces.includes('api-contract') || /api|endpoint|swagger/i.test(text)) return 'API request/response, contract test, Swagger/developer validation, or cap';
+  if (surfaces.includes('rendered-product-ui') || /ui|screen|page|button|layout/i.test(text)) return 'rendered/browser smoke, UI test, screenshot, or cap';
+  if (surfaces.includes('data-persistence') || /data|database|stored|saved/i.test(text)) return 'data evidence, regression test, or redacted query/evidence cap';
+  return 'targeted automated check, smoke/manual evidence, or explicit cap';
+}
+
+function nextEvidenceCommand(contract, criterion, proofNeeded) {
+  if (/api|endpoint|swagger/i.test(proofNeeded)) return `sdlc qa api --task "${escapeMatrixCommand(contract.task || criterion.text)}"`;
+  if (/render|browser|ui/i.test(proofNeeded)) return `sdlc render evidence --task "${escapeMatrixCommand(contract.task || criterion.text)}"`;
+  if (/data|database|query/i.test(proofNeeded)) return `sdlc data evidence --task "${escapeMatrixCommand(contract.task || criterion.text)}"`;
+  if (/docs|diff/i.test(proofNeeded)) return 'git diff --check plus changed-file review';
+  return `sdlc verify ladder --task "${escapeMatrixCommand(contract.task || criterion.text)}"`;
+}
+
+function qaImplication(contract, criterion, matched) {
+  if (matched) return 'developer evidence exists; QA can focus on user-visible regression if needed';
+  if (contract.qaMode === 'api-contract') return 'include API/developer validation step or cap';
+  if (contract.qaMode === 'rendered-ui') return 'include human-visible workflow step';
+  if (contract.qaMode === 'data') return 'include safe setup and expected persisted state';
+  return 'include in QA only if tester-visible';
+}
+
+function escapeMatrixCommand(value) {
+  return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 export function ensureEvidenceManifest(repo, runDir, task, route, options = {}) {

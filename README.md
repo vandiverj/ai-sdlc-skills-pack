@@ -36,6 +36,23 @@ If the agent seems stuck, too broad, or you are not sure what decision is needed
 Use SDLC to explain where we are, what is missing, and what I should decide next.
 ```
 
+CLI shortcuts for the same lightweight workflow:
+
+```bash
+sdlc start --task "<task>"
+sdlc next --task "<task>"
+sdlc prove --task "<task>"
+sdlc qa-ready --task "<task>"
+sdlc finish-ready --task "<task>"
+```
+
+For a route-aware command list instead of the full CLI surface:
+
+```bash
+sdlc command plan --task "<task>"
+sdlc guide start --task "<task>"
+```
+
 If you need a test script for human QA:
 
 ```text

@@ -69,6 +69,128 @@ export function learnQuick(repo, options = {}, deps = {}) {
   }, deps);
 }
 
+export function learnWorkbench(repo, options = {}, deps = {}) {
+  const agentsRoot = deps.agentsRoot || repo;
+  const rows = collectLearningRows(repo, agentsRoot);
+  const grouped = groupLearningRows(rows);
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Learning Workbench
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Learning rows: ${rows.length}
+
+| Owner | Count | Suggested action |
+| --- | --- | --- |
+${[...grouped.entries()].map(([owner, items]) => `| ${escapeCell(owner)} | ${items.length} | ${items.length >= 3 ? 'review for process change proposal' : 'keep collecting evidence'} |`).join('\n') || '| none | 0 | no learning rows found |'}
+
+## Recent Learning Rows
+
+${formatList(rows.slice(-12).map((row) => `${row.owner}: ${row.summary}`))}
+`;
+  if (outPath) {
+    safeWriteTextFile(repo, outPath, content);
+    console.log(relative(repo, outPath));
+  } else console.log(content.trimEnd());
+}
+
+export function learnDedupe(repo, options = {}, deps = {}) {
+  const agentsRoot = deps.agentsRoot || repo;
+  const rows = collectLearningRows(repo, agentsRoot);
+  const duplicates = duplicateLearningRows(rows);
+  console.log('| Key | Count | Files |');
+  console.log('| --- | --- | --- |');
+  for (const group of duplicates) console.log(`| ${escapeCell(group.key)} | ${group.rows.length} | ${escapeCell(group.rows.map((row) => row.file).join('; '))} |`);
+  if (!duplicates.length) console.log('| none | 0 | no likely duplicates |');
+}
+
+export function learnProposeChange(repo, options = {}, deps = {}) {
+  const candidate = options.candidate || options.id || '';
+  if (!candidate) fail('Pass --candidate <id-or-keyword>.');
+  const agentsRoot = deps.agentsRoot || repo;
+  const rows = collectLearningRows(repo, agentsRoot).filter((row) => row.key.includes(candidate.toLowerCase()) || row.summary.toLowerCase().includes(candidate.toLowerCase()) || row.owner.toLowerCase().includes(candidate.toLowerCase()));
+  const evidence = rows.length ? rows.map((row) => `- ${row.summary} (${row.file})`).join('\n') : '- no matching rows found; treat this as a draft only';
+  const owner = rows[0]?.owner || 'process-learning';
+  const content = `# SDLC Learning Change Proposal
+
+Date: ${new Date().toISOString()}
+Candidate: ${candidate}
+
+## Evidence
+
+${evidence}
+
+## Candidate Owner
+
+${owner}
+
+## Recommended Change
+
+- Update the smallest affected skill, recipe, CLI helper, template, or README guidance.
+- Keep product-specific facts in repo/unit/shared context.
+
+## Validation Needed
+
+- Add or update scenario coverage.
+- Validate against a fixture or real task.
+- Confirm privacy/sanitization before promotion.
+
+## Rollback / Deprecation Path
+
+- Archive the proposal if later evidence shows the pattern was product-specific or overfit.
+`;
+  if (options.out) {
+    const outPath = resolve(repo, options.out);
+    safeWriteTextFile(repo, outPath, content);
+    console.log(relative(repo, outPath));
+  } else console.log(content.trimEnd());
+}
+
+function collectLearningRows(repo, agentsRoot) {
+  const files = [
+    ...learningFiles(join(agentsRoot, 'learnings')),
+    ...localLearningFiles(join(repo, '.ai-local')),
+  ];
+  return files.map((file) => {
+    const text = readFileSync(file, 'utf8');
+    const summary = firstMatch(text, /## Summary\s+([\s\S]*?)(?:\n## |\n# |$)/) || firstMatch(text, /summary["']?\s*:\s*["']?([^"\n}]+)/i) || basename(file);
+    const owner = firstMatch(text, /## Candidate Owner\s+([\s\S]*?)(?:\n## |\n# |$)/) || firstMatch(text, /candidateOwner["']?\s*:\s*["']?([^"\n}]+)/i) || 'unknown';
+    return { file: relative(repo, file), summary: sanitizeOneLine(summary), owner: sanitizeOneLine(owner).split(/\s+/)[0] || 'unknown', key: slug(`${owner} ${summary}`).slice(0, 60) };
+  });
+}
+
+function learningFiles(dir) {
+  if (!existsSync(dir)) return [];
+  const entries = readdirSync(dir, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return learningFiles(path);
+    return entry.name.endsWith('.md') || entry.name.endsWith('.jsonl') ? [path] : [];
+  });
+}
+
+function localLearningFiles(dir) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory() && ['learnings', 'sdlc-learnings'].includes(entry.name)) return learningFiles(path);
+    if (entry.isFile() && /^sdlc-learning.*\.(jsonl|md)$/i.test(entry.name)) return [path];
+    return [];
+  });
+}
+
+function groupLearningRows(rows) {
+  const grouped = new Map();
+  for (const row of rows) grouped.set(row.owner, [...(grouped.get(row.owner) || []), row]);
+  return grouped;
+}
+
+function duplicateLearningRows(rows) {
+  const grouped = new Map();
+  for (const row of rows) grouped.set(row.key, [...(grouped.get(row.key) || []), row]);
+  return [...grouped.entries()].filter(([, items]) => items.length > 1).map(([key, rows]) => ({ key, rows }));
+}
+
 export function learnSanitize(repo, options = {}, deps = {}) {
   const packetPath = deps.resolvePacketPath(repo, options.packet);
   const text = readFileSync(packetPath, 'utf8');

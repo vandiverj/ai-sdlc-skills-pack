@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { escapeCell, formatInlineList, formatList, printObject, readJsonIfExists } from './common.mjs';
+import { escapeCell, formatInlineList, formatList, printObject, readJsonIfExists, readJsonLines } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, profileInit } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -97,6 +97,83 @@ ${formatList(learnedFlowCandidates(rows))}
   } else {
     console.log(content.trimEnd());
   }
+}
+
+export function processDashboard(repo, options = {}, dependencies = {}) {
+  const packets = dependencies.findPackets(repo, {});
+  const activityFiles = findRunFiles(repo, 'activity.jsonl');
+  const activityRows = activityFiles.flatMap((file) => readJsonLines(file));
+  const feedbackFiles = findRunFiles(repo, 'feedback.jsonl');
+  const feedbackRows = feedbackFiles.flatMap((file) => readJsonLines(file));
+  const openPackets = packets.filter((packet) => !packet.completed && dependencies.completionTrackedPacketKinds().includes(packet.kind));
+  const content = `# SDLC Process Dashboard
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+
+| Dimension | Signal | Interpretation |
+| --- | --- | --- |
+| Flow | ${activityRows.length} activity events | ${activityRows.length ? 'captured process evidence available' : 'not captured; absence is not health proof'} |
+| Evidence | ${packets.length} packets / ${openPackets.length} open | ${openPackets.length ? 'finish gates may still need attention' : 'no open tracked packets'} |
+| Context load | ${findRunFiles(repo, 'context-ledger.jsonl').length} context ledgers | use context decision when context feels heavy |
+| Collaboration/QA | ${packets.filter((packet) => packet.kind?.includes('qa')).length} QA packets | QA readiness should map to acceptance criteria |
+| Safety | ${packets.filter((packet) => /safety|risk|policy|security/.test(packet.kind || '')).length} safety packets | high-risk work should have explicit gates |
+| Developer friction | ${feedbackRows.length} feedback rows | review feedback as process signal, not performance scoring |
+`;
+  writeOrPrintProcess(repo, options.out, content);
+}
+
+export function processFriction(repo, options = {}, dependencies = {}) {
+  const activityRows = findRunFiles(repo, 'activity.jsonl').flatMap((file) => readJsonLines(file));
+  const feedbackRows = findRunFiles(repo, 'feedback.jsonl').flatMap((file) => readJsonLines(file));
+  const repeated = activityRows.filter((row) => row.status === 'repeat' || /repeat|rerun|again/i.test(`${row.intent || ''} ${row.target || ''}`));
+  const caps = activityRows.filter((row) => row.status === 'cap');
+  const content = `# SDLC Process Friction
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+
+## Signals
+
+- Activity events: ${activityRows.length}
+- Repeated/retry-like events: ${repeated.length}
+- Caps: ${caps.length}
+- Feedback rows: ${feedbackRows.length}
+
+## Recommendations
+
+${formatList([
+  repeated.length ? 'Review repeated commands/searches for deterministic helpers or context updates.' : 'No repeated activity signal captured.',
+  caps.length ? 'Review caps for setup, runtime adapter, or capability fallback improvements.' : 'No cap signal captured.',
+  feedbackRows.length ? 'Group feedback by route/surface and propose small process changes.' : 'No developer feedback captured.',
+])}
+`;
+  writeOrPrintProcess(repo, options.out, content);
+}
+
+function findRunFiles(repo, name) {
+  const root = defaultRunsDir(repo);
+  if (!existsSync(root)) return [];
+  const out = [];
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (entry.isFile() && entry.name === name) out.push(join(root, entry.name));
+    if (entry.isDirectory()) {
+      const direct = join(root, entry.name, name);
+      const context = join(root, entry.name, 'context', name);
+      if (existsSync(direct)) out.push(direct);
+      if (existsSync(context)) out.push(context);
+    }
+  }
+  return out;
+}
+
+function writeOrPrintProcess(repo, out, content) {
+  if (out) {
+    const outPath = resolve(repo, out);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else console.log(content.trimEnd());
 }
 
 export function setupDoctor(repo, options = {}, dependencies = {}) {

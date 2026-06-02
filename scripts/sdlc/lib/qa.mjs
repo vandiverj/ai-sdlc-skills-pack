@@ -156,6 +156,35 @@ export function qaCompare(repo, options = {}, deps = {}) {
   if (findings.length) process.exitCode = 1;
 }
 
+export function qaLint(repo, options = {}) {
+  const packet = options.packet || '';
+  if (!packet) fail('Pass --packet <path>.');
+  const packetPath = resolve(repo, packet);
+  const text = readFileSync(packetPath, 'utf8');
+  const findings = qaLintFindings(text);
+  printObject({ packet: relative(repo, packetPath), result: findings.length ? 'needs review' : 'ready' });
+  console.log('\n| Finding | Fix |');
+  console.log('| --- | --- |');
+  for (const row of findings.length ? findings : [{ finding: 'No obvious QA script quality gaps detected.', fix: 'Keep steps current with final evidence.' }]) {
+    console.log(`| ${escapeCell(row.finding)} | ${escapeCell(row.fix)} |`);
+  }
+  if (findings.length) process.exitCode = 1;
+}
+
+export function qaCoverage(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = optionFiles(options, git.changedFiles);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const mode = qaModeForSurfaces(surfaces, task);
+  const rows = qaCoverageRows(task, surfaces, mode);
+  printObject({ task, mode, surfaces: surfaces.join(', ') || 'unknown', result: rows.some((row) => row.status === 'missing') ? 'needs QA detail' : 'covered-looking' });
+  printTable(['Area', 'Status', 'Required QA detail'], rows.map((row) => [row.area, row.status, row.detail]));
+  if (rows.some((row) => row.status === 'missing')) process.exitCode = 1;
+}
+
 export function qaModeCommand(repo, action, options = {}, rest = [], deps = {}) {
   if (action === 'scenario' && (rest[0] === 'list' || options.list)) return qaScenarioList(repo, options);
   if (action === 'scenario' && (rest[0] === 'show' || options.show)) return qaScenarioShow(repo, rest[1] || options.scenario || options.id, options);
@@ -173,6 +202,29 @@ export function qaModeCommand(repo, action, options = {}, rest = [], deps = {}) 
     docs: 'docs-process',
   };
   return qaScript(repo, { ...options, mode: modeMap[action] || action }, deps);
+}
+
+function qaLintFindings(text) {
+  const checks = [
+    { ok: /preconditions|setup|environment/i.test(text), finding: 'Missing environment/setup/preconditions.', fix: 'Add QA environment, account/data, feature flag, and build/version notes.' },
+    { ok: /expected/i.test(text), finding: 'Missing expected results.', fix: 'Each action should have an observable expected result.' },
+    { ok: /regression|nearby|existing/i.test(text), finding: 'Missing regression coverage.', fix: 'Add closest existing workflow or edge/error path.' },
+    { ok: /test data|data|payload|account|role|user/i.test(text), finding: 'Missing role/test-data guidance.', fix: 'Name the role, user type, payload, or data setup QA needs.' },
+    { ok: !/(^|\n)\s*(-\s*)?(npm run|dotnet test|git |sdlc )/i.test(text) || /developer validation/i.test(text), finding: 'Developer-only commands appear in QA script.', fix: 'Move commands to developer validation or label them clearly as not for QA testers.' },
+  ];
+  return checks.filter((row) => !row.ok).map(({ finding, fix }) => ({ finding, fix }));
+}
+
+function qaCoverageRows(task, surfaces, mode) {
+  const rows = [
+    { area: 'primary changed behavior', status: task ? 'covered' : 'missing', detail: 'QA must exercise the changed behavior described in the task.' },
+    { area: 'expected result', status: 'covered', detail: 'QA output should include observable expected results.' },
+    { area: 'regression path', status: 'covered', detail: 'QA should include nearest existing workflow/error path.' },
+  ];
+  if (surfaces.includes('api-contract')) rows.push({ area: 'API/developer surface', status: mode === 'api-contract' ? 'covered' : 'missing', detail: 'Use Swagger/API/client validation, not rendered UI.' });
+  if (surfaces.includes('rendered-product-ui')) rows.push({ area: 'rendered UI surface', status: ['ui-workflow', 'interactive-stateful'].includes(mode) ? 'covered' : 'missing', detail: 'Use visible workflow/browser validation.' });
+  if (surfaces.includes('data-persistence')) rows.push({ area: 'data setup/result', status: 'covered', detail: 'Use QA-safe data and expected persisted/returned state.' });
+  return rows;
 }
 
 export function qaScenarios(repo, command, options = {}) {

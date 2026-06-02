@@ -203,6 +203,124 @@ export function contextLedger(repo, options = {}) {
   printTable(['Time', 'Phase', 'Tokens', 'Path'], rows.map((row) => [row.timestamp, row.phase, row.approxTokens, row.path]));
 }
 
+export function contextDecision(repo, options = {}, deps = {}) {
+  const task = options.task || '';
+  const phase = options.phase || 'planning';
+  if (!task) fail('Pass --task "...".');
+  const decision = buildContextDecision(repo, task, phase, options, deps);
+  const content = renderContextDecision(decision);
+  if (options.out) {
+    const outPath = resolve(repo, options.out);
+    safeWriteTextFile(repo, outPath, content);
+    console.log(relative(repo, outPath));
+    return;
+  }
+  console.log(content.trimEnd());
+}
+
+export function contextWhy(repo, options = {}, deps = {}) {
+  const task = options.task || '';
+  const path = options.path || '';
+  if (!task || !path) fail('Pass --task "..." and --path <path>.');
+  const phase = options.phase || 'planning';
+  const decision = buildContextDecision(repo, task, phase, options, deps);
+  const resolved = resolve(repo, path);
+  const row = [...decision.selected, ...decision.skipped].find((item) => item.path === resolved || item.relativePath === path);
+  if (!row) {
+    printObject({ path, status: 'not considered', reason: 'Path was not in the discovered context candidate list.', next: 'Use sdlc context inventory or add the path to repo/shared context settings if it should be considered.' });
+    return;
+  }
+  printObject({ path: row.relativePath, decision: row.decision, reason: row.reason, approximateTokens: row.approxTokens, freshness: row.freshness, sensitivity: row.sensitivity });
+}
+
+export function buildContextDecision(repo, task, phase = 'planning', options = {}, deps = {}) {
+  const profile = loadProfile(repo).values;
+  const git = getGitInfo(repo);
+  const candidates = (deps.contextDocCandidates ? deps.contextDocCandidates(repo, profile) : contextDocCandidates(repo, profile)).map((item) => contextDecisionRow(repo, item, task, phase, git));
+  const selected = candidates.filter((row) => row.decision === 'select');
+  const skipped = candidates.filter((row) => row.decision !== 'select');
+  return {
+    schema: 'sdlc-context-decision-v1',
+    generatedAt: new Date().toISOString(),
+    task,
+    phase,
+    route: inferRouteFromTask(task, git, profile),
+    repository: repo,
+    selected,
+    skipped,
+    totalApproxTokens: selected.reduce((sum, row) => sum + row.approxTokens, 0),
+    rule: 'Load the smallest context set that can answer the current phase; prefer source truth and fresh repo/unit context over historical plans.',
+  };
+}
+
+function contextDecisionRow(repo, item, task, phase, git) {
+  const exists = existsSync(item.path);
+  const relativePath = exists ? relative(repo, item.path) || item.path : relative(repo, item.path) || item.path;
+  const approxTokens = exists ? approximateFileTokens(item.path) : 0;
+  const freshness = exists ? contextFreshnessRow(repo, item, 45).status : 'missing';
+  const sensitivity = contextSensitivity(item.path, item.label);
+  const relevance = contextRelevance(item, task, phase, git);
+  const decision = exists && relevance.score > 0 ? 'select' : 'skip';
+  const reason = exists ? relevance.reason : 'missing context candidate';
+  return { label: item.label, path: item.path, relativePath, decision, reason, approxTokens, freshness, sensitivity };
+}
+
+function contextRelevance(item, task, phase, git) {
+  const haystack = `${item.label} ${item.path}`.toLowerCase();
+  const text = String(task || '').toLowerCase();
+  if (/agents\.md|sdlc-profile|repository setup|agent-local/i.test(haystack)) return { score: 3, reason: 'repo setup and agent operating rules are broadly relevant' };
+  if (phase === 'finish' && /active context|context state|context index/i.test(haystack)) return { score: 2, reason: 'finish phase needs durable context update decision' };
+  if (matchesAny(text, ['multi-repo', 'cross repo', 'five repositories', 'workspace']) && /shared|service map|workflow map|release order/i.test(haystack)) return { score: 3, reason: 'task is multi-repo or workflow-wide' };
+  if (matchesAny(text, ['api', 'contract', 'endpoint', 'swagger', 'openapi']) && /contract|service map|application model|repo context|context index/i.test(haystack)) return { score: 2, reason: 'task touches API/contract behavior' };
+  if (matchesAny(text, ['database', 'sql', 'data', 'ef core']) && /known failure|repo context|application model|service map/i.test(haystack)) return { score: 2, reason: 'task touches data or database behavior' };
+  if (git.changedFiles.some((file) => item.path.includes(dirname(file)))) return { score: 2, reason: 'context is near a changed file path' };
+  if (/memory active context|progress/i.test(haystack) && phase === 'intake') return { score: 1, reason: 'intake may need current focus and pending work' };
+  return { score: 0, reason: 'not needed for this phase/task unless the packet proves insufficient' };
+}
+
+function contextSensitivity(path, label) {
+  const text = `${path} ${label}`.toLowerCase();
+  if (text.includes('.ai-local')) return 'local-only';
+  if (matchesAny(text, ['shared', 'product', 'service map', 'workflow map'])) return 'possibly product-sensitive';
+  return 'normal';
+}
+
+function approximateFileTokens(path) {
+  try {
+    const text = readFileSync(path, 'utf8');
+    return Math.ceil(text.split(/\s+/).filter(Boolean).length * 1.3);
+  } catch {
+    return 0;
+  }
+}
+
+function renderContextDecision(decision) {
+  return `# SDLC Context Decision
+
+Date: ${decision.generatedAt}
+Task: ${decision.task}
+Route: ${decision.route}
+Phase: ${decision.phase}
+Selected approximate tokens: ${decision.totalApproxTokens}
+
+## Selected
+
+| Context | Tokens | Freshness | Sensitivity | Reason |
+| --- | --- | --- | --- | --- |
+${decision.selected.map((row) => `| ${escapeCell(row.relativePath)} | ${row.approxTokens} | ${row.freshness} | ${row.sensitivity} | ${escapeCell(row.reason)} |`).join('\n') || '| none | 0 | n/a | n/a | no matching context candidates |'}
+
+## Skipped
+
+| Context | Reason |
+| --- | --- |
+${decision.skipped.map((row) => `| ${escapeCell(row.relativePath)} | ${escapeCell(row.reason)} |`).join('\n') || '| none | none |'}
+
+## Rule
+
+${decision.rule}
+`;
+}
+
 export function contextRestore(repo, options = {}, deps = {}) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);

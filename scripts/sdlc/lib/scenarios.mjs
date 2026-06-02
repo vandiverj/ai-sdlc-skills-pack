@@ -762,6 +762,27 @@ export function evalRun(repo, options = {}) {
   if (rows.some((row) => row.status === 'fail')) process.exitCode = 1;
 }
 
+export function evalSuite(repo, options = {}) {
+  return evalRun(repo, options);
+}
+
+export function evalCase(repo, options = {}) {
+  const name = options.name || '';
+  const task = options.task || '';
+  if (!name || !task) fail('Pass --name <name> and --task "...".');
+  return evalAddCase(repo, { ...options, route: options.route || options.expect || 'standard' });
+}
+
+export function evalCompare(repo, options = {}) {
+  const before = options.before ? readFileSync(resolve(repo, options.before), 'utf8') : '';
+  const after = options.after ? readFileSync(resolve(repo, options.after), 'utf8') : '';
+  const beforePass = (before.match(/\bpass\b/gi) || []).length;
+  const afterPass = (after.match(/\bpass\b/gi) || []).length;
+  const beforeFail = (before.match(/\bfail\b/gi) || []).length;
+  const afterFail = (after.match(/\bfail\b/gi) || []).length;
+  printObject({ before: options.before || 'not provided', after: options.after || 'not provided', beforePass, afterPass, beforeFail, afterFail, deltaPass: afterPass - beforePass, deltaFail: afterFail - beforeFail });
+}
+
 export function evalAddCase(repo, options = {}) {
   if (!options.name || !options.task) fail('Pass --name <name> --task "...".');
   const path = join(repo, '.ai-local', 'sdlc-eval-cases.jsonl');

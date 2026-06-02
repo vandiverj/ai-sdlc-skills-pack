@@ -53,6 +53,10 @@ Use the CLI as a small set of mechanical helpers, not as a checklist to exhaust.
 Default spine for normal work:
 
 ```bash
+sdlc command plan --task "<human task>"
+sdlc contract task --task "<human task>"
+sdlc context decision --phase planning --task "<human task>"
+sdlc evidence matrix --task "<human task>"
 sdlc intake packet --task "<human task>"
 sdlc recipe match --task "<human task>"
 sdlc run dashboard --task "<human task>"
@@ -60,6 +64,18 @@ sdlc task preflight --task "<human task>"
 sdlc state init --task "<human task>"
 sdlc evidence required --task "<human task>"
 ```
+
+For a developer-facing short path, prefer:
+
+```bash
+sdlc start --task "<human task>"
+sdlc next --task "<human task>"
+sdlc prove --task "<human task>"
+sdlc qa-ready --task "<human task>"
+sdlc finish-ready --task "<human task>"
+```
+
+The command planner and guide are paved paths, not mandatory golden flows. Use them to reduce visible command clutter. If the agent skips a recommended evidence command or adds a heavier one, explain why in terms of route, risk, surface, or missing proof.
 
 Resume or recover unclear work with:
 
@@ -96,12 +112,15 @@ Common implementation evidence:
 ```bash
 sdlc run-check --name test -- <project test command>
 sdlc run-check --name build -- <project build command>
+sdlc verify ladder --task "<human task>"
+sdlc verify run --task "<human task>" --level targeted --command "<project command>"
 sdlc touched packet
 sdlc impact packet --task "<human task>"
 sdlc interaction packet --task "<human task>"
 sdlc validate ladder --task "<human task>"
 sdlc verify packet --task "<human task>"
 sdlc qa script --task "<human task>"
+sdlc qa coverage --task "<human task>"
 ```
 
 Recipe overlays add proof only when the task shape calls for it:

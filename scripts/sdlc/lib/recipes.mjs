@@ -158,6 +158,47 @@ export function recipeExplain(repo, options = {}) {
   printObject({ id: item.id, status: item.status, owner: item.owner, triggers: item.triggers.join(', '), requiredProof: item.requiredProof.join('; '), command: item.command, qaAdditions: item.qaAdditions.join('; ') });
 }
 
+export function recipeMaturity(repo, options = {}) {
+  const recipes = recipeRegistry();
+  const traces = findTraceFiles(repo).flatMap((file) => readJsonLines(file));
+  console.log('| Recipe | Current status | Suggested maturity | Evidence |');
+  console.log('| --- | --- | --- | --- |');
+  for (const recipe of recipes) {
+    const mentions = traces.filter((row) => String(row.recipeIds || row.recipe || row.summary || '').includes(recipe.id)).length;
+    const suggested = recipe.status === 'deprecated' ? 'deprecated' : mentions >= 3 ? 'validated' : recipe.status === 'active' ? 'standard-candidate' : 'emerging';
+    console.log(`| ${recipe.id} | ${recipe.status} | ${suggested} | ${mentions} trace mention(s) |`);
+  }
+}
+
+export function recipePromote(repo, options = {}) {
+  const id = options.recipe || options.id || '';
+  const level = options.level || 'validated';
+  if (!id) fail('Pass --recipe <id>.');
+  const allowed = ['emerging', 'validated', 'standard', 'deprecated', 'superseded'];
+  if (!allowed.includes(level)) fail(`Invalid --level. Use ${allowed.join(', ')}.`);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(id)}-recipe-maturity.md`);
+  const content = `# SDLC Recipe Maturity Proposal
+
+Date: ${new Date().toISOString()}
+Recipe: ${id}
+Proposed level: ${level}
+
+## Evidence Required Before Durable Promotion
+
+- Scenario regression covers the recipe.
+- At least one real task or fixture validates the route/command/evidence behavior.
+- Activity/feedback/learning evidence supports the change.
+- Privacy review confirms no product-specific facts are being promoted.
+
+## Rule
+
+Paved paths make common work easier. They are not mandatory golden flows. Agents may deviate when task evidence warrants it, but should explain why.
+`;
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
 export function getRecipe(route) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
   const recipesPath = join(agentsRoot, 'skills', 'run-sdlc', 'references', 'route-recipes.md');

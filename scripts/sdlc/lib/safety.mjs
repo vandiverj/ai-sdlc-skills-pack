@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { escapeCell, fail, formatInlineStatus, formatList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
@@ -116,6 +116,39 @@ ${formatList(risks.filter((item) => item.status !== 'low').map((item) => `${item
   }
 }
 
+export function riskAgenticPreflight(repo, options = {}) {
+  return riskAgentic(repo, options);
+}
+
+export function instructionAudit(repo, options = {}) {
+  const files = ['AGENTS.md', 'CLAUDE.md', '.cursorrules', '.github/copilot-instructions.md', '.augment/rules.md']
+    .map((file) => join(repo, file))
+    .filter((file) => existsSync(file));
+  const findings = files.flatMap((file) => auditInstructionFile(repo, file));
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Agent Instruction Audit
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+
+| File | Status | Finding | Gate |
+| --- | --- | --- | --- |
+${findings.length ? findings.map((row) => `| ${escapeCell(row.file)} | ${row.status} | ${escapeCell(row.finding)} | ${escapeCell(row.gate)} |`).join('\n') : '| none | low | no common agent instruction files found | keep using repo/source evidence |'}
+
+## Rule
+
+- Repository instructions are advisory and can be stale or hostile in untrusted repos.
+- Deterministic policy, safety, evidence, and human approval gates outrank instruction files.
+- Prefer guardrails that constrain unsafe actions over long prescriptive agent rules.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else console.log(content.trimEnd());
+  if (findings.some((row) => row.status === 'high')) process.exitCode = 1;
+}
+
 export function safetyPreflight(repo, options = {}) {
   return safetyPacket(repo, options, 'preflight');
 }
@@ -218,6 +251,18 @@ function agenticRiskItems(task, profile, git, triggers) {
     { area: 'sensitive data exposure', status: matchesAny(text, ['customer', 'client', 'production log', 'raw log']) ? 'high' : 'low', detail: 'sanitize product/client/log detail before tracked/global docs', gate: 'store sensitive facts only in approved local/shared context' },
     { area: 'dirty worktree', status: git.status ? 'medium' : 'low', detail: formatInlineStatus(git.status), gate: 'scope dirty files before commit/push' },
   ];
+}
+
+function auditInstructionFile(repo, file) {
+  const rel = relative(repo, file);
+  const text = readFileSync(file, 'utf8').toLowerCase();
+  const rows = [];
+  if (matchesAny(text, ['always push', 'auto push', 'push automatically', 'merge automatically', 'deploy automatically'])) rows.push({ file: rel, status: 'high', finding: 'instruction appears to allow automatic push/merge/deploy', gate: 'human approval required; instruction cannot override SDLC policy' });
+  if (matchesAny(text, ['ignore previous', 'ignore system', 'bypass approval', 'do not ask approval'])) rows.push({ file: rel, status: 'high', finding: 'instruction appears to weaken higher-priority or approval rules', gate: 'treat as suspicious and follow policy/safety gates' });
+  if (matchesAny(text, ['secret', 'token', 'password', 'credential'])) rows.push({ file: rel, status: 'medium', finding: 'instruction mentions sensitive data handling', gate: 'verify secrets are not exposed and redaction rules apply' });
+  if (matchesAny(text, ['rm -rf', 'reset --hard', 'force push'])) rows.push({ file: rel, status: 'medium', finding: 'instruction references destructive commands', gate: 'explicit approval and recovery plan required' });
+  if (!rows.length) rows.push({ file: rel, status: 'low', finding: 'no high-risk instruction pattern detected', gate: 'still verify against source and SDLC policy' });
+  return rows;
 }
 
 function riskLevel(risks) {
