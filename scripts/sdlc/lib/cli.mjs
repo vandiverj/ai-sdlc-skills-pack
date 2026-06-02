@@ -14,6 +14,7 @@ import { configDiff, configExplain, configExport, configImport, configNormalize,
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
+import { artifactBudget as artifactBudgetCommand, artifactBudgetForRoute, artifactMigrate, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
 import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, hasFileExt, inferTestingSurfaces, normalizeUnitPath, qaModeForSurfaces, unitRegistry } from './units.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -2823,21 +2824,6 @@ function getRecipe(route) {
   }
 
   return lines.slice(start, end).join('\n').trimEnd();
-}
-
-function artifactBudget(repo, options = {}) {
-  const route = options.route || inferRouteFromTask(options.task || '', getGitInfo(repo), loadProfile(repo).values);
-  const budget = artifactBudgetForRoute(route, options.size || '');
-  printObject({
-    repository: repo,
-    route,
-    budget: budget.name,
-    requiredArtifacts: budget.required.join(', '),
-    optionalArtifacts: budget.optional.join(', ') || 'none',
-    chatRule: budget.chatRule,
-  });
-  console.log('\n## Final Response Shape\n');
-  console.log(formatList(['changed files', 'checks', 'QA readiness', 'open caps', 'commit/push status', 'next action', 'confidence block']));
 }
 
 function evidenceInit(repo, options = {}) {
@@ -6543,42 +6529,6 @@ function formatQualityFloorTable(rows) {
 ${rows.map((row) => `| ${escapeCell(row.item)} | ${row.status} | ${escapeCell(row.detail)} |`).join('\n')}`;
 }
 
-function artifactBudgetForRoute(route, size = '') {
-  if (size === 'micro' || route === 'tiny-docs') return {
-    name: 'micro/tiny',
-    required: ['changed-files summary', 'one verification check or explicit cap', 'final confidence block'],
-    optional: ['context placement note when durable truth changed'],
-    chatRule: 'keep preflight and final response inline; no packet unless a gate appears',
-  };
-  if (['multi-repo-integration', 'bugfix-live-system', 'contract-first', 'release-push'].includes(route)) return {
-    name: 'expanded evidence',
-    required: ['preflight packet', 'route-specific packet', 'per-unit/per-repo checks', 'QA Markdown when human QA is involved', 'finish decision'],
-    optional: ['security/risk packet', 'context bucket check', 'learning packet'],
-    chatRule: 'summarize decisions in chat; keep dense evidence in packets',
-  };
-  if (route === 'ui-rendered-review') return {
-    name: 'rendered workflow',
-    required: ['preflight or route packet', 'rendered/behavior evidence or cap', 'verification packet', 'finish confidence block'],
-    optional: ['QA Markdown', 'accessibility note when suggested/required'],
-    chatRule: 'show only visual result, checks, caps, and next action',
-  };
-  return {
-    name: 'standard',
-    required: ['preflight summary', 'touched/impact awareness', 'verification evidence or cap', 'finish confidence block'],
-    optional: ['QA Markdown', 'context update plan', 'learning capture'],
-    chatRule: 'one-screen summary unless high-risk signals appear',
-  };
-}
-
-function formatArtifactBudget(budget) {
-  return formatList([
-    `Budget: ${budget.name}`,
-    `Required: ${budget.required.join('; ')}`,
-    `Optional: ${budget.optional.join('; ') || 'none'}`,
-    `Chat rule: ${budget.chatRule}`,
-  ]);
-}
-
 function safeDefaultsForPreflight(route, fast, profile) {
   return [
     fast.eligible ? 'Use inline fast-pass unless new risk appears.' : 'Use normal preflight packet before implementation.',
@@ -8720,6 +8670,11 @@ function actionCommandHint(action) {
   return 'provide --command "..." for exact preview';
 }
 
+function artifactBudget(repo, options = {}) {
+  const route = options.route || inferRouteFromTask(options.task || '', getGitInfo(repo), loadProfile(repo).values);
+  return artifactBudgetCommand(repo, { ...options, route });
+}
+
 function extractLearningSection(text, heading) {
   const pattern = new RegExp(`^##+\\s+${escapeRegExp(heading)}\\s*$([\\s\\S]*?)(?=^##+\\s+|\\z)`, 'im');
   const match = text.match(pattern);
@@ -10280,30 +10235,6 @@ function evidencePlan(repo, options = {}) {
   writeOrPrint(repo, options.out, content);
 }
 
-function artifactValidate(repo, options = {}) {
-  const info = readCurrentStateInfo(repo, options);
-  const runDir = info.runDir || defaultRunsDir(repo);
-  const findings = artifactFindings(runDir);
-  printTable(['Status', 'Artifact', 'Detail'], findings.map((item) => [item.status, item.artifact, item.detail]));
-  if (findings.some((item) => item.status === 'block')) process.exitCode = 1;
-}
-
-function artifactSummarize(repo, options = {}) {
-  const info = readCurrentStateInfo(repo, options);
-  const runDir = info.runDir || defaultRunsDir(repo);
-  const findings = artifactFindings(runDir);
-  const lines = ['# SDLC Artifact Summary', '', `Run root: ${runDir}`, '', '| Status | Artifact | Detail |', '| --- | --- | --- |', ...findings.map((item) => `| ${item.status} | ${escapeCell(item.artifact)} | ${escapeCell(item.detail)} |`), ''];
-  writeOrPrint(repo, options.out, lines.join('\n'));
-}
-
-function artifactMigrate(repo, options = {}) {
-  const info = readCurrentStateInfo(repo, options);
-  const runDir = info.runDir || ensureControlRunDir(repo, options, options.task || 'migration');
-  const marker = join(runDir, 'artifact-migration.json');
-  safeWriteJsonFile(repo, marker, { schema: 'sdlc-artifact-migration-v1', migratedAt: new Date().toISOString(), action: 'no-op-current-version' });
-  console.log(relative(repo, marker));
-}
-
 function checksPlan(repo, options = {}) {
   const commands = checkCommandRecords(repo, options);
   const lines = ['# SDLC Check Plan', '', '| Kind | Unit | Command | Required |', '| --- | --- | --- | --- |', ...commands.map((cmd) => `| ${cmd.kind} | ${escapeCell(cmd.unit || 'repo')} | ${escapeCell(cmd.command || 'not configured')} | ${cmd.required ? 'yes' : 'no'} |`), ''];
@@ -10482,18 +10413,6 @@ function sanitizePortableObject(value) {
     .replace(/\/Users\/[^\s/]+/g, '/Users/[redacted]')
     .replace(/\b[A-Z]{1,10}-\d{1,8}\b/g, '[ticket-id]')
     .replace(/\b(?:client|customer|company|tenant)[-_ ]?[A-Za-z0-9]+\b/gi, '[redacted-entity]');
-}
-
-function artifactFindings(runDir) {
-  const expected = ['state.json', 'evidence.json', 'checks.jsonl', 'gates.jsonl', 'waivers.jsonl', 'trace.jsonl'];
-  if (!existsSync(runDir)) return [{ status: 'block', artifact: runDir, detail: 'run directory not found' }];
-  return expected.map((file) => {
-    const path = join(runDir, file);
-    if (!existsSync(path)) return { status: ['waivers.jsonl', 'gates.jsonl'].includes(file) ? 'warn' : 'block', artifact: file, detail: 'missing' };
-    if (file.endsWith('.json') && !readJsonIfExists(path)) return { status: 'block', artifact: file, detail: 'invalid json' };
-    if (file.endsWith('.jsonl') && readJsonLines(path).some((row) => row.parseError)) return { status: 'block', artifact: file, detail: 'invalid jsonl row' };
-    return { status: 'pass', artifact: file, detail: 'present' };
-  });
 }
 
 function capabilityRows(repo, profile, commands) {
