@@ -1,12 +1,12 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { appendControlJsonLine, dedupe, formatList, printTable, readJsonLines, safeWriteTextFile } from './common.mjs';
+import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatList, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { evidenceRequirementsForTask, readEvidenceManifest } from './evidence.mjs';
 import { getGitInfo } from './git.mjs';
 import { safeReadSmall } from './index.mjs';
 import { defaultRunsDir } from './paths.mjs';
-import { loadProfile } from './profile.mjs';
-import { inferRouteFromTask } from './routes.mjs';
+import { discoverCommands, loadProfile } from './profile.mjs';
+import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { loadRunState } from './runstate.mjs';
 import { ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo } from './state.mjs';
 import { affectedUnits, inferTestingSurfaces } from './units.mjs';
@@ -72,6 +72,194 @@ export function contextLedger(repo, options = {}) {
   printTable(['Time', 'Phase', 'Tokens', 'Path'], rows.map((row) => [row.timestamp, row.phase, row.approxTokens, row.path]));
 }
 
+export function contextRestore(repo, options = {}, deps = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const profileValues = profile.values;
+  const related = splitList(profileValues.relatedRepositories);
+  const contextDocs = deps.contextDocCandidates(repo, profileValues).filter((item) => existsSync(item.path));
+  const commands = discoverCommands(profileValues, packageJson);
+  const output = {
+    repository: repo,
+    repositoryRole: profileValues.repositoryRole || '',
+    branch: git.branch,
+    status: git.status || 'clean',
+    upstream: git.upstream,
+    aheadBehind: `${git.behind} behind / ${git.ahead} ahead`,
+    profilePath: profile.path ? relative(repo, profile.path) : 'not found',
+    contextDocsFound: contextDocs.map((item) => `${item.label}: ${relative(repo, item.path) || '.'}`).join(', ') || 'none',
+    sharedContextRoot: profileValues.sharedContextRoot || '',
+    productContext: profileValues.productContext || '',
+    repoContext: profileValues.repoContext || '',
+    relatedRepositories: related.join(', '),
+    commandsAvailable: Object.entries(commands)
+      .filter(([, command]) => command)
+      .map(([key, command]) => `${key}: ${command}`)
+      .join('; ') || 'none discovered',
+    likelyRoute: inferLikelyRoute(git),
+    missingSetup: deps.missingSetup(profileValues, commands).join('; ') || 'none detected',
+    recommendedNextCommand: 'sdlc evidence init --route standard',
+  };
+  if (options.includeRelatedRepos && related.length > 0) {
+    output.relatedRepoStatus = related.map((item) => summarizeRelatedRepo(repo, item)).join('\n');
+  }
+  printObject(output);
+}
+
+export function contextPack(repo, options = {}, deps = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the context pack can be scoped.');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const related = splitList(profile.values.relatedRepositories);
+  const docs = deps.contextDocCandidates(repo, profile.values);
+  const existingDocs = docs.filter((item) => existsSync(item.path));
+  const missingDocs = docs.filter((item) => !existsSync(item.path));
+  const route = inferRouteFromTask(task, git, profile.values);
+  const triggers = securityTriggers(task, profile.values);
+  const dirtySurfaces = inferDirtySurfaces(task, git);
+  const contracts = inferContracts(task, profile.values);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-context-pack.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Context Pack
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Likely route: ${route}
+Repository: ${repo}
+Repository role: ${profile.values.repositoryRole || 'not configured'}
+Branch: ${git.branch || 'unknown'}
+Git status: ${git.status || 'clean'}
+Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
+
+## Relevant Context Docs
+
+${deps.formatContextDocs(repo, existingDocs)}
+
+## Missing Context
+
+${deps.formatContextDocs(repo, missingDocs)}
+
+## Related Repositories
+
+${formatList(related)}
+
+## Contracts And Events Involved
+
+${formatList(contracts)}
+
+## Commands Likely Needed
+
+${deps.formatCommandList(commands, route)}
+
+## Potential Dirty Surfaces
+
+${formatList(dirtySurfaces)}
+
+## Security And Tool Triggers
+
+${formatList(triggers)}
+
+## Recommended Next Command
+
+\`\`\`bash
+sdlc route start ${route}
+\`\`\`
+`;
+  safeWriteTextFile(repo, outPath, content);
+  console.log(relative(repo, outPath));
+}
+
+export function contextAudit(repo, options = {}, deps = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const docs = deps.contextDocCandidates(repo, profile.values);
+  const existingDocs = docs.filter((item) => existsSync(item.path));
+  const missingDocs = docs.filter((item) => !existsSync(item.path));
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const processLabels = ['AGENTS.md', 'SDLC profile JSON', 'SDLC profile Markdown', 'Agent-local SDLC profile', 'Agent-local repository setup'];
+  const content = `# SDLC Context Audit
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
+Status: ${git.status || 'clean'}
+
+## Process Docs
+
+${deps.formatContextDocs(repo, existingDocs.filter((item) => processLabels.includes(item.label)))}
+
+## Software Memory Docs
+
+${deps.formatContextDocs(repo, existingDocs.filter((item) => !processLabels.includes(item.label)))}
+
+## Missing Or Unconfigured Context
+
+${deps.formatContextDocs(repo, missingDocs)}
+
+## Guidance
+
+- Process docs explain how agents should work.
+- Software memory docs explain this software and cross-repo system state.
+- External shared context roots are valid and should be configured in the SDLC profile instead of duplicated into every repository.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
+export function contextFreshness(repo, options = {}, deps = {}) {
+  const task = options.task || '';
+  const days = Number(options.days || 60);
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const docs = deps.contextDocCandidates(repo, profile.values);
+  const rows = docs.map((item) => deps.contextFreshnessRow(repo, item, days));
+  const existingRows = rows.filter((row) => row.status !== 'missing');
+  const staleRows = rows.filter((row) => row.status === 'stale');
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Context Freshness
+
+Date: ${new Date().toISOString()}
+Task: ${task || 'not provided'}
+Repository: ${repo}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+Freshness window: ${days} days
+
+## Context Documents Checked
+
+| Document | Status | Age days | Path |
+| --- | --- | --- | --- |
+${rows.map((row) => `| ${escapeCell(row.label)} | ${row.status} | ${row.ageDays} | ${escapeCell(row.path)} |`).join('\n')}
+
+## Source Truth Cross-Check
+
+- Changed files: ${git.changedFiles.length}
+- Touched surfaces: ${formatInlineList(dedupe(git.changedFiles.map(deps.classifyTouchedSurface)))}
+- Context docs used by agent should be named in the task ledger.
+- If stale docs contradict source files, source files win and context update should be recorded.
+
+## Recommended Action
+
+${formatList(deps.contextFreshnessRecommendations(existingRows, staleRows, profile.values))}
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
 function contextBudgetRows(repo, options = {}, deps = {}) {
   const profile = loadProfile(repo);
   const state = readCurrentState(repo, options) || loadRunState(repo, options.task || '') || {};
@@ -83,6 +271,13 @@ function contextBudgetRows(repo, options = {}, deps = {}) {
     budgetRow('context docs', docs.reduce((sum, item) => sum + approxTokens(safeReadSmall(item.path, 12000)), 0), docs.length > 4 ? 'warn' : 'ok', `${docs.length} candidate docs`),
     budgetRow('tool output summaries', 600, 'estimate', 'prefer summaries over raw logs'),
   ];
+}
+
+function summarizeRelatedRepo(repo, item) {
+  const path = resolve(repo, item);
+  const info = getGitInfo(path);
+  if (!info.branch) return `${item}: not a git repository or unavailable`;
+  return `${item}: ${info.branch} ${info.status ? 'dirty' : 'clean'} ${info.behind}/${info.ahead}`;
 }
 
 function budgetRow(source, tokens, status, note) {

@@ -15,7 +15,7 @@ import { detectContextContradictions, evalAddCase, evalReport, evalRun, scenario
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
-import { contextAssemble, contextBudget, contextCompact, contextLedger } from './context.mjs';
+import { contextAssemble, contextAudit, contextBudget, contextCompact, contextFreshness, contextLedger, contextPack, contextRestore } from './context.mjs';
 import { learnArchive, learnBacklog, learnCandidates, learnCapture, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck } from './learning.mjs';
 import { taskBundle, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskOpen, taskPreflight, taskQa, taskReview, taskStart, taskStatus, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
@@ -87,10 +87,10 @@ export async function main(argv) {
   if (area === 'config' && action === 'import') return configImport(repo, options);
   if (area === 'intake' && action === 'packet') return intakePacket(repo, options, intakeDependencies());
   if (area === 'intake' && action === 'check') return intakeCheck(repo, options, intakeDependencies());
-  if (area === 'context' && action === 'restore') return contextRestore(repo, options);
-  if (area === 'context' && action === 'pack') return contextPack(repo, options);
-  if (area === 'context' && action === 'audit') return contextAudit(repo, options);
-  if (area === 'context' && action === 'freshness') return contextFreshness(repo, options);
+  if (area === 'context' && action === 'restore') return contextRestore(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'pack') return contextPack(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'audit') return contextAudit(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'freshness') return contextFreshness(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'conflict-check') return contextConflictCheck(repo, options);
   if (area === 'context' && (action === 'contradictions' || action === 'check')) return contextContradictions(repo, options);
   if (area === 'context' && action === 'inventory') return contextInventory(repo, options);
@@ -324,201 +324,6 @@ export async function main(argv) {
   if (area === 'handoff') return statusHandoff(resolve(areaOptions.repo || process.cwd()), areaOptions);
 
   fail(`Unknown command: ${argv.join(' ')}`);
-}
-
-function contextRestore(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const profileValues = profile.values;
-  const related = splitList(profileValues.relatedRepositories);
-  const contextDocs = contextDocCandidates(repo, profileValues).filter((item) => existsSync(item.path));
-
-  const commands = discoverCommands(profileValues, packageJson);
-  const output = {
-    repository: repo,
-    repositoryRole: profileValues.repositoryRole || '',
-    branch: git.branch,
-    status: git.status || 'clean',
-    upstream: git.upstream,
-    aheadBehind: `${git.behind} behind / ${git.ahead} ahead`,
-    profilePath: profile.path ? relative(repo, profile.path) : 'not found',
-    contextDocsFound: contextDocs.map((item) => `${item.label}: ${relative(repo, item.path) || '.'}`).join(', ') || 'none',
-    sharedContextRoot: profileValues.sharedContextRoot || '',
-    productContext: profileValues.productContext || '',
-    repoContext: profileValues.repoContext || '',
-    relatedRepositories: related.join(', '),
-    commandsAvailable: Object.entries(commands)
-      .filter(([, command]) => command)
-      .map(([key, command]) => `${key}: ${command}`)
-      .join('; ') || 'none discovered',
-    likelyRoute: inferLikelyRoute(git),
-    missingSetup: missingSetup(profileValues, commands).join('; ') || 'none detected',
-    recommendedNextCommand: 'sdlc evidence init --route standard',
-  };
-
-  if (options.includeRelatedRepos && related.length > 0) {
-    output.relatedRepoStatus = related.map((item) => summarizeRelatedRepo(repo, item)).join('\n');
-  }
-
-  printObject(output);
-}
-
-function contextPack(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the context pack can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const related = splitList(profile.values.relatedRepositories);
-  const docs = contextDocCandidates(repo, profile.values);
-  const existingDocs = docs.filter((item) => existsSync(item.path));
-  const missingDocs = docs.filter((item) => !existsSync(item.path));
-  const route = inferRouteFromTask(task, git, profile.values);
-  const triggers = securityTriggers(task, profile.values);
-  const dirtySurfaces = inferDirtySurfaces(task, git);
-  const contracts = inferContracts(task, profile.values);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-context-pack.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Context Pack
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Likely route: ${route}
-Repository: ${repo}
-Repository role: ${profile.values.repositoryRole || 'not configured'}
-Branch: ${git.branch || 'unknown'}
-Git status: ${git.status || 'clean'}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-
-## Relevant Context Docs
-
-${formatContextDocs(repo, existingDocs)}
-
-## Missing Context
-
-${formatContextDocs(repo, missingDocs)}
-
-## Related Repositories
-
-${formatList(related)}
-
-## Contracts And Events Involved
-
-${formatList(contracts)}
-
-## Commands Likely Needed
-
-${formatCommandList(commands, route)}
-
-## Potential Dirty Surfaces
-
-${formatList(dirtySurfaces)}
-
-## Security And Tool Triggers
-
-${formatList(triggers)}
-
-## Recommended Next Command
-
-\`\`\`bash
-sdlc route start ${route}
-\`\`\`
-`;
-
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function contextAudit(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const docs = contextDocCandidates(repo, profile.values);
-  const existingDocs = docs.filter((item) => existsSync(item.path));
-  const missingDocs = docs.filter((item) => !existsSync(item.path));
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Context Audit
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-Status: ${git.status || 'clean'}
-
-## Process Docs
-
-${formatContextDocs(repo, existingDocs.filter((item) => ['AGENTS.md', 'SDLC profile JSON', 'SDLC profile Markdown', 'Agent-local SDLC profile', 'Agent-local repository setup'].includes(item.label)))}
-
-## Software Memory Docs
-
-${formatContextDocs(repo, existingDocs.filter((item) => !['AGENTS.md', 'SDLC profile JSON', 'SDLC profile Markdown', 'Agent-local SDLC profile', 'Agent-local repository setup'].includes(item.label)))}
-
-## Missing Or Unconfigured Context
-
-${formatContextDocs(repo, missingDocs)}
-
-## Guidance
-
-- Process docs explain how agents should work.
-- Software memory docs explain this software and cross-repo system state.
-- External shared context roots are valid and should be configured in the SDLC profile instead of duplicated into every repository.
-`;
-
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function contextFreshness(repo, options = {}) {
-  const task = options.task || '';
-  const days = Number(options.days || 60);
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const docs = contextDocCandidates(repo, profile.values);
-  const rows = docs.map((item) => contextFreshnessRow(repo, item, days));
-  const existingRows = rows.filter((row) => row.status !== 'missing');
-  const staleRows = rows.filter((row) => row.status === 'stale');
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Context Freshness
-
-Date: ${new Date().toISOString()}
-Task: ${task || 'not provided'}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Status: ${git.status || 'clean'}
-Freshness window: ${days} days
-
-## Context Documents Checked
-
-| Document | Status | Age days | Path |
-| --- | --- | --- | --- |
-${rows.map((row) => `| ${escapeCell(row.label)} | ${row.status} | ${row.ageDays} | ${escapeCell(row.path)} |`).join('\n')}
-
-## Source Truth Cross-Check
-
-- Changed files: ${git.changedFiles.length}
-- Touched surfaces: ${formatInlineList(dedupe(git.changedFiles.map(classifyTouchedSurface)))}
-- Context docs used by agent should be named in the task ledger.
-- If stale docs contradict source files, source files win and context update should be recorded.
-
-## Recommended Action
-
-${formatList(contextFreshnessRecommendations(existingRows, staleRows, profile.values))}
-`;
-
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
 }
 
 function contextConflictCheck(repo, options = {}) {
@@ -1040,7 +845,7 @@ function checkDependencies() {
 }
 
 function contextControlDependencies() {
-  return { contextDocCandidates };
+  return { classifyTouchedSurface, contextDocCandidates, contextFreshnessRecommendations, contextFreshnessRow, formatCommandList, formatContextDocs, missingSetup };
 }
 
 function learningDependencies() {
