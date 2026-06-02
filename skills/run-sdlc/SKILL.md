@@ -125,6 +125,19 @@ sdlc policy check --task "<human task>"
 
 Use the deterministic control plane when the task is Standard or larger, when work may be interrupted, or when completion evidence matters. `state`, `evidence`, `run-check`, `complete`, `scope`, `tools`, and `policy` commands move repeatable process facts out of model memory. Tiny/Micro work may stay lighter, but still needs changed-files awareness, one verification path or cap, and a final confidence block.
 
+Use optional activity telemetry when the process itself needs evidence: repeated failures, repeated searches, cross-repo work, interrupted sessions, runtime/tool caps, onboarding feedback, or SDLC improvement pilots. Leave it off for tiny work unless the user asks for process capture.
+
+```bash
+sdlc activity status
+sdlc activity on
+sdlc activity start --task "<human task>" --runtime codex
+sdlc activity command --task "<human task>" --phase verification --command "<command>" --status pass
+sdlc activity cap --task "<human task>" --phase verification --surface browser --reason "<cap>"
+sdlc activity summary --task "<human task>"
+```
+
+Activity modes are `off`, `light`, `full`, and `debug`. Repo-local config lives in `.ai-local/sdlc-activity-config.json`. Passive/hook capture must honor `off`; direct activity commands are intentional evidence capture. Never record raw ticket text, production rows, secrets, private URLs, customer data, raw logs, or proprietary code snippets in activity events. Use `debug` only for local troubleshooting and treat summaries as process-improvement evidence, not developer performance scoring.
+
 Done checks are route-specific. Treat open checks as unresolved gates unless the human explicitly accepts the cap. The helper checks evidence shape for review-only, release-push, standard, ui-rendered-review, bugfix-regression, bugfix-live-system, weak-test-legacy, multi-repo-integration, contract-first, and tiny-docs routes; `sdlc complete check` adds control-plane state/evidence/gate validation. Neither replaces source review, human approval, or command interpretation.
 
 Every route, including fast-pass, keeps the quality floor: changed-files awareness, at least one verification path or explicit cap, surface-correct evidence, context placement decision when durable knowledge changed, human QA Markdown when testers are involved, developer-controlled finish, and a final confidence summary that separates proved facts, inferred facts, remaining human judgment, and safe next action.

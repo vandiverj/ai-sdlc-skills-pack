@@ -260,6 +260,22 @@ export function scenarioRegressionCases() {
       expectedRoute: 'standard',
     },
     {
+      name: 'activity telemetry optional',
+      task: 'enable local activity telemetry to learn why this task across five repositories repeats searches and command runs',
+      expectedRoute: 'multi-repo-integration',
+    },
+    {
+      name: 'activity telemetry sensitive off',
+      task: 'disable activity telemetry for a sensitive production issue using read-only database MCP evidence and capture only sanitized caps',
+      expectedRoute: 'standard',
+      expectedRecipes: ['database-evidence'],
+    },
+    {
+      name: 'activity redundancy learning',
+      task: 'review repeated command failures and browser caps from activity telemetry before changing the SDLC process',
+      expectedRoute: 'review-only',
+    },
+    {
       name: 'api only openapi service',
       task: 'change an API-only service with Swagger OpenAPI developer testing and no rendered product UI',
       expectedRoute: 'standard',

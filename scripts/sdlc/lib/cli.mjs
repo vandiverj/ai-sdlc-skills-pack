@@ -40,6 +40,7 @@ import { verifyComplete, verifyPacket } from './verify.mjs';
 import { doneCheck, packetStatus, routeProof, routeRetire, routeStart } from './routepackets.mjs';
 import { bugEvidenceCheck, bugEvidencePacket, bugLiveEvidence, bugNextCommand, bugWorkflowPacket, commandClassify, dotnetEfcoreDiagnose, fixScope, patternAnalog } from './diagnostics.mjs';
 import { scorecardSummary, scorecardTask, scorecardTrends, traceAttach, traceEvent, traceExport, traceFinish, traceStart } from './telemetry.mjs';
+import { activityCommand } from './activity.mjs';
 import { automationBudget, feedbackCapture, feedbackQuick, feedbackReview, feedbackSummary, onboardingPilot, sdlcEvent } from './adoption.mjs';
 import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calibratePropose, calibrateSummary, learnedFlowCandidates, processProposals, readCalibrationRows } from './calibration.mjs';
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, readiness as statusReadiness } from './status.mjs';
@@ -235,6 +236,7 @@ export async function main(argv) {
   if (area === 'feedback' && action === 'capture') return feedbackCapture(repo, options);
   if (area === 'feedback' && action === 'review') return feedbackReview(repo, options);
   if (area === 'feedback' && action === 'summary') return feedbackSummary(repo, options);
+  if (area === 'activity') return activityCommand(repo, action, options, rest);
   if (area === 'trace' && action === 'start') return traceStart(repo, options, telemetryDependencies());
   if (area === 'trace' && action === 'event') return traceEvent(repo, options, telemetryDependencies());
   if (area === 'trace' && action === 'attach') return traceAttach(repo, options, telemetryDependencies());

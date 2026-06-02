@@ -33,11 +33,17 @@ ${formatList(hookPlanEvents(runtime))}
 # Generic pre-stop style check
 sdlc event pre-stop --task "<task>"
 sdlc gates --task "<task>"
+
+# Optional activity capture when local mode allows it
+sdlc activity status
+sdlc activity command --task "<task>" --phase verification --command "<command>" --status pass
 \`\`\`
 
 ## Guardrails
 
 - Keep hook-generated files local/ignored unless explicitly approved.
+- Check \`sdlc activity status\` before hook-generated activity capture; \`off\` disables passive/hook telemetry.
+- Use \`light\` for phase/cap summaries, \`full\` for meaningful commands and artifacts, and \`debug\` only for local troubleshooting.
 - Use hooks to suggest or block deterministic risk, not to hide human approval gates.
 - Do not require a runtime-specific hook to complete normal SDLC work.
 `;
@@ -50,8 +56,8 @@ sdlc gates --task "<task>"
 }
 
 export function hookPlanEvents(runtime) {
-  const common = ['pre-stop: call `sdlc event pre-stop` and `sdlc gates` before claiming completion', 'approval-request: summarize risk and human gate', 'post-edit: suggest cheap route-appropriate checks'];
-  if (runtime === 'claude') return ['UserPromptSubmit -> `sdlc event prompt-submit`', 'PostToolUse/Edit -> `sdlc event post-edit`', 'Stop -> `sdlc event pre-stop`', ...common];
+  const common = ['pre-stop: call `sdlc event pre-stop` and `sdlc gates` before claiming completion', 'approval-request: summarize risk and human gate', 'post-edit: suggest cheap route-appropriate checks', 'activity command: optionally call `sdlc activity command` when mode is light/full/debug', 'activity cap: optionally call `sdlc activity cap` for repeated runtime limits'];
+  if (runtime === 'claude') return ['UserPromptSubmit -> `sdlc event prompt-submit`', 'PostToolUse/Edit -> `sdlc event post-edit` and optional `sdlc activity event`', 'Stop -> `sdlc event pre-stop`', ...common];
   if (runtime === 'codex') return ['Use available hook/plugin surfaces only where supported; otherwise use agent prompt and CLI commands.', ...common];
   if (['auggie', 'augment'].includes(runtime)) return ['Use IDE/CLI task adapters if available; otherwise invoke `sdlc event ...` from run-sdlc guidance.', ...common];
   return common;

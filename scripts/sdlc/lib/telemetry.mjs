@@ -6,6 +6,7 @@ import { loadProfile } from './profile.mjs';
 import { defaultRunsDir, defaultTracePath } from './paths.mjs';
 import { inferRouteFromTask } from './routes.mjs';
 import { ensureControlRunDir, readCurrentStateInfo } from './state.mjs';
+import { activitySummaryData, recordActivity, shouldRecordActivity } from './activity.mjs';
 
 export function traceAttach(repo, options = {}, dependencies = {}) {
   const { controlTraceRow } = dependencies;
@@ -16,6 +17,7 @@ export function traceAttach(repo, options = {}, dependencies = {}) {
   const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, options.task || 'current-task');
   const row = controlTraceRow(repo, { ...options, type, summary });
   appendControlJsonLine(repo, join(runDir, 'trace.jsonl'), row);
+  mirrorTraceActivity(repo, options, row);
   console.log(relative(repo, join(runDir, 'trace.jsonl')));
 }
 
@@ -24,7 +26,9 @@ export function traceStart(repo, options = {}) {
   if (!task) fail('Pass --task "..." so the trace can be scoped.');
   const tracePath = options.out ? resolve(repo, options.out) : defaultTracePath(repo, task);
   mkdirSync(dirname(tracePath), { recursive: true });
-  appendFileSync(tracePath, `${JSON.stringify(traceRow(repo, { type: 'start', task, summary: 'SDLC run started', route: inferRouteFromTask(task, getGitInfo(repo), loadProfile(repo).values) }))}\n`, 'utf8');
+  const row = traceRow(repo, { type: 'start', task, summary: 'SDLC run started', route: inferRouteFromTask(task, getGitInfo(repo), loadProfile(repo).values) });
+  appendFileSync(tracePath, `${JSON.stringify(row)}\n`, 'utf8');
+  mirrorTraceActivity(repo, options, row);
   console.log(relative(repo, tracePath));
 }
 
@@ -35,7 +39,9 @@ export function traceEvent(repo, options = {}) {
   const task = options.task || '';
   const tracePath = options.trace ? resolve(repo, options.trace) : defaultTracePath(repo, task || 'current-task');
   mkdirSync(dirname(tracePath), { recursive: true });
-  appendFileSync(tracePath, `${JSON.stringify(traceRow(repo, { ...options, type, summary }))}\n`, 'utf8');
+  const row = traceRow(repo, { ...options, type, summary });
+  appendFileSync(tracePath, `${JSON.stringify(row)}\n`, 'utf8');
+  mirrorTraceActivity(repo, options, row);
   console.log(relative(repo, tracePath));
 }
 
@@ -43,7 +49,9 @@ export function traceFinish(repo, options = {}) {
   const task = options.task || '';
   const tracePath = options.trace ? resolve(repo, options.trace) : defaultTracePath(repo, task || 'current-task');
   mkdirSync(dirname(tracePath), { recursive: true });
-  appendFileSync(tracePath, `${JSON.stringify(traceRow(repo, { ...options, type: 'finish', summary: options.summary || 'SDLC run finished' }))}\n`, 'utf8');
+  const row = traceRow(repo, { ...options, type: 'finish', summary: options.summary || 'SDLC run finished' });
+  appendFileSync(tracePath, `${JSON.stringify(row)}\n`, 'utf8');
+  mirrorTraceActivity(repo, options, row);
   console.log(relative(repo, tracePath));
 }
 
@@ -68,6 +76,7 @@ export function scorecardTask(repo, options = {}, dependencies = {}) {
   const tracePath = resolvePacketPath(repo, options.trace);
   const rows = readJsonLines(tracePath);
   const score = scoreTraceRows(rows);
+  const activity = activitySummaryData(repo, { task: rows.find((row) => row.task)?.task || options.task || '' });
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-scorecard.md`);
   mkdirSync(dirname(outPath), { recursive: true });
   const content = `# SDLC Task Scorecard
@@ -78,6 +87,15 @@ Trace: ${relative(repo, tracePath)}
 ## Scores
 
 ${formatList(Object.entries(score).map(([key, value]) => `${humanize(key)}: ${value}`))}
+
+## Activity Signals
+
+${formatList([
+  `activityMode: ${activity.mode}`,
+  `activityEvents: ${activity.events}`,
+  `redundancySignals: ${activity.redundancySignals}`,
+  `caps: ${activity.caps}`,
+])}
 
 ## Interpretation
 
@@ -92,7 +110,8 @@ export function scorecardSummary(repo, options = {}) {
   const traces = findTraceFiles(repo);
   const rows = traces.flatMap((file) => readJsonLines(file));
   const score = scoreTraceRows(filterSince(rows, options.since || ''));
-  printObject({ repository: repo, traces: traces.length, events: rows.length, processQuality: score.processQuality, evidenceCompleteness: score.evidenceCompleteness, reworkCount: score.reworkCount, safetyInterventions: score.safetyInterventions });
+  const activity = activitySummaryData(repo, options);
+  printObject({ repository: repo, traces: traces.length, events: rows.length, processQuality: score.processQuality, evidenceCompleteness: score.evidenceCompleteness, reworkCount: score.reworkCount, safetyInterventions: score.safetyInterventions, activityMode: activity.mode, activityEvents: activity.events, activityRedundancySignals: activity.redundancySignals, activityCaps: activity.caps });
 }
 
 export function scorecardTrends(repo, options = {}, dependencies = {}) {
@@ -129,6 +148,33 @@ function findTraceFiles(repo) {
 
 function toOtelLiteSpan(row) {
   return { name: row.type === 'command' || row.command ? `execute_tool ${row.command || 'sdlc'}` : `sdlc.${row.type || 'event'}`, attributes: { 'gen_ai.operation.name': row.command ? 'execute_tool' : 'invoke_agent', 'sdlc.event.type': row.type || 'event', 'sdlc.task': row.task || '', 'sdlc.route': row.route || '', 'sdlc.summary': row.summary || '', 'sdlc.status': row.status || '', 'sdlc.branch': row.branch || '', 'sdlc.files_changed': row.filesChanged || 0 } };
+}
+
+function mirrorTraceActivity(repo, options = {}, row = {}) {
+  if (!options.activity) return;
+  const modeOptions = { ...options };
+  delete modeOptions.activity;
+  if (!shouldRecordActivity(repo, modeOptions)) return;
+  recordActivity(repo, modeOptions, {
+    action: 'trace',
+    task: row.task || options.task || '',
+    phase: tracePhase(row.type),
+    event: `trace.${row.type || 'event'}`,
+    surface: 'sdlc-cli',
+    target: row.command || row.type || '',
+    command: row.command || '',
+    status: row.status || 'pass',
+    intent: row.summary || '',
+    runtime: options.runtime || 'unknown',
+  });
+}
+
+function tracePhase(type) {
+  if (type === 'start') return 'intake';
+  if (type === 'finish') return 'finish';
+  if (/verify|test|qa/i.test(type || '')) return 'verification';
+  if (/context/i.test(type || '')) return 'context';
+  return 'implementation';
 }
 
 function sanitizeOneLine(value) {

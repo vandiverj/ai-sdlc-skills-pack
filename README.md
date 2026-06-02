@@ -86,6 +86,34 @@ sdlc feedback quick --task "<task>" --friction "what do I type?" --note "sanitiz
 
 Feedback is for improving the SDLC, not measuring individual developer performance. It is local and sanitized by default.
 
+## Optional Activity Telemetry
+
+The SDLC can record a local activity ledger when you want to understand repeated agent/tool behavior, such as rerunning the same command, reloading the same context, hitting the same browser cap, or repeating searches across a multi-repo task. This is optional process-improvement evidence, not developer surveillance.
+
+Activity telemetry is off by default unless a repo-local config enables it. Config lives under `.ai-local`, so normal downstream repos should keep it ignored/local.
+
+```bash
+sdlc activity status
+sdlc activity on
+sdlc activity config --mode light
+sdlc activity start --task "<task>" --runtime codex
+sdlc activity command --task "<task>" --phase verification --command "npm run test" --status pass
+sdlc activity cap --task "<task>" --phase verification --surface browser --reason "browser unavailable"
+sdlc activity summary --task "<task>"
+sdlc activity off
+```
+
+Modes:
+
+- `off`: passive and hook capture disabled; direct activity commands are still intentional evidence capture.
+- `light`: task boundaries, phase-level events, caps, and final summary signals.
+- `full`: meaningful commands, searches, edits, artifact writes, verification attempts, and repeated friction.
+- `debug`: richer local-only troubleshooting detail, still sanitized.
+
+Use it for medium+ tasks, repeated failures, interrupted sessions, cross-repo work, onboarding feedback, and SDLC improvement pilots. Leave it off for tiny work or unusually sensitive tasks unless the human explicitly asks to capture sanitized process evidence.
+
+Do not record raw ticket text, production rows, secrets, private URLs, customer data, proprietary code snippets, or multiline logs. Shared learnings require sanitization review before promotion.
+
 ## What The SDLC Can Do
 
 - Classify work by risk and choose the smallest useful route.
