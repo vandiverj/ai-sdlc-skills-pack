@@ -36,6 +36,7 @@ import { bugEvidenceCheck, bugEvidencePacket, bugLiveEvidence, bugWorkflowPacket
 import { scorecardSummary, scorecardTask, scorecardTrends, traceAttach, traceEvent, traceExport, traceFinish, traceStart } from './telemetry.mjs';
 import { automationBudget, feedbackCapture, feedbackQuick, feedbackReview, feedbackSummary, onboardingPilot, sdlcEvent } from './adoption.mjs';
 import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calibratePropose, calibrateSummary, learnedFlowCandidates, processProposals, readCalibrationRows } from './calibration.mjs';
+import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, readiness as statusReadiness } from './status.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -252,7 +253,7 @@ export async function main(argv) {
   if (area === 'artifact' && action === 'validate') return artifactValidate(repo, options);
   if (area === 'artifact' && action === 'summarize') return artifactSummarize(repo, options);
   if (area === 'artifact' && action === 'migrate') return artifactMigrate(repo, options);
-  if (area === 'dashboard') return dashboard(resolve(areaOptions.repo || repo), areaOptions);
+  if (area === 'dashboard') return statusDashboard(resolve(areaOptions.repo || repo), areaOptions, statusDependencies());
   if (area === 'adapter' && action === 'generate') return adapterGenerate(repo, options);
   if (area === 'eval' && action === 'run') return evalRun(repo, options);
   if (area === 'eval' && action === 'add-case') return evalAddCase(repo, options);
@@ -262,8 +263,8 @@ export async function main(argv) {
   if (area === 'upgrade' && action === 'explain') return upgradeExplain(repo, options);
   if (area === 'scope' && action === 'expect') return scopeExpect(repo, options, scopeDependencies());
   if (area === 'scope' && action === 'check') return scopeCheck(repo, options, scopeDependencies());
-  if (area === 'gates') return gates(repo, areaOptions);
-  if (area === 'handoff' && action === 'draft') return handoffDraft(repo, options);
+  if (area === 'gates') return statusGates(repo, areaOptions, statusDependencies());
+  if (area === 'handoff' && action === 'draft') return statusHandoffDraft(repo, options, statusDependencies());
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
   if (area === 'calibrate' && action === 'summary') return calibrateSummary(repo, options);
   if (area === 'calibrate' && action === 'inspect') return calibrateInspect(repo, options);
@@ -288,7 +289,7 @@ export async function main(argv) {
   if (area === 'learn' && action === 'promote') return learnPromote(repo, options);
   if (area === 'learn' && action === 'export') return learnExport(repo, options);
   if (area === 'learn' && action === 'import') return learnImport(repo, options);
-  if (area === 'readiness') return readiness(resolve(areaOptions.repo || process.cwd()), areaOptions);
+  if (area === 'readiness') return statusReadiness(resolve(areaOptions.repo || process.cwd()), statusDependencies());
   if (area === 'setup' && action === 'doctor') return setupDoctor(repo, options, healthDependencies());
   if (area === 'setup' && action === 'bootstrap') return setupBootstrap(repo, options, healthDependencies());
   if (area === 'doctor' && action === 'full') return doctorFull(repo, options, healthDependencies());
@@ -313,7 +314,7 @@ export async function main(argv) {
   if (area === 'scenario' && action === 'show') return scenarioShow(rest[0] || options.name);
   if (area === 'scenario' && action === 'validate') return scenarioValidate(rest[0] || options.name, repo, options);
   if (area === 'scenario' && action === 'test') return scenarioTest(repo, options);
-  if (area === 'handoff') return handoff(resolve(areaOptions.repo || process.cwd()), areaOptions);
+  if (area === 'handoff') return statusHandoff(resolve(areaOptions.repo || process.cwd()), areaOptions);
 
   fail(`Unknown command: ${argv.join(' ')}`);
 }
@@ -2355,6 +2356,20 @@ function telemetryDependencies() {
   return { appendControlJsonLine, controlTraceRow, humanize, resolvePacketPath };
 }
 
+function statusDependencies() {
+  return {
+    completionTrackedPacketKinds,
+    contextDocCandidates,
+    finalGateOpenItems,
+    findPackets,
+    nextActionForStage,
+    readinessChecks,
+    readinessStatus,
+    suggestedFinalGateCommand,
+    synthesizeState,
+  };
+}
+
 function validationLadder(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the validation ladder can be scoped.');
@@ -2780,181 +2795,6 @@ ${formatList(findings)}
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
   if (findings.length) process.exitCode = 1;
-}
-
-function readiness(repo) {
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const docs = contextDocCandidates(repo, profile.values);
-  const existingDocs = docs.filter((item) => existsSync(item.path));
-  const related = splitList(profile.values.relatedRepositories);
-  const checks = readinessChecks(repo, profile, commands, existingDocs, related);
-  const score = Math.round((checks.filter((item) => item.status === 'ready').length / checks.length) * 100);
-  const fixes = checks.filter((item) => item.status !== 'ready').map((item) => item.fix);
-
-  printObject({
-    repository: repo,
-    score: `${score}%`,
-    profile: profile.path ? relative(repo, profile.path) : 'not found',
-    branch: git.branch || 'unknown',
-    gitStatus: git.status || 'clean',
-    context: readinessStatus(checks, 'context'),
-    commands: readinessStatus(checks, 'commands'),
-    release: readinessStatus(checks, 'release'),
-    security: readinessStatus(checks, 'security'),
-    multiRepo: readinessStatus(checks, 'multi-repo'),
-    recommendedSetupFixes: fixes.join('; ') || 'none',
-    recommendedNextCommand: score < 75 ? 'sdlc setup doctor' : 'sdlc context pack --task "..."',
-  });
-}
-
-function handoff(repo) {
-  const git = getGitInfo(repo);
-  printObject({
-    repository: repo,
-    branch: git.branch,
-    upstream: git.upstream,
-    aheadBehind: `${git.behind} behind / ${git.ahead} ahead`,
-    latestCommit: git.head,
-    status: git.status || 'clean',
-    changedFiles: git.changedFiles.join(', ') || 'none',
-    suggestedNextAction: git.status ? 'review dirty working tree before handoff' : 'ready for release/review decision',
-  });
-}
-
-function gates(repo, options = {}) {
-  const task = options.task || '';
-  const gitInfo = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const open = finalGateOpenItems(repo, task, gitInfo, packets);
-  const openPackets = packets.filter((packet) => !packet.completed && completionTrackedPacketKinds().includes(packet.kind));
-
-  printObject({
-    repository: repo,
-    task: task || 'not provided',
-    dirtyStatus: formatInlineStatus(gitInfo.status),
-    openPackets: openPackets.length,
-    finalGateBlockers: open.length,
-    suggestedNextCommand: open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc git packet',
-  });
-
-  console.log('\n## Open Final Gates\n');
-  console.log(formatList(open));
-  console.log('\n## Open Packets\n');
-  console.log(formatList(openPackets.map((packet) => `${relative(repo, packet.path)} (${packet.kind})`)));
-}
-
-function handoffDraft(repo, options = {}) {
-  const task = options.task || '';
-  const gitInfo = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-handoff-draft.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Handoff Draft
-
-Date: ${new Date().toISOString()}
-Task: ${task || 'not provided'}
-Repository: ${repo}
-Branch: ${gitInfo.branch || 'unknown'}
-Head: ${gitInfo.head || 'unknown'}
-Status: ${gitInfo.status || 'clean'}
-
-## Summary
-
--
-
-## Evidence Links
-
-${formatList(packets.slice(0, 12).map((packet) => `${packet.kind}: ${relative(repo, packet.path)}`))}
-
-## QA / Verification
-
-- QA script:
-- Developer verification:
-- Known caps:
-
-## Release / Merge / Deploy Policy
-
-- This is a draft only.
-- The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.
-- Commit and push require explicit human approval.
-- Project-specific release, MR, AWS pipeline, manual compile, or manual file move processes remain human-controlled.
-
-## Draft Text For MR / Handoff / Release Notes
-
-### GitLab Merge Request Draft
-
-**Summary**
--
-
-**Verification**
--
-
-**QA notes**
--
-
-**Risk/caps**
--
-
-> Do not create or merge the MR automatically. Paste/adapt only after human approval and project-specific branch policy review.
-
-### QA Handoff Draft
-
-Use this section for human QA testers. Keep it source-code-free and pasteable into the tracking ticket.
-
-- Build/branch:
-- Environment:
-- Primary QA script:
-- Regression areas:
-- Test data/accounts:
-- Known caps:
-
-### Release Branch Note
-
-- Target branch/process:
-- Required approvals:
-- Included repositories:
-- Release order:
-- Human-controlled merge/deploy step:
-
-### AWS CodePipeline / CI Note
-
-- Pipeline/job:
-- Trigger policy:
-- Expected artifact/build:
-- Human-controlled trigger/deploy step:
-- Rollback/contact:
-
-### Manual Compile / File Move Note
-
-- Compile/build command:
-- Output/artifacts:
-- Destination:
-- Human-controlled copy/move step:
-- Smoke check after move:
-
-### What Changed
-
--
-
-### How It Was Verified
-
--
-
-### QA Script
-
--
-
-### Risks / Caps
-
--
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
 }
 
 function fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers) {
@@ -4985,16 +4825,6 @@ function contextLedger(repo, options = {}) {
   const rows = dedupe(ledgers).flatMap((ledger) => readJsonLines(ledger));
   if (!rows.length) return console.log('No context ledger rows found. Run sdlc context assemble first.');
   printTable(['Time', 'Phase', 'Tokens', 'Path'], rows.map((row) => [row.timestamp, row.phase, row.approxTokens, row.path]));
-}
-
-function dashboard(repo, options = {}) {
-  const state = readCurrentState(repo, options) || loadRunState(repo, options.task || '') || synthesizeState(repo, options.task || '', options);
-  const runDir = readCurrentStateInfo(repo, options).runDir || defaultRunsDir(repo);
-  const findings = artifactFindings(runDir);
-  const lines = ['# SDLC Dashboard', '', `Task: ${state.task || options.task || 'not provided'}`, `Route: ${state.route || 'unknown'}`, `Stage: ${state.stage || state.status || 'unknown'}`, '', '## Artifact Health', '', '| Status | Artifact | Detail |', '| --- | --- | --- |', ...findings.map((item) => `| ${item.status} | ${escapeCell(item.artifact)} | ${escapeCell(item.detail)} |`), '', '## Next Action', '', nextActionForStage(state.stage || 'intake', state.task || options.task || '')];
-  const outPath = options.out ? resolve(repo, options.out) : join(runDir, 'dashboard.md');
-  safeWriteTextFile(repo, outPath, `${lines.join('\n')}\n`);
-  console.log(relative(repo, outPath));
 }
 
 function learnExport(repo, options = {}) {
