@@ -222,7 +222,7 @@ ${open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc action preview --ac
 }
 
 export function actionPreview(repo, options = {}, dependencies = {}) {
-  const { actionCommandHint, actionRisk, caseIdPolicy } = dependencies;
+  const { caseIdPolicy } = dependencies;
   const action = options.action || '';
   if (!action) fail('Pass --action commit|push|tool|network|dependency|learning-promotion.');
   const git = getGitInfo(repo);
@@ -240,4 +240,23 @@ export function actionPreview(repo, options = {}, dependencies = {}) {
     nonActions: 'no merge/deploy/release/MR/PR/pipeline/manual file movement unless separately approved',
     caseIdPolicy: caseIdPolicy(profile.values),
   });
+}
+
+function actionRisk(action, command = '') {
+  const text = `${action} ${command}`.toLowerCase();
+  if (matchesAny(text, ['push', 'deploy', 'release', 'merge', 'rm -rf', 'delete', 'credential', 'token', 'secret'])) return 'high';
+  if (matchesAny(text, ['network', 'dependency', 'install', 'learning-promotion', 'external'])) return 'medium';
+  return 'low';
+}
+
+function actionCommandHint(action) {
+  if (action === 'commit') return 'git commit -m "<case>: <summary>"';
+  if (action === 'push') return 'git push <remote> <branch>';
+  if (action === 'dependency') return '<package-manager> install/add ...';
+  if (action === 'learning-promotion') return 'sdlc learn promote --packet <path> --target <target>';
+  return 'provide --command "..." for exact preview';
+}
+
+function matchesAny(text, needles) {
+  return needles.some((needle) => text.includes(needle));
 }

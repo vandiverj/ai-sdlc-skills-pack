@@ -398,8 +398,6 @@ function healthDependencies() {
 
 function finishDependencies() {
   return {
-    actionCommandHint,
-    actionRisk,
     appendControlEvent,
     caseIdPolicy,
     classifyTouchedSurface,
@@ -993,37 +991,6 @@ function git(repo, args) {
   } catch {
     return '';
   }
-}
-
-function toOtelLiteSpan(row) {
-  return {
-    name: row.type === 'command' || row.command ? `execute_tool ${row.command || 'sdlc'}` : `sdlc.${row.type || 'event'}`,
-    attributes: {
-      'gen_ai.operation.name': row.command ? 'execute_tool' : 'invoke_agent',
-      'sdlc.event.type': row.type || 'event',
-      'sdlc.task': row.task || '',
-      'sdlc.route': row.route || '',
-      'sdlc.summary': row.summary || '',
-      'sdlc.status': row.status || '',
-      'sdlc.branch': row.branch || '',
-      'sdlc.files_changed': row.filesChanged || 0,
-    },
-  };
-}
-
-function actionRisk(action, command = '') {
-  const text = `${action} ${command}`.toLowerCase();
-  if (matchesAny(text, ['push', 'deploy', 'release', 'merge', 'rm -rf', 'delete', 'credential', 'token', 'secret'])) return 'high';
-  if (matchesAny(text, ['network', 'dependency', 'install', 'learning-promotion', 'external'])) return 'medium';
-  return 'low';
-}
-
-function actionCommandHint(action) {
-  if (action === 'commit') return 'git commit -m "<case>: <summary>"';
-  if (action === 'push') return 'git push <remote> <branch>';
-  if (action === 'dependency') return '<package-manager> install/add ...';
-  if (action === 'learning-promotion') return 'sdlc learn promote --packet <path> --target <target>';
-  return 'provide --command "..." for exact preview';
 }
 
 function runStartPacketCommand(route, task) {
