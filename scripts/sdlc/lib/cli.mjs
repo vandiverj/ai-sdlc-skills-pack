@@ -33,6 +33,7 @@ import { fixturePlan, testBootstrapPlan, testPlan, testRegressionPlan, testSugge
 import { verifyComplete, verifyPacket } from './verify.mjs';
 import { doneCheck, packetStatus, routeProof, routeRetire, routeStart } from './routepackets.mjs';
 import { bugEvidenceCheck, bugEvidencePacket, bugLiveEvidence, bugWorkflowPacket, commandClassify, dotnetEfcoreDiagnose, fixScope, patternAnalog } from './diagnostics.mjs';
+import { scorecardSummary, scorecardTask, scorecardTrends, traceAttach, traceEvent, traceExport, traceFinish, traceStart } from './telemetry.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -220,14 +221,14 @@ export async function main(argv) {
   if (area === 'feedback' && action === 'capture') return feedbackCapture(repo, options);
   if (area === 'feedback' && action === 'review') return feedbackReview(repo, options);
   if (area === 'feedback' && action === 'summary') return feedbackSummary(repo, options);
-  if (area === 'trace' && action === 'start') return traceStart(repo, options);
-  if (area === 'trace' && action === 'event') return traceEvent(repo, options);
-  if (area === 'trace' && action === 'attach') return traceAttach(repo, options);
-  if (area === 'trace' && action === 'finish') return traceFinish(repo, options);
-  if (area === 'trace' && action === 'export') return traceExport(repo, options);
-  if (area === 'scorecard' && action === 'task') return scorecardTask(repo, options);
-  if (area === 'scorecard' && action === 'summary') return scorecardSummary(repo, options);
-  if (area === 'scorecard' && action === 'trends') return scorecardTrends(repo, options);
+  if (area === 'trace' && action === 'start') return traceStart(repo, options, telemetryDependencies());
+  if (area === 'trace' && action === 'event') return traceEvent(repo, options, telemetryDependencies());
+  if (area === 'trace' && action === 'attach') return traceAttach(repo, options, telemetryDependencies());
+  if (area === 'trace' && action === 'finish') return traceFinish(repo, options, telemetryDependencies());
+  if (area === 'trace' && action === 'export') return traceExport(repo, options, telemetryDependencies());
+  if (area === 'scorecard' && action === 'task') return scorecardTask(repo, options, telemetryDependencies());
+  if (area === 'scorecard' && action === 'summary') return scorecardSummary(repo, options, telemetryDependencies());
+  if (area === 'scorecard' && action === 'trends') return scorecardTrends(repo, options, telemetryDependencies());
   if (area === 'artifact' && action === 'budget') return artifactBudget(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
   if (area === 'evidence' && action === 'provenance') return evidenceProvenance(repo, options);
@@ -1179,21 +1180,6 @@ function contextGate(repo, options = {}) {
   printObject({ task: task || 'not provided', result: blocked.length ? 'blocked' : rows.some((row) => row.status === 'warn') ? 'warn' : 'pass' });
   printGateRows(rows);
   if (blocked.length) process.exitCode = 1;
-}
-
-function traceAttach(repo, options = {}) {
-  const type = options.type || 'event';
-  const summary = options.summary || '';
-  if (!summary) fail('Pass --summary "...".');
-  const stateInfo = readCurrentStateInfo(repo, options);
-  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, options.task || 'current-task');
-  const row = controlTraceRow(repo, { ...options, type, summary });
-  appendControlJsonLine(repo, join(runDir, 'trace.jsonl'), row);
-  console.log(relative(repo, join(runDir, 'trace.jsonl')));
-}
-
-function scorecardTrends(repo, options = {}) {
-  return scorecardSummary(repo, options);
 }
 
 function learnSuggest(repo, options = {}) {
@@ -2363,6 +2349,10 @@ function diagnosticsDependencies() {
   };
 }
 
+function telemetryDependencies() {
+  return { appendControlJsonLine, controlTraceRow, humanize, resolvePacketPath };
+}
+
 function validationLadder(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the validation ladder can be scoped.');
@@ -2645,73 +2635,6 @@ function qaScenariosMatch(repo, options = {}) {
   console.log('\n| ID | Title | Surface |');
   console.log('| --- | --- | --- |');
   for (const scenario of matches) console.log(`| ${escapeCell(scenario.id)} | ${escapeCell(scenario.title)} | ${escapeCell(scenario.surface)} |`);
-}
-
-function traceStart(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the trace can be scoped.');
-  const tracePath = options.out ? resolve(repo, options.out) : defaultTracePath(repo, task);
-  mkdirSync(dirname(tracePath), { recursive: true });
-  appendFileSync(tracePath, `${JSON.stringify(traceRow(repo, { type: 'start', task, summary: 'SDLC run started', route: inferRouteFromTask(task, getGitInfo(repo), loadProfile(repo).values) }))}\n`, 'utf8');
-  console.log(relative(repo, tracePath));
-}
-
-function traceEvent(repo, options = {}) {
-  const type = options.type || '';
-  const summary = options.summary || '';
-  if (!type || !summary) fail('Pass --type <type> and --summary "...".');
-  const task = options.task || '';
-  const tracePath = options.trace ? resolve(repo, options.trace) : defaultTracePath(repo, task || 'current-task');
-  mkdirSync(dirname(tracePath), { recursive: true });
-  appendFileSync(tracePath, `${JSON.stringify(traceRow(repo, { ...options, type, summary }))}\n`, 'utf8');
-  console.log(relative(repo, tracePath));
-}
-
-function traceFinish(repo, options = {}) {
-  const task = options.task || '';
-  const tracePath = options.trace ? resolve(repo, options.trace) : defaultTracePath(repo, task || 'current-task');
-  mkdirSync(dirname(tracePath), { recursive: true });
-  appendFileSync(tracePath, `${JSON.stringify(traceRow(repo, { ...options, type: 'finish', summary: options.summary || 'SDLC run finished' }))}\n`, 'utf8');
-  console.log(relative(repo, tracePath));
-}
-
-function scorecardTask(repo, options = {}) {
-  const tracePath = resolvePacketPath(repo, options.trace);
-  const rows = readJsonLines(tracePath);
-  const score = scoreTraceRows(rows);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-scorecard.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Task Scorecard
-
-Date: ${new Date().toISOString()}
-Trace: ${relative(repo, tracePath)}
-
-## Scores
-
-${formatList(Object.entries(score).map(([key, value]) => `${humanize(key)}: ${value}`))}
-
-## Interpretation
-
-- Process quality is about route clarity, evidence, verification, low rework, and safe finish state.
-- Passing tests do not prove a good trajectory if exploration, verification, or safety gates were skipped.
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function scorecardSummary(repo, options = {}) {
-  const traces = findTraceFiles(repo);
-  const rows = traces.flatMap((file) => readJsonLines(file));
-  const score = scoreTraceRows(filterSince(rows, options.since || ''));
-  printObject({
-    repository: repo,
-    traces: traces.length,
-    events: rows.length,
-    processQuality: score.processQuality,
-    evidenceCompleteness: score.evidenceCompleteness,
-    reworkCount: score.reworkCount,
-    safetyInterventions: score.safetyInterventions,
-  });
 }
 
 function verify(repo, options = {}) {
@@ -4009,22 +3932,6 @@ ${rows.map((row) => `| ${escapeCell(row.source)} | ${row.trust} | ${row.freshnes
     console.log(relative(repo, outPath));
   } else {
     console.log(content.trimEnd());
-  }
-}
-
-function traceExport(repo, options = {}) {
-  const tracePath = options.trace ? resolve(repo, options.trace) : defaultTracePath(repo, options.task || 'current-task');
-  const rows = readJsonLines(tracePath);
-  const format = options.format || 'json';
-  const exported = format === 'otel-lite' ? rows.map(toOtelLiteSpan) : rows;
-  const text = JSON.stringify(exported, null, 2);
-  if (options.out) {
-    const outPath = resolve(repo, options.out);
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, `${text}\n`, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(text);
   }
 }
 
