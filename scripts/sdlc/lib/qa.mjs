@@ -1,16 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { dirname } from 'node:path';
-import { dedupe, escapeCell, fail, formatInlineList, formatList, formatOptionList, printObject, printTable, safeWriteTextFile, slug, stamp } from './common.mjs';
+import { dedupe, escapeCell, fail, formatInlineList, formatList, formatOptionList, optionFiles, printObject, printTable, safeWriteTextFile, slug, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { classifyTestingSurface, inferTestingSurfaces, matchesAny, qaModeForSurfaces } from './units.mjs';
 import { externalEvidenceProfile } from './tools.mjs';
-
-function optionFiles(options, fallback = []) {
-  return options.files ? String(options.files).split(/[,;\n]/).map((item) => item.trim()).filter(Boolean) : fallback;
-}
 
 export function primaryQaSteps(mode) {
   if (mode === 'interactive-stateful') {

@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { appendControlJsonLine, dedupeBy, escapeCell, fail, formatList, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, slug, splitList, stamp, writeOrPrint } from './common.mjs';
+import { appendControlJsonLine, dedupeBy, escapeCell, fail, formatList, optionFiles, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, slug, stamp, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -267,9 +267,4 @@ function appendEvidenceTrace(repo, runDir, type, summary, extra = {}) {
     gate: extra.gate || '',
     evidence: extra.evidence || '',
   });
-}
-
-function optionFiles(options, fallback = []) {
-  if (!options.files) return fallback;
-  return splitList(options.files).map((file) => file.trim()).filter(Boolean);
 }

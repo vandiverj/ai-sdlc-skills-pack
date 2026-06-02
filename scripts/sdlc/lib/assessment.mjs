@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { defaultRunsDir } from './paths.mjs';
-import { dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
+import { dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, optionFiles, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { detectStack, inferTestingSurfaces, matchesAny } from './units.mjs';
@@ -214,11 +214,6 @@ export function verify(repo, options = {}) {
   console.log(`\nEvidence: ${relative(repo, outPath)}`);
 
   if (results.some((result) => result.status === 'fail')) process.exitCode = 1;
-}
-
-function optionFiles(options, fallback = []) {
-  if (!options.files) return fallback;
-  return splitList(options.files).map((file) => file.trim()).filter(Boolean);
 }
 
 function renderVerification(results) {
