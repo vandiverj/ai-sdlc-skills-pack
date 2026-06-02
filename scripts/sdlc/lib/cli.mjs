@@ -28,6 +28,7 @@ import { renderEvidencePacket, renderedEvidencePlan, renderPlan, renderSmoke } f
 import { permissionPolicyPacket, riskAgentic, safetyFinish, safetyPreflight, toolAuditPacket } from './safety.mjs';
 import { doctorFull, health, installCheck, processHealth, setupBootstrap, setupDoctor } from './health.mjs';
 import { actionPreview, completeCheck, completeExplain, completeWaive, finalGate, finishPacket, gitGuard, gitPacket } from './finish.mjs';
+import { scopeCheck, scopeExpect } from './scope.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -252,8 +253,8 @@ export async function main(argv) {
   if (area === 'upgrade' && action === 'plan') return upgradePlan(repo, options);
   if (area === 'upgrade' && action === 'apply') return upgradeApply(repo, options);
   if (area === 'upgrade' && action === 'explain') return upgradeExplain(repo, options);
-  if (area === 'scope' && action === 'expect') return scopeExpect(repo, options);
-  if (area === 'scope' && action === 'check') return scopeCheck(repo, options);
+  if (area === 'scope' && action === 'expect') return scopeExpect(repo, options, scopeDependencies());
+  if (area === 'scope' && action === 'check') return scopeCheck(repo, options, scopeDependencies());
   if (area === 'gates') return gates(repo, areaOptions);
   if (area === 'handoff' && action === 'draft') return handoffDraft(repo, options);
   if (area === 'calibrate' && action === 'add') return calibrateAdd(repo, options);
@@ -1283,34 +1284,6 @@ function runCheck(repo, options = {}, rawTokens = []) {
   appendControlEvent(repo, runDir, 'check', `${name}: ${result.status}`, result);
   printObject(result);
   if (result.mode === 'command' && result.exitCode && result.exitCode !== 0) process.exitCode = Number(result.exitCode) || 1;
-}
-
-function scopeExpect(repo, options = {}) {
-  const files = splitList(options.files || '');
-  if (!files.length) fail('Pass --files "a,b".');
-  const stateInfo = readCurrentStateInfo(repo, options);
-  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, options.task || 'current-task');
-  const scope = { files, surfaces: dedupe(files.map(classifyTouchedSurface)), createdAt: new Date().toISOString() };
-  safeWriteJsonFile(repo, join(runDir, 'expected-scope.json'), scope);
-  appendControlEvent(repo, runDir, 'scope', 'expected scope recorded', scope);
-  printObject({ files: files.length, surfaces: scope.surfaces.join(', ') || 'none', path: relative(repo, join(runDir, 'expected-scope.json')) });
-}
-
-function scopeCheck(repo, options = {}) {
-  const stateInfo = readCurrentStateInfo(repo, options);
-  const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, options.task || 'current-task');
-  const expected = readJsonIfExists(join(runDir, 'expected-scope.json')) || { files: [] };
-  const git = getGitInfo(repo);
-  const unexpected = expected.files?.length ? git.changedFiles.filter((file) => !expected.files.includes(file)) : [];
-  const generated = git.changedFiles.filter((file) => classifyControlPathActivity(file) !== 'active-source');
-  printObject({
-    changedFiles: git.changedFiles.length,
-    expectedFiles: expected.files?.length || 0,
-    unexpected: unexpected.join(', ') || 'none',
-    generatedOrNonActive: generated.join(', ') || 'none',
-    result: unexpected.length || generated.length ? 'review' : 'pass',
-  });
-  if (unexpected.length || generated.length) process.exitCode = 1;
 }
 
 function qaOutline(repo, options = {}) {
@@ -2595,6 +2568,10 @@ function finishDependencies() {
     taskEvidenceSummary,
     writeGateRows,
   };
+}
+
+function scopeDependencies() {
+  return { appendControlEvent, classifyControlPathActivity, classifyTouchedSurface };
 }
 
 function validationLadder(repo, options = {}) {
