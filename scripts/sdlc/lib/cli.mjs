@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, humanize, indentList, optionFiles, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, safeWriteTextFile, slug, splitList, stamp, toCamel, writeOrPrint } from './common.mjs';
@@ -9,7 +9,7 @@ import { defaultRunsDir } from './paths.mjs';
 import { appendPacketCompletion, completionTrackedPacketKinds, doneChecksForRoute, findLatestPacket, findPackets, firstMatch, latestPacketPath, packetHas, readPacket, resolvePacketPath, taskEvidenceSummary } from './packets.mjs';
 import { runDashboard, runFinish, runNext, runPlan, runResume, runStart, runStartGates, runStartPacketCommand, runStatus } from './run.mjs';
 import { appendControlEvent, classifyControlPathActivity, controlTraceRow, ensureControlRunDir, gitScopeRows, nextActionForStage, nextActionFromGates, readControlJsonLines, readCurrentState, readCurrentStateInfo, stateAdvance, stateBlockers, stateCurrent, stateExplain, stateInit, synthesizeState, writeGateRows } from './state.mjs';
-import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
+import { getRecipe, matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
 import { ensureEvidenceManifest, evidenceAdd, evidenceInit, evidencePlan, evidenceProvenance, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, readEvidenceManifest } from './evidence.mjs';
 import { detectCiSystems, detectDeploySystems, detectTestFrameworks, sharedContextDetails, sharedContextReachability } from './environment.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
@@ -328,27 +328,6 @@ export async function main(argv) {
   if (area === 'handoff') return statusHandoff(resolve(areaOptions.repo || process.cwd()), areaOptions);
 
   fail(`Unknown command: ${argv.join(' ')}`);
-}
-
-function getRecipe(route) {
-  if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
-
-  const recipesPath = join(agentsRoot, 'skills', 'run-sdlc', 'references', 'route-recipes.md');
-  if (!existsSync(recipesPath)) fail(`Missing route recipes: ${recipesPath}`);
-
-  const text = readFileSync(recipesPath, 'utf8');
-  const lines = text.split(/\r?\n/);
-  const start = lines.findIndex((line) => line.trim().toLowerCase() === `### ${String(route).toLowerCase()}`);
-  if (start < 0) fail(`Route recipe not found: ${route}`);
-  let end = lines.length;
-  for (let index = start + 1; index < lines.length; index++) {
-    if (lines[index].startsWith('### ')) {
-      end = index;
-      break;
-    }
-  }
-
-  return lines.slice(start, end).join('\n').trimEnd();
 }
 
 function qaDependencies() {

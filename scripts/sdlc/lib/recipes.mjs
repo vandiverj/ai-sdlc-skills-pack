@@ -157,7 +157,7 @@ export function recipeExplain(repo, options = {}) {
   printObject({ id: item.id, status: item.status, owner: item.owner, triggers: item.triggers.join(', '), requiredProof: item.requiredProof.join('; '), command: item.command, qaAdditions: item.qaAdditions.join('; ') });
 }
 
-function getRecipe(route) {
+export function getRecipe(route) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
   const recipesPath = join(agentsRoot, 'skills', 'run-sdlc', 'references', 'route-recipes.md');
   if (!existsSync(recipesPath)) fail(`Missing route recipes: ${recipesPath}`);
