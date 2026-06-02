@@ -7,7 +7,7 @@ import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { runDashboard, runFinish, runNext, runPlan, runResume, runStart, runStatus } from './run.mjs';
-import { controlCurrentPointerPath, controlRunDir, controlRunRoot, ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, validStateTransition } from './state.mjs';
+import { ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, stateAdvance, stateBlockers, stateCurrent, stateExplain, stateInit } from './state.mjs';
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
 import { ensureEvidenceManifest, evidenceAdd, evidenceInit, evidencePlan, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, evidenceStatusRows, readEvidenceManifest } from './evidence.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
@@ -126,11 +126,11 @@ export async function main(argv) {
   if (area === 'task' && action === 'verify') return taskVerify(repo, options);
   if (area === 'task' && action === 'qa') return taskQa(repo, options);
   if (area === 'task' && (action === 'finish' || action === 'complete')) return taskFinish(repo, options);
-  if (area === 'state' && action === 'init') return stateInit(repo, options);
+  if (area === 'state' && action === 'init') return stateInit(repo, options, stateDependencies());
   if (area === 'state' && action === 'current') return stateCurrent(repo, options);
-  if (area === 'state' && action === 'advance') return stateAdvance(repo, options);
-  if (area === 'state' && action === 'blockers') return stateBlockers(repo, options);
-  if (area === 'state' && action === 'explain') return stateExplain(repo, options);
+  if (area === 'state' && action === 'advance') return stateAdvance(repo, options, stateDependencies());
+  if (area === 'state' && action === 'blockers') return stateBlockers(repo, options, stateDependencies());
+  if (area === 'state' && action === 'explain') return stateExplain(repo, options, stateDependencies());
   if (area === 'route' && action === 'start') return routeStart(repo, rest[0] || options.route, options, routePacketDependencies());
   if (area === 'route' && action === 'retire') return routeRetire(repo, options, routePacketDependencies());
   if (area === 'route' && action === 'proof') return routeProof(repo, options, routePacketDependencies());
@@ -942,121 +942,6 @@ ${formatList([
     console.log(content.trimEnd());
   }
   if (activeOld.length || !activeNew.length) process.exitCode = 1;
-}
-
-function stateInit(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the state can be initialized.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
-  const files = optionFiles(options, git.changedFiles);
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  const units = affectedUnits(repo, files, profile, options.unit);
-  const recipes = matchRecipes(task, git, profile.values);
-  const runDir = controlRunDir(repo, { ...options, task });
-  const state = {
-    schema: 'sdlc-state-v1',
-    taskId: basename(runDir),
-    task,
-    repo,
-    route,
-    stage: 'intake',
-    status: 'active',
-    branch: git.branch || '',
-    head: git.head || '',
-    affectedUnits: units.map((unit) => unit.name),
-    testingSurfaces: surfaces,
-    selectedRecipes: recipes.map((recipe) => recipe.id),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    nextAction: `sdlc evidence required --task "${escapeCommandArg(task)}"`,
-  };
-  safeWriteJsonFile(repo, join(runDir, 'state.json'), state);
-  safeWriteJsonFile(repo, controlCurrentPointerPath(repo, options), { taskId: state.taskId, path: relative(repo, runDir), updatedAt: state.updatedAt });
-  appendControlEvent(repo, runDir, 'state', 'initialized task state', { task, route, stage: state.stage });
-  ensureEvidenceManifest(repo, runDir, task, route, options);
-  printObject({
-    taskId: state.taskId,
-    route,
-    stage: state.stage,
-    path: relative(repo, runDir),
-    nextAction: state.nextAction,
-  });
-}
-
-function stateCurrent(repo, options = {}) {
-  const state = readCurrentState(repo, options);
-  if (!state) {
-    printObject({ repository: repo, state: 'not initialized', nextAction: 'sdlc state init --task "..."' });
-    return;
-  }
-  printObject({
-    taskId: state.taskId,
-    task: state.task,
-    route: state.route,
-    stage: state.stage,
-    status: state.status,
-    updatedAt: state.updatedAt,
-    nextAction: state.nextAction || 'sdlc state explain',
-  });
-}
-
-function stateAdvance(repo, options = {}) {
-  const to = options.to || '';
-  if (!to) fail('Pass --to <stage>.');
-  const stateInfo = readCurrentStateInfo(repo, options);
-  if (!stateInfo.state) fail('No current state found. Run `sdlc state init --task "..."` first.');
-  const state = stateInfo.state;
-  const valid = validStateTransition(state.stage, to);
-  if (!valid && !options.force) fail(`Invalid state transition ${state.stage} -> ${to}. Pass --force --reason "..." if this is intentional.`);
-  state.stage = to;
-  state.status = to === 'committed' ? 'complete' : 'active';
-  state.updatedAt = new Date().toISOString();
-  state.nextAction = nextActionForStage(to, state.task);
-  safeWriteJsonFile(repo, join(stateInfo.runDir, 'state.json'), state);
-  appendControlEvent(repo, stateInfo.runDir, 'state', `advanced to ${to}`, { from: stateInfo.previousStage, to, forced: !valid, reason: options.reason || '' });
-  printObject({ taskId: state.taskId, stage: state.stage, status: state.status, nextAction: state.nextAction });
-}
-
-function stateBlockers(repo, options = {}) {
-  const stateInfo = readCurrentStateInfo(repo, options);
-  if (!stateInfo.state) fail('No current state found. Run `sdlc state init --task "..."` first.');
-  const rows = controlGateRows(repo, stateInfo.state, stateInfo.runDir, options);
-  const blockers = rows.filter((row) => row.status === 'block');
-  printObject({
-    taskId: stateInfo.state.taskId,
-    blockers: blockers.length,
-    result: blockers.length ? 'blocked' : 'clear',
-  });
-  printGateRows(rows);
-  if (blockers.length) process.exitCode = 1;
-}
-
-function stateExplain(repo, options = {}) {
-  const stateInfo = readCurrentStateInfo(repo, options);
-  if (!stateInfo.state) {
-    printObject({ repository: repo, state: 'not initialized', nextAction: 'sdlc state init --task "..."' });
-    return;
-  }
-  const evidence = readEvidenceManifest(stateInfo.runDir);
-  const checks = readControlJsonLines(join(stateInfo.runDir, 'checks.jsonl'));
-  const waivers = readControlJsonLines(join(stateInfo.runDir, 'waivers.jsonl'));
-  const gates = controlGateRows(repo, stateInfo.state, stateInfo.runDir, options);
-  printObject({
-    taskId: stateInfo.state.taskId,
-    task: stateInfo.state.task,
-    route: stateInfo.state.route,
-    stage: stateInfo.state.stage,
-    status: stateInfo.state.status,
-    requiredEvidence: evidence.required?.length || 0,
-    capturedEvidence: evidence.captured?.length || 0,
-    checks: checks.length,
-    waivers: waivers.length,
-    openBlockers: gates.filter((row) => row.status === 'block').length,
-    nextAction: nextActionFromGates(gates, stateInfo.state.task),
-  });
-  printGateRows(gates);
 }
 
 function runCheck(repo, options = {}, rawTokens = []) {
@@ -2129,6 +2014,10 @@ function runActionDependencies() {
 
 function runLifecycleDependencies() {
   return { doneChecksForRoute, findLatestPacket, readPacket, resolvePacketPath, runStartGates, runStartPacketCommand };
+}
+
+function stateDependencies() {
+  return { appendControlEvent, controlGateRows, ensureEvidenceManifest, nextActionFromGates, readControlJsonLines, readEvidenceManifest };
 }
 
 function qaScenarios(repo, command, options = {}) {
