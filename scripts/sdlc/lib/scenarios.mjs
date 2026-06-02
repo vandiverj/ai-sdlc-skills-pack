@@ -612,12 +612,6 @@ function summarizeRelatedRepo(repo, item) {
   return `${item}: ${info.branch} ${info.status ? 'dirty' : 'clean'} ${info.behind}/${info.ahead}`;
 }
 
-function renderVerification(results) {
-  const lines = ['# SDLC Verification', '', `Date: ${new Date().toISOString()}`, '', '| Check | Command | Result | Exit code |', '| --- | --- | --- | --- |'];
-  for (const result of results) lines.push(`| ${result.key} | ${escapeCell(result.command || 'not configured')} | ${result.status} | ${result.code ?? ''} |`);
-  return `${lines.join('\n')}\n`;
-}
-
 function renderSmokeEvidence(evidence) {
   return `# SDLC Render Smoke
 

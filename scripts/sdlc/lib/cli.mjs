@@ -39,6 +39,7 @@ import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calib
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, readiness as statusReadiness } from './status.mjs';
 import { intakeCheck, intakePacket } from './intake.mjs';
 import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
+import { validationLadder, verify, workmodeDetect } from './assessment.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -150,7 +151,7 @@ export async function main(argv) {
   if (area === 'workspace' && action === 'ledger') return workspaceLedger(repo, options);
   if (area === 'workspace' && action === 'graph') return workspaceGraph(repo, options);
   if (area === 'workspace' && action === 'impact') return workspaceImpact(repo, options);
-  if (area === 'workmode' && action === 'detect') return workmodeDetect(repo, options);
+  if (area === 'workmode' && action === 'detect') return workmodeDetect(repo, options, assessmentDependencies());
   if (area === 'surface' && (action === 'list' || action === 'taxonomy')) return surfaceList();
   if (area === 'surface' && action === 'detect') return surfaceDetect(repo, options);
   if (area === 'unit' && action === 'map') return unitMap(repo, options);
@@ -193,7 +194,7 @@ export async function main(argv) {
   if (area === 'ticket' && action === 'drift') return ticketDrift(repo, options);
   if (area === 'ticket' && action === 'update-preview') return ticketUpdatePreview(repo, options);
   if (area === 'integration' && action === 'packet') return integrationPacket(repo, options, { classifyTouchedSurface });
-  if (area === 'validate' && action === 'ladder') return validationLadder(repo, options);
+  if (area === 'validate' && action === 'ladder') return validationLadder(repo, options, assessmentDependencies());
   if (area === 'fixture' && action === 'plan') return fixturePlan(repo, options, testPlanDependencies());
   if (area === 'test' && action === 'plan') return testPlan(repo, options, testPlanDependencies());
   if (area === 'test' && action === 'suggest') return testSuggest(repo, options, testPlanDependencies());
@@ -1812,21 +1813,6 @@ ${formatList(open.map((item) => `${item.name}: ${item.detail}`))}
   if (open.length) process.exitCode = 1;
 }
 
-function workmodeDetect(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const modes = detectWorkModes(repo, task, profile.values, git.changedFiles);
-  printObject({
-    repository: repo,
-    task: task || 'not provided',
-    workModes: modes.join(', ') || 'generic',
-    verificationMaturity: verificationMaturity(profile.values, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')))),
-    stack: detectStack(repo).join(', ') || 'generic',
-    recommendedNextCommand: `sdlc impact packet --task "${escapeCommandArg(task || 'current task')}"`,
-  });
-}
-
 function getRecipe(route) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
 
@@ -2212,34 +2198,8 @@ function changeImpactDependencies() {
   };
 }
 
-function validationLadder(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the validation ladder can be scoped.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = optionFiles(options, git.changedFiles);
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  const rows = validationLadderRows(task, surfaces);
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Validation Surface Ladder
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Detected surfaces: ${formatInlineList(surfaces)}
-
-${formatValidationLadder(rows)}
-
-## Rule
-
-Use the strongest available validation surface. If a stronger surface is unavailable, record the fallback and cap instead of claiming it passed.
-`;
-  if (outPath) {
-    safeWriteTextFile(repo, outPath, content);
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
+function assessmentDependencies() {
+  return { detectWorkModes, formatValidationLadder, validationLadderRows, verificationMaturity };
 }
 
 function runActionDependencies() {
@@ -2306,38 +2266,6 @@ function qaScenariosMatch(repo, options = {}) {
   console.log('\n| ID | Title | Surface |');
   console.log('| --- | --- | --- |');
   for (const scenario of matches) console.log(`| ${escapeCell(scenario.id)} | ${escapeCell(scenario.title)} | ${escapeCell(scenario.surface)} |`);
-}
-
-function verify(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const requested = options.commands ? String(options.commands).split(',').map((value) => value.trim()) : ['test', 'build'];
-  const results = [];
-
-  for (const key of requested) {
-    const command = commands[key];
-    if (!command) {
-      results.push({ key, command: '', status: 'missing', code: null });
-      continue;
-    }
-
-    const result = spawnSync(command, {
-      cwd: repo,
-      shell: true,
-      encoding: 'utf8',
-      maxBuffer: 1024 * 1024 * 10,
-    });
-    results.push({ key, command, status: result.status === 0 ? 'pass' : 'fail', code: result.status, stdout: result.stdout, stderr: result.stderr });
-  }
-
-  const outPath = join(defaultRunsDir(repo), `${stamp()}-verification.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, renderVerification(results), 'utf8');
-  console.log(renderVerification(results));
-  console.log(`\nEvidence: ${relative(repo, outPath)}`);
-
-  if (results.some((result) => result.status === 'fail')) process.exitCode = 1;
 }
 
 function learnCapture(repo, options = {}) {
