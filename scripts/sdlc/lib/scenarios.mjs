@@ -519,66 +519,6 @@ function matchesAny(text, needles) {
   return needles.some((needle) => text.includes(needle));
 }
 
-function externalEvidenceProfile(profile = {}) {
-  return {
-    ticket: {
-      provider: profile.ticketSystemProvider || profile.ticketSystem || 'not configured',
-      availability: profile.ticketMcpAvailability || 'unknown',
-      readIssue: profile.ticketReadIssue || 'unknown',
-      readComments: profile.ticketReadComments || 'unknown',
-      readAttachments: profile.ticketReadAttachmentsArticles || profile.ticketReadAttachments || 'unknown',
-      writeComments: profile.ticketWriteComments || 'approval required',
-      updateFields: profile.ticketUpdateFieldsStatusAssignee || profile.ticketUpdateFields || 'approval required',
-      sensitiveRules: profile.ticketSensitiveDataRules || profile.sensitiveDataRestrictions || 'not configured',
-      fallbackFields: profile.ticketFallbackIntakeFields || 'summary, acceptance criteria, relevant comments, QA expectations',
-    },
-    database: {
-      provider: profile.databaseEvidenceProvider || profile.databaseProviderContext || 'not configured',
-      availability: profile.databaseMcpAvailability || 'unknown',
-      environments: profile.databaseEnvironmentsAllowed || 'not configured',
-      allowedOperations: profile.databaseAllowedOperations || 'metadata read / aggregate SELECT / bounded row-level SELECT when approved',
-      blockedOperations: profile.databaseBlockedOperations || 'INSERT, UPDATE, DELETE, DDL, migration, backfill, job execution, stored procedure execution',
-      sensitiveRules: profile.databaseSensitiveSchemasTablesDataClasses || profile.sensitiveDataRestrictions || 'not configured',
-      rowLimit: profile.databaseRowLimitDefaultAggregation || 'prefer aggregate/existence checks; row samples only when justified',
-      redactionRules: profile.databaseRedactionRules || profile.sensitiveLogHandling || 'redact secrets, customer data, private URLs, identifiers, and raw row values before shared learning',
-      fallback: profile.databaseFallbackEvidencePath || 'human-provided sanitized log/query result or local code/schema/test evidence',
-    },
-  };
-}
-
-function externalEvidenceSensitive(task, profile = {}, kind = 'database') {
-  const text = `${task} ${profile.classification || ''} ${profile.repositoryRole || ''}`.toLowerCase();
-  if (matchesAny(text, ['production', 'prod', 'customer', 'client', 'private', 'secret', 'credential', 'token', 'payment', 'financial', 'health', 'tenant', 'soc'])) return true;
-  if (kind === 'database' && matchesAny(text, ['row-level', 'raw row', 'select *', 'backfill', 'migration', 'delete', 'update'])) return true;
-  if (kind === 'ticket' && matchesAny(text, ['attachment', 'screenshot', 'private comment', 'customer report'])) return true;
-  return false;
-}
-
-function databaseQueryShape(task, sensitive) {
-  const text = task.toLowerCase();
-  const shape = [
-    'Start with metadata checks: table/view existence, column mapping, constraints, indexes, trigger/provider metadata, or stored procedure definition when allowed.',
-    'Use aggregate/existence checks before row-level reads: counts, min/max timestamps, status distribution, or existence of expected related records.',
-    'Scope by environment, tenant/test account, time window, and known case identifier.',
-    'Capture summarized results, not raw row dumps.',
-  ];
-  if (matchesAny(text, ['api', 'swagger', 'openapi', 'endpoint'])) shape.push('Map query purpose to the API response field or status being validated.');
-  if (matchesAny(text, ['ef core', 'trigger', 'output clause', 'foreign key', 'fk'])) shape.push('Inspect provider-specific metadata or generated SQL evidence before changing save order or schema.');
-  if (sensitive) shape.push('Stop for approval before production/private row-level inspection; prefer redacted aggregate evidence or human-provided sanitized result.');
-  return shape;
-}
-
-function databaseApprovalGateText(boundary, sensitive) {
-  if (sensitive) return '- Approval required before inspecting production/private row-level or sensitive data.';
-  if (boundary.availability !== 'available') return '- Database MCP capability is not confirmed available; use fallback evidence or ask before relying on MCP access.';
-  return '- No extra approval when staying inside configured read-only metadata/aggregate/test-data boundary; ask if uncertain.';
-}
-
-function ticketFallbackFields(ticket) {
-  const fields = splitList(ticket.fallbackFields);
-  return fields.length ? fields : ['issue summary', 'acceptance criteria', 'relevant comments', 'QA expectations'];
-}
-
 function profileToken(value) {
   const text = String(value || '').trim();
   if (!text || text.includes(' / ')) return '';
