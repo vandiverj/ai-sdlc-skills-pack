@@ -471,7 +471,16 @@ export function qaValidate(repo, options = {}) {
   const full = resolve(repo, packet);
   const text = existsSync(full) ? readFileSync(full, 'utf8') : '';
   const findings = [];
-  for (const section of ['Preconditions', 'Primary Test Steps', 'Regression Checks']) if (!new RegExp(`##\\s+${section}`, 'i').test(text)) findings.push({ status: 'block', section, detail: 'missing required QA section' });
+  const sectionGroups = [
+    { section: 'Preconditions', headings: ['Preconditions'] },
+    { section: 'Primary Test Steps', headings: ['Primary Test Steps', 'Test Cases'] },
+    { section: 'Regression Checks', headings: ['Regression Checks', 'Regression Checklist'] },
+  ];
+  for (const group of sectionGroups) {
+    if (!group.headings.some((heading) => new RegExp(`##\\s+${heading}`, 'i').test(text))) {
+      findings.push({ status: 'block', section: group.section, detail: `missing required QA section (${group.headings.join(' or ')})` });
+    }
+  }
   if (!/expected|confirm|verify|should/i.test(text)) findings.push({ status: 'warn', section: 'expected-results', detail: 'few explicit expected-result words detected' });
   if (!findings.length) findings.push({ status: 'pass', section: 'qa-script', detail: 'required structure present' });
   printTable(['Status', 'Section', 'Detail'], findings.map((item) => [item.status, item.section, item.detail]));
