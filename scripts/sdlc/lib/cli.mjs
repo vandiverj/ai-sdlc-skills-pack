@@ -6,6 +6,7 @@ import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, form
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultCalibrationPath, defaultFeedbackPath, defaultRunsDir, defaultTracePath, runStatePath } from './paths.mjs';
+import { buildRunState, loadRunState, runNextAction } from './runstate.mjs';
 import { controlCurrentPointerPath, controlRunDir, controlRunRoot, ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, validStateTransition } from './state.mjs';
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
 import { ensureEvidenceManifest, evidenceAdd, evidenceInit, evidencePlan, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, evidenceStatusRows, readEvidenceManifest } from './evidence.mjs';
@@ -22,7 +23,7 @@ import { artifactBudget as artifactBudgetCommand, artifactBudgetForRoute, artifa
 import { addEvidenceFromCheck, checksDoctor, checksPlan, checksRun, classifyRunCheckFailure, summarizeCommandOutput } from './checks.mjs';
 import { primaryQaSteps, qaBuild, qaOutlineForMode, qaValidate } from './qa.mjs';
 import { capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsFallback, toolsStatus } from './tools.mjs';
-import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, hasFileExt, inferTestingSurfaces, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
+import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, hasFileExt, inferTestingSurfaces, matchesAny, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(scriptPath), '..', '..', '..');
@@ -4252,20 +4253,24 @@ function runStatus(repo, options = {}) {
     route: state.route || 'unknown',
     runState: state.path ? relative(repo, state.path) : 'not found',
     changedFiles: git.changedFiles.length,
-    nextAction: runNextAction(repo, state, git),
+    nextAction: runNextAction(repo, state, git, runActionDependencies()),
   });
 }
 
 function runNext(repo, options = {}) {
   const state = loadRunState(repo, options.task || '');
   const git = getGitInfo(repo);
-  console.log(runNextAction(repo, state, git));
+  console.log(runNextAction(repo, state, git, runActionDependencies()));
 }
 
 function runResume(repo, options = {}) {
   const state = loadRunState(repo, options.task || '');
   if (!state.path) fail('No run state found. Use `sdlc run plan --task "..."` first.');
   runDashboard(repo, { ...options, task: state.task, out: options.out });
+}
+
+function runActionDependencies() {
+  return { findPackets, finalGateOpenItems, suggestedFinalGateCommand };
 }
 
 function runDashboard(repo, options = {}) {
@@ -4311,7 +4316,7 @@ ${formatList(open)}
 - Commit: ${open.length ? 'not ready' : 'ready only with explicit human approval'}
 - Push: ${open.length ? 'not ready' : 'only with explicit human approval'}
 - Merge/deploy/release: not automatic
-- Next safe action: ${runNextAction(repo, state, git)}
+- Next safe action: ${runNextAction(repo, state, git, runActionDependencies())}
 `;
   if (options.out) {
     const outPath = resolve(repo, options.out);
@@ -7487,6 +7492,10 @@ function projectFilesContain(repo, needles) {
     return false;
   };
   return visit(repo);
+}
+
+function profileToken(value) {
+  return Array.isArray(value) ? value.join(' ') : String(value || '');
 }
 
 function detectWorkModes(repo, task, profile = {}, files = []) {
