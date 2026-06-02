@@ -6,6 +6,7 @@ import { dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatL
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { detectStack, inferTestingSurfaces, matchesAny } from './units.mjs';
+import { classifyTouchedSurface } from './surface.mjs';
 
 export function verificationMaturity(profile, commands) {
   return profile.verificationMaturity || inferVerificationMaturity(commands);
@@ -15,6 +16,27 @@ export function inferVerificationMaturity(commands) {
   if (commands.test && commands.build && commands.lint) return 'partial automated tests';
   if (commands.test) return 'smoke tests or partial automated tests';
   return 'manual QA only / no automated tests configured';
+}
+
+function profileToken(value) {
+  return Array.isArray(value) ? value.join(' ') : String(value || '');
+}
+
+export function detectWorkModes(repo, task, profile = {}, files = []) {
+  const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();
+  const stack = detectStack(repo);
+  const modes = [];
+  if (matchesAny(text, ['personal'])) modes.push('personal product');
+  if (matchesAny(text, ['company', 'client', 'customer', 'production'])) modes.push('company/customer product');
+  if (matchesAny(text, ['internal', 'admin'])) modes.push('internal tool');
+  if (stack.includes('ASP Classic')) modes.push('legacy system');
+  if (stack.includes('Node/TypeScript') || stack.includes('Deno/JSR') || stack.includes('Next.js')) modes.push('modern web/app package');
+  if (files.some((file) => classifyTouchedSurface(file) === 'backend/API') || matchesAny(text, ['api', 'service'])) modes.push('API/service');
+  if (files.some((file) => classifyTouchedSurface(file) === 'database/storage') || matchesAny(text, ['database', 'sql', 'data'])) modes.push('database-heavy');
+  if (files.some((file) => classifyTouchedSurface(file) === 'external integration') || matchesAny(text, ['third-party', 'integration', 'webhook', 'vendor'])) modes.push('integration-heavy');
+  if (matchesAny(text, ['qa', 'manual test', 'youtrack'])) modes.push('manual-QA-heavy');
+  if (matchesAny(text, ['multi repo', 'multi-repo', 'cross repo'])) modes.push('multi-repo');
+  return dedupe(modes);
 }
 
 export function fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers) {

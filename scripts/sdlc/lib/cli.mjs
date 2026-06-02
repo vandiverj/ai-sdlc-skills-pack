@@ -45,7 +45,7 @@ import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calib
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, readiness as statusReadiness } from './status.mjs';
 import { intakeCheck, intakePacket } from './intake.mjs';
 import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
-import { confidenceBlock, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, inferVerificationMaturity, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verificationMaturity, verify, workmodeDetect } from './assessment.mjs';
+import { confidenceBlock, detectWorkModes, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, inferVerificationMaturity, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verificationMaturity, verify, workmodeDetect } from './assessment.mjs';
 import { changeGraph, searchClassify, searchRetireCheck } from './graphsearch.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
@@ -54,7 +54,7 @@ import { artifactBudget, artifactBudgetForRoute, artifactMigrate, artifactSummar
 import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
 import { impactAreas, primaryQaSteps, qaAreas, qaBuild, qaCompare, qaComplete, qaHandoff, qaModeCommand, qaOutline, qaOutlineForMode, qaReview, qaScenarios, qaScript, qaValidate } from './qa.mjs';
 import { capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsFallback, toolsStatus } from './tools.mjs';
-import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, findRepoFiles, inferTestingSurfaces, matchesAny, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
+import { affectedUnits, classifyTestingSurface, detectPackageManager, findRepoFiles, inferTestingSurfaces, matchesAny, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(scriptPath), '..', '..', '..');
@@ -745,27 +745,6 @@ function finalGateOpenItems(repo, task, gitInfo, packets) {
   if (requiresIntegration && !hasIntegration) open.push('integration packet missing for external integration workflow');
   if (requiresTestPlan && !hasTestPlan) open.push('test introduction plan missing for no-tests/dependency workflow');
   return dedupe(open);
-}
-
-function profileToken(value) {
-  return Array.isArray(value) ? value.join(' ') : String(value || '');
-}
-
-function detectWorkModes(repo, task, profile = {}, files = []) {
-  const text = `${task} ${profileToken(profile.classification)} ${profile.repositoryRole || ''}`.toLowerCase();
-  const stack = detectStack(repo);
-  const modes = [];
-  if (matchesAny(text, ['personal'])) modes.push('personal product');
-  if (matchesAny(text, ['company', 'client', 'customer', 'production'])) modes.push('company/customer product');
-  if (matchesAny(text, ['internal', 'admin'])) modes.push('internal tool');
-  if (stack.includes('ASP Classic')) modes.push('legacy system');
-  if (stack.includes('Node/TypeScript') || stack.includes('Deno/JSR') || stack.includes('Next.js')) modes.push('modern web/app package');
-  if (files.some((file) => classifyTouchedSurface(file) === 'backend/API') || matchesAny(text, ['api', 'service'])) modes.push('API/service');
-  if (files.some((file) => classifyTouchedSurface(file) === 'database/storage') || matchesAny(text, ['database', 'sql', 'data'])) modes.push('database-heavy');
-  if (files.some((file) => classifyTouchedSurface(file) === 'external integration') || matchesAny(text, ['third-party', 'integration', 'webhook', 'vendor'])) modes.push('integration-heavy');
-  if (matchesAny(text, ['qa', 'manual test', 'youtrack'])) modes.push('manual-QA-heavy');
-  if (matchesAny(text, ['multi repo', 'multi-repo', 'cross repo'])) modes.push('multi-repo');
-  return dedupe(modes);
 }
 
 function contextUpdateTargets(route, dirtySurfaces, contracts, profile) {
