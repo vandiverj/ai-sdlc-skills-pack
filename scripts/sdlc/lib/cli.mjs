@@ -46,7 +46,7 @@ import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
 import { artifactBudget as artifactBudgetCommand, artifactBudgetForRoute, artifactMigrate, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
 import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
-import { primaryQaSteps, qaBuild, qaOutlineForMode, qaValidate } from './qa.mjs';
+import { primaryQaSteps, qaBuild, qaCompare, qaComplete, qaHandoff, qaModeCommand, qaOutline, qaOutlineForMode, qaReview, qaScenarios, qaScript, qaValidate } from './qa.mjs';
 import { capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsFallback, toolsStatus } from './tools.mjs';
 import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, findRepoFiles, hasFileExt, inferTestingSurfaces, matchesAny, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
 
@@ -170,14 +170,14 @@ export async function main(argv) {
   if (area === 'review' && action === 'complete') return reviewComplete(repo, options, releaseDependencies());
   if (area === 'release' && action === 'packet') return releasePacket(repo, options, releaseDependencies());
   if (area === 'release' && action === 'complete') return releaseComplete(repo, options, releaseDependencies());
-  if (area === 'qa' && (action === 'script' || action === 'packet')) return qaScript(repo, options);
-  if (area === 'qa' && action === 'handoff') return qaHandoff(repo, options);
+  if (area === 'qa' && (action === 'script' || action === 'packet')) return qaScript(repo, options, qaDependencies());
+  if (area === 'qa' && action === 'handoff') return qaHandoff(repo, options, qaDependencies());
   if (area === 'qa' && action === 'scenarios') return qaScenarios(repo, rest[0] || options.command || 'list', options);
   if (area === 'qa' && action === 'outline') return qaOutline(repo, options);
-  if (area === 'qa' && action === 'compare') return qaCompare(repo, options);
-  if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi', 'interactive', 'cli', 'job', 'docs'].includes(action)) return qaModeCommand(repo, action, options, rest);
-  if (area === 'qa' && action === 'complete') return qaComplete(repo, options);
-  if (area === 'qa' && action === 'review') return qaReview(repo, options);
+  if (area === 'qa' && action === 'compare') return qaCompare(repo, options, qaDependencies());
+  if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi', 'interactive', 'cli', 'job', 'docs'].includes(action)) return qaModeCommand(repo, action, options, rest, qaDependencies());
+  if (area === 'qa' && action === 'complete') return qaComplete(repo, options, qaDependencies());
+  if (area === 'qa' && action === 'review') return qaReview(repo, options, qaDependencies());
   if (area === 'qa' && action === 'build') return qaBuild(repo, options);
   if (area === 'qa' && action === 'validate') return qaValidate(repo, options);
   if (area === 'smoke' && action === 'packet') return smokePacket(repo, options, smokeDependencies());
@@ -817,60 +817,6 @@ ${formatList(contracts)}
   console.log(relative(repo, outPath));
 }
 
-function qaOutline(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "...".');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = git.changedFiles;
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  const mode = options.mode || qaModeForSurfaces(surfaces, task);
-  const outline = qaOutlineForMode(mode, task, files, surfaces, qaAreas(task, files));
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-qa-outline.md`);
-  const content = `# SDLC QA Outline
-
-Task: ${task}
-Mode: ${mode}
-Testing surfaces: ${formatInlineList(surfaces)}
-
-## In Scope
-
-${formatList(outline.scope)}
-
-## Preconditions
-
-${formatList(outline.preconditions)}
-
-## Primary Test
-
-${formatList(outline.primary)}
-
-## Regression Tests
-
-${formatList(outline.regression)}
-
-## Known Caps / Setup Notes
-
-${formatList(outline.caps)}
-`;
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function qaCompare(repo, options = {}) {
-  const packetPath = resolvePacketPath(repo, options.packet);
-  const text = readFileSync(packetPath, 'utf8');
-  const findings = [];
-  if (!packetHas(text, ['## Preconditions'])) findings.push('Missing Preconditions section.');
-  if (!packetHas(text, ['## Test Cases', '### QA-001'])) findings.push('Missing primary test case section.');
-  if (!packetHas(text, ['Regression'])) findings.push('Missing regression coverage.');
-  if (!packetHas(text, ['Known Risks', 'Known Caps', 'Developer caps'])) findings.push('Missing caps/risks section.');
-  if (!packetHas(text, ['QA Completion'])) findings.push('Missing QA completion section.');
-  printObject({ packet: relative(repo, packetPath), result: findings.length ? 'needs review' : 'ready-looking' });
-  console.log(formatList(findings.length ? findings : ['No obvious QA structure gaps detected.']));
-  if (findings.length) process.exitCode = 1;
-}
-
 function contextGate(repo, options = {}) {
   const task = options.task || '';
   const profile = loadProfile(repo);
@@ -1449,209 +1395,8 @@ function getRecipe(route) {
   return lines.slice(start, end).join('\n').trimEnd();
 }
 
-function qaModeCommand(repo, action, options = {}, rest = []) {
-  if (action === 'scenario' && (rest[0] === 'list' || options.list)) return qaScenarioList(repo, options);
-  if (action === 'scenario' && (rest[0] === 'show' || options.show)) return qaScenarioShow(repo, rest[1] || options.scenario || options.id, options);
-  if (action === 'scenario' && (rest[0] === 'draft' || options.draft)) return qaScript(repo, { ...options, mode: 'scenario-retest' });
-  const modeMap = {
-    ui: 'ui-workflow',
-    api: 'api-contract',
-    data: 'data-persistence',
-    integration: 'integration-provider',
-    scenario: 'scenario-retest',
-    multi: 'multi-repo-workflow',
-    interactive: 'interactive-stateful',
-    cli: 'cli-workflow',
-    job: 'background-job',
-    docs: 'docs-process',
-  };
-  return qaScript(repo, { ...options, mode: modeMap[action] || action });
-}
-
-function qaScenarioList(repo, options = {}) {
-  const scenarios = qaScenarioRecords(repo, options);
-  if (!scenarios.length) {
-    printObject({ repository: repo, scenarios: 0, note: 'No scenario library found. Configure profile qaScenarioLibrary or add .ai-local/qa-scenarios.md.' });
-    return;
-  }
-  console.log('| ID | Title | Unit | Surface |');
-  console.log('| --- | --- | --- | --- |');
-  for (const scenario of scenarios) console.log(`| ${escapeCell(scenario.id)} | ${escapeCell(scenario.title)} | ${escapeCell(scenario.unit)} | ${escapeCell(scenario.surface)} |`);
-}
-
-function qaScenarioShow(repo, id, options = {}) {
-  if (!id) fail('Pass a scenario id.');
-  const scenario = qaScenarioRecords(repo, options).find((item) => item.id.toLowerCase() === String(id).toLowerCase());
-  if (!scenario) fail(`Scenario not found: ${id}`);
-  printObject(scenario);
-}
-
-function qaScript(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the QA test script can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = git.changedFiles;
-  const testingSurfaces = inferTestingSurfaces(repo, task, files, profile);
-  const mode = options.mode || qaModeForSurfaces(testingSurfaces, task);
-  const sourceHints = qaSourceHints(repo, options);
-  const external = externalEvidenceProfile(profile.values);
-  const ticketId = options.ticket || firstMatch(task, /\b([A-Z][A-Z0-9]+-\d+)\b/) || '';
-  const scopeItems = dedupe([...qaAreas(task, files), ...sourceHints.scope]);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-qa-test-script.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# QA Test Script: ${task}
-
-QA Mode: ${mode}
-
-## Summary
-
-${qaSummaryForMode(mode)}
-
-${ticketId || matchesAny(task.toLowerCase(), ['ticket', 'youtrack', 'yt-']) ? `Ticket: ${ticketId || 'provide ticket ID/link if available'}\n` : ''}This script is for human QA testers. It does not assume QA will use AI, inspect source code, run developer commands, or access database/ticket MCP tools.
-
-## Scope
-
-### In Scope
-
-${formatList(scopeItems)}
-${sourceHints.scope.length ? `\n### Source Packet Hints\n\n${formatList(sourceHints.scope)}` : ''}
-
-### Out Of Scope
-
-- Repository review and release decisions.
-- Merge, deploy, release, or branch movement decisions.
-
-## Environment
-
-- Environment: QA
-- Browser/device: ${mode === 'api-contract' ? 'not required unless API change is observable through UI' : ''}
-- API client / Swagger:
-- User role:
-- Test account/data:
-- Build/version/branch: ${git.branch || 'unknown'} / ${git.head || 'unknown'}
-
-## Preconditions
-
-- Required permissions:
-- Required test data:
-- Feature flags/config:
-- External systems/sandbox availability:
-${matchesAny(task.toLowerCase(), ['database', 'sql', 'data', 'db evidence', 'read-only database']) ? '- Database-backed evidence was developer-facing only; QA should validate observable UI/API/export behavior unless explicitly assigned developer testing.\n' : ''}
-
-## Test Cases
-
-### QA-001: Primary Changed Workflow
-
-**Purpose:** Validate the main behavior changed by this task.
-
-**Steps**
-${primaryQaSteps(mode)}
-
-**Result**
-- Pass/Fail:
-- Actual result:
-- Notes:
-
-### QA-002: Regression Check
-
-**Purpose:** Ensure nearby existing behavior still works.
-
-**Steps**
-1. Run the closest existing workflow that uses the same page/API/data/integration.
-   - Expected: Existing behavior still works.
-2. Check validation/error handling for the affected area.
-   - Expected: Errors are clear and no unexpected failures occur.
-
-**Result**
-- Pass/Fail:
-- Actual result:
-- Notes:
-
-${qaDomainSections(task, files)}
-
-${scenarioRetestSection(options)}
-
-## Regression Checklist
-
-- [ ] Changed workflow works.
-- [ ] Existing nearby workflow still works.
-- [ ] Permissions/roles behave correctly.
-- [ ] Existing saved data displays correctly.
-- [ ] Validation and error messages behave correctly.
-- [ ] No unexpected page, API, or integration errors are visible to QA.
-
-## Known Risks / Notes
-
-- Touched surfaces: ${formatInlineList(dedupe(files.map(classifyTouchedSurface)))}
-- Changed files: ${files.length}
-- Verification maturity: ${profile.values.verificationMaturity || 'not configured'}
-- Developer caps to communicate:
-${sourceHints.risks.length ? formatList(sourceHints.risks) : '- none recorded'}
-
-## Developer Verification Summary
-
-- Developer/agent checks run:
-- Ticket evidence: ${external.ticket.availability === 'available' ? 'available if route-selected; confirm drift before closeout' : `not assumed (${external.ticket.availability})`}
-- Database evidence: ${external.database.availability === 'available' ? 'available if route-selected; summarize redacted evidence only' : `not assumed (${external.database.availability})`}
-- Known verification caps:
-
-## QA Completion
-
-- QA status:
-- QA tester:
-- Date:
-- Notes:
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function qaComplete(repo, options = {}) {
-  const packetPath = resolvePacketPath(repo, options.packet);
-  const status = options.status || '';
-  if (!status) fail('Pass --status "draft|ready|blocked" so QA script readiness is explicit.');
-  if (!['draft', 'ready', 'blocked'].includes(status)) fail('Use --status "draft", "ready", or "blocked".');
-
-  const entry = `## QA Script Completion
-
-Completed: ${new Date().toISOString()}
-Status: ${status}
-Ready for YouTrack paste: ${status === 'ready' ? 'yes' : 'no'}
-
-### Remaining Gaps / Caps
-
-${formatOptionList(options.caps)}
-
-### Linked Evidence
-
-- Impact packet: ${options.impact || ''}
-- Touched packet: ${options.touched || ''}
-- Developer verification packet: ${options.verify || ''}
-
-### Notes
-
-${options.notes || ''}
-`;
-
-  appendPacketCompletion(packetPath, entry);
-  console.log(relative(repo, packetPath));
-}
-
-function qaReview(repo, options = {}) {
-  const packetPath = resolvePacketPath(repo, options.packet);
-  const text = readFileSync(packetPath, 'utf8');
-  const findings = qaReviewFindings(text);
-  printObject({
-    repository: repo,
-    packet: relative(repo, packetPath),
-    result: findings.length ? 'needs review' : 'ready-looking',
-  });
-  console.log('\n## Findings\n');
-  console.log(formatList(findings));
+function qaDependencies() {
+  return { appendPacketCompletion, findPackets, matchRecipes, packetHas, resolvePacketPath, taskCaseId, taskEvidenceSummary };
 }
 
 function smokeDependencies() {
@@ -1835,68 +1580,6 @@ function graphSearchDependencies() {
 
 function checkDependencies() {
   return { appendControlEvent };
-}
-
-function qaScenarios(repo, command, options = {}) {
-  if (command === 'init') return qaScenariosInit(repo, options);
-  if (command === 'match') return qaScenariosMatch(repo, options);
-  return qaScenarioList(repo, options);
-}
-
-function qaScenariosInit(repo, options = {}) {
-  const outPath = options.out ? resolve(repo, options.out) : join(repo, '.ai-local', 'qa-scenarios.md');
-  if (existsSync(outPath) && !options.force) fail(`${relative(repo, outPath)} already exists. Pass --force to overwrite.`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# QA Scenario Library
-
-Purpose: local scenario library for human QA Markdown generation. Keep product/client-sensitive scenarios local or external unless the repo approves a sanitized checked-in version.
-
-## Primary Changed Workflow
-
-ID: primary-changed-workflow
-Unit:
-Surface: ui/api/data/integration/scenario
-Setup data:
-
-Steps:
-1. Open or invoke the affected workflow in QA.
-2. Perform the changed action.
-3. Confirm the expected result and one nearby regression path.
-
-Expected result:
-- Changed behavior works.
-- Nearby existing behavior still works.
-
-Regression risks:
-- Unknown until task impact is known.
-
-Environment notes:
-- QA environment and test account/data required.
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function qaScenariosMatch(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so scenarios can be matched.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const surfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
-  const scenarios = qaScenarioRecords(repo, options);
-  const matches = scenarios.filter((scenario) => {
-    const haystack = `${scenario.title} ${scenario.surface} ${scenario.unit} ${scenario.body}`.toLowerCase();
-    return surfaces.some((surface) => haystack.includes(surface.split('-')[0])) || task.toLowerCase().split(/\s+/).some((word) => word.length > 4 && haystack.includes(word));
-  });
-  printObject({
-    repository: repo,
-    task,
-    testingSurfaces: surfaces.join(', ') || 'service-behavior',
-    matches: matches.length,
-  });
-  console.log('\n| ID | Title | Surface |');
-  console.log('| --- | --- | --- |');
-  for (const scenario of matches) console.log(`| ${escapeCell(scenario.id)} | ${escapeCell(scenario.title)} | ${escapeCell(scenario.surface)} |`);
 }
 
 function learnCapture(repo, options = {}) {
@@ -2623,48 +2306,6 @@ function contextBucketConfidence(repo, options = {}) {
     gate: ['low', 'conflict'].includes(confidence) ? 'ask human before durable context write' : 'safe to use with normal review',
   });
   if (['low', 'conflict'].includes(confidence)) process.exitCode = 1;
-}
-
-function qaHandoff(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "...".');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const recipes = matchRecipes(task, git, profile.values);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-qa-handoff.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC QA Handoff
-
-Task: ${task}
-Case ID: ${taskCaseId(task, options, profile.values) || 'not provided'}
-Repository: ${repo}
-Branch/build: ${git.branch || 'unknown'} / ${git.head || 'unknown'}
-
-## Tester Instructions
-
-- Environment:
-- Test account/data:
-- Steps:
-- Expected result:
-- Regression checks:
-
-## Developer Validation Evidence
-
-${formatList(taskEvidenceSummary(repo, packets))}
-
-## Recipe-Specific QA Notes
-
-${formatList(recipes.flatMap((recipe) => recipe.qaAdditions))}
-
-## Manual QA Ownership
-
-- QA tester follows this Markdown manually.
-- QA tester does not need AI, source-code access, or developer command knowledge.
-- Developer owns any listed caps, setup notes, and environment limitations.
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
 }
 
 function evidenceProvenance(repo, options = {}) {
