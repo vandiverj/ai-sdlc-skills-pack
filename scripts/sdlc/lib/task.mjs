@@ -11,6 +11,7 @@ import { classifyTouchedSurface, needsManualQa } from './surface.mjs';
 import { affectedUnits, inferTestingSurfaces, matchesAny, qaModeForSurfaces } from './units.mjs';
 import { artifactBudgetForRoute, formatArtifactBudget } from './artifacts.mjs';
 import { qaScript } from './qa.mjs';
+import { verificationMaturity } from './assessment.mjs';
 
 export function taskType(task) {
   const text = String(task || '').toLowerCase();
@@ -40,6 +41,27 @@ export function taskLedgerRows(repo, packets) {
     const packet = packets.find((item) => item.kind === kind);
     return `| ${kind} | ${packet ? escapeCell(relative(repo, packet.path)) : 'missing'} | ${packet ? (completionTrackedPacketKinds().includes(kind) ? (packet.completed ? 'yes' : 'no') : 'n/a') : 'missing'} |`;
   });
+}
+
+export function taskMetrics(repo, task, git, packets) {
+  const profile = loadProfile(repo);
+  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
+  return {
+    changedFiles: git.changedFiles.length,
+    touchedSurfaces: dedupe(git.changedFiles.map(classifyTouchedSurface)).length,
+    packets: packets.length,
+    completedTrackedPackets: packets.filter((packet) => completionTrackedPacketKinds().includes(packet.kind) && packet.completed).length,
+    hasQaScript: packets.some((packet) => packet.kind === 'qa-script') ? 'yes' : 'no',
+    hasManualSmoke: packets.some((packet) => packet.kind === 'manual-smoke' && packet.completed) ? 'yes' : 'no',
+    verificationMaturity: verificationMaturity(profile.values, commands),
+    route: task ? inferRouteFromTask(task, git, profile.values) : 'unknown',
+  };
+}
+
+export function shouldSuggestTestPlan(repo, task, files) {
+  const profile = loadProfile(repo);
+  const maturity = verificationMaturity(profile.values, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')))).toLowerCase();
+  return maturity.includes('manual qa') || maturity.includes('no automated') || files.some((file) => classifyTouchedSurface(file) === 'dependencies') || matchesAny(String(task || '').toLowerCase(), ['package', 'dependency', 'upgrade', 'missing test', 'no automated']);
 }
 
 export function proposedCommitMessage(files, impactPacket, options = {}) {
