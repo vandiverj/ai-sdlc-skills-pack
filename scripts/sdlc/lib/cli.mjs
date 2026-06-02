@@ -15,6 +15,7 @@ import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
 import { artifactBudget as artifactBudgetCommand, artifactBudgetForRoute, artifactMigrate, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
+import { addEvidenceFromCheck, checksDoctor, checksPlan, checksRun, classifyRunCheckFailure, summarizeCommandOutput } from './checks.mjs';
 import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, hasFileExt, inferTestingSurfaces, normalizeUnitPath, qaModeForSurfaces, unitRegistry } from './units.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -9961,20 +9962,6 @@ function evidenceRequirementSatisfied(req, captured, checks) {
   return haystack.includes(req.id.replace(/^recipe-/, '').replace(/-/g, ' ')) || haystack.includes(req.id);
 }
 
-function addEvidenceFromCheck(repo, runDir, check) {
-  const manifest = readEvidenceManifest(runDir);
-  manifest.captured = [...(manifest.captured || []), {
-    id: `check-${check.name}-${Date.now()}`,
-    kind: check.kind || check.name,
-    summary: `${check.status}: ${check.summary || check.command || check.name}`,
-    path: check.outputPath || '',
-    status: check.status,
-    capturedAt: new Date().toISOString(),
-  }];
-  manifest.updatedAt = new Date().toISOString();
-  safeWriteJsonFile(repo, join(runDir, 'evidence.json'), manifest);
-}
-
 function controlGateRows(repo, state, runDir, options = {}) {
   const manifest = ensureEvidenceManifest(repo, runDir, state.task, state.route, options);
   const evidenceRows = evidenceStatusRows(repo, runDir, manifest).map((row) => ({
@@ -10009,19 +9996,6 @@ function printEvidenceStatusRows(rows) {
 function nextActionFromGates(rows, task) {
   const open = rows.find((row) => ['block', 'warn'].includes(row.status));
   return open?.next || `sdlc finish packet --task "${escapeCommandArg(task || 'current task')}"`;
-}
-
-function classifyRunCheckFailure(child) {
-  const stderr = String(child.stderr || '').toLowerCase();
-  if (child.error) return 'tool-failure';
-  if (stderr.includes('operation not permitted') || stderr.includes('permission denied') || stderr.includes('eacces') || stderr.includes('eperm')) return 'sandbox-failure';
-  if (stderr.includes('command not found') || stderr.includes('enoent')) return 'tool-unavailable';
-  return 'fail';
-}
-
-function summarizeCommandOutput(output) {
-  const lines = String(output || '').split(/\r?\n/).filter(Boolean);
-  return lines.slice(-8).join(' | ').slice(0, 1000) || 'no output';
 }
 
 function gitScopeRows(repo, options = {}) {
@@ -10235,33 +10209,6 @@ function evidencePlan(repo, options = {}) {
   writeOrPrint(repo, options.out, content);
 }
 
-function checksPlan(repo, options = {}) {
-  const commands = checkCommandRecords(repo, options);
-  const lines = ['# SDLC Check Plan', '', '| Kind | Unit | Command | Required |', '| --- | --- | --- | --- |', ...commands.map((cmd) => `| ${cmd.kind} | ${escapeCell(cmd.unit || 'repo')} | ${escapeCell(cmd.command || 'not configured')} | ${cmd.required ? 'yes' : 'no'} |`), ''];
-  writeOrPrint(repo, options.out, lines.join('\n'));
-}
-
-function checksRun(repo, options = {}) {
-  const commands = checkCommandRecords(repo, options).filter((item) => item.command);
-  if (!commands.length) fail('No configured build/test/check commands found. Run sdlc checks doctor or configure the repo profile.');
-  const runDir = ensureControlRunDir(repo, options, options.task || 'checks');
-  for (const item of commands) {
-    const result = spawnSync(item.command, { cwd: repo, shell: true, encoding: 'utf8' });
-    const check = { timestamp: new Date().toISOString(), name: `${item.kind}-${item.unit || 'repo'}`, kind: item.kind, command: item.command, status: result.status === 0 ? 'pass' : classifyRunCheckFailure(result), exitCode: result.status, summary: summarizeCommandOutput(`${result.stdout || ''}\n${result.stderr || ''}`) };
-    appendControlJsonLine(repo, join(runDir, 'checks.jsonl'), check);
-    addEvidenceFromCheck(repo, runDir, check);
-    console.log(`${check.name}: ${check.status}`);
-    if (result.status !== 0) process.exitCode = 1;
-  }
-}
-
-function checksDoctor(repo, options = {}) {
-  const commands = checkCommandRecords(repo, options);
-  const missing = commands.filter((item) => item.required && !item.command);
-  printTable(['Kind', 'Unit', 'Status', 'Detail'], commands.map((item) => [item.kind, item.unit || 'repo', item.command ? 'configured' : item.required ? 'missing' : 'optional', item.command || 'configure in profile/unit']));
-  if (missing.length) process.exitCode = 1;
-}
-
 function qaBuild(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "...".');
@@ -10439,20 +10386,6 @@ function fallbackForCapability(capability, task, surfaces) {
   if (capability.includes('browser') || capability.includes('render')) return 'Rendered UI fallback: use build/typecheck/unit checks plus a manual smoke cap and QA Markdown steps.';
   if (capability.includes('test')) return 'Test fallback: run build/typecheck/smoke if available and create a focused manual QA script plus future test recommendation.';
   return toolFallbacksForTask(task, surfaces, loadProfile(process.cwd()).values).join('\n');
-}
-
-function checkCommandRecords(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
-  const rows = [];
-  if (commands.build) rows.push({ kind: 'build', unit: '', command: commands.build, required: false });
-  rows.push({ kind: 'test', unit: '', command: commands.test || '', required: true });
-  if (commands.lint) rows.push({ kind: 'lint', unit: '', command: commands.lint, required: false });
-  for (const unit of unitRegistry(repo, profile)) {
-    if (unit.buildCommand) rows.push({ kind: 'build', unit: unit.name, command: unit.buildCommand, required: false });
-    if (unit.testCommand) rows.push({ kind: 'test', unit: unit.name, command: unit.testCommand, required: true });
-  }
-  return dedupeBy(rows, (row) => `${row.kind}:${row.unit}:${row.command}`);
 }
 
 function contextBudgetRows(repo, options = {}) {
