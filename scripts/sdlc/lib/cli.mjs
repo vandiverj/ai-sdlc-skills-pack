@@ -40,6 +40,7 @@ import { dashboard as statusDashboard, gates as statusGates, handoff as statusHa
 import { intakeCheck, intakePacket } from './intake.mjs';
 import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
 import { validationLadder, verify, workmodeDetect } from './assessment.mjs';
+import { changeGraph, searchClassify, searchRetireCheck } from './graphsearch.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -101,10 +102,10 @@ export async function main(argv) {
   if (area === 'context' && action === 'assemble') return contextAssemble(repo, options);
   if (area === 'context' && action === 'compact') return contextCompact(repo, options);
   if (area === 'context' && action === 'ledger') return contextLedger(repo, options);
-  if (area === 'change' && (action === 'graph' || action === 'graph-lite')) return changeGraph(repo, options);
-  if (area === 'search' && action === 'classify') return searchClassify(repo, options);
-  if (area === 'search' && action === 'classify-results') return searchClassifyResults(repo, options);
-  if (area === 'search' && action === 'retire-check') return searchRetireCheck(repo, options);
+  if (area === 'change' && (action === 'graph' || action === 'graph-lite')) return changeGraph(repo, options, graphSearchDependencies());
+  if (area === 'search' && action === 'classify') return searchClassify(repo, options, graphSearchDependencies());
+  if (area === 'search' && action === 'classify-results') return searchClassify(repo, options, graphSearchDependencies());
+  if (area === 'search' && action === 'retire-check') return searchRetireCheck(repo, options, graphSearchDependencies());
   if (area === 'recipe' && action === 'show') return recipeShow(rest[0] || options.route);
   if (area === 'recipe' && action === 'match') return recipeMatch(repo, options);
   if (area === 'recipe' && action === 'list') return recipeList(repo, options);
@@ -816,134 +817,6 @@ ${formatList(contracts)}
   console.log(relative(repo, outPath));
 }
 
-function changeGraph(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the change graph can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = git.changedFiles;
-  const graph = changeGraphEdges(task, files);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-change-graph-lite.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Change Graph Lite
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Status: ${git.status || 'clean'}
-Repository role: ${profile.values.repositoryRole || 'not configured'}
-
-## Changed Nodes
-
-${formatList(files.length ? files.map((file) => `${file} (${classifyTouchedSurface(file)})`) : inferDirtySurfaces(task, git))}
-
-## Likely Edges
-
-| From | Relationship | To | Evidence |
-| --- | --- | --- | --- |
-${graph.length ? graph.map((edge) => `| ${escapeCell(edge.from)} | ${escapeCell(edge.relationship)} | ${escapeCell(edge.to)} | ${escapeCell(edge.evidence)} |`).join('\n') : '| task | affects | behavior to identify | no changed files yet |'}
-
-## QA And Context Implications
-
-${formatList(changeGraphImplications(graph, task, files))}
-
-## Maintenance Rule
-
-- This is a lightweight local graph, not a permanent architecture model.
-- Promote repeated, stable edges into shared context docs such as service maps, workflow maps, API contracts, or known failure modes.
-`;
-
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function searchClassify(repo, options = {}) {
-  const pattern = options.pattern || options.query || '';
-  if (!pattern) fail('Pass --pattern "..." so search results can be classified.');
-  const scope = options.scope ? resolve(repo, options.scope) : repo;
-  const results = searchPattern(scope, pattern).map((item) => ({
-    ...item,
-    category: classifySearchPath(relative(repo, item.path)),
-  }));
-  const groups = groupBy(results, (item) => item.category);
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Search Classification
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Scope: ${relative(repo, scope) || '.'}
-Pattern: ${pattern}
-
-## Summary
-
-${formatList(Object.entries(groups).map(([category, items]) => `${category}: ${items.length}`))}
-
-## Results
-
-${formatSearchGroups(repo, groups)}
-
-## Completion Rule
-
-- Active source/page references can drive implementation scope.
-- Archived, generated, dependency, and build-output references are context only unless the task explicitly targets them.
-- Remaining retired-route matches must be classified before completion.
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function searchRetireCheck(repo, options = {}) {
-  const oldPattern = options.old || options.oldPattern || '';
-  const newPattern = options.new || options.newPattern || '';
-  if (!oldPattern || !newPattern) fail('Pass --old <pattern> and --new <pattern>.');
-  const scope = options.scope ? resolve(repo, options.scope) : repo;
-  const oldResults = searchPattern(scope, oldPattern).map((item) => ({ ...item, category: classifySearchPath(relative(repo, item.path)) }));
-  const newResults = searchPattern(scope, newPattern).map((item) => ({ ...item, category: classifySearchPath(relative(repo, item.path)) }));
-  const activeOld = oldResults.filter((item) => item.category === 'active source/page reference');
-  const activeNew = newResults.filter((item) => item.category === 'active source/page reference');
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Route Retirement Search Check
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Scope: ${relative(repo, scope) || '.'}
-Old pattern: ${oldPattern}
-New pattern: ${newPattern}
-Result: ${activeOld.length ? 'open - old active references remain' : activeNew.length ? 'pass - new active references found and old active references absent' : 'open - no new active references found'}
-
-## Positive Search: New Route
-
-${formatSearchGroups(repo, groupBy(newResults, (item) => item.category))}
-
-## Negative Search: Old Route
-
-${formatSearchGroups(repo, groupBy(oldResults, (item) => item.category))}
-
-## Gate
-
-${formatList([
-    activeNew.length ? 'new route appears in active source/page references' : 'new route was not found in active source/page references',
-    activeOld.length ? `${activeOld.length} old active reference(s) remain` : 'no old active source/page references remain',
-  ])}
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-  if (activeOld.length || !activeNew.length) process.exitCode = 1;
-}
-
 function runCheck(repo, options = {}, rawTokens = []) {
   const name = options.name || options.kind || 'check';
   const stateInfo = readCurrentStateInfo(repo, options);
@@ -1343,7 +1216,7 @@ function taskOpen(repo, options = {}) {
     ['task-start', () => taskStart(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-task-start.md`) })],
     ['context-freshness', () => contextFreshness(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-context-freshness.md`) })],
     ['context-contradictions', () => contextContradictions(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-context-contradictions.md`) })],
-    ['change-graph', () => changeGraph(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-change-graph.md`) })],
+    ['change-graph', () => changeGraph(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-change-graph.md`) }, graphSearchDependencies())],
     ['task-ledger', () => taskLedger(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-task-ledger.md`) })],
   ];
 
@@ -2018,6 +1891,10 @@ function runLifecycleDependencies() {
 
 function stateDependencies() {
   return { appendControlEvent, controlGateRows, ensureEvidenceManifest, nextActionFromGates, readControlJsonLines, readEvidenceManifest };
+}
+
+function graphSearchDependencies() {
+  return { changeGraphEdges, changeGraphImplications, classifySearchPath, classifyTouchedSurface, formatSearchGroups, groupBy, searchPattern };
 }
 
 function qaScenarios(repo, command, options = {}) {
@@ -2806,10 +2683,6 @@ function contextBucketConfidence(repo, options = {}) {
     gate: ['low', 'conflict'].includes(confidence) ? 'ask human before durable context write' : 'safe to use with normal review',
   });
   if (['low', 'conflict'].includes(confidence)) process.exitCode = 1;
-}
-
-function searchClassifyResults(repo, options = {}) {
-  return searchClassify(repo, options);
 }
 
 function qaHandoff(repo, options = {}) {
