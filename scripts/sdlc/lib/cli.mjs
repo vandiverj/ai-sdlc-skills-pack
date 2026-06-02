@@ -7,7 +7,7 @@ import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileInit, profileShow } from './profile.mjs';
 import { defaultCalibrationPath, defaultFeedbackPath, defaultRunsDir, defaultTracePath, runStatePath } from './paths.mjs';
 import { controlCurrentPointerPath, controlRunDir, controlRunRoot, ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, validStateTransition } from './state.mjs';
-import { matchRecipes, recipeForCompile, recipeRegistry } from './recipes.mjs';
+import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { evalAddCase, evalReport, evalRun, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
@@ -83,7 +83,7 @@ export async function main(argv) {
   if (area === 'recipe' && action === 'list') return recipeList(repo, options);
   if (area === 'recipe' && action === 'review') return recipeReview(repo, options);
   if (area === 'recipe' && action === 'retire') return recipeRetire(repo, options);
-  if (area === 'recipe' && action === 'compile') return recipeCompile(repo, options);
+  if (area === 'recipe' && action === 'compile') return recipeCompile(repo, options, { evidenceRequirementsForTask });
   if (area === 'recipe' && action === 'explain') return recipeExplain(repo, options);
   if (area === 'task' && action === 'id') return taskId(repo, options);
   if (area === 'task' && action === 'current') return taskCurrent(repo, options);
@@ -331,10 +331,6 @@ function contextRestore(repo, options = {}) {
   }
 
   printObject(output);
-}
-
-function recipeShow(route) {
-  console.log(getRecipe(route));
 }
 
 function contextPack(repo, options = {}) {
@@ -6516,73 +6512,6 @@ function intakeCheck(repo, options = {}) {
   if (requiresCaseId(profile.values) && !caseId) process.exitCode = 1;
 }
 
-function recipeMatch(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "...".');
-  const recipes = matchRecipes(task, getGitInfo(repo), loadProfile(repo).values);
-  printObject({
-    repository: repo,
-    task,
-    matches: recipes.length,
-    primary: recipes[0]?.id || 'none',
-  });
-  console.log('\n| Recipe | Confidence | Status | Required proof | Suggested command |');
-  console.log('| --- | --- | --- | --- | --- |');
-  for (const recipe of recipes) {
-    console.log(`| ${recipe.id} | ${recipe.confidence} | ${recipe.status} | ${escapeCell(recipe.requiredProof.join('; '))} | \`${recipe.command}\` |`);
-  }
-}
-
-function recipeList(repo, options = {}) {
-  const recipes = recipeRegistry();
-  console.log('| Recipe | Status | Owner | Triggers |');
-  console.log('| --- | --- | --- | --- |');
-  for (const recipe of recipes) {
-    if (options.status && recipe.status !== options.status) continue;
-    console.log(`| ${recipe.id} | ${recipe.status} | ${recipe.owner} | ${escapeCell(recipe.triggers.join(', '))} |`);
-  }
-}
-
-function recipeReview(repo, options = {}) {
-  const traces = findTraceFiles(repo).flatMap((file) => readJsonLines(file));
-  const recipes = recipeRegistry();
-  console.log(`# SDLC Recipe Review
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Since: ${options.since || 'all'}
-
-| Recipe | Status | Trace mentions | Suggested action |
-| --- | --- | --- | --- |`);
-  for (const recipe of recipes) {
-    const mentions = traces.filter((row) => String(row.recipeIds || row.recipe || row.summary || '').includes(recipe.id)).length;
-    const action = recipe.status === 'experimental' && mentions > 2 ? 'review for promotion to active' : recipe.status === 'deprecated' ? 'confirm replacement or retire' : 'keep monitoring';
-    console.log(`| ${recipe.id} | ${recipe.status} | ${mentions} | ${action} |`);
-  }
-}
-
-function recipeRetire(repo, options = {}) {
-  const recipe = options.recipe || options.id || '';
-  if (!recipe) fail('Pass --recipe <id>.');
-  const reason = options.reason || 'not provided';
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(recipe)}-recipe-retirement.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Recipe Retirement
-
-Date: ${new Date().toISOString()}
-Recipe: ${recipe}
-Reason: ${reason}
-
-## Rule
-
-- Do not delete historical learning just because a recipe is retired.
-- Mark future matching as advisory/deprecated until a replacement is approved.
-- Add a scenario regression when retirement fixes a false positive.
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
 function profileAudit(repo, options = {}) {
   const profile = loadProfile(repo);
   const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
@@ -8577,25 +8506,6 @@ function workspaceImpact(repo, options = {}) {
   const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const lines = ['# SDLC Workspace Impact', '', `Task: ${task || 'not provided'}`, '', '## Changed Files', '', ...formatList(files).split('\n'), '', '## Affected Units', '', ...formatList(units.map((unit) => `${unit.name} (${unit.path}) -> ${unit.testSurface || 'surface?'}`)).split('\n'), '', '## Testing Surfaces', '', ...formatList(surfaces).split('\n')];
   writeOrPrint(repo, options.out, `${lines.join('\n')}\n`);
-}
-
-function recipeCompile(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
-  const recipes = matchRecipes(task, git, profile.values);
-  const plan = { schema: 'sdlc-compiled-recipe-v1', task, route, recipes: recipes.map(recipeForCompile), evidence: evidenceRequirementsForTask(repo, task, route, git, profile, options), generatedAt: new Date().toISOString() };
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${slug(task || route)}-recipe-plan.json`);
-  safeWriteJsonFile(repo, outPath, plan);
-  console.log(relative(repo, outPath));
-}
-
-function recipeExplain(repo, options = {}) {
-  const id = options.recipe || options.id || options.route || '';
-  const item = recipeRegistry().find((recipe) => recipe.id === id) || null;
-  if (!item) fail(`Recipe not found: ${id}`);
-  printObject({ id: item.id, status: item.status, owner: item.owner, triggers: item.triggers.join(', '), requiredProof: item.requiredProof.join('; '), command: item.command, qaAdditions: item.qaAdditions.join('; ') });
 }
 
 function evidencePlan(repo, options = {}) {

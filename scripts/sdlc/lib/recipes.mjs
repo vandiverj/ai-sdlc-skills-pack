@@ -1,4 +1,14 @@
-import { dedupeBy } from './common.mjs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dedupeBy, escapeCell, fail, printObject, readJsonLines, safeWriteJsonFile, slug, stamp } from './common.mjs';
+import { getGitInfo } from './git.mjs';
+import { loadProfile } from './profile.mjs';
+import { defaultRunsDir } from './paths.mjs';
+import { inferRouteFromTask } from './routes.mjs';
+
+const scriptPath = fileURLToPath(import.meta.url);
+const agentsRoot = resolve(dirname(scriptPath), '..', '..', '..');
 
 export function recipeRegistry() {
   return [
@@ -53,4 +63,119 @@ export function matchRecipes(task, gitInfo = { changedFiles: [] }, profile = {})
 
 export function recipeForCompile(item) {
   return { id: item.id, status: item.status, owner: item.owner, requiredProof: item.requiredProof, command: item.command, qaAdditions: item.qaAdditions };
+}
+
+export function recipeShow(route) {
+  console.log(getRecipe(route));
+}
+
+export function recipeMatch(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const recipes = matchRecipes(task, getGitInfo(repo), loadProfile(repo).values);
+  printObject({
+    repository: repo,
+    task,
+    matches: recipes.length,
+    primary: recipes[0]?.id || 'none',
+  });
+  console.log('\n| Recipe | Confidence | Status | Required proof | Suggested command |');
+  console.log('| --- | --- | --- | --- | --- |');
+  for (const recipe of recipes) {
+    console.log(`| ${recipe.id} | ${recipe.confidence} | ${recipe.status} | ${escapeCell(recipe.requiredProof.join('; '))} | \`${recipe.command}\` |`);
+  }
+}
+
+export function recipeList(repo, options = {}) {
+  const recipes = recipeRegistry();
+  console.log('| Recipe | Status | Owner | Triggers |');
+  console.log('| --- | --- | --- | --- |');
+  for (const recipe of recipes) {
+    if (options.status && recipe.status !== options.status) continue;
+    console.log(`| ${recipe.id} | ${recipe.status} | ${recipe.owner} | ${escapeCell(recipe.triggers.join(', '))} |`);
+  }
+}
+
+export function recipeReview(repo, options = {}) {
+  const traces = findTraceFiles(repo).flatMap((file) => readJsonLines(file));
+  const recipes = recipeRegistry();
+  console.log(`# SDLC Recipe Review
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Since: ${options.since || 'all'}
+
+| Recipe | Status | Trace mentions | Suggested action |
+| --- | --- | --- | --- |`);
+  for (const recipe of recipes) {
+    const mentions = traces.filter((row) => String(row.recipeIds || row.recipe || row.summary || '').includes(recipe.id)).length;
+    const action = recipe.status === 'experimental' && mentions > 2 ? 'review for promotion to active' : recipe.status === 'deprecated' ? 'confirm replacement or retire' : 'keep monitoring';
+    console.log(`| ${recipe.id} | ${recipe.status} | ${mentions} | ${action} |`);
+  }
+}
+
+export function recipeRetire(repo, options = {}) {
+  const recipe = options.recipe || options.id || '';
+  if (!recipe) fail('Pass --recipe <id>.');
+  const reason = options.reason || 'not provided';
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(recipe)}-recipe-retirement.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const content = `# SDLC Recipe Retirement
+
+Date: ${new Date().toISOString()}
+Recipe: ${recipe}
+Reason: ${reason}
+
+## Rule
+
+- Do not delete historical learning just because a recipe is retired.
+- Mark future matching as advisory/deprecated until a replacement is approved.
+- Add a scenario regression when retirement fixes a false positive.
+`;
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+}
+
+export function recipeCompile(repo, options = {}, dependencies = {}) {
+  const { evidenceRequirementsForTask } = dependencies;
+  if (typeof evidenceRequirementsForTask !== 'function') fail('recipe compile requires an evidence requirement provider.');
+  const task = options.task || '';
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const recipes = matchRecipes(task, git, profile.values);
+  const plan = { schema: 'sdlc-compiled-recipe-v1', task, route, recipes: recipes.map(recipeForCompile), evidence: evidenceRequirementsForTask(repo, task, route, git, profile, options), generatedAt: new Date().toISOString() };
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${slug(task || route)}-recipe-plan.json`);
+  safeWriteJsonFile(repo, outPath, plan);
+  console.log(relative(repo, outPath));
+}
+
+export function recipeExplain(repo, options = {}) {
+  const id = options.recipe || options.id || options.route || '';
+  const item = recipeRegistry().find((recipe) => recipe.id === id) || null;
+  if (!item) fail(`Recipe not found: ${id}`);
+  printObject({ id: item.id, status: item.status, owner: item.owner, triggers: item.triggers.join(', '), requiredProof: item.requiredProof.join('; '), command: item.command, qaAdditions: item.qaAdditions.join('; ') });
+}
+
+function getRecipe(route) {
+  if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
+  const recipesPath = join(agentsRoot, 'skills', 'run-sdlc', 'references', 'route-recipes.md');
+  if (!existsSync(recipesPath)) fail(`Missing route recipes: ${recipesPath}`);
+  const lines = readFileSync(recipesPath, 'utf8').split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim().toLowerCase() === `### ${String(route).toLowerCase()}`);
+  if (start < 0) fail(`Route recipe not found: ${route}`);
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index++) {
+    if (lines[index].startsWith('### ')) {
+      end = index;
+      break;
+    }
+  }
+  return lines.slice(start, end).join('\n').trimEnd();
+}
+
+function findTraceFiles(repo) {
+  const dir = defaultRunsDir(repo);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((file) => file.endsWith('-trace.jsonl')).map((file) => join(dir, file));
 }
