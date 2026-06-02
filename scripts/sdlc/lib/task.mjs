@@ -1,14 +1,78 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { dedupe, fail, formatInlineList, formatList, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
+import { dedupe, escapeCell, fail, formatInlineList, formatList, printObject, readJsonIfExists, safeWriteTextFile, slug, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
+import { completionTrackedPacketKinds, firstMatch } from './packets.mjs';
 import { matchRecipes } from './recipes.mjs';
 import { inferDirtySurfaces, inferRouteFromTask, securityTriggers } from './routes.mjs';
-import { affectedUnits, inferTestingSurfaces, qaModeForSurfaces } from './units.mjs';
+import { classifyTouchedSurface, needsManualQa } from './surface.mjs';
+import { affectedUnits, inferTestingSurfaces, matchesAny, qaModeForSurfaces } from './units.mjs';
 import { artifactBudgetForRoute, formatArtifactBudget } from './artifacts.mjs';
 import { qaScript } from './qa.mjs';
+
+export function taskType(task) {
+  const text = String(task || '').toLowerCase();
+  if (matchesAny(text, ['bug', 'fix', 'regression', 'broken', 'failure'])) return 'bugfix';
+  if (matchesAny(text, ['upgrade', 'package', 'dependency', 'maintenance'])) return 'maintenance';
+  if (matchesAny(text, ['optimize', 'performance', 'speed'])) return 'optimization';
+  if (matchesAny(text, ['release', 'handoff', 'push'])) return 'release/handoff';
+  if (matchesAny(text, ['review', 'audit', 'inspect'])) return 'review';
+  return 'feature/change';
+}
+
+export function taskRunId(task, options = {}) {
+  return options.taskId || `${stamp()}-${slug(task || 'task')}`;
+}
+
+export function expectedQaNeed(task, files, profile = {}) {
+  const text = `${task} ${profile.verificationMaturity || ''}`.toLowerCase();
+  if (matchesAny(text, ['no automated tests', 'manual qa', 'youtrack', 'qa script'])) return 'human QA Markdown script expected';
+  if (files.some(needsManualQa)) return 'likely human QA or manual smoke';
+  if (matchesAny(text, ['docs', 'readme'])) return 'usually no QA script unless behavior is affected';
+  return 'decide after impact packet';
+}
+
+export function taskLedgerRows(repo, packets) {
+  const kinds = ['touched', 'impact', 'developer-verification', 'manual-smoke', 'qa-script', 'test-plan', 'data', 'integration', 'git-action'];
+  return kinds.map((kind) => {
+    const packet = packets.find((item) => item.kind === kind);
+    return `| ${kind} | ${packet ? escapeCell(relative(repo, packet.path)) : 'missing'} | ${packet ? (completionTrackedPacketKinds().includes(kind) ? (packet.completed ? 'yes' : 'no') : 'n/a') : 'missing'} |`;
+  });
+}
+
+export function proposedCommitMessage(files, impactPacket, options = {}) {
+  const caseId = options.caseId || '';
+  const prefix = caseId ? `${caseId}: ` : '';
+  if (!caseId && requiresCaseId(options.profile || {})) return 'CASE ID REQUIRED: ask for the case identifier before suggesting a commit message';
+  if (impactPacket?.text) {
+    const task = firstMatch(impactPacket.text, /^Task:\s*(.+)$/m);
+    if (task) {
+      const message = task.length > 72 ? task.slice(0, 69).trimEnd() + '...' : task;
+      return `${prefix}${message}`;
+    }
+  }
+  const surfaces = dedupe(files.map(classifyTouchedSurface)).filter((item) => item !== 'source/other');
+  if (surfaces.length === 1) return `${prefix}Update ${surfaces[0]}`;
+  if (files.length) return `${prefix}Update task implementation`;
+  return 'No tracked changes to commit';
+}
+
+export function taskCaseId(task, options = {}, profile = {}) {
+  if (options.case || options.caseId) return options.case || options.caseId;
+  const text = String(task || '');
+  const match = text.match(/\b[A-Z][A-Z0-9]+[_-]\d+\b|\b[A-Z]{2,10}-\d+\b/);
+  return match ? match[0] : profile.currentCaseId || '';
+}
+
+export function requiresCaseId(profile = {}) {
+  return /^(true|yes|required)$/i.test(String(profile.requireCaseIdInCommitMessages || profile.requireCaseId || ''));
+}
+
+export function caseIdPolicy(profile = {}) {
+  return requiresCaseId(profile) ? `required (${profile.commitMessageFormat || 'CASE_ID: concise summary'})` : 'optional unless task/profile requires it';
+}
 
 export function taskPreflight(repo, options = {}, deps = {}) {
   const task = options.task || '';

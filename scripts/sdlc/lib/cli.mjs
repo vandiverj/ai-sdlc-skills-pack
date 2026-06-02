@@ -19,7 +19,7 @@ import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextFinalCheck, contextFreshness, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextResolve, contextRestore, contextUpdatePlan, recommendedContextFile } from './context.mjs';
 import { learnArchive, learnBacklog, learnCandidates, learnCapture, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck } from './learning.mjs';
-import { taskBundle, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskOpen, taskPreflight, taskQa, taskReview, taskStart, taskStatus, taskVerify } from './task.mjs';
+import { caseIdPolicy, expectedQaNeed, proposedCommitMessage, requiresCaseId, taskBundle, taskCaseId, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskLedgerRows, taskOpen, taskPreflight, taskQa, taskReview, taskRunId, taskStart, taskStatus, taskType, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
 import { workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
 import { multiLedger, multiPacket, multiQa, multiStatus } from './multi.mjs';
@@ -697,36 +697,6 @@ function runStartGates(route, task, gitInfo, profile) {
   return gates.length ? gates : ['normal route gates only'];
 }
 
-function taskType(task) {
-  const text = String(task || '').toLowerCase();
-  if (matchesAny(text, ['bug', 'fix', 'regression', 'broken', 'failure'])) return 'bugfix';
-  if (matchesAny(text, ['upgrade', 'package', 'dependency', 'maintenance'])) return 'maintenance';
-  if (matchesAny(text, ['optimize', 'performance', 'speed'])) return 'optimization';
-  if (matchesAny(text, ['release', 'handoff', 'push'])) return 'release/handoff';
-  if (matchesAny(text, ['review', 'audit', 'inspect'])) return 'review';
-  return 'feature/change';
-}
-
-function taskRunId(task, options = {}) {
-  return options.taskId || `${stamp()}-${slug(task || 'task')}`;
-}
-
-function expectedQaNeed(task, files, profile = {}) {
-  const text = `${task} ${profile.verificationMaturity || ''}`.toLowerCase();
-  if (matchesAny(text, ['no automated tests', 'manual qa', 'youtrack', 'qa script'])) return 'human QA Markdown script expected';
-  if (files.some(needsManualQa)) return 'likely human QA or manual smoke';
-  if (matchesAny(text, ['docs', 'readme'])) return 'usually no QA script unless behavior is affected';
-  return 'decide after impact packet';
-}
-
-function taskLedgerRows(repo, packets) {
-  const kinds = ['touched', 'impact', 'developer-verification', 'manual-smoke', 'qa-script', 'test-plan', 'data', 'integration', 'git-action'];
-  return kinds.map((kind) => {
-    const packet = packets.find((item) => item.kind === kind);
-    return `| ${kind} | ${packet ? escapeCell(relative(repo, packet.path)) : 'missing'} | ${packet ? (completionTrackedPacketKinds().includes(kind) ? (packet.completed ? 'yes' : 'no') : 'n/a') : 'missing'} |`;
-  });
-}
-
 function taskMetrics(repo, task, git, packets) {
   const profile = loadProfile(repo);
   const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
@@ -1041,38 +1011,6 @@ function inferVerificationMaturity(commands) {
   if (commands.test && commands.build && commands.lint) return 'partial automated tests';
   if (commands.test) return 'smoke tests or partial automated tests';
   return 'manual QA only / no automated tests configured';
-}
-
-function proposedCommitMessage(files, impactPacket, options = {}) {
-  const caseId = options.caseId || '';
-  const prefix = caseId ? `${caseId}: ` : '';
-  if (!caseId && requiresCaseId(options.profile || {})) return 'CASE ID REQUIRED: ask for the case identifier before suggesting a commit message';
-  if (impactPacket?.text) {
-    const task = firstMatch(impactPacket.text, /^Task:\s*(.+)$/m);
-    if (task) {
-      const message = task.length > 72 ? task.slice(0, 69).trimEnd() + '...' : task;
-      return `${prefix}${message}`;
-    }
-  }
-  const surfaces = dedupe(files.map(classifyTouchedSurface)).filter((item) => item !== 'source/other');
-  if (surfaces.length === 1) return `${prefix}Update ${surfaces[0]}`;
-  if (files.length) return `${prefix}Update task implementation`;
-  return 'No tracked changes to commit';
-}
-
-function taskCaseId(task, options = {}, profile = {}) {
-  if (options.case || options.caseId) return options.case || options.caseId;
-  const text = String(task || '');
-  const match = text.match(/\b[A-Z][A-Z0-9]+[_-]\d+\b|\b[A-Z]{2,10}-\d+\b/);
-  return match ? match[0] : profile.currentCaseId || '';
-}
-
-function requiresCaseId(profile = {}) {
-  return /^(true|yes|required)$/i.test(String(profile.requireCaseIdInCommitMessages || profile.requireCaseId || ''));
-}
-
-function caseIdPolicy(profile = {}) {
-  return requiresCaseId(profile) ? `required (${profile.commitMessageFormat || 'CASE_ID: concise summary'})` : 'optional unless task/profile requires it';
 }
 
 function groupCounts(values) {
