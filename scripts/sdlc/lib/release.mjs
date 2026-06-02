@@ -1,6 +1,7 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { dedupe, fail, formatInlineList, formatInlineStatus, formatOptionList, indentList, readJsonIfExists, splitList, stamp } from './common.mjs';
+import { dedupe, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, readJsonIfExists, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -14,9 +15,6 @@ export function reviewPacket(repo, options = {}, dependencies = {}) {
   const {
     contextDocCandidates,
     formatContextDocs,
-    formatReviewChecks,
-    formatReviewTargets,
-    formatSecurityOverlay,
   } = dependencies;
 
   const profile = loadProfile(repo);
@@ -133,13 +131,8 @@ sdlc calibrate add --route review-only --checks "${escapeCommandArg(options.chec
 
 export function releasePacket(repo, options = {}, dependencies = {}) {
   const {
-    accessibilityPolicy,
     contextDocCandidates,
     formatContextDocs,
-    formatReleaseChecks,
-    formatReleaseStopGates,
-    formatSecurityOverlay,
-    recentCommits,
   } = dependencies;
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
@@ -222,6 +215,115 @@ sdlc calibrate add --route release-push --checks "" --caps "" --outcome "" --rou
 
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
+}
+
+function formatReviewTargets(gitInfo) {
+  if (gitInfo.changedFiles.length) {
+    return `${formatList(gitInfo.changedFiles)}
+
+Suggested diff commands:
+
+\`\`\`bash
+git diff --stat
+git diff
+\`\`\``;
+  }
+
+  return `- No dirty working-tree files detected.
+- Review the latest commit, branch state, or explicit artifact named in the task.
+
+Suggested read-only commands:
+
+\`\`\`bash
+git show --stat --oneline HEAD
+git show --check --stat HEAD
+\`\`\``;
+}
+
+function formatReviewChecks(commands, route) {
+  const lines = [
+    '- Read the relevant diff/artifacts before running broader checks.',
+    '- `git diff --check` when reviewing a dirty working tree.',
+    '- `git show --check --stat HEAD` when reviewing the latest committed change.',
+  ];
+  if (commands.test) lines.push(`- test: \`${commands.test}\``);
+  if (commands.build && route !== 'review-only') lines.push(`- build: \`${commands.build}\``);
+  if (commands.lint) lines.push(`- lint/typecheck/format: \`${commands.lint}\``);
+  if (commands.rendered && route === 'ui-rendered-review') lines.push(`- rendered: \`${commands.rendered}\``);
+  return lines.join('\n');
+}
+
+function formatReleaseChecks(commands) {
+  const lines = ['- `git diff --check` for dirty work or `git show --check --stat HEAD` for committed-only release review.'];
+  if (commands.test) lines.push(`- test: \`${commands.test}\``);
+  if (commands.build) lines.push(`- build: \`${commands.build}\``);
+  if (commands.lint) lines.push(`- lint/typecheck/format: \`${commands.lint}\``);
+  if (!commands.test && !commands.build && !commands.lint) lines.push('- No project test/build/lint commands discovered; record this as a release cap.');
+  return lines.join('\n');
+}
+
+function formatReleaseStopGates(gitInfo, profile) {
+  const gates = [];
+  if (gitInfo.status) gates.push('Dirty working tree is present; confirm whether each file belongs in the release before committing or pushing.');
+  if (!gitInfo.upstream) gates.push('No upstream branch is configured; confirm push target before any credentialed write.');
+  if (gitInfo.behind > 0) gates.push(`Branch is ${gitInfo.behind} commit(s) behind upstream; pull/rebase/merge policy must be confirmed before release.`);
+  if (!profile.releasePolicy) gates.push('Release policy is not configured in the SDLC profile.');
+  if (!profile.humanApprovalGates) gates.push('Human approval gates are not configured in the SDLC profile.');
+  gates.push('Explicit human approval is required before commit, push, merge, deploy, publish, or destructive Git actions.');
+  return formatList(gates);
+}
+
+function recentCommits(repo, count = 5) {
+  try {
+    return execFileSync('git', ['log', '--oneline', `-${count}`], { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim().split(/\r?\n/).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+export function accessibilityPolicy(profile) {
+  const value = String(profile.accessibilityReviewPolicy || 'optional').trim().toLowerCase();
+  return ['optional', 'suggested', 'required'].includes(value) ? value : 'optional';
+}
+
+export function formatAccessibilityPolicy(policy, route) {
+  const routeText = route === 'ui-rendered-review' ? 'This route touches rendered UI.' : 'This route does not inherently require accessibility evidence.';
+  if (policy === 'required') {
+    return `Policy: required
+${routeText}
+Required evidence: run the repository accessibility check or record the work as incomplete/capped until a human waives it.`;
+  }
+  if (policy === 'suggested') {
+    return `Policy: suggested
+${routeText}
+Suggested evidence: run accessibility checks when UI changes affect real users, keyboard use, forms, navigation, focus, semantics, contrast, or production-facing surfaces. If skipped, record a cap.`;
+  }
+  return `Policy: optional
+${routeText}
+Default behavior: accessibility checks are available but not a stopping gate. For internal tools, skipped accessibility is not a failure unless the repository or human requires it.`;
+}
+
+export function formatSecurityOverlay(triggers) {
+  if (!triggers.length) {
+    return `Security/tool triggers:
+- none detected
+
+Consent gates:
+- use normal route gates
+
+Mitigations or caps:
+- none`;
+  }
+
+  return `Security/tool triggers:
+${formatList(triggers)}
+
+Consent gates:
+- get explicit approval before credentialed writes, destructive actions, dependency/tool installs, production effects, or external service calls
+
+Mitigations or caps:
+- load threat-model/security review guidance when data, auth, dependency, tool, external integration, prompt/tool injection, or production risk is present
+- document unavailable security evidence as an explicit cap`;
 }
 
 export function releaseComplete(repo, options = {}, dependencies = {}) {

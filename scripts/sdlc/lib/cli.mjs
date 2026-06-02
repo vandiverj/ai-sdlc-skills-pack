@@ -28,7 +28,7 @@ import { dataBoundary, dataEvidence, dataPacket, dataQueryPlan } from './data.mj
 import { ticketDrift, ticketEvidence, ticketUpdatePreview } from './ticket.mjs';
 import { integrationPacket } from './integration.mjs';
 import { smokeComplete, smokePacket } from './smoke.mjs';
-import { releaseComplete, releaseOrderNote, releasePacket, reviewComplete, reviewPacket } from './release.mjs';
+import { accessibilityPolicy, formatAccessibilityPolicy, formatSecurityOverlay, releaseComplete, releaseOrderNote, releasePacket, reviewComplete, reviewPacket } from './release.mjs';
 import { renderEvidencePacket, renderedEvidencePlan, renderPlan, renderSmoke } from './render.mjs';
 import { permissionPolicyPacket, riskAgentic, safetyFinish, safetyPreflight, toolAuditPacket } from './safety.mjs';
 import { doctorFull, health, installCheck, processHealth, setupBootstrap, setupDoctor } from './health.mjs';
@@ -359,17 +359,10 @@ function smokeDependencies() {
 
 function releaseDependencies() {
   return {
-    accessibilityPolicy,
     appendPacketCompletion,
     contextDocCandidates,
     escapeCommandArg,
     formatContextDocs,
-    formatReleaseChecks,
-    formatReleaseStopGates,
-    formatReviewChecks,
-    formatReviewTargets,
-    formatSecurityOverlay,
-    recentCommits,
     resolvePacketPath,
   };
 }
@@ -1380,42 +1373,6 @@ function formatCommandList(commands, route) {
   return lines.length ? lines.join('\n') : '- none discovered';
 }
 
-function formatReviewTargets(gitInfo) {
-  if (gitInfo.changedFiles.length) {
-    return `${formatList(gitInfo.changedFiles)}
-
-Suggested diff commands:
-
-\`\`\`bash
-git diff --stat
-git diff
-\`\`\``;
-  }
-
-  return `- No dirty working-tree files detected.
-- Review the latest commit, branch state, or explicit artifact named in the task.
-
-Suggested read-only commands:
-
-\`\`\`bash
-git show --stat --oneline HEAD
-git show --check --stat HEAD
-\`\`\``;
-}
-
-function formatReviewChecks(commands, route) {
-  const lines = [
-    '- Read the relevant diff/artifacts before running broader checks.',
-    '- `git diff --check` when reviewing a dirty working tree.',
-    '- `git show --check --stat HEAD` when reviewing the latest committed change.',
-  ];
-  if (commands.test) lines.push(`- test: \`${commands.test}\``);
-  if (commands.build && route !== 'review-only') lines.push(`- build: \`${commands.build}\``);
-  if (commands.lint) lines.push(`- lint/typecheck/format: \`${commands.lint}\``);
-  if (commands.rendered && route === 'ui-rendered-review') lines.push(`- rendered: \`${commands.rendered}\``);
-  return lines.join('\n');
-}
-
 function classifyTouchedSurface(file) {
   const value = String(file || '').toLowerCase();
   if (/\.(asp|asa|aspx|ascx)$/.test(value)) return 'frontend/UI';
@@ -1686,75 +1643,6 @@ function requiresCaseId(profile = {}) {
 
 function caseIdPolicy(profile = {}) {
   return requiresCaseId(profile) ? `required (${profile.commitMessageFormat || 'CASE_ID: concise summary'})` : 'optional unless task/profile requires it';
-}
-
-function formatReleaseChecks(commands) {
-  const lines = ['- `git diff --check` for dirty work or `git show --check --stat HEAD` for committed-only release review.'];
-  if (commands.test) lines.push(`- test: \`${commands.test}\``);
-  if (commands.build) lines.push(`- build: \`${commands.build}\``);
-  if (commands.lint) lines.push(`- lint/typecheck/format: \`${commands.lint}\``);
-  if (!commands.test && !commands.build && !commands.lint) lines.push('- No project test/build/lint commands discovered; record this as a release cap.');
-  return lines.join('\n');
-}
-
-function formatReleaseStopGates(gitInfo, profile) {
-  const gates = [];
-  if (gitInfo.status) gates.push('Dirty working tree is present; confirm whether each file belongs in the release before committing or pushing.');
-  if (!gitInfo.upstream) gates.push('No upstream branch is configured; confirm push target before any credentialed write.');
-  if (gitInfo.behind > 0) gates.push(`Branch is ${gitInfo.behind} commit(s) behind upstream; pull/rebase/merge policy must be confirmed before release.`);
-  if (!profile.releasePolicy) gates.push('Release policy is not configured in the SDLC profile.');
-  if (!profile.humanApprovalGates) gates.push('Human approval gates are not configured in the SDLC profile.');
-  gates.push('Explicit human approval is required before commit, push, merge, deploy, publish, or destructive Git actions.');
-  return formatList(gates);
-}
-
-function recentCommits(repo, count = 5) {
-  return git(repo, ['log', '--oneline', `-${count}`]).split(/\r?\n/).filter(Boolean);
-}
-
-function accessibilityPolicy(profile) {
-  const value = String(profile.accessibilityReviewPolicy || 'optional').trim().toLowerCase();
-  return ['optional', 'suggested', 'required'].includes(value) ? value : 'optional';
-}
-
-function formatAccessibilityPolicy(policy, route) {
-  const routeText = route === 'ui-rendered-review' ? 'This route touches rendered UI.' : 'This route does not inherently require accessibility evidence.';
-  if (policy === 'required') {
-    return `Policy: required
-${routeText}
-Required evidence: run the repository accessibility check or record the work as incomplete/capped until a human waives it.`;
-  }
-  if (policy === 'suggested') {
-    return `Policy: suggested
-${routeText}
-Suggested evidence: run accessibility checks when UI changes affect real users, keyboard use, forms, navigation, focus, semantics, contrast, or production-facing surfaces. If skipped, record a cap.`;
-  }
-  return `Policy: optional
-${routeText}
-Default behavior: accessibility checks are available but not a stopping gate. For internal tools, skipped accessibility is not a failure unless the repository or human requires it.`;
-}
-
-function formatSecurityOverlay(triggers) {
-  if (!triggers.length) {
-    return `Security/tool triggers:
-- none detected
-
-Consent gates:
-- use normal route gates
-
-Mitigations or caps:
-- none`;
-  }
-
-  return `Security/tool triggers:
-${formatList(triggers)}
-
-Consent gates:
-- get explicit approval before credentialed writes, destructive actions, dependency/tool installs, production effects, or external service calls
-
-Mitigations or caps:
-- load threat-model/security review guidance when data, auth, dependency, tool, external integration, prompt/tool injection, or production risk is present
-- document unavailable security evidence as an explicit cap`;
 }
 
 function groupCounts(values) {
