@@ -21,6 +21,7 @@ import { multiLedger, multiPacket, multiQa, multiStatus } from './multi.mjs';
 import { contractPacket } from './contract.mjs';
 import { dataBoundary, dataEvidence, dataPacket, dataQueryPlan } from './data.mjs';
 import { ticketDrift, ticketEvidence, ticketUpdatePreview } from './ticket.mjs';
+import { integrationPacket } from './integration.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -174,7 +175,7 @@ export async function main(argv) {
   if (area === 'ticket' && action === 'evidence') return ticketEvidence(repo, options);
   if (area === 'ticket' && action === 'drift') return ticketDrift(repo, options);
   if (area === 'ticket' && action === 'update-preview') return ticketUpdatePreview(repo, options);
-  if (area === 'integration' && action === 'packet') return integrationPacket(repo, options);
+  if (area === 'integration' && action === 'packet') return integrationPacket(repo, options, { classifyTouchedSurface });
   if (area === 'validate' && action === 'ladder') return validationLadder(repo, options);
   if (area === 'fixture' && action === 'plan') return fixturePlan(repo, options);
   if (area === 'test' && action === 'plan') return testPlan(repo, options);
@@ -2916,50 +2917,6 @@ ${options.notes || ''}
 
   appendPacketCompletion(packetPath, entry);
   console.log(relative(repo, packetPath));
-}
-
-function integrationPacket(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the integration packet can be scoped.');
-
-  const git = getGitInfo(repo);
-  const integrationFiles = git.changedFiles.filter((file) => classifyTouchedSurface(file) === 'external integration');
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-integration-packet.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Integration Packet
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Status: ${git.status || 'clean'}
-
-## Integration Surfaces
-
-${formatList(integrationFiles.length ? integrationFiles : ['No changed integration files detected yet; identify providers/endpoints/events/files during implementation.'])}
-
-## Integration Checklist
-
-- Provider/system:
-- Endpoint/webhook/file/event:
-- Auth/config touched:
-- Sandbox/test path:
-- Retry/error behavior:
-- Logging/observability:
-- QA validation path:
-- Fallback/rollback:
-- External dependency cap:
-
-## Verification
-
-- Sandbox/API check:
-- Manual QA observable result:
-- Unavailable integration cap:
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
 }
 
 function validationLadder(repo, options = {}) {
