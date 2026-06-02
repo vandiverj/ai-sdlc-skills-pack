@@ -5,16 +5,21 @@ import { fileURLToPath } from 'node:url';
 import { appendControlJsonLine, dedupe, dedupeBy, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, parseOptions, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteJsonFile, safeWriteTextFile, slug, stamp, toCamel, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys } from './profile.mjs';
+import { defaultCalibrationPath, defaultFeedbackPath, defaultRunsDir, defaultTracePath, runStatePath } from './paths.mjs';
+import { controlCurrentPointerPath, controlRunDir, controlRunRoot, ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, validStateTransition } from './state.mjs';
 import { matchRecipes, recipeForCompile, recipeRegistry } from './recipes.mjs';
 import { adapterGenerate } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
+import { createServices } from './services.mjs';
 import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, hasFileExt, inferTestingSurfaces, normalizeUnitPath, qaModeForSurfaces, unitRegistry } from './units.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(scriptPath), '..', '..', '..');
+const services = createServices({ agentsRoot });
 
 export async function main(argv) {
+  void services;
   const [area, action, ...rest] = argv;
   const areaOptions = parseOptions(argv.slice(1));
 
@@ -8262,10 +8267,6 @@ function buildRunState(repo, task, options = {}) {
   };
 }
 
-function runStatePath(repo, task) {
-  return join(defaultRunsDir(repo), `${slug(task || 'current-task')}-run-state.json`);
-}
-
 function loadRunState(repo, task) {
   const explicit = task ? runStatePath(repo, task) : '';
   if (explicit && existsSync(explicit)) return { ...readJsonIfExists(explicit), path: explicit };
@@ -8287,10 +8288,6 @@ function runNextAction(repo, state, git) {
   if (!packets.some((packet) => packet.kind === 'developer-verification')) return `sdlc verify packet --task "${escapeCommandArg(task)}"`;
   if (open.length) return suggestedFinalGateCommand(open[0], task);
   return `sdlc task finish --task "${escapeCommandArg(task)}"`;
-}
-
-function defaultTracePath(repo, task) {
-  return join(defaultRunsDir(repo), `${slug(task || 'current-task')}-trace.jsonl`);
 }
 
 function traceRow(repo, options = {}) {
@@ -8373,10 +8370,6 @@ function boolText(value) {
   if (value === true || /^(yes|true|1)$/i.test(String(value || ''))) return 'yes';
   if (value === false || /^(no|false|0)$/i.test(String(value || ''))) return 'no';
   return 'unknown';
-}
-
-function defaultFeedbackPath(repo) {
-  return join(defaultRunsDir(repo), 'developer-feedback.jsonl');
 }
 
 function intakePacket(repo, options = {}) {
@@ -10248,40 +10241,6 @@ function recommendedLearningPrompts(caps, friction, proposals, contextMissing = 
   return formatList(prompts);
 }
 
-function controlRunRoot(repo, options = {}) {
-  return options.outRoot ? resolve(repo, options.outRoot) : defaultRunsDir(repo);
-}
-
-function controlCurrentPointerPath(repo, options = {}) {
-  return join(controlRunRoot(repo, options), 'current.json');
-}
-
-function controlRunDir(repo, options = {}) {
-  const root = controlRunRoot(repo, options);
-  const id = options.taskId || `${stamp()}-${slug(options.task || 'task')}`;
-  return join(root, id);
-}
-
-function ensureControlRunDir(repo, options = {}, task = '') {
-  const info = readCurrentStateInfo(repo, options);
-  if (info.runDir) return info.runDir;
-  const runDir = controlRunDir(repo, { ...options, task });
-  mkdirSync(runDir, { recursive: true });
-  return runDir;
-}
-
-function readCurrentState(repo, options = {}) {
-  return readCurrentStateInfo(repo, options).state;
-}
-
-function readCurrentStateInfo(repo, options = {}) {
-  const pointer = readJsonIfExists(controlCurrentPointerPath(repo, options));
-  const runDir = options.taskId ? join(controlRunRoot(repo, options), options.taskId) : pointer?.path ? resolve(repo, pointer.path) : '';
-  const statePath = runDir ? join(runDir, 'state.json') : '';
-  const state = statePath && existsSync(statePath) ? readJsonIfExists(statePath) : null;
-  return { state, runDir, previousStage: state?.stage || '' };
-}
-
 function synthesizeState(repo, task, options = {}) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
@@ -10316,25 +10275,6 @@ function controlTraceRow(repo, options = {}) {
     gate: options.gate || '',
     evidence: options.evidence || '',
   };
-}
-
-function validStateTransition(from, to) {
-  const order = ['intake', 'scoped', 'implementing', 'verifying', 'qa-ready', 'finish-ready', 'committed'];
-  const fromIndex = order.indexOf(from);
-  const toIndex = order.indexOf(to);
-  if (fromIndex < 0 || toIndex < 0) return false;
-  return toIndex >= fromIndex;
-}
-
-function nextActionForStage(stage, task) {
-  const escaped = escapeCommandArg(task || 'current task');
-  if (stage === 'scoped') return `sdlc state advance --to implementing --reason "scope approved"`;
-  if (stage === 'implementing') return `sdlc run-check --name test -- <project test command>`;
-  if (stage === 'verifying') return `sdlc complete check --task "${escaped}"`;
-  if (stage === 'qa-ready') return `sdlc finish packet --task "${escaped}"`;
-  if (stage === 'finish-ready') return 'sdlc action preview --action commit';
-  if (stage === 'committed') return 'human decides whether push/release process applies';
-  return `sdlc evidence required --task "${escaped}"`;
 }
 
 function ensureEvidenceManifest(repo, runDir, task, route, options = {}) {
@@ -11073,14 +11013,6 @@ function policyDecision(status) {
 
 function defaultLearningBacklogPath(repo) {
   return join(repo, '.ai-local', 'sdlc-learning-backlog.jsonl');
-}
-
-function defaultRunsDir(repo) {
-  return join(repo, '.ai-local', 'sdlc-runs');
-}
-
-function defaultCalibrationPath(repo) {
-  return join(repo, '.ai-local', 'sdlc-calibration.jsonl');
 }
 
 function escapeCommandArg(value) {
