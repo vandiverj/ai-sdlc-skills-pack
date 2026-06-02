@@ -1,9 +1,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, relative, resolve } from 'node:path';
-import { dedupe, escapeCell, fail, formatInlineList, formatList, printObject } from './common.mjs';
+import { dirname, join, relative, resolve } from 'node:path';
+import { dedupe, escapeCell, fail, formatInlineList, formatList, printObject, safeWriteTextFile, slug, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
-import { runStatePath } from './paths.mjs';
+import { defaultRunsDir, runStatePath } from './paths.mjs';
 import { inferRouteFromTask } from './routes.mjs';
 import { buildRunState, loadRunState, runNextAction } from './runstate.mjs';
 import { affectedUnits, inferTestingSurfaces } from './units.mjs';
@@ -16,6 +16,85 @@ export function runPlan(repo, options = {}) {
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(state, null, 2), 'utf8');
   console.log(relative(repo, outPath));
+}
+
+export function runStart(repo, options = {}, dependencies = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "..." so the run can be scoped.');
+
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(route)}-run-start.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Run Start
+
+Date: ${new Date().toISOString()}
+Task: ${task}
+Repository: ${repo}
+Route: ${route}
+Branch: ${git.branch || 'unknown'}
+Status: ${git.status || 'clean'}
+Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
+
+## Suggested Command Sequence
+
+\`\`\`bash
+sdlc readiness
+sdlc context pack --task "${escapeCommandArg(task)}"
+sdlc route start ${route} --task "${escapeCommandArg(task)}"
+${dependencies.runStartPacketCommand(route, task)}
+\`\`\`
+
+## Open Gates
+
+${formatList(dependencies.runStartGates(route, task, git, profile.values))}
+
+## Finish Command
+
+\`\`\`bash
+sdlc run finish --route ${route}
+\`\`\`
+`;
+
+  safeWriteTextFile(repo, outPath, content);
+  console.log(relative(repo, outPath));
+}
+
+export function runFinish(repo, options = {}, dependencies = {}) {
+  const route = options.route || '';
+  if (!route) fail('Pass --route <route> so run finish can check the right gates.');
+
+  const git = getGitInfo(repo);
+  const packet = options.packet ? dependencies.readPacket(repo, dependencies.resolvePacketPath(repo, options.packet)) : dependencies.findLatestPacket(repo, route);
+  const done = dependencies.doneChecksForRoute(route, git, packet);
+  const open = done.filter((item) => item.status === 'open');
+  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(route)}-run-finish.md`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const content = `# SDLC Run Finish
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Route: ${route}
+Packet: ${packet ? relative(repo, packet.path) : 'none'}
+Result: ${open.length ? 'open gates remain' : 'done checks pass'}
+
+## Done Checks
+
+| Check | Status | Detail |
+| --- | --- | --- |
+${done.map((item) => `| ${escapeCell(item.name)} | ${item.status} | ${escapeCell(item.detail)} |`).join('\n')}
+
+## Remaining Work
+
+${formatList(open.map((item) => `${item.name}: ${item.detail}`))}
+`;
+
+  writeFileSync(outPath, content, 'utf8');
+  console.log(relative(repo, outPath));
+  if (open.length) process.exitCode = 1;
 }
 
 export function runStatus(repo, options = {}, dependencies = {}) {

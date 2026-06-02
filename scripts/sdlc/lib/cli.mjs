@@ -6,7 +6,7 @@ import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, form
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
-import { runDashboard, runNext, runPlan, runResume, runStatus } from './run.mjs';
+import { runDashboard, runFinish, runNext, runPlan, runResume, runStart, runStatus } from './run.mjs';
 import { controlCurrentPointerPath, controlRunDir, controlRunRoot, ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, validStateTransition } from './state.mjs';
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
 import { ensureEvidenceManifest, evidenceAdd, evidenceInit, evidencePlan, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, evidenceStatusRows, readEvidenceManifest } from './evidence.mjs';
@@ -141,8 +141,8 @@ export async function main(argv) {
   if (area === 'run' && action === 'next') return runNext(repo, options, runActionDependencies());
   if (area === 'run' && action === 'resume') return runResume(repo, options, runActionDependencies());
   if (area === 'run' && action === 'dashboard') return runDashboard(repo, options, runActionDependencies());
-  if (area === 'run' && action === 'start') return runStart(repo, options);
-  if (area === 'run' && action === 'finish') return runFinish(repo, options);
+  if (area === 'run' && action === 'start') return runStart(repo, options, runLifecycleDependencies());
+  if (area === 'run' && action === 'finish') return runFinish(repo, options, runLifecycleDependencies());
   if (area === 'workspace' && action === 'status') return workspaceStatus(repo, options);
   if (area === 'workspace' && action === 'init') return workspaceInit(repo, options);
   if (area === 'workspace' && action === 'doctor') return workspaceDoctor(repo, options);
@@ -1197,50 +1197,6 @@ function learnSuggest(repo, options = {}) {
   console.log(formatList(suggestions.length ? suggestions : ['No strong process-learning candidate detected from local run records.']));
 }
 
-function runStart(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the run can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(route)}-run-start.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Run Start
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Route: ${route}
-Branch: ${git.branch || 'unknown'}
-Status: ${git.status || 'clean'}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-
-## Suggested Command Sequence
-
-\`\`\`bash
-sdlc readiness
-sdlc context pack --task "${escapeCommandArg(task)}"
-sdlc route start ${route} --task "${escapeCommandArg(task)}"
-${runStartPacketCommand(route, task)}
-\`\`\`
-
-## Open Gates
-
-${formatList(runStartGates(route, task, git, profile.values))}
-
-## Finish Command
-
-\`\`\`bash
-sdlc run finish --route ${route}
-\`\`\`
-`;
-
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
 function taskPreflight(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so preflight can be scoped.');
@@ -1778,41 +1734,6 @@ ${confidenceBlock({
   if (open.length) process.exitCode = 1;
 }
 
-function runFinish(repo, options = {}) {
-  const route = options.route || '';
-  if (!route) fail('Pass --route <route> so run finish can check the right gates.');
-
-  const git = getGitInfo(repo);
-  const packet = options.packet ? readPacket(repo, resolvePacketPath(repo, options.packet)) : findLatestPacket(repo, route);
-  const done = doneChecksForRoute(route, git, packet);
-  const open = done.filter((item) => item.status === 'open');
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slug(route)}-run-finish.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Run Finish
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Route: ${route}
-Packet: ${packet ? relative(repo, packet.path) : 'none'}
-Result: ${open.length ? 'open gates remain' : 'done checks pass'}
-
-## Done Checks
-
-| Check | Status | Detail |
-| --- | --- | --- |
-${done.map((item) => `| ${escapeCell(item.name)} | ${item.status} | ${escapeCell(item.detail)} |`).join('\n')}
-
-## Remaining Work
-
-${formatList(open.map((item) => `${item.name}: ${item.detail}`))}
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-  if (open.length) process.exitCode = 1;
-}
-
 function getRecipe(route) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
 
@@ -2204,6 +2125,10 @@ function assessmentDependencies() {
 
 function runActionDependencies() {
   return { findPackets, finalGateOpenItems, suggestedFinalGateCommand, taskEvidenceSummary };
+}
+
+function runLifecycleDependencies() {
+  return { doneChecksForRoute, findLatestPacket, readPacket, resolvePacketPath, runStartGates, runStartPacketCommand };
 }
 
 function qaScenarios(repo, command, options = {}) {
