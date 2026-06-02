@@ -213,7 +213,7 @@ export function feedbackFriction(repo, options = {}) {
 
 export function feedbackSynthesize(repo, options = {}) {
   const rows = filterSince(readFeedbackRows(repo, options), options.since || '');
-  const groups = groupCounts(rows.map((row) => row.friction || 'other'));
+  const groups = groupCounts(rows.map((row) => normalizeFriction(row.friction || 'other')));
   const result = {
     schema: 'sdlc-feedback-synthesis-v1',
     generatedAt: new Date().toISOString(),
@@ -221,6 +221,8 @@ export function feedbackSynthesize(repo, options = {}) {
     total: rows.length,
     groups,
     topActions: groupEntries(groups).slice(0, 5).map(([type, count]) => `${type}: ${count}`),
+    candidateStatuses: feedbackCandidateStatuses(groups),
+    candidatePlan: feedbackCandidatePlan(groups),
   };
   if (options.json) console.log(JSON.stringify(result, null, 2));
   else {
@@ -231,7 +233,7 @@ export function feedbackSynthesize(repo, options = {}) {
 
 export function feedbackActionPlan(repo, options = {}) {
   const rows = filterSince(readFeedbackRows(repo, options), options.since || '');
-  const groups = groupCounts(rows.map((row) => row.friction || 'other'));
+  const groups = groupCounts(rows.map((row) => normalizeFriction(row.friction || 'other')));
   const content = `# SDLC Feedback Action Plan
 
 Date: ${new Date().toISOString()}
@@ -244,6 +246,14 @@ ${formatList(groupEntries(groups).map(([type, count]) => `${type}: ${count}`))}
 ## Recommended Actions
 
 ${formatList(groupEntries(groups).map(([type]) => actionForFriction(type)))}
+
+## Review Status
+
+${formatList(feedbackCandidateStatuses(groups).map((row) => `${row.category}: ${row.status}`))}
+
+## Candidate Implementation Plan
+
+${formatList(feedbackCandidatePlan(groups))}
 `;
   if (options.out) {
     const outPath = resolve(repo, options.out);
@@ -434,7 +444,40 @@ function actionForFriction(type) {
   if (text.includes('wrong')) return 'Add a scenario regression for the wrong recommendation or route.';
   if (text.includes('missing')) return 'Add a setup/profile/recommendation hint for the missing command or artifact.';
   if (text.includes('too-much')) return 'Reduce artifact/prompt surface or move command to expert help.';
+  if (text.includes('context')) return 'Tighten context projection and warn on broad document loads.';
+  if (text.includes('verification')) return 'Improve verification ladder, recommendation wording, or command capture guidance.';
+  if (text.includes('artifact')) return 'Harden local artifact lifecycle and cleanup hints.';
+  if (text.includes('runtime')) return 'Improve adapter doctor/fallback guidance for missing tools.';
+  if (text.includes('sensitive')) return 'Strengthen sanitize checks and local evidence guardrails.';
   return `Review ${type} feedback and decide whether it is one-off or repeated.`;
+}
+
+function normalizeFriction(type) {
+  const text = String(type || '').toLowerCase();
+  if (text.includes('confusion')) return 'command confusion';
+  if (text.includes('slow') || text.includes('delay') || text.includes('redundancy')) return 'workflow delay/redundancy';
+  if (text.includes('wrong') || text.includes('route') || text.includes('surface')) return 'wrong route or surface detection';
+  if (text.includes('context')) return 'context overload';
+  if (text.includes('verify') || text.includes('evidence') || text.includes('cap')) return 'verification gap';
+  if (text.includes('artifact') || text.includes('scratch')) return 'artifact clutter';
+  if (text.includes('runtime') || text.includes('tool') || text.includes('mcp') || text.includes('hook')) return 'runtime/tool cap';
+  if (text.includes('qa')) return 'qa script problem';
+  if (text.includes('sensitive') || text.includes('data-risk') || text.includes('unsafe')) return 'sensitive evidence issue';
+  return text || 'other';
+}
+
+function feedbackCandidateStatuses(groups) {
+  return groupEntries(groups).slice(0, 8).map(([category, count]) => ({
+    category,
+    status: count >= 4 ? 'implement' : count >= 3 ? 'validate with fixture' : count >= 2 ? 'observe' : 'ignore',
+  }));
+}
+
+function feedbackCandidatePlan(groups) {
+  return feedbackCandidateStatuses(groups)
+    .filter((row) => row.status !== 'ignore')
+    .map((row) => `${row.category}: ${row.status}; ${actionForFriction(row.category)}`)
+    .concat(feedbackCandidateStatuses(groups).every((row) => row.status === 'ignore') ? ['No repeated signal is strong enough to justify implementation yet.'] : []);
 }
 
 function groupEntries(groups) {

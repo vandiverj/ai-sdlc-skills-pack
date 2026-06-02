@@ -1,5 +1,5 @@
 import { join, relative, resolve } from 'node:path';
-import { fail, formatList, printObject, printTable, safeWriteJsonFile, safeWriteTextFile, slug } from './common.mjs';
+import { fail, formatList, printObject, printTable, readJsonLines, safeWriteJsonFile, safeWriteTextFile, slug } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -40,6 +40,10 @@ export function commandRecommend(repo, options = {}) {
   }
   printObject({ task, route: result.route, phase: result.phase, recommendationCount: result.recommendations.length });
   printTable(['Priority', 'Command', 'Evidence', 'Why'], result.recommendations.map((row) => [row.priority, row.command, row.evidenceClass, row.why]));
+  if (result.learnedNotes?.length) {
+    console.log('\n## Learned Notes\n');
+    console.log(formatList(result.learnedNotes));
+  }
 }
 
 export function buildCommandRecommendation(repo, task, options = {}) {
@@ -61,6 +65,7 @@ export function buildCommandRecommendation(repo, task, options = {}) {
     phase,
     testingSurfaces: plan.testingSurfaces,
     recommendations: rows,
+    learnedNotes: options.learned ? learnedRecommendationNotes(repo, task, rows) : [],
   };
 }
 
@@ -225,6 +230,20 @@ function fallbackForCommand(command, task) {
   if (/qa/i.test(command)) return `Use sdlc qa outline --task "${escapeDouble(task)}" if a full script is too heavy.`;
   if (/render/i.test(command)) return 'Use manual smoke or cap rendered evidence when browser tooling is unavailable.';
   return 'Record why this command was skipped or replaced.';
+}
+
+function learnedRecommendationNotes(repo, task, recommendedRows) {
+  const captures = readJsonLines(join(defaultRunsDir(repo), 'command-captures.jsonl')).filter((row) => row.task === task);
+  if (!captures.length) return ['No prior command captures for this task yet.'];
+  const notes = [];
+  for (const row of captures.slice(-8)) {
+    if (row.recommendedCommand && row.recommendedCommand !== row.command) {
+      notes.push(`Deviation observed: recommended "${row.recommendedCommand}" but ran "${row.command}" (${row.status}). ${row.deviationReason || 'No reason recorded.'}`);
+    }
+  }
+  const latestPassed = captures.findLast ? captures.findLast((row) => row.status === 'pass') : [...captures].reverse().find((row) => row.status === 'pass');
+  if (latestPassed) notes.push(`Latest passing command evidence: ${latestPassed.command}.`);
+  return notes.length ? notes : ['No meaningful recommendation deviations recorded yet.'];
 }
 
 export function commandRegistry() {

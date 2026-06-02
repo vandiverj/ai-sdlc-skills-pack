@@ -185,6 +185,46 @@ export function artifactCleanupPlan(repo, options = {}) {
   writeOrPrint(repo, options.out, lines.join('\n'));
 }
 
+export function artifactLifecycle(repo, options = {}) {
+  const root = options.root ? resolve(repo, options.root) : join(repo, '.ai-local');
+  const files = existsSync(root) ? listArtifactFiles(root).slice(0, 750) : [];
+  const rows = files.map((file) => artifactLifecycleClassification(file, root));
+  if (!rows.length) rows.push({
+    class: 'missing-or-empty',
+    recommendation: existsSync(root) ? 'no action' : 'create when needed',
+    ttl: 'n/a',
+    artifact: relative(repo, root),
+    reason: existsSync(root) ? 'no local artifacts found' : 'local artifact root not found',
+  });
+  const result = {
+    schema: 'sdlc-artifact-lifecycle-v1',
+    repository: repo,
+    root: relative(repo, root),
+    generatedAt: new Date().toISOString(),
+    rows,
+    rules: artifactLifecycleRules(),
+  };
+  if (options.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  const lines = [
+    '# SDLC Artifact Lifecycle',
+    '',
+    `Root: ${result.root}`,
+    '',
+    '| Class | Recommendation | TTL | Artifact | Reason |',
+    '| --- | --- | --- | --- | --- |',
+    ...rows.map((row) => `| ${escapeCell(row.class)} | ${escapeCell(row.recommendation)} | ${escapeCell(row.ttl)} | ${escapeCell(row.artifact)} | ${escapeCell(row.reason)} |`),
+    '',
+    '## Rules',
+    '',
+    ...result.rules.map((rule) => `- ${rule}`),
+    '',
+  ];
+  writeOrPrint(repo, options.out, lines.join('\n'));
+}
+
 export function artifactScratchPolicy(repo, options = {}) {
   const scratchDir = defaultScratchScriptsDir(repo);
   const maxAgeDays = Number(options.maxAgeDays || options.ttlDays || 7);
@@ -309,6 +349,72 @@ function artifactLifecycleRows(runDir) {
     if (/tool-gaps|tools\.json|capability|local-first/i.test(file.rel)) return { recommendation: 'keep for run', artifact: file.rel, reason: 'local-first fact cache; refresh instead of copying into durable docs' };
     return { recommendation: 'review', artifact: file.rel, reason: 'decide whether temporary evidence, durable context, or learning candidate' };
   });
+}
+
+function artifactLifecycleClassification(file, root) {
+  const rel = file.rel.replace(/\\/g, '/');
+  const ageDays = artifactAgeDays(file.abs);
+  if (/sdlc-scratch\/scripts\/.+\.(ps1|sh|cmd|bat)$/i.test(rel)) return {
+    class: 'scratch helper',
+    recommendation: ageDays > 7 ? 'cleanup candidate' : 'keep temporarily',
+    ttl: '7 days',
+    artifact: rel,
+    reason: ageDays > 7 ? `scratch script is ${ageDays} days old` : 'inside scratch helper TTL',
+  };
+  if (/sdlc-runs\/.+\/(run\.json|run\.md|state\.json|evidence\.json)$/i.test(rel)) return {
+    class: 'run evidence',
+    recommendation: 'keep for task history',
+    ttl: 'retain until task archived',
+    artifact: rel,
+    reason: 'canonical run state or evidence',
+  };
+  if (/sdlc-runs\/.+\.(jsonl)$/i.test(rel)) return {
+    class: 'event or command log',
+    recommendation: ageDays > 30 ? 'summarize/archive candidate' : 'summarize before prompt use',
+    ttl: '30 days before summary review',
+    artifact: rel,
+    reason: 'log-like local evidence should not be pasted raw into prompts',
+  };
+  if (/agents\/.+\.md$/i.test(rel) || /handoff|packet|qa/i.test(rel)) return {
+    class: 'generated packet',
+    recommendation: ageDays > 14 ? 'summarize/archive candidate' : 'keep for active task',
+    ttl: '14 days after task closeout',
+    artifact: rel,
+    reason: 'generated handoff or QA artifact',
+  };
+  if (/sdlc-profile\.md$|repository-setup\.md$/i.test(rel)) return {
+    class: 'durable local profile',
+    recommendation: 'keep',
+    ttl: 'durable local',
+    artifact: rel,
+    reason: 'repo-local SDLC configuration',
+  };
+  return {
+    class: 'local generated output',
+    recommendation: ageDays > 14 ? 'review cleanup or promotion' : 'review ownership',
+    ttl: '14 days before ownership review',
+    artifact: rel,
+    reason: 'classify as durable context, run evidence, or cleanup candidate',
+  };
+}
+
+function artifactLifecycleRules() {
+  return [
+    'Durable product context belongs in repo/unit/shared context, not transient run folders.',
+    'Portable process learnings belong in sanitized `.agents/learnings` candidates.',
+    'Scratch helpers stay under `.ai-local/sdlc-scratch/scripts/` and default to a 7-day TTL.',
+    'Run logs and command captures should be summarized before model prompt use.',
+    'Cleanup remains dry-run guidance unless a dedicated cleanup command is run with explicit apply/write approval.',
+  ];
+}
+
+function artifactAgeDays(path) {
+  try {
+    const ageMs = Date.now() - statSync(path).mtimeMs;
+    return Math.max(0, Math.floor(ageMs / (24 * 60 * 60 * 1000)));
+  } catch {
+    return 0;
+  }
 }
 
 function scratchCleanupRows(scratchDir, cutoffMs) {

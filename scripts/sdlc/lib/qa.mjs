@@ -227,6 +227,20 @@ function qaCoverageRows(task, surfaces, mode) {
   return rows;
 }
 
+function qaTraceabilityRows(task, files, surfaces, sourceHints) {
+  const behaviors = dedupe([
+    ...qaAreas(task, files),
+    ...surfaces.map((surface) => `Validate ${surface} behavior.`),
+  ]).slice(0, 8);
+  return behaviors.map((behavior, index) => ({
+    behavior,
+    step: index === 0 ? 'QA-001 primary changed workflow' : index === 1 ? 'QA-002 regression check' : 'QA-003+ domain/regression coverage',
+    expected: index === 0 ? 'Changed behavior works as described.' : 'Existing or adjacent behavior remains correct.',
+    regression: sourceHints.risks[index] || 'nearest existing workflow',
+    coverage: 'covered',
+  }));
+}
+
 export function qaScenarios(repo, command, options = {}) {
   if (command === 'init') return qaScenariosInit(repo, options);
   if (command === 'match') return qaScenariosMatch(repo, options);
@@ -301,6 +315,7 @@ export function qaScript(repo, options = {}, deps = {}) {
   const external = externalEvidenceProfile(profile.values);
   const ticketId = options.ticket || firstMatch(task, /\b([A-Z][A-Z0-9]+-\d+)\b/) || '';
   const scopeItems = dedupe([...qaAreas(task, files), ...sourceHints.scope]);
+  const traceRows = qaTraceabilityRows(task, files, testingSurfaces, sourceHints);
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-qa-test-script.md`);
   mkdirSync(dirname(outPath), { recursive: true });
 
@@ -375,6 +390,12 @@ ${primaryQaSteps(mode)}
 ${qaDomainSections(task, files)}
 
 ${scenarioRetestSection(options)}
+
+## QA Coverage Matrix
+
+| Changed behavior | QA step | Expected result | Regression area | Coverage |
+| --- | --- | --- | --- | --- |
+${traceRows.map((row) => `| ${escapeCell(row.behavior)} | ${escapeCell(row.step)} | ${escapeCell(row.expected)} | ${escapeCell(row.regression)} | ${escapeCell(row.coverage)} |`).join('\n')}
 
 ## Regression Checklist
 
@@ -507,7 +528,51 @@ export function qaBuild(repo, options = {}) {
   const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const mode = qaModeForSurfaces(surfaces, task);
   const outline = qaOutlineForMode(mode, task, files, surfaces);
-  const lines = ['# QA Test Script', '', `Task: ${task}`, `Mode: ${mode}`, '', '## Preconditions', '', ...outline.preconditions.map((item) => `- ${item}`), '', '## Primary Test Steps', '', ...outline.primary, '', '## Regression Checks', '', ...outline.regression.map((item) => `- ${item}`), '', '## Caps Or Setup Gaps', '', ...outline.caps.map((item) => `- ${item}`), ''];
+  const traceRows = qaTraceabilityRows(task, files, surfaces, { risks: [] });
+  const lines = [
+    '# QA Test Script',
+    '',
+    `Task: ${task}`,
+    `Mode: ${mode}`,
+    '',
+    '## Summary',
+    '',
+    'This Markdown is intended to be pasted into YouTrack or a similar tracking system and followed by human QA testers.',
+    '',
+    '## Scope',
+    '',
+    ...outline.scope.map((item) => `- ${item}`),
+    '',
+    '## Environment',
+    '',
+    '- Environment: QA',
+    '- Browser/device:',
+    '- API client / Swagger:',
+    '- Test account/data:',
+    '',
+    '## Preconditions',
+    '',
+    ...outline.preconditions.map((item) => `- ${item}`),
+    '',
+    '## Test Cases',
+    '',
+    ...outline.primary,
+    '',
+    '## QA Coverage Matrix',
+    '',
+    '| Changed behavior | QA step | Expected result | Regression area | Coverage |',
+    '| --- | --- | --- | --- | --- |',
+    ...traceRows.map((row) => `| ${escapeCell(row.behavior)} | ${escapeCell(row.step)} | ${escapeCell(row.expected)} | ${escapeCell(row.regression)} | ${escapeCell(row.coverage)} |`),
+    '',
+    '## Regression Checklist',
+    '',
+    ...outline.regression.map((item) => `- ${item}`),
+    '',
+    '## Known Risks / Notes',
+    '',
+    ...outline.caps.map((item) => `- ${item}`),
+    '',
+  ];
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${slug(task)}-qa-script.md`);
   safeWriteTextFile(repo, outPath, lines.join('\n'));
   console.log(relative(repo, outPath));
@@ -523,12 +588,14 @@ export function qaValidate(repo, options = {}) {
     { section: 'Preconditions', headings: ['Preconditions'] },
     { section: 'Primary Test Steps', headings: ['Primary Test Steps', 'Test Cases'] },
     { section: 'Regression Checks', headings: ['Regression Checks', 'Regression Checklist'] },
+    { section: 'QA Coverage Matrix', headings: ['QA Coverage Matrix'] },
   ];
   for (const group of sectionGroups) {
     if (!group.headings.some((heading) => new RegExp(`##\\s+${heading}`, 'i').test(text))) {
       findings.push({ status: 'block', section: group.section, detail: `missing required QA section (${group.headings.join(' or ')})` });
     }
   }
+  if (!/YouTrack|tracking ticket|tracking-system|tracking system/i.test(text)) findings.push({ status: 'warn', section: 'tracking-format', detail: 'script should explicitly state ticket/tracking-system paste intent' });
   if (!/expected|confirm|verify|should/i.test(text)) findings.push({ status: 'warn', section: 'expected-results', detail: 'few explicit expected-result words detected' });
   if (!findings.length) findings.push({ status: 'pass', section: 'qa-script', detail: 'required structure present' });
   printTable(['Status', 'Section', 'Detail'], findings.map((item) => [item.status, item.section, item.detail]));

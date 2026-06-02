@@ -43,6 +43,42 @@ export function adapterLimits(repo, options = {}) {
   ]));
 }
 
+export function adapterDoctor(repo, options = {}) {
+  const runtime = String(options.runtime || 'generic').toLowerCase();
+  const profile = runtimeProfile(runtime);
+  const result = {
+    schema: 'sdlc-adapter-doctor-v1',
+    runtime,
+    repository: repo,
+    capabilities: {
+      shell: profile.shell,
+      hooks: profile.hooks,
+      mcp: profile.mcp,
+      browser: profile.browser,
+    },
+    prompt: `Use SDLC for this task: <task>. Runtime: ${runtime}. Start local-first, keep context bounded, verify with local evidence or explicit caps, and stop before commit or push.`,
+    preferredCli: [
+      'sdlc operator dashboard --task "<task>"',
+      'sdlc operator next --task "<task>"',
+      'sdlc context project --task "<task>" --phase implement --check',
+      'sdlc command recommend --task "<task>" --phase verify --learned',
+    ],
+    fallbackGuidance: [
+      'If hooks are unavailable, use chat prompts plus explicit CLI commands.',
+      'If MCPs are unavailable, rely on local repo evidence and pasted human context.',
+      'If browser tools are unavailable, use local tests, render plans, and explicit caps.',
+    ],
+  };
+  if (options.json) console.log(JSON.stringify(result, null, 2));
+  else {
+    printObject({ runtime, shell: profile.shell, hooks: profile.hooks, mcp: profile.mcp, browser: profile.browser });
+    console.log('\n## Preferred CLI\n');
+    console.log(formatList(result.preferredCli));
+    console.log('\n## Fallback Guidance\n');
+    console.log(formatList(result.fallbackGuidance));
+  }
+}
+
 
 export function hooksPlan(repo, options = {}) {
   const runtime = String(options.runtime || 'generic').toLowerCase();

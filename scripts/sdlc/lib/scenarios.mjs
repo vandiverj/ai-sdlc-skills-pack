@@ -218,6 +218,21 @@ export function scenarioRegressionCases() {
       expectedRoute: 'standard',
     },
     {
+      name: 'scratch script artifact review',
+      task: 'temporary PowerShell helper script was created in the repository root and should be moved to local scratch storage',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'stale context projection review',
+      task: 'check whether the current context projection is stale or missing before implementation resumes',
+      expectedRoute: 'standard',
+    },
+    {
+      name: 'learned verification advisory',
+      task: 'use learned command recommendation guidance without hardcoding a golden verification flow',
+      expectedRoute: 'standard',
+    },
+    {
       name: 'no tests manual qa',
       task: 'implement a feature in a no automated tests repo requiring manual QA script',
       expectedRoute: 'weak-test-legacy',
@@ -870,4 +885,11 @@ export function evalReport(repo, options = {}) {
 
 export function evalLocalFirstSuite(repo, options = {}) {
   scenarioTest(repo, { ...options, verbose: true });
+  if (options.strict) {
+    const cases = scenarioRegressionCases();
+    if (cases.length < 50) {
+      console.log(`FAIL strict suite: expected broad coverage, only ${cases.length} scenario cases configured.`);
+      process.exitCode = 1;
+    }
+  }
 }

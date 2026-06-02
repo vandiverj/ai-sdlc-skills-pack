@@ -18,6 +18,8 @@ export function commandCapture(repo, options = {}) {
     name,
     phase: options.phase || 'verification',
     command,
+    recommendedCommand: options.recommended || options.recommendedCommand || '',
+    deviationReason: options.deviationReason || options.reason || '',
     cwd: repo,
     status: options.status || 'cap',
     summary: options.summary || '',
@@ -93,8 +95,10 @@ export function contextProject(repo, options = {}) {
     exclude: ['raw logs', 'raw ticket text', 'raw database rows', 'archived strategy plans', 'unrelated repo docs'],
     sizeGuidance: 'Keep prompt context bounded; link artifacts instead of pasting large files.',
   };
+  projection.diagnostics = projectionDiagnostics(projection, { task, journal, git, inventory });
   if (options.json) console.log(JSON.stringify(projection, null, 2));
   else writeProjection(repo, options.out, projection);
+  if (options.check && projection.diagnostics.blockers.length) process.exitCode = 1;
 }
 
 export function evidenceLedger(repo, options = {}) {
@@ -219,9 +223,63 @@ ${formatList(projection.changedFiles)}
 ## Tool Facts
 
 ${formatList((projection.toolFacts.scripts || []).map((script) => `${script.command}: ${script.detail}`))}
+
+## Projection Diagnostics
+
+- Estimated size: ${projection.diagnostics.estimatedTokens} tokens
+- Included: ${projection.diagnostics.includedCount}
+- Excluded: ${projection.diagnostics.excludedCount}
+- Stale warnings: ${projection.diagnostics.staleWarnings.length}
+- Missing warnings: ${projection.diagnostics.missingWarnings.length}
+- Sensitive warnings: ${projection.diagnostics.sensitiveWarnings.length}
+
+## Warnings
+
+${formatList([...projection.diagnostics.blockers, ...projection.diagnostics.warnings])}
 `;
   if (out) safeWriteTextFile(repo, resolve(repo, out), content);
   else console.log(content.trimEnd());
+}
+
+function projectionDiagnostics(projection, { task, journal, git, inventory }) {
+  const warnings = [];
+  const blockers = [];
+  const missingWarnings = [];
+  const staleWarnings = [];
+  const sensitiveWarnings = [];
+  const taskText = String(task || '').toLowerCase();
+  const changedFiles = git.changedFiles || [];
+
+  if (!journal.promptAnalysis) missingWarnings.push('prompt analysis missing from run journal');
+  if (!journal.localFirst) missingWarnings.push('local-first plan missing from run journal');
+  if (!changedFiles.length && /implement|change|fix|add|update/.test(taskText)) warnings.push('no changed files detected yet; projection is pre-implementation or stale');
+  if (/ticket|youtrack|database|sql|production|customer|client|private url|log/.test(taskText)) sensitiveWarnings.push('task mentions sensitive evidence; keep raw values out of projection');
+  if (/api|swagger|openapi/.test(taskText) && !inventory.files.some((file) => /swagger|openapi/i.test(file.path))) warnings.push('API task without detected OpenAPI/Swagger file; profile or locate contract source');
+  if (/ui|render|browser|screen|page/.test(taskText) && projection.toolFacts.units.length === 0 && inventory.packageManager === 'unknown') warnings.push('UI task without detected app/package signals; rendered verification may need manual profile data');
+  if (projection.include.length > 8) warnings.push('projection include list is broad; consider pruning before model prompt use');
+  if (projection.exclude.some((row) => /raw/.test(row)) && /raw log|raw ticket|raw database/.test(taskText)) blockers.push('task asks for raw sensitive evidence; projection must use redacted summaries');
+
+  return {
+    estimatedTokens: estimateTokens(JSON.stringify({
+      task: projection.task,
+      phase: projection.phase,
+      changedFiles: projection.changedFiles,
+      toolFacts: projection.toolFacts,
+      include: projection.include,
+      exclude: projection.exclude,
+    })),
+    includedCount: projection.include.length,
+    excludedCount: projection.exclude.length,
+    staleWarnings,
+    missingWarnings,
+    sensitiveWarnings,
+    warnings: [...missingWarnings, ...staleWarnings, ...sensitiveWarnings, ...warnings],
+    blockers,
+  };
+}
+
+function estimateTokens(text) {
+  return Math.ceil(String(text || '').length / 4);
 }
 
 function renderLedger(ledger) {

@@ -10,11 +10,11 @@ import { appendPacketCompletion, completionTrackedPacketKinds, doneChecksForRout
 import { runDashboard, runFinish, runNext, runPlan, runResume, runStart, runStartGates, runStartPacketCommand, runStatus } from './run.mjs';
 import { appendControlEvent, classifyControlPathActivity, controlTraceRow, ensureControlRunDir, gitScopeRows, nextActionForStage, nextActionFromGates, readControlJsonLines, readCurrentState, readCurrentStateInfo, stateAdvance, stateBlockers, stateCurrent, stateExplain, stateInit, synthesizeState, writeGateRows } from './state.mjs';
 import { getRecipe, matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeMaturity, recipePromote, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
-import { ensureEvidenceManifest, evidenceAdd, evidenceGap, evidenceInit, evidenceMatrix, evidencePlan, evidenceProvenance, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, readEvidenceManifest } from './evidence.mjs';
+import { ensureEvidenceManifest, evidenceAdd, evidenceGap, evidenceInit, evidenceMatrix, evidencePlan, evidenceProvenance, evidenceRequired, evidenceRequirementsForTask, evidenceSanitizeCheck, evidenceStatus, readEvidenceManifest } from './evidence.mjs';
 import { detectCiSystems, detectDeploySystems, detectTestFrameworks, sharedContextDetails, sharedContextReachability } from './environment.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { detectContextContradictions, evalAddCase, evalCase, evalCompare, evalLocalFirstSuite, evalReport, evalRun, evalSuite, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
-import { adapterGenerate, adapterLimits, adapterProfile, adapterPrompt, eventReplay, eventValidate, hooksAudit, hooksContract, hooksPlan } from './adapters.mjs';
+import { adapterDoctor, adapterGenerate, adapterLimits, adapterProfile, adapterPrompt, eventReplay, eventValidate, hooksAudit, hooksContract, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { contextAliases, contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextDecision, contextDocCandidates, contextFinalCheck, contextFreshness, contextFreshnessRecommendations, contextFreshnessRow, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextPlacement, contextPlacementRecommendation, contextPrune, contextResolve, contextRestore, contextUpdatePlan, contextUpdateTargets, contextWhy, finalContextSignals, formatContextDocs, recommendedContextFile } from './context.mjs';
@@ -54,9 +54,9 @@ import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from '.
 import { confidenceBlock, detectWorkModes, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, inferVerificationMaturity, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verificationMaturity, verify, workmodeDetect } from './assessment.mjs';
 import { changeGraph, changeGraphEdges, changeGraphImplications, classifySearchPath, formatSearchGroups, groupBy, searchClassify, searchPattern, searchRetireCheck } from './graphsearch.mjs';
 import { createServices } from './services.mjs';
-import { helpHandoffPackets, helpLocalFirst, helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
+import { helpArtifacts, helpExpert, helpHandoffPackets, helpLocalFirst, helpOnboarding, helpOperator, helpPrompts, helpQuickstart, helpSensitiveWork, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policySimulate, policyValidateConfig } from './policy.mjs';
-import { artifactBudget, artifactBudgetForRoute, artifactCleanupPlan, artifactMigrate, artifactScratchAudit, artifactScratchCleanup, artifactScratchPolicy, artifactSpaPlan, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
+import { artifactBudget, artifactBudgetForRoute, artifactCleanupPlan, artifactLifecycle, artifactMigrate, artifactScratchAudit, artifactScratchCleanup, artifactScratchPolicy, artifactSpaPlan, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
 import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
 import { impactAreas, primaryQaSteps, qaAreas, qaBuild, qaCompare, qaComplete, qaCoverage, qaHandoff, qaLint, qaModeCommand, qaOutline, qaOutlineForMode, qaReview, qaScenarios, qaScript, qaValidate } from './qa.mjs';
 import { capabilitiesNegotiate, capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, localFirstPlan, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsExperimentAdd, toolsExperimentReview, toolsFallback, toolsGaps, toolsInventory, toolsRecommend, toolsStatus } from './tools.mjs';
@@ -66,7 +66,7 @@ import { promptAudit, promptClean, promptCompile, promptSanitize, promptScore, p
 import { agentsLint, agentsPacket, agentsPlan, agentsStatus } from './agentpackets.mjs';
 import { acceptanceCoverage, humanReviewPacket, qaHumanLint, responseLint, reviewLocal } from './localreview.mjs';
 import { overrideAdd } from './overrides.mjs';
-import { operatorInspect, operatorNext, operatorPhase, operatorStart } from './operator.mjs';
+import { operatorDashboard, operatorInspect, operatorNext, operatorPhase, operatorStart } from './operator.mjs';
 import { commandCapture, commandInterpret, contextProject, evidenceConfidence as toolEvidenceConfidence, evidenceFromCommand, evidenceLedger as toolEvidenceLedger, handoffCompile, responseDraft } from './toolflow.mjs';
 import { setupApplyLocal, setupInspect, setupRecommend } from './setupquality.mjs';
 
@@ -96,10 +96,16 @@ export async function main(argv) {
   if (area === 'operator' && action === 'start') return operatorStart(repo, options);
   if (area === 'operator' && action === 'inspect') return operatorInspect(repo, options);
   if (area === 'operator' && action === 'next') return operatorNext(repo, options);
+  if (area === 'operator' && action === 'dashboard') return operatorDashboard(repo, options);
   if (area === 'operator' && ['implement-ready', 'verify-ready', 'qa-ready', 'finish-ready'].includes(action)) return operatorPhase(repo, action.replace('-ready', '').replace('implement', 'implementation'), options);
   if (area === 'help' && (action === 'prompts' || action === 'prompt')) return helpPrompts();
   if (area === 'help' && action === 'workflow') return helpWorkflow();
   if (area === 'help' && (action === 'onboarding' || action === 'start')) return helpOnboarding();
+  if (area === 'help' && (action === 'quickstart' || action === 'quick')) return helpQuickstart();
+  if (area === 'help' && action === 'operator') return helpOperator();
+  if (area === 'help' && action === 'expert') return helpExpert();
+  if (area === 'help' && action === 'artifacts') return helpArtifacts();
+  if (area === 'help' && (action === 'sensitive-work' || action === 'sensitive')) return helpSensitiveWork();
   if (area === 'help' && action === 'local-first') return helpLocalFirst();
   if (area === 'help' && (action === 'handoff-packets' || action === 'agents')) return helpHandoffPackets();
   if (area === 'help' && action === 'route') return commandHelpRoute(repo, rest[0] || options.route, options);
@@ -343,6 +349,7 @@ export async function main(argv) {
   if (area === 'artifact' && action === 'budget') return artifactBudget(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
   if (area === 'evidence' && action === 'provenance') return evidenceProvenance(repo, options, { findPackets });
+  if (area === 'evidence' && action === 'sanitize-check') return evidenceSanitizeCheck(repo, options);
   if (area === 'evidence' && action === 'required') return evidenceRequired(repo, options);
   if (area === 'evidence' && action === 'status') return evidenceStatus(repo, options);
   if (area === 'evidence' && action === 'add') return evidenceAdd(repo, options);
@@ -369,6 +376,7 @@ export async function main(argv) {
   if (area === 'artifact' && action === 'validate') return artifactValidate(repo, options);
   if (area === 'artifact' && action === 'summarize') return artifactSummarize(repo, options);
   if (area === 'artifact' && action === 'cleanup-plan') return artifactCleanupPlan(repo, options);
+  if (area === 'artifact' && action === 'lifecycle') return artifactLifecycle(repo, options);
   if (area === 'artifact' && action === 'scratch-policy') return artifactScratchPolicy(repo, options);
   if (area === 'artifact' && action === 'scratch-audit') return artifactScratchAudit(repo, options);
   if (area === 'artifact' && action === 'scratch-cleanup') return artifactScratchCleanup(repo, options);
@@ -379,6 +387,7 @@ export async function main(argv) {
   if (area === 'adapter' && action === 'profile') return adapterProfile(repo, options);
   if (area === 'adapter' && action === 'prompt') return adapterPrompt(repo, options);
   if (area === 'adapter' && action === 'limits') return adapterLimits(repo, options);
+  if (area === 'adapter' && action === 'doctor') return adapterDoctor(repo, options);
   if (area === 'eval' && action === 'run') return evalRun(repo, options);
   if (area === 'eval' && action === 'suite') return evalSuite(repo, options);
   if (area === 'eval' && action === 'add-case') return evalAddCase(repo, options);

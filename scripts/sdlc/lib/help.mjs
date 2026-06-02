@@ -16,6 +16,11 @@ Usage:
   sdlc help prompts
   sdlc help workflow
   sdlc help onboarding
+  sdlc help quickstart
+  sdlc help operator
+  sdlc help expert
+  sdlc help artifacts
+  sdlc help sensitive-work
   sdlc help local-first
   sdlc help handoff-packets
   sdlc help route <route>
@@ -249,6 +254,7 @@ Usage:
   sdlc evidence from-command --task "..." --command "..." --status pass|fail|cap|warn [--summary "..."] [--repo <path>]
   sdlc evidence ledger|gaps|confidence --task "..." [--repo <path>] [--json]
   sdlc evidence provenance --task "..." [--repo <path>] [--out <path>]
+  sdlc evidence sanitize-check --file <path> [--repo <path>]
   sdlc evidence required --task "..." [--repo <path>]
   sdlc evidence status --task "..." [--repo <path>]
   sdlc evidence add --kind <kind> --summary "..." [--repo <path>]
@@ -267,11 +273,11 @@ Usage:
   sdlc action preview --action commit|push|tool|network|dependency|learning-promotion [--repo <path>] [--command "..."]
   sdlc complete check --task "..." [--repo <path>]
   sdlc complete explain --task "..." [--repo <path>]
-  sdlc context project --task "..." [--phase <phase>] [--repo <path>] [--json]
+  sdlc context project --task "..." [--phase <phase>] [--repo <path>] [--check] [--json]
   sdlc response draft --task "..." [--repo <path>] [--json]
   sdlc handoff compile --task "..." [--audience future-agent|human|qa] [--repo <path>]
   sdlc setup inspect|recommend|apply-local [--repo <path>] [--apply] [--json]
-  sdlc adapter profile|prompt|limits --runtime generic|augment|auggie|codex [--task "..."] [--repo <path>] [--json]
+  sdlc adapter profile|prompt|limits|doctor --runtime generic|augment|auggie|codex [--task "..."] [--repo <path>] [--json]
   sdlc event validate|replay [--event <name>] [--repo <path>] [--json]
   sdlc hooks contract --runtime generic|augment|auggie|codex [--repo <path>] [--json]
   sdlc eval local-first-suite [--repo <path>]
@@ -279,6 +285,7 @@ Usage:
   sdlc artifact validate [--repo <path>] [--task-id <id>]
   sdlc artifact summarize [--repo <path>] [--out <path>]
   sdlc artifact cleanup-plan [--repo <path>] [--run-dir <path>] [--out <path>]
+  sdlc artifact lifecycle [--repo <path>] [--root <path>] [--out <path>] [--json]
   sdlc artifact scratch-policy [--repo <path>] [--json]
   sdlc artifact scratch-audit [--repo <path>] [--json]
   sdlc artifact scratch-cleanup [--repo <path>] [--max-age-days 7] [--apply] [--json]
@@ -358,6 +365,116 @@ Usage:
 
 This CLI automates mechanical SDLC evidence and context tasks. It does not replace
 agent judgment, source review, human approvals, or the .agents skill guidance.`);
+}
+
+export function helpQuickstart() {
+  console.log(`# SDLC Quickstart
+
+Use chat first and let the coding agent run the CLI.
+
+\`\`\`text
+Use SDLC for this task: <task>. Start local-first, keep context bounded, implement only the scoped change, verify with local evidence, prepare QA Markdown if needed, and stop before commit or push.
+\`\`\`
+
+Small local path:
+
+\`\`\`bash
+sdlc start --task "<task>"
+sdlc operator dashboard --task "<task>"
+sdlc operator next --task "<task>"
+sdlc command capture --task "<task>" --command "<check>" --status pass --summary "<evidence>"
+sdlc finish-ready --task "<task>"
+\`\`\`
+
+Boundaries:
+
+- Commit and push require explicit human approval.
+- Merge, deploy, release, ticket writes, and database changes are not automated.
+- Temporary scripts belong under \`.ai-local/sdlc-scratch/scripts/\`.`);
+}
+
+export function helpOperator() {
+  console.log(`# SDLC Operator Help
+
+The operator surface is the paved path for normal work.
+
+\`\`\`bash
+sdlc operator start --task "<task>"
+sdlc operator dashboard --task "<task>"
+sdlc operator next --task "<task>"
+sdlc operator implement-ready --task "<task>"
+sdlc operator verify-ready --task "<task>"
+sdlc operator qa-ready --task "<task>"
+sdlc operator finish-ready --task "<task>"
+\`\`\`
+
+Use \`dashboard\` when asking "where are we?" It summarizes local facts, evidence, gaps, scratch-script warnings, QA/finish readiness, and one next action.
+
+The operator does not commit, push, merge, deploy, release, post tickets, or query sensitive data.`);
+}
+
+export function helpExpert() {
+  console.log(`# SDLC Expert Help
+
+Use expert commands when the operator path is too coarse.
+
+Common expert groups:
+
+- Context: \`context assemble\`, \`context project\`, \`context prune\`, \`context final-check\`
+- Evidence: \`evidence matrix\`, \`evidence ledger\`, \`verify ladder\`, \`command capture\`
+- Scope: \`scope expect\`, \`scope check\`, \`touched packet\`, \`impact packet\`
+- Multi-repo: \`workspace status\`, \`workspace ledger\`, \`multi qa\`
+- Learning: \`learn workbench\`, \`feedback synthesize\`, \`process review\`
+- Safety: \`policy check\`, \`safety finish\`, \`artifact scratch-audit\`
+
+Run \`sdlc --help\` for the full command list.`);
+}
+
+export function helpArtifacts() {
+  console.log(`# SDLC Artifact Help
+
+Local run artifacts should live under ignored \`.ai-local/\` paths.
+
+Key locations:
+
+- Run evidence: \`.ai-local/sdlc-runs/\`
+- Scratch scripts: \`.ai-local/sdlc-scratch/scripts/\`
+- Local profile: \`.ai-local/sdlc-profile.md\`
+
+Useful commands:
+
+\`\`\`bash
+sdlc artifact cleanup-plan --repo <path>
+sdlc artifact lifecycle --repo <path>
+sdlc artifact scratch-policy --repo <path>
+sdlc artifact scratch-audit --repo <path>
+sdlc artifact scratch-cleanup --repo <path>
+sdlc artifact scratch-cleanup --repo <path> --apply
+\`\`\`
+
+Cleanup is dry-run unless \`--apply\` is passed and must stay inside controlled local artifact folders.`);
+}
+
+export function helpSensitiveWork() {
+  console.log(`# SDLC Sensitive Work Help
+
+Ticket systems, read-only databases, private logs, customer data, private URLs, and client names are sensitive evidence surfaces.
+
+Rules:
+
+- Use optional MCPs only when available, allowed, and useful.
+- Prefer metadata, aggregates, existence checks, and redacted summaries.
+- Do not write tickets, mutate databases, run migrations, deploy, or release without explicit approval.
+- Do not promote raw ticket text, database rows, private URLs, secrets, logs, or client/customer names into shared learnings.
+
+Useful commands:
+
+\`\`\`bash
+sdlc policy check --action db-query --task "<task>"
+sdlc data query-plan --task "<task>"
+sdlc ticket evidence --task "<task>"
+sdlc learn sanitize --packet <path>
+\`\`\``);
 }
 
 export function helpPrompts() {

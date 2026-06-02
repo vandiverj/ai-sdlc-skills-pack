@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { appendControlJsonLine, dedupeBy, escapeCell, fail, formatList, optionFiles, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, slug, stamp, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
@@ -167,6 +167,21 @@ ${rows.map((row) => `| ${escapeCell(row.source)} | ${row.trust} | ${row.freshnes
   } else {
     console.log(content.trimEnd());
   }
+}
+
+export function evidenceSanitizeCheck(repo, options = {}) {
+  const file = options.file || options.packet || '';
+  if (!file) fail('Pass --file <path> or --packet <path>.');
+  const full = resolve(repo, file);
+  const text = readFileSync(full, 'utf8');
+  const findings = [];
+  if (/\b(password|secret|token|api key|credential)\b/i.test(text)) findings.push('Potential secret/credential language found.');
+  if (/https?:\/\/[^\s)]+/i.test(text)) findings.push('URL detected; confirm it is safe/public or replace with sanitized label.');
+  if (/\b(customer|client|tenant|production log|raw log|stack trace)\b/i.test(text)) findings.push('Potential sensitive client/log/product detail found.');
+  if (/\b[A-Z]{1,10}-\d{1,8}\b/.test(text)) findings.push('Ticket identifier detected; confirm it is acceptable for this artifact.');
+  printObject({ file: relative(repo, full), result: findings.length ? 'review-needed' : 'pass' });
+  console.log(formatList(findings.length ? findings : ['No obvious sensitive evidence markers detected.']));
+  if (findings.length) process.exitCode = 1;
 }
 
 export function buildEvidenceMatrix(repo, task, options = {}) {
