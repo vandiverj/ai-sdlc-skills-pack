@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { formatList, printTable, safeWriteTextFile } from './common.mjs';
+import { fail, formatList, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile } from './common.mjs';
 
 export function adapterGenerate(repo, options = {}) {
   const runtime = options.runtime || 'generic';
@@ -8,6 +8,39 @@ export function adapterGenerate(repo, options = {}) {
   const outPath = options.out ? resolve(repo, options.out) : join(repo, '.ai-local', `sdlc-adapter-${runtime}.md`);
   safeWriteTextFile(repo, outPath, `${lines.join('\n')}\n`);
   console.log(relative(repo, outPath));
+}
+
+export function adapterProfile(repo, options = {}) {
+  const runtime = String(options.runtime || 'generic').toLowerCase();
+  const profile = runtimeProfile(runtime);
+  if (options.json) {
+    console.log(JSON.stringify({ schema: 'sdlc-adapter-profile-v1', runtime, repository: repo, ...profile }, null, 2));
+    return;
+  }
+  printObject({ runtime, shell: profile.shell, hooks: profile.hooks, mcp: profile.mcp, browser: profile.browser });
+  console.log('\n## Guidance\n');
+  console.log(formatList(profile.guidance));
+}
+
+export function adapterPrompt(repo, options = {}) {
+  const runtime = String(options.runtime || 'generic').toLowerCase();
+  const task = options.task || '<task>';
+  const phase = options.phase || 'start';
+  console.log(`Use SDLC for this task: ${task}. Runtime: ${runtime}. Phase: ${phase}. Start local-first, preserve my original prompt, gather deterministic facts, use repo-local configuration, verify with local evidence or explicit caps, prepare QA Markdown if needed, and stop before commit or push.`);
+}
+
+export function adapterLimits(repo, options = {}) {
+  const runtime = String(options.runtime || 'generic').toLowerCase();
+  const profile = runtimeProfile(runtime);
+  console.log(`# SDLC Adapter Limits: ${runtime}\n`);
+  console.log(formatList([
+    `Shell: ${profile.shell}`,
+    `Hooks: ${profile.hooks}`,
+    `MCP: ${profile.mcp}`,
+    `Browser: ${profile.browser}`,
+    'Do not assume runtime-specific support is present.',
+    'Use CLI/chat fallback when hooks, MCPs, or browser tools are unavailable.',
+  ]));
 }
 
 
@@ -56,6 +89,45 @@ sdlc activity command --task "<task>" --phase verification --command "<command>"
   }
 }
 
+export function hooksContract(repo, options = {}) {
+  const runtime = String(options.runtime || 'generic').toLowerCase();
+  const contract = {
+    schema: 'sdlc-hook-contract-v1',
+    runtime,
+    events: ['prompt-submit', 'pre-edit', 'post-edit', 'command-start', 'command-finish', 'approval-request', 'pre-stop', 'finish-summary'],
+    requiredFields: ['event', 'timestamp', 'runtime'],
+    optionalFields: ['task', 'phase', 'command', 'status', 'summary', 'artifact'],
+    guardrails: ['hooks optional', 'activity off disables passive capture', 'no release/ticket/database writes', 'human approvals remain required'],
+  };
+  if (options.json) console.log(JSON.stringify(contract, null, 2));
+  else {
+    console.log(`# SDLC Hook Contract\n\nRuntime: ${runtime}\n`);
+    console.log(formatList([...contract.events.map((event) => `event: ${event}`), ...contract.guardrails]));
+  }
+}
+
+export function eventValidate(repo, options = {}) {
+  const file = options.file || '';
+  if (!file) fail('Pass --file <event.json>.');
+  const data = readJsonIfExists(resolve(repo, file));
+  const findings = [];
+  if (!data) findings.push('Invalid or unreadable JSON.');
+  if (data && !data.event) findings.push('Missing event.');
+  if (data && !data.timestamp) findings.push('Missing timestamp.');
+  if (data && /merge|deploy|release|ticket.*update|db.*write/i.test(JSON.stringify(data))) findings.push('Protected action signal present; requires review.');
+  printObject({ file, result: findings.length ? 'review-needed' : 'pass' });
+  console.log(formatList(findings.length ? findings : ['Event matches the portable contract shape.']));
+  if (findings.length) process.exitCode = 1;
+}
+
+export function eventReplay(repo, options = {}) {
+  const file = options.file || '';
+  if (!file) fail('Pass --file <events.jsonl>.');
+  const rows = readJsonLines(resolve(repo, file));
+  printObject({ file, events: rows.length, mode: options.dryRun ? 'dry-run' : 'review-only' });
+  printTable(['Event', 'Phase', 'Summary'], rows.map((row) => [row.event || row.type || 'unknown', row.phase || '', row.summary || row.command || '']));
+}
+
 export function hookPlanEvents(runtime) {
   const common = ['pre-stop: call `sdlc event pre-stop` and `sdlc gates` before claiming completion', 'approval-request: summarize risk and human gate', 'post-edit: suggest cheap route-appropriate checks', 'activity command: optionally call `sdlc activity command` when mode is light/full/debug', 'activity cap: optionally call `sdlc activity cap` for repeated runtime limits'];
   if (runtime === 'claude') return ['UserPromptSubmit -> `sdlc event prompt-submit`', 'PostToolUse/Edit -> `sdlc event post-edit` and optional `sdlc activity event`', 'Stop -> `sdlc event pre-stop`', ...common];
@@ -86,6 +158,20 @@ function hookConfigCandidates(repo, runtime) {
     join(repo, '.codex', 'settings.json'),
   ];
   return all.filter((path) => existsSync(path));
+}
+
+function runtimeProfile(runtime) {
+  const base = {
+    shell: 'available when coding tool exposes terminal',
+    hooks: 'optional / runtime-specific',
+    mcp: 'optional / developer-configured',
+    browser: 'optional / tool-specific',
+    guidance: ['Use chat-first SDLC prompt.', 'Run local-first CLI helpers when terminal access exists.', 'Fallback to human-provided evidence when MCPs are unavailable.'],
+  };
+  if (runtime === 'augment') return { ...base, hooks: 'limited/extension-dependent', guidance: [...base.guidance, 'Use VS Code extension prompt; Auggie CLI can run the same SDLC commands.'] };
+  if (runtime === 'auggie') return { ...base, hooks: 'CLI-dependent', guidance: [...base.guidance, 'Use terminal commands directly for operator and command recommendation phases.'] };
+  if (runtime === 'codex') return { ...base, hooks: 'plugin/tool dependent', guidance: [...base.guidance, 'Prefer local CLI commands and explicit evidence summaries.'] };
+  return base;
 }
 
 function auditHookFile(repo, path) {

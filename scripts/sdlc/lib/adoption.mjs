@@ -196,6 +196,63 @@ export function feedbackQuick(repo, options = {}) {
   });
 }
 
+export function feedbackFriction(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const type = options.type || options.friction || 'confusion';
+  const row = feedbackRow(repo, {
+    ...options,
+    task,
+    source: options.source || 'developer',
+    friction: type,
+    note: options.note || options.summary || '',
+  });
+  appendFeedbackRow(repo, row);
+  printObject({ feedback: 'captured locally', task, type, shareStatus: row.shareStatus, next: 'sdlc feedback synthesize' });
+}
+
+export function feedbackSynthesize(repo, options = {}) {
+  const rows = filterSince(readFeedbackRows(repo, options), options.since || '');
+  const groups = groupCounts(rows.map((row) => row.friction || 'other'));
+  const result = {
+    schema: 'sdlc-feedback-synthesis-v1',
+    generatedAt: new Date().toISOString(),
+    since: options.since || 'all',
+    total: rows.length,
+    groups,
+    topActions: groupEntries(groups).slice(0, 5).map(([type, count]) => `${type}: ${count}`),
+  };
+  if (options.json) console.log(JSON.stringify(result, null, 2));
+  else {
+    printObject({ feedbackItems: result.total, since: result.since });
+    console.log(formatList(result.topActions));
+  }
+}
+
+export function feedbackActionPlan(repo, options = {}) {
+  const rows = filterSince(readFeedbackRows(repo, options), options.since || '');
+  const groups = groupCounts(rows.map((row) => row.friction || 'other'));
+  const content = `# SDLC Feedback Action Plan
+
+Date: ${new Date().toISOString()}
+Since: ${options.since || 'all'}
+
+## Top Friction
+
+${formatList(groupEntries(groups).map(([type, count]) => `${type}: ${count}`))}
+
+## Recommended Actions
+
+${formatList(groupEntries(groups).map(([type]) => actionForFriction(type)))}
+`;
+  if (options.out) {
+    const outPath = resolve(repo, options.out);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else console.log(content.trimEnd());
+}
+
 export function feedbackCapture(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so feedback can be tied to a run.');
@@ -368,6 +425,21 @@ function feedbackOwner(row) {
   if (category.includes('runtime')) return 'runtime adapters';
   if (category.includes('completion')) return 'run dashboard/final gate';
   return 'triage';
+}
+
+function actionForFriction(type) {
+  const text = String(type || '').toLowerCase();
+  if (text.includes('confusion')) return 'Improve help/operator wording for confusing workflow steps.';
+  if (text.includes('slow')) return 'Look for redundant commands or context reads and add a faster local-first path.';
+  if (text.includes('wrong')) return 'Add a scenario regression for the wrong recommendation or route.';
+  if (text.includes('missing')) return 'Add a setup/profile/recommendation hint for the missing command or artifact.';
+  if (text.includes('too-much')) return 'Reduce artifact/prompt surface or move command to expert help.';
+  return `Review ${type} feedback and decide whether it is one-off or repeated.`;
+}
+
+function groupEntries(groups) {
+  const entries = Array.isArray(groups) ? groups : Object.entries(groups || {});
+  return entries.sort((a, b) => Number(b[1]) - Number(a[1]));
 }
 
 function feedbackImprovementCandidates(rows) {

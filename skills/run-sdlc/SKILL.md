@@ -77,6 +77,19 @@ sdlc finish-ready --task "<human task>"
 
 `sdlc start` and `sdlc console start` create a canonical task run journal under `.ai-local/sdlc-runs/<task-id>/run.md` and `run.json`. Prefer `sdlc next --task "<human task>"` when deciding what to do next; it should return one primary action, why it matters, the command or prompt to use, affected evidence, any human decision, and a fallback.
 
+For Standard+ work, interrupted work, or work where model context is getting noisy, prefer the operator control surface:
+
+```bash
+sdlc operator start --task "<human task>"
+sdlc operator next --task "<human task>"
+sdlc operator implement-ready --task "<human task>"
+sdlc operator verify-ready --task "<human task>"
+sdlc operator qa-ready --task "<human task>"
+sdlc operator finish-ready --task "<human task>"
+```
+
+The operator commands combine prompt analysis, local-first facts, journal state, command recommendations, and evidence readiness into bounded output. Use them to reduce repeated model reasoning, not to bypass judgment or human consent gates.
+
 Use process modes to keep the workflow proportional:
 
 ```bash
@@ -99,6 +112,8 @@ sdlc prompt audit --task "<human task>" --repo <repo>
 ```
 
 The original human prompt remains authoritative. Prompt cleanup is suggestion-first and must not silently rewrite product terms, ticket IDs, file paths, branch names, code symbols, API names, or user constraints. Use `sdlc prompt compile --phase <phase> --task "<human task>"` or `sdlc prompt compile --role <role> --task "<human task>"` when a bounded paste-ready prompt is useful.
+
+Use `sdlc context project --task "<human task>" --phase <phase>` when prompt context needs to be kept small. It should return a compact projection of high-value artifacts, local facts, and evidence gaps instead of inviting the agent to load every document.
 
 Use bounded agent handoff packets when they reduce ambiguity, organize verification/review/release/learning work, or support restart:
 
@@ -154,6 +169,10 @@ Common implementation evidence:
 
 ```bash
 sdlc run-check --name test -- <project test command>
+sdlc command recommend --task "<human task>" --phase verify
+sdlc command capture --task "<human task>" --phase verify --command "<project command>" --status pass --summary "<short evidence>"
+sdlc evidence ledger --task "<human task>"
+sdlc evidence confidence --task "<human task>"
 sdlc run-check --name build -- <project build command>
 sdlc verify ladder --task "<human task>"
 sdlc verify run --task "<human task>" --level targeted --command "<project command>"
@@ -237,6 +256,17 @@ sdlc calibrate propose
 ```
 
 If a security trigger appears in the context pack or route packet, keep the security overlay in the evidence and stop for any consent gate before acting.
+
+For runtime/tool differences, use adapters as suggestions:
+
+```bash
+sdlc adapter profile --runtime augment
+sdlc adapter prompt --runtime auggie --task "<human task>"
+sdlc adapter limits --runtime codex
+sdlc hooks contract --runtime generic
+```
+
+Do not assume hooks, MCPs, browser access, ticket access, or database access exist. When they exist, treat them as capability-aware overlays; when they do not, continue with local evidence and human-provided context.
 
 When route behavior itself is being tested or a known failure pattern is relevant, use scenario fixtures:
 

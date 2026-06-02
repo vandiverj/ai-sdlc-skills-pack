@@ -53,6 +53,7 @@ For a route-aware command list instead of the full CLI surface:
 
 ```bash
 sdlc command plan --task "<task>"
+sdlc command recommend --task "<task>" --phase verify
 sdlc guide start --task "<task>"
 ```
 
@@ -73,6 +74,19 @@ sdlc review local --task "<task>" --repo <path>
 Use `sdlc prompt compile --phase <phase> --task "<task>"` or `sdlc prompt compile --role <role> --task "<task>"` when you want a bounded, paste-ready prompt that includes the original human intent, cleaned prompt suggestion, local tool facts, constraints, approvals, and evidence boundaries.
 
 Agent handoff packets are optional bounded work orders. They help organize verification, review, QA handoff, release handoff, and learning work, but tiny tasks can skip them when they add overhead.
+
+For longer or interrupted work, the operator commands provide a compact local control surface that avoids asking the model to rediscover status from scratch:
+
+```bash
+sdlc operator start --task "<task>"
+sdlc operator next --task "<task>"
+sdlc operator verify-ready --task "<task>"
+sdlc command capture --task "<task>" --phase verify --command "npm run test" --status pass --summary "tests passed"
+sdlc evidence ledger --task "<task>"
+sdlc response draft --task "<task>"
+```
+
+Use `sdlc setup inspect` and `sdlc setup recommend` when a repository or multi-project repository needs local SDLC setup guidance. `sdlc setup apply-local` previews a `.ai-local/sdlc-profile.md`; it only writes when `--apply` is passed.
 
 Helpful discovery commands:
 

@@ -867,3 +867,7 @@ export function evalAddCase(repo, options = {}) {
 export function evalReport(repo, options = {}) {
   return evalRun(repo, options);
 }
+
+export function evalLocalFirstSuite(repo, options = {}) {
+  scenarioTest(repo, { ...options, verbose: true });
+}

@@ -6,6 +6,7 @@ import { defaultRunsDir } from './paths.mjs';
 import { inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { matchRecipes } from './recipes.mjs';
 import { inferTestingSurfaces, qaModeForSurfaces } from './units.mjs';
+import { buildToolInventory } from './tools.mjs';
 
 export function commandPlan(repo, options = {}) {
   const task = options.task || '';
@@ -27,6 +28,64 @@ export function commandNext(repo, options = {}) {
   const next = plan.commands.find((row) => row.priority === 'next') || plan.commands[0];
   if (!next) fail('No command recommendation found.');
   printObject({ task, route: plan.route, nextCommand: next.command, why: next.why });
+}
+
+export function commandRecommend(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const result = buildCommandRecommendation(repo, task, options);
+  if (options.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  printObject({ task, route: result.route, phase: result.phase, recommendationCount: result.recommendations.length });
+  printTable(['Priority', 'Command', 'Evidence', 'Why'], result.recommendations.map((row) => [row.priority, row.command, row.evidenceClass, row.why]));
+}
+
+export function buildCommandRecommendation(repo, task, options = {}) {
+  const plan = buildCommandPlan(repo, task, options);
+  const phase = options.phase || plan.phase || 'verify';
+  const localRows = localCommandRows(repo, phase);
+  const phaseRows = plan.commands.filter((row) => row.phase === phase || row.phase === 'verification' && phase === 'verify' || row.phase === 'qa' && phase === 'qa' || row.phase === 'finish' && phase === 'finish');
+  const rows = [...localRows, ...(phaseRows.length ? phaseRows : plan.commands)].slice(0, 8).map((row, index) => ({
+    ...row,
+    priority: index === 0 ? 'next' : row.priority || 'supporting',
+    evidenceClass: evidenceClassForCommand(row.command),
+    fallback: fallbackForCommand(row.command, task),
+  }));
+  return {
+    schema: 'sdlc-command-recommendation-v1',
+    generatedAt: new Date().toISOString(),
+    task,
+    route: plan.route,
+    phase,
+    testingSurfaces: plan.testingSurfaces,
+    recommendations: rows,
+  };
+}
+
+function localCommandRows(repo, phase) {
+  const inventory = buildToolInventory(repo);
+  const patterns = {
+    verify: /test|typecheck|check/i,
+    verification: /test|typecheck|check/i,
+    implementation: /build|lint|typecheck|check/i,
+    qa: /dev|preview|test/i,
+    finish: /test|build|lint|typecheck|check/i,
+  };
+  const pattern = patterns[phase] || patterns.verify;
+  return inventory.scripts
+    .filter((script) => pattern.test(script.name) || pattern.test(script.command))
+    .slice(0, 3)
+    .map((script) => ({
+      id: `local-${script.name}`,
+      priority: 'supporting',
+      phase: phase === 'verification' ? 'verify' : phase,
+      command: script.command,
+      why: `Local ${script.name} script from tool inventory: ${script.detail}`,
+      avoid: 'Do not treat recommendation as executed evidence until captured.',
+      output: 'local command result',
+    }));
 }
 
 export function commandExplain(repo, options = {}) {
@@ -151,6 +210,21 @@ function printCommandPlan(plan) {
   console.log('\nRecommended commands');
   printTable(['Priority', 'Phase', 'Command', 'Why'], plan.commands.map((row) => [row.priority, row.phase, row.command, row.why]));
   console.log(`\n${plan.note}`);
+}
+
+function evidenceClassForCommand(command) {
+  if (/npm run|dotnet test|deno test|pytest|cargo test|build|typecheck|lint/i.test(command)) return 'deterministic-proof';
+  if (/qa script|qa api|render|smoke/i.test(command)) return 'local-or-human-evidence';
+  if (/policy|complete|guard|action preview/i.test(command)) return 'approval-boundary';
+  if (/context|recipe|plan|packet/i.test(command)) return 'structured-guidance';
+  return 'recommendation';
+}
+
+function fallbackForCommand(command, task) {
+  if (/test|verify/i.test(command)) return `Use sdlc verify packet --task "${escapeDouble(task)}" with an explicit cap if no local command exists.`;
+  if (/qa/i.test(command)) return `Use sdlc qa outline --task "${escapeDouble(task)}" if a full script is too heavy.`;
+  if (/render/i.test(command)) return 'Use manual smoke or cap rendered evidence when browser tooling is unavailable.';
+  return 'Record why this command was skipped or replaced.';
 }
 
 export function commandRegistry() {
