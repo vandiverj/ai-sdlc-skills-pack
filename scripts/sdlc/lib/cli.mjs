@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, optionFiles, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, slug, splitList, stamp, toCamel, writeOrPrint } from './common.mjs';
@@ -17,7 +17,7 @@ import { detectContextContradictions, evalAddCase, evalReport, evalRun, scenario
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
-import { contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextFinalCheck, contextFreshness, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextResolve, contextRestore, contextUpdatePlan, recommendedContextFile } from './context.mjs';
+import { contextAliases, contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextDocCandidates, contextFinalCheck, contextFreshness, contextFreshnessRecommendations, contextFreshnessRow, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextPlacement, contextPlacementRecommendation, contextResolve, contextRestore, contextUpdatePlan, contextUpdateTargets, finalContextSignals, formatContextDocs, recommendedContextFile } from './context.mjs';
 import { learnArchive, learnBacklog, learnCandidates, learnCapture, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck } from './learning.mjs';
 import { caseIdPolicy, expectedQaNeed, proposedCommitMessage, requiresCaseId, shouldSuggestTestPlan, taskBundle, taskCaseId, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskLedgerRows, taskMetrics, taskOpen, taskPreflight, taskQa, taskReview, taskRunId, taskStart, taskStatus, taskType, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
@@ -599,41 +599,12 @@ function bugNextCommand(action, task) {
   return action === 'qa' ? `sdlc qa scenario --task "${escapeCommandArg(task)}"` : `sdlc bug ${next} --task "${escapeCommandArg(task)}"`;
 }
 
-function contextAliases(profile = {}) {
-  const raw = profile.contextAliases || profile.contextAlias || '';
-  return splitList(raw).map((item) => {
-    const [match, bucket] = item.split(/->|=>|=/).map((value) => value?.trim());
-    return match && bucket ? { match, bucket } : null;
-  }).filter(Boolean);
-}
-
-function finalContextSignals(task, files, packets) {
-  const signals = [];
-  if (matchesAny(task, ['route', 'endpoint', 'download', 'workflow', 'context', 'learning', 'api'])) signals.push('task language suggests durable workflow/API/context knowledge may have changed');
-  if (files.some((file) => classifyTouchedSurface(file) === 'docs/context')) signals.push('context/docs files changed');
-  if (packets.some((packet) => packet.kind === 'route-retirement')) signals.push('route retirement evidence may produce durable product context');
-  if (packets.some((packet) => packet.kind === 'learning-summary')) signals.push('process learning summary exists');
-  if (!signals.length) signals.push('no obvious durable context signal detected; still confirm before final handoff');
-  return signals;
-}
-
 function git(repo, args) {
   try {
     return execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   } catch {
     return '';
   }
-}
-
-function contextUpdateTargets(route, dirtySurfaces, contracts, profile) {
-  const targets = [];
-  if (!profile.sharedContextRoot && route === 'multi-repo-integration') targets.push('SDLC profile: configure shared context root or related repository map');
-  if (dirtySurfaces.includes('docs/context')) targets.push('docs/memory-bank or docs/context-state: update active state if durable truth changed');
-  if (contracts.length || route === 'contract-first' || route === 'multi-repo-integration') targets.push('docs/contracts or shared context root: update interface/contract truth');
-  if (dirtySurfaces.includes('rendered UI')) targets.push('feature context or code-local docs: update visible workflow facts only if behavior changed');
-  if (dirtySurfaces.includes('API/contracts/events')) targets.push('service map/workflow map: update cross-boundary facts');
-  if (!targets.length) targets.push('no durable context update required unless implementation changes source truth');
-  return dedupe(targets);
 }
 
 function setupFixPlan(gaps, profile, commands) {
@@ -688,111 +659,12 @@ function requiresRenderedReview(repo) {
   return existsSync(join(repo, 'src')) || existsSync(join(repo, 'app')) || existsSync(join(repo, 'pages'));
 }
 
-function contextFreshnessRow(repo, item, days) {
-  if (!existsSync(item.path)) return { label: item.label, status: 'missing', ageDays: '', path: relative(repo, item.path) || item.path };
-  const stats = statSync(item.path);
-  const ageDays = Math.max(0, Math.floor((Date.now() - stats.mtimeMs) / 86400000));
-  return { label: item.label, status: ageDays > days ? 'stale' : 'fresh', ageDays, path: relative(repo, item.path) || '.' };
-}
-
-function contextFreshnessRecommendations(existingRows, staleRows, profile) {
-  const recommendations = [];
-  if (!existingRows.length) recommendations.push('No context docs found; run setup bootstrap/doctor and create the smallest useful repo or shared context docs.');
-  if (staleRows.length) recommendations.push(`Review stale docs before trusting them: ${staleRows.map((row) => row.label).join(', ')}.`);
-  if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) recommendations.push('Configure external shared context root when this repository participates in larger multi-repo systems.');
-  if (!recommendations.length) recommendations.push('Context docs are present and within the freshness window; still cross-check source files touched by the task.');
-  return recommendations;
-}
-
-function contextPlacement(repo, path) {
-  const relativePath = relative(repo, path);
-  if (!relativePath || relativePath.startsWith('..')) return 'external/shared';
-  if (relativePath.startsWith('.ai-local')) return 'local ignored evidence/context';
-  if (relativePath.startsWith('docs/')) return 'tracked repo software memory';
-  if (['AGENTS.md', '.sdlc/profile.md', '.sdlc/profile.json'].includes(relativePath)) return 'tracked process/setup';
-  return 'repo-local';
-}
-
-function contextPlacementRecommendation(fact, profile = {}) {
-  const text = String(fact || '').toLowerCase();
-  if (matchesAny(text, ['test result', 'command output', 'verification', 'screenshot', 'smoke', 'temporary', 'today', 'this task'])) {
-    return { placement: 'ignored local task evidence', target: '.ai-local/sdlc-runs/', reason: 'The fact sounds task-specific or ephemeral.', trackingRule: 'Do not track unless sanitized and intentionally promoted.' };
-  }
-  if (matchesAny(text, ['learning', 'process lesson', 'route gap', 'workflow miss', 'case id', 'testing surface'])) {
-    return { placement: 'sanitized SDLC learning or process-learning event', target: 'learnings/ for redacted shared lessons, or project-local docs/process-improvement for product-specific details', reason: 'The fact appears to improve the SDLC process rather than define product behavior.', trackingRule: 'Separate portable process guidance from product/client details before committing to the skills pack.' };
-  }
-  if (matchesAny(text, ['service map', 'cross repo', 'cross-repo', 'workflow map', 'release order', 'multiple repositories', 'product-wide'])) {
-    return { placement: 'external shared context', target: profile.sharedContextRoot || profile.serviceMap || profile.workflowMap || 'shared context root', reason: 'The fact affects more than one repository.', trackingRule: 'Keep secrets/customer data out; use sanitized shared docs.' };
-  }
-  if (matchesAny(text, ['api contract', 'public api', 'api', 'calls', 'schema', 'event', 'message', 'integration', 'database', 'sql', 'stores', 'data', 'business rule', 'user workflow', 'workflow'])) {
-    return { placement: 'repo or shared software memory', target: profile.repoContext || profile.productContext || 'docs/context-state.md or shared context root', reason: 'The fact is durable software behavior future agents should not rediscover.', trackingRule: 'Track in repo docs only when team-approved; otherwise use shared context.' };
-  }
-  if (matchesAny(text, ['sdlc', 'agent should', 'process', 'gate', 'skill', 'router'])) {
-    return { placement: 'SDLC process pack', target: '.agents skills/references/templates', reason: 'The fact changes how agents should work rather than how the software behaves.', trackingRule: 'Keep reusable process guidance in the SDLC pack.' };
-  }
-  return { placement: 'repo-local context or task evidence', target: profile.repoContext || '.ai-local/ until durability is clear', reason: 'Durability and scope are unclear.', trackingRule: 'Start local; promote only after it proves reusable.' };
-}
-
-function contextDocCandidates(repo, profile) {
-  const candidates = [
-    { label: 'AGENTS.md', path: join(repo, 'AGENTS.md') },
-    { label: 'SDLC profile JSON', path: join(repo, '.sdlc', 'profile.json') },
-    { label: 'SDLC profile Markdown', path: join(repo, '.sdlc', 'profile.md') },
-    { label: 'Agent-local SDLC profile', path: join(repo, '.ai-local', 'sdlc-profile.md') },
-    { label: 'Agent-local repository setup', path: join(repo, '.ai-local', 'repository-setup.md') },
-    { label: 'Memory context index', path: join(repo, 'docs', 'memory-bank', 'contextIndex.md') },
-    { label: 'Memory active context', path: join(repo, 'docs', 'memory-bank', 'activeContext.md') },
-    { label: 'Context state', path: join(repo, 'docs', 'context-state.md') },
-    { label: 'Application model', path: join(repo, 'docs', 'application-model.md') },
-  ];
-
-  for (const [key, label] of [
-    ['sharedContextRoot', 'Shared context root'],
-    ['productContext', 'Product context'],
-    ['repoContext', 'Repo context'],
-    ['productContextIndex', 'Product context index'],
-    ['repoContextIndex', 'Repo context index'],
-    ['serviceMap', 'Service map'],
-    ['workflowMap', 'Workflow map'],
-    ['releaseOrder', 'Release order'],
-    ['knownFailureModes', 'Known failure modes'],
-  ]) {
-    if (profile[key]) candidates.push({ label, path: resolveContextPath(repo, profile[key]) });
-  }
-
-  return dedupeByPath(candidates);
-}
-
-function dedupeByPath(items) {
-  const seen = new Set();
-  const out = [];
-  for (const item of items) {
-    if (!item.path || seen.has(item.path)) continue;
-    seen.add(item.path);
-    out.push(item);
-  }
-  return out;
-}
-
-function resolveContextPath(repo, value) {
-  const raw = String(value || '').trim();
-  if (!raw) return repo;
-  if (raw.startsWith('~')) return raw;
-  if (raw.startsWith('/')) return raw;
-  return resolve(repo, raw);
-}
-
 function missingSetup(profile, commands) {
   const missing = [];
   if (!profile.sharedContextRoot && !profile.productContext && !profile.repoContext) missing.push('no external/shared context paths configured');
   if (!commands.test) missing.push('no test command discovered');
   if (!commands.build) missing.push('no build command discovered');
   return missing;
-}
-
-function formatContextDocs(repo, items) {
-  if (!items.length) return '- none';
-  return items.map((item) => `- ${item.label}: ${relative(repo, item.path) || '.'}`).join('\n');
 }
 
 function formatCommandList(commands, route) {
