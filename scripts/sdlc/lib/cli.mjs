@@ -32,6 +32,7 @@ import { scopeCheck, scopeExpect } from './scope.mjs';
 import { fixturePlan, testBootstrapPlan, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
 import { verifyComplete, verifyPacket } from './verify.mjs';
 import { doneCheck, packetStatus, routeProof, routeRetire, routeStart } from './routepackets.mjs';
+import { bugEvidenceCheck, bugEvidencePacket, bugLiveEvidence, bugWorkflowPacket, commandClassify, dotnetEfcoreDiagnose, fixScope, patternAnalog } from './diagnostics.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -192,14 +193,14 @@ export async function main(argv) {
   if (area === 'test' && action === 'suggest') return testSuggest(repo, options, testPlanDependencies());
   if (area === 'test' && action === 'bootstrap-plan') return testBootstrapPlan(repo, options, testPlanDependencies());
   if (area === 'test' && action === 'regression-plan') return testRegressionPlan(repo, options, testPlanDependencies());
-  if (area === 'bug' && (action === 'evidence' || action === 'packet')) return bugEvidencePacket(repo, options);
-  if (area === 'bug' && action === 'live-evidence') return bugLiveEvidence(repo, options);
-  if (area === 'bug' && action === 'evidence-check') return bugEvidenceCheck(repo, options);
-  if (area === 'bug' && ['reproduce', 'diagnose', 'fix-plan', 'verify', 'qa'].includes(action)) return bugWorkflowPacket(repo, action, options);
-  if (area === 'dotnet' && action === 'efcore' && (rest[0] || options.command) === 'diagnose') return dotnetEfcoreDiagnose(repo, options);
-  if (area === 'pattern' && action === 'analog') return patternAnalog(repo, options);
-  if (area === 'fix' && action === 'scope') return fixScope(repo, options);
-  if (area === 'command' && action === 'classify') return commandClassify(repo, options);
+  if (area === 'bug' && (action === 'evidence' || action === 'packet')) return bugEvidencePacket(repo, options, diagnosticsDependencies());
+  if (area === 'bug' && action === 'live-evidence') return bugLiveEvidence(repo, options, diagnosticsDependencies());
+  if (area === 'bug' && action === 'evidence-check') return bugEvidenceCheck(repo, options, diagnosticsDependencies());
+  if (area === 'bug' && ['reproduce', 'diagnose', 'fix-plan', 'verify', 'qa'].includes(action)) return bugWorkflowPacket(repo, action, options, diagnosticsDependencies());
+  if (area === 'dotnet' && action === 'efcore' && (rest[0] || options.command) === 'diagnose') return dotnetEfcoreDiagnose(repo, options, diagnosticsDependencies());
+  if (area === 'pattern' && action === 'analog') return patternAnalog(repo, options, diagnosticsDependencies());
+  if (area === 'fix' && action === 'scope') return fixScope(repo, options, diagnosticsDependencies());
+  if (area === 'command' && action === 'classify') return commandClassify(repo, options, diagnosticsDependencies());
   if (area === 'tools' && action === 'detect') return toolsDetect(repo, options);
   if (area === 'tools' && action === 'status') return toolsStatus(repo, options);
   if (area === 'tools' && action === 'fallback') return toolsFallback(repo, options);
@@ -2347,6 +2348,21 @@ function routePacketDependencies() {
   };
 }
 
+function diagnosticsDependencies() {
+  return {
+    bugNextCommand,
+    classifyCommandFailure,
+    findPackets,
+    formatQualityFloorTable,
+    humanize,
+    packetHas,
+    qualityFloorRows,
+    resolvePacketPath,
+    searchPattern,
+    taskCaseId,
+  };
+}
+
 function validationLadder(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the validation ladder can be scoped.');
@@ -2375,163 +2391,6 @@ Use the strongest available validation surface. If a stronger surface is unavail
   } else {
     console.log(content.trimEnd());
   }
-}
-
-function bugEvidencePacket(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the live-system bug evidence packet can be scoped.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-bugfix-live-system-evidence.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Bugfix Live-System Evidence Packet
-
-Date: ${new Date().toISOString()}
-Case ID: ${taskCaseId(task, options, profile.values) || 'not provided'}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Route overlay: bugfix-live-system
-
-## Affected Units
-
-${formatList(units.map((unit) => `${unit.name} (${unit.testSurface || 'surface unknown'}, context ${unit.contextBucket || 'not configured'})`))}
-
-## Observed Failure
-
-- Environment: staging / QA / production-safe log / local repro
-- Exact error/log source:
-- Failing endpoint/table/contract/job:
-- Failing columns/fields/status codes:
-- Scenario/case identifier:
-
-## Evidence Before Fix
-
-- Generated SQL/log/request/response:
-- Smallest reproduction:
-- Existing successful analogous path:
-- Root-cause hypothesis:
-- Confidence:
-
-## Fix Discipline
-
-- Smallest evidence-backed fix chosen:
-- Broad fallback plan rejected/deferred:
-- Why the smaller fix is sufficient:
-- Data/customer safety considerations:
-
-## Regression Coverage
-
-- Targeted test added or updated:
-- Command:
-- Result:
-- If no automated test, why:
-
-## QA Scenario Retest
-
-- Scenario name/id:
-- Environment:
-- Preconditions/test data:
-- Expected retest outcome:
-- Developer validation separate from QA validation:
-
-## Context/Learning Follow-Up
-
-- Durable product fact belongs in:
-- Portable process learning candidate:
-- Sensitive details redacted before sharing:
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function bugEvidenceCheck(repo, options = {}) {
-  const packetPath = resolvePacketPath(repo, options.packet);
-  const text = readFileSync(packetPath, 'utf8');
-  const required = [
-    ['Case ID', ['Case ID:', 'Case:']],
-    ['Exact log/source', ['Exact error/log source:', 'Exact log/request/SQL/source:']],
-    ['Failing surface', ['Failing endpoint/table/contract/job:', 'Failing table', 'Failing endpoint']],
-    ['Failing field/status/payload', ['Failing columns/fields/status codes:', 'failing column', 'status code', 'payload']],
-    ['Analogous working path', ['Existing successful analogous path:', 'analogous working path']],
-    ['Smallest fix', ['Smallest evidence-backed fix chosen:', 'Smallest evidence-backed fix:']],
-    ['Targeted regression', ['Targeted test added or updated:', 'targeted regression']],
-    ['QA scenario retest', ['QA Scenario Retest', 'Scenario name/id:']],
-  ];
-  const rows = required.map(([name, needles]) => ({ name, status: packetHas(text, needles) ? 'pass' : 'open', detail: needles.join(' or ') }));
-  const pass = rows.every((row) => row.status === 'pass');
-  printObject({
-    repository: repo,
-    packet: relative(repo, packetPath),
-    result: pass ? 'pass' : 'open',
-  });
-  console.log('\n| Evidence | Status | Detail |');
-  console.log('| --- | --- | --- |');
-  for (const row of rows) console.log(`| ${escapeCell(row.name)} | ${row.status} | ${escapeCell(row.detail)} |`);
-  if (!pass) process.exitCode = 1;
-}
-
-function bugWorkflowPacket(repo, action, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the bug workflow packet can be scoped.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
-  const sections = {
-    reproduce: ['Observed failure', 'Smallest safe reproduction', 'Exact log/request/SQL/source', 'Expected behavior', 'Current cap'],
-    diagnose: ['Failure boundary', 'Analogous working path', 'Root-cause hypothesis', 'Rejected broad fixes', 'Confidence'],
-    'fix-plan': ['Smallest evidence-backed fix', 'Files/units expected to change', 'Regression test path', 'Rollback/fallback', 'Human gates'],
-    verify: ['Developer checks', 'Regression proof', 'Data/API/UI/integration evidence', 'Caps', 'Context update decision'],
-    qa: ['Human QA scenario', 'Preconditions/test data', 'Steps', 'Expected result', 'YouTrack-ready notes'],
-  };
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-bugfix-${slug(action)}.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Bugfix ${humanize(action)} Packet
-
-Date: ${new Date().toISOString()}
-Case ID: ${taskCaseId(task, options, profile.values) || 'not provided'}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Route overlay: bugfix-live-system
-
-## Affected Units
-
-${formatList(units.map((unit) => `${unit.name}: ${unit.testSurface || 'surface unknown'} / ${unit.contextBucket || 'context bucket missing'}`))}
-
-## Required Evidence
-
-${formatList((sections[action] || sections.reproduce).map((name) => `${name}:`))}
-
-## Quality Floor
-
-${formatQualityFloorTable(qualityFloorRows({ task, git, route: 'bugfix-live-system', units, surfaces: inferTestingSurfaces(repo, task, git.changedFiles, profile), qaMode: 'scenario-retest', profile, packets: findPackets(repo, {}) }))}
-
-## Next Command
-
-\`\`\`bash
-${bugNextCommand(action, task)}
-\`\`\`
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function commandClassify(repo, options = {}) {
-  const command = options.command || '';
-  const status = options.status ?? '';
-  const stderr = options.stderr || options.error || '';
-  if (!command && !stderr) fail('Pass --command "..." and/or --stderr "..." so the failure can be classified.');
-  const classification = classifyCommandFailure(command, status, stderr);
-  printObject({
-    repository: repo,
-    command: command || 'not provided',
-    status: status === '' ? 'not provided' : status,
-    classification: classification.kind,
-    evidenceUse: classification.evidenceUse,
-    recommendedNextAction: classification.nextAction,
-  });
 }
 
 function automationBudget(repo, options = {}) {
@@ -4118,104 +3977,6 @@ ${formatList(recipes.flatMap((recipe) => recipe.qaAdditions))}
 - QA tester follows this Markdown manually.
 - QA tester does not need AI, source-code access, or developer command knowledge.
 - Developer owns any listed caps, setup notes, and environment limitations.
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function bugLiveEvidence(repo, options = {}) {
-  return bugEvidencePacket(repo, options);
-}
-
-function dotnetEfcoreDiagnose(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "...".');
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-efcore-diagnostic.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const triggerMode = matchesAny(task.toLowerCase(), ['trigger', 'output clause', 'output', 'sqloutput']) ? 'sql-server-output-trigger' : 'fk-relationship';
-  const content = `# SDLC EF Core Diagnostic Packet
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Diagnostic mode: ${triggerMode}
-
-## Required Evidence
-
-${formatList(triggerMode === 'sql-server-output-trigger' ? [
-    'Capture exact SQL Server error naming OUTPUT/trigger behavior and target table.',
-    'Check EF Core/SQL Server provider version or package change if relevant.',
-    'Get authoritative trigger-backed table list for the affected database.',
-    'Intersect trigger-backed tables with entities mapped by the affected DbContext.',
-    'Prefer model metadata/output-clause configuration fix before workflow/schema changes.',
-    'Add metadata-level regression test and record SQL Server smoke cap.',
-  ] : [
-    'Capture exact FK error, target table, and columns from SQL/log output.',
-    'Identify relationship invariant the ORM did not satisfy.',
-    'Find analogous successful path before changing save ordering broadly.',
-    'Prefer narrow relationship wiring fix when evidence supports it.',
-    'Add focused regression test for the invariant.',
-  ])}
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function patternAnalog(repo, options = {}) {
-  const task = options.task || '';
-  const hint = options.hint || task;
-  if (!task) fail('Pass --task "...".');
-  const terms = dedupe(String(hint).split(/[^A-Za-z0-9_/-]+/).filter((word) => word.length > 4)).slice(0, 6);
-  const results = terms.flatMap((term) => searchPattern(repo, term).slice(0, 10)).slice(0, 40);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-analogous-paths.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Analogous Path Search
-
-Task: ${task}
-Hint: ${hint}
-
-## Candidate Working Paths
-
-${formatList(results.map((item) => `${relative(repo, item.path)}:${item.line} ${item.text}`))}
-
-## Review Questions
-
-- Which candidate is known working behavior?
-- What invariant can be reused?
-- What differences limit reuse?
-- If no analogous path exists, record that as a cap before broad implementation.
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function fixScope(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "...".');
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-fix-scope.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Fix Scope Packet
-
-Task: ${task}
-Repository: ${repo}
-
-## Primary Evidence-Backed Fix
-
-- Evidence:
-- Proposed narrow change:
-- Blast radius:
-- Rollback/revert note:
-
-## Fallback Plans Deferred
-
-- Fallback:
-- Why deferred:
-- Evidence required before use:
-
-## Gate
-
-- Broad remediation requires explicit evidence or human approval.
-- Final handoff should explain why the implemented fix was the smallest safe fix.
 `;
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
