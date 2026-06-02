@@ -346,6 +346,26 @@ export function formatCommandList(commands, route) {
   return lines.length ? lines.join('\n') : '- none discovered';
 }
 
+export function groupCounts(values) {
+  const counts = new Map();
+  for (const value of values) {
+    const key = String(value || '').trim();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+
+export function formatCounts(counts) {
+  if (!counts.length) return '- none';
+  return counts.map(([key, count]) => `- ${key}: ${count}`).join('\n');
+}
+
+export function normalizeArray(value) {
+  if (Array.isArray(value)) return value;
+  return splitList(value);
+}
+
 function requiresRenderedReview(repo) {
   return existsSync(join(repo, 'src')) || existsSync(join(repo, 'app')) || existsSync(join(repo, 'pages'));
 }

@@ -32,7 +32,7 @@ import { classifyRuntimeSurface, classifyTouchedSurface, needsManualQa } from '.
 import { accessibilityPolicy, formatAccessibilityPolicy, formatSecurityOverlay, releaseComplete, releaseOrderNote, releasePacket, reviewComplete, reviewPacket } from './release.mjs';
 import { renderEvidencePacket, renderedEvidencePlan, renderPlan, renderSmoke } from './render.mjs';
 import { permissionPolicyPacket, riskAgentic, safetyFinish, safetyPreflight, toolAuditPacket } from './safety.mjs';
-import { doctorFull, formatCommandList, health, installCheck, missingSetup, processHealth, readinessChecks, readinessStatus, setupBootstrap, setupDoctor, setupFixPlan } from './health.mjs';
+import { doctorFull, formatCommandList, formatCounts, groupCounts, health, installCheck, missingSetup, normalizeArray, processHealth, readinessChecks, readinessStatus, setupBootstrap, setupDoctor, setupFixPlan } from './health.mjs';
 import { actionPreview, completeCheck, completeExplain, completeWaive, finalGate, finalGateOpenItems, finishPacket, gitGuard, gitPacket, suggestedFinalGateCommand } from './finish.mjs';
 import { scopeCheck, scopeExpect } from './scope.mjs';
 import { fixturePlan, testBootstrapPlan, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
@@ -609,26 +609,6 @@ function git(repo, args) {
 
 function humanize(value) {
   return value.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase());
-}
-
-function groupCounts(values) {
-  const counts = new Map();
-  for (const value of values) {
-    const key = String(value || '').trim();
-    if (!key) continue;
-    counts.set(key, (counts.get(key) || 0) + 1);
-  }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-}
-
-function formatCounts(counts) {
-  if (!counts.length) return '- none';
-  return counts.map(([key, count]) => `- ${key}: ${count}`).join('\n');
-}
-
-function normalizeArray(value) {
-  if (Array.isArray(value)) return value;
-  return splitList(value);
 }
 
 function synthesizeState(repo, task, options = {}) {
