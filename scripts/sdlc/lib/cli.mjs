@@ -2,13 +2,13 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, optionFiles, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile, slug, splitList, stamp, toCamel, writeOrPrint } from './common.mjs';
+import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, optionFiles, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, safeWriteTextFile, slug, splitList, stamp, toCamel, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { appendPacketCompletion, completionTrackedPacketKinds, doneChecksForRoute, findLatestPacket, findPackets, firstMatch, latestPacketPath, packetHas, readPacket, resolvePacketPath, taskEvidenceSummary } from './packets.mjs';
 import { runDashboard, runFinish, runNext, runPlan, runResume, runStart, runStartGates, runStartPacketCommand, runStatus } from './run.mjs';
-import { ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, stateAdvance, stateBlockers, stateCurrent, stateExplain, stateInit } from './state.mjs';
+import { appendControlEvent, classifyControlPathActivity, controlTraceRow, ensureControlRunDir, gitScopeRows, nextActionForStage, nextActionFromGates, readControlJsonLines, readCurrentState, readCurrentStateInfo, stateAdvance, stateBlockers, stateCurrent, stateExplain, stateInit, synthesizeState, writeGateRows } from './state.mjs';
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
 import { ensureEvidenceManifest, evidenceAdd, evidenceInit, evidencePlan, evidenceProvenance, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, evidenceStatusRows, readEvidenceManifest } from './evidence.mjs';
 import { detectCiSystems, detectDeploySystems, detectTestFrameworks, sharedContextDetails, sharedContextReachability } from './environment.mjs';
@@ -611,42 +611,6 @@ function humanize(value) {
   return value.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase());
 }
 
-function synthesizeState(repo, task, options = {}) {
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  return {
-    taskId: options.taskId || slug(task || 'ad-hoc'),
-    task,
-    repo,
-    route: options.route || inferRouteFromTask(task, git, profile.values),
-    stage: options.stage || 'finish-ready',
-    status: 'ad-hoc',
-  };
-}
-
-function readControlJsonLines(path) {
-  return readJsonLines(path);
-}
-
-function appendControlEvent(repo, runDir, type, summary, extra = {}) {
-  appendControlJsonLine(repo, join(runDir, 'trace.jsonl'), controlTraceRow(repo, { type, summary, ...extra }));
-}
-
-function controlTraceRow(repo, options = {}) {
-  return {
-    timestamp: new Date().toISOString(),
-    repo,
-    type: options.type || 'event',
-    summary: options.summary || '',
-    route: options.route || '',
-    task: options.task || '',
-    stage: options.stage || '',
-    status: options.status || '',
-    gate: options.gate || '',
-    evidence: options.evidence || '',
-  };
-}
-
 function controlGateRows(repo, state, runDir, options = {}) {
   const manifest = ensureEvidenceManifest(repo, runDir, state.task, state.route, options);
   const evidenceRows = evidenceStatusRows(repo, runDir, manifest).map((row) => ({
@@ -660,39 +624,6 @@ function controlGateRows(repo, state, runDir, options = {}) {
   const waiverRows = readControlJsonLines(join(runDir, 'waivers.jsonl'));
   const rows = [...evidenceRows, ...contextRows, ...policyRows];
   return rows.map((row) => waiverRows.some((waiver) => waiver.gate === row.id) ? { ...row, status: 'waived', detail: `${row.detail} (waived)` } : row);
-}
-
-function writeGateRows(repo, runDir, rows) {
-  for (const row of rows) appendControlJsonLine(repo, join(runDir, 'gates.jsonl'), { ...row, recordedAt: new Date().toISOString() });
-}
-
-function nextActionFromGates(rows, task) {
-  const open = rows.find((row) => ['block', 'warn'].includes(row.status));
-  return open?.next || `sdlc finish packet --task "${escapeCommandArg(task || 'current task')}"`;
-}
-
-function gitScopeRows(repo, options = {}) {
-  const stateInfo = readCurrentStateInfo(repo, options);
-  const runDir = stateInfo.runDir || '';
-  const expected = runDir ? readJsonIfExists(join(runDir, 'expected-scope.json')) : null;
-  const git = getGitInfo(repo);
-  const rows = [];
-  if (expected?.files?.length) {
-    const unexpected = git.changedFiles.filter((file) => !expected.files.includes(file));
-    rows.push({ id: 'scope-unexpected-files', status: unexpected.length ? 'warn' : 'pass', detail: unexpected.join(', ') || 'actual files match expected scope', next: unexpected.length ? 'review dirty files before commit' : '' });
-  } else {
-    rows.push({ id: 'scope-expected-files', status: git.changedFiles.length ? 'warn' : 'pass', detail: git.changedFiles.length ? 'no expected scope recorded' : 'clean worktree', next: git.changedFiles.length ? 'sdlc scope expect --files "..."' : '' });
-  }
-  if (git.changedFiles.some((file) => classifyControlPathActivity(file) !== 'active-source')) rows.push({ id: 'scope-non-active-files', status: 'warn', detail: 'generated/archived/dependency-like files changed', next: 'review before commit' });
-  return rows;
-}
-
-function classifyControlPathActivity(file) {
-  const value = String(file || '').toLowerCase();
-  if (value.includes('node_modules/') || value.includes('/vendor/') || value.includes('/dist/') || value.includes('/build/') || value.includes('/coverage/')) return 'generated-or-dependency';
-  if (value.includes('/archive/') || value.startsWith('archive/') || value.includes('/archived/')) return 'archived-reference';
-  if (value.endsWith('.min.js') || value.endsWith('.map')) return 'generated-or-dependency';
-  return 'active-source';
 }
 
 function contextGateRows(repo, task, profile, git, options = {}) {

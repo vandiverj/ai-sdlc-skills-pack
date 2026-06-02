@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
-import { fail, formatList, optionFiles, printGateRows, printObject, readJsonIfExists, safeWriteJsonFile, slug, splitList, stamp } from './common.mjs';
+import { appendControlJsonLine, fail, formatList, optionFiles, printGateRows, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, slug, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -63,6 +63,75 @@ export function nextActionForStage(stage, task) {
   if (stage === 'finish-ready') return 'sdlc action preview --action commit';
   if (stage === 'committed') return 'human decides whether push/release process applies';
   return `sdlc evidence required --task "${escaped}"`;
+}
+
+export function synthesizeState(repo, task, options = {}) {
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  return {
+    taskId: options.taskId || slug(task || 'ad-hoc'),
+    task,
+    repo,
+    route: options.route || inferRouteFromTask(task, git, profile.values),
+    stage: options.stage || 'finish-ready',
+    status: 'ad-hoc',
+  };
+}
+
+export function readControlJsonLines(path) {
+  return readJsonLines(path);
+}
+
+export function appendControlEvent(repo, runDir, type, summary, extra = {}) {
+  appendControlJsonLine(repo, join(runDir, 'trace.jsonl'), controlTraceRow(repo, { type, summary, ...extra }));
+}
+
+export function controlTraceRow(repo, options = {}) {
+  return {
+    timestamp: new Date().toISOString(),
+    repo,
+    type: options.type || 'event',
+    summary: options.summary || '',
+    route: options.route || '',
+    task: options.task || '',
+    stage: options.stage || '',
+    status: options.status || '',
+    gate: options.gate || '',
+    evidence: options.evidence || '',
+  };
+}
+
+export function writeGateRows(repo, runDir, rows) {
+  for (const row of rows) appendControlJsonLine(repo, join(runDir, 'gates.jsonl'), { ...row, recordedAt: new Date().toISOString() });
+}
+
+export function nextActionFromGates(rows, task) {
+  const open = rows.find((row) => ['block', 'warn'].includes(row.status));
+  return open?.next || `sdlc finish packet --task "${escapeCommandArg(task || 'current task')}"`;
+}
+
+export function gitScopeRows(repo, options = {}) {
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const runDir = stateInfo.runDir || '';
+  const expected = runDir ? readJsonIfExists(join(runDir, 'expected-scope.json')) : null;
+  const git = getGitInfo(repo);
+  const rows = [];
+  if (expected?.files?.length) {
+    const unexpected = git.changedFiles.filter((file) => !expected.files.includes(file));
+    rows.push({ id: 'scope-unexpected-files', status: unexpected.length ? 'warn' : 'pass', detail: unexpected.join(', ') || 'actual files match expected scope', next: unexpected.length ? 'review dirty files before commit' : '' });
+  } else {
+    rows.push({ id: 'scope-expected-files', status: git.changedFiles.length ? 'warn' : 'pass', detail: git.changedFiles.length ? 'no expected scope recorded' : 'clean worktree', next: git.changedFiles.length ? 'sdlc scope expect --files "..."' : '' });
+  }
+  if (git.changedFiles.some((file) => classifyControlPathActivity(file) !== 'active-source')) rows.push({ id: 'scope-non-active-files', status: 'warn', detail: 'generated/archived/dependency-like files changed', next: 'review before commit' });
+  return rows;
+}
+
+export function classifyControlPathActivity(file) {
+  const value = String(file || '').toLowerCase();
+  if (value.includes('node_modules/') || value.includes('/vendor/') || value.includes('/dist/') || value.includes('/build/') || value.includes('/coverage/')) return 'generated-or-dependency';
+  if (value.includes('/archive/') || value.startsWith('archive/') || value.includes('/archived/')) return 'archived-reference';
+  if (value.endsWith('.min.js') || value.endsWith('.map')) return 'generated-or-dependency';
+  return 'active-source';
 }
 
 export function stateInit(repo, options = {}, dependencies = {}) {
