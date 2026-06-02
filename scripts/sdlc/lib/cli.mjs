@@ -1,9 +1,9 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, indentList, optionFiles, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, safeWriteTextFile, slug, splitList, stamp, toCamel, writeOrPrint } from './common.mjs';
-import { getGitInfo } from './git.mjs';
+import { getGitInfo, git } from './git.mjs';
 import { discoverCommands, loadProfile, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { appendPacketCompletion, completionTrackedPacketKinds, doneChecksForRoute, findLatestPacket, findPackets, firstMatch, latestPacketPath, packetHas, readPacket, resolvePacketPath, taskEvidenceSummary } from './packets.mjs';
@@ -591,14 +591,6 @@ function taskDependencies() {
     verifyDependencies,
     verifyPacket,
   };
-}
-
-function git(repo, args) {
-  try {
-    return execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-  } catch {
-    return '';
-  }
 }
 
 function humanize(value) {
