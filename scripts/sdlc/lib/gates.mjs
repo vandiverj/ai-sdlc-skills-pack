@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { escapeCommandArg } from './common.mjs';
 import { contextDocCandidates, contextFreshnessRow } from './context.mjs';
 import { ensureEvidenceManifest, evidenceStatusRows } from './evidence.mjs';
 import { getGitInfo } from './git.mjs';
@@ -34,8 +35,4 @@ export function contextGateRows(repo, task, profile, git, options = {}) {
   rows.push({ id: 'context-stale-docs', status: stale.length ? 'warn' : 'pass', detail: stale.length ? `${stale.length} stale context docs` : 'no stale context docs detected', next: stale.length ? `sdlc context freshness --task "${escapeCommandArg(task || 'current task')}"` : '' });
   rows.push({ id: 'context-unit-map', status: multi && unitRegistry(repo, profile).length <= 1 ? 'block' : 'pass', detail: multi ? 'multi-repo/project task needs unit/workspace mapping' : 'unit map not required by task signals', next: multi ? 'sdlc unit doctor' : '' });
   return rows;
-}
-
-function escapeCommandArg(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

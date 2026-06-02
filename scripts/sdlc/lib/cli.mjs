@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, humanize, indentList, optionFiles, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, safeWriteTextFile, slug, splitList, stamp, toCamel, writeOrPrint } from './common.mjs';
+import { appendControlJsonLine, dedupe, escapeCell, escapeCommandArg, fail, formatInlineList, formatInlineStatus, formatList, formatOptionList, humanize, indentList, optionFiles, parseOptions, printGateRows, printObject, printTable, readJsonIfExists, safeWriteTextFile, slug, splitList, stamp, toCamel, writeOrPrint } from './common.mjs';
 import { git } from './git.mjs';
 import { discoverCommands, normalizeKeys, profileAudit, profileDoctor, profileInit, profileShow, profileSuggest } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -571,8 +571,4 @@ function taskDependencies() {
     verifyDependencies,
     verifyPacket,
   };
-}
-
-function escapeCommandArg(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

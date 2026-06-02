@@ -67,6 +67,10 @@ export function escapeCell(value) {
   return String(value).replace(/\|/g, '\\|');
 }
 
+export function escapeCommandArg(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 export function humanize(value) {
   return String(value).replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase());
 }
