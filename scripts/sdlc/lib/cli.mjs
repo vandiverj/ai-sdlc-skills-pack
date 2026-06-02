@@ -11,12 +11,13 @@ import { ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentS
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
 import { ensureEvidenceManifest, evidenceAdd, evidenceInit, evidencePlan, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, evidenceStatusRows, readEvidenceManifest } from './evidence.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
-import { evalAddCase, evalReport, evalRun, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
+import { detectContextContradictions, evalAddCase, evalReport, evalRun, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { contextAssemble, contextBudget, contextCompact, contextLedger } from './context.mjs';
 import { learnArchive, learnBacklog, learnCandidates, learnCapture, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck } from './learning.mjs';
+import { taskBundle, taskCurrent, taskFastPass, taskFinish, taskId, taskLedger, taskOpen, taskPreflight, taskQa, taskReview, taskStart, taskStatus, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
 import { workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
 import { multiLedger, multiPacket, multiQa, multiStatus } from './multi.mjs';
@@ -115,20 +116,20 @@ export async function main(argv) {
   if (area === 'recipe' && action === 'retire') return recipeRetire(repo, options);
   if (area === 'recipe' && action === 'compile') return recipeCompile(repo, options, { evidenceRequirementsForTask });
   if (area === 'recipe' && action === 'explain') return recipeExplain(repo, options);
-  if (area === 'task' && action === 'id') return taskId(repo, options);
-  if (area === 'task' && action === 'current') return taskCurrent(repo, options);
-  if (area === 'task' && action === 'preflight') return taskPreflight(repo, options);
-  if (area === 'task' && (action === 'fast-pass' || action === 'fastpass')) return taskFastPass(repo, options);
-  if (area === 'task' && action === 'start') return taskStart(repo, options);
-  if (area === 'task' && (action === 'open')) return taskOpen(repo, options);
-  if (area === 'task' && (action === 'bundle')) return taskBundle(repo, options);
-  if (area === 'task' && action === 'status') return taskStatus(repo, options);
+  if (area === 'task' && action === 'id') return taskId(repo, options, taskDependencies());
+  if (area === 'task' && action === 'current') return taskCurrent(repo, options, taskDependencies());
+  if (area === 'task' && action === 'preflight') return taskPreflight(repo, options, taskDependencies());
+  if (area === 'task' && (action === 'fast-pass' || action === 'fastpass')) return taskFastPass(repo, options, taskDependencies());
+  if (area === 'task' && action === 'start') return taskStart(repo, options, taskDependencies());
+  if (area === 'task' && (action === 'open')) return taskOpen(repo, options, taskDependencies());
+  if (area === 'task' && (action === 'bundle')) return taskBundle(repo, options, taskDependencies());
+  if (area === 'task' && action === 'status') return taskStatus(repo, options, taskDependencies());
   if (area === 'task' && action === 'doctor') return taskDoctor(repo, options);
-  if (area === 'task' && (action === 'review' || action === 'checkpoint')) return taskReview(repo, options);
-  if (area === 'task' && action === 'ledger') return taskLedger(repo, options);
-  if (area === 'task' && action === 'verify') return taskVerify(repo, options);
-  if (area === 'task' && action === 'qa') return taskQa(repo, options);
-  if (area === 'task' && (action === 'finish' || action === 'complete')) return taskFinish(repo, options);
+  if (area === 'task' && (action === 'review' || action === 'checkpoint')) return taskReview(repo, options, taskDependencies());
+  if (area === 'task' && action === 'ledger') return taskLedger(repo, options, taskDependencies());
+  if (area === 'task' && action === 'verify') return taskVerify(repo, options, taskDependencies());
+  if (area === 'task' && action === 'qa') return taskQa(repo, options, taskDependencies());
+  if (area === 'task' && (action === 'finish' || action === 'complete')) return taskFinish(repo, options, taskDependencies());
   if (area === 'state' && action === 'init') return stateInit(repo, options, stateDependencies());
   if (area === 'state' && action === 'current') return stateCurrent(repo, options);
   if (area === 'state' && action === 'advance') return stateAdvance(repo, options, stateDependencies());
@@ -830,543 +831,6 @@ function contextGate(repo, options = {}) {
   if (blocked.length) process.exitCode = 1;
 }
 
-function taskPreflight(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so preflight can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
-  const files = optionFiles(options, git.changedFiles);
-  const units = affectedUnits(repo, files, profile, options.unit);
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  const qaMode = qaModeForSurfaces(surfaces, task);
-  const triggers = securityTriggers(task, profile.values);
-  const caseId = taskCaseId(task, options, profile.values);
-  const breadth = taskBreadthAssessment(task, files, surfaces);
-  const fast = fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers);
-  const quality = qualityFloorRows({ task, git, route, units, surfaces, qaMode, profile, packets: findPackets(repo, {}) });
-  const budget = artifactBudgetForRoute(route, fast.eligible ? 'micro' : '');
-  const confidence = routeConfidence({ task, route, files, units, surfaces, profile, triggers });
-  const next = fast.eligible ? `sdlc task fast-pass --task "${escapeCommandArg(task)}"` : `sdlc route start ${route} --task "${escapeCommandArg(task)}"`;
-  const summary = {
-    repository: repo,
-    task,
-    caseId: caseId || 'not provided',
-    workClass: taskType(task),
-    route,
-    confidence,
-    fastPassEligible: fast.eligible ? 'yes' : 'no',
-    taskBreadth: breadth.level,
-    taskBreadthSignals: breadth.signals.join(', ') || 'none',
-    affectedRepos: splitList(profile.values.relatedRepositories).join(', ') || 'primary repository only / unknown',
-    affectedUnits: units.map((unit) => unit.name).join(', ') || 'default',
-    contextBuckets: dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)).join(', ') || 'not configured',
-    testingSurfaces: surfaces.join(', ') || 'service-behavior',
-    qaMode,
-    artifactBudget: budget.name,
-    nextAction: next,
-  };
-
-  if (!options.lock && !options.out) {
-    printObject(summary);
-    console.log('\n## Human Gates\n');
-    console.log(formatList(runStartGates(route, task, git, profile.values)));
-    console.log('\n## Safe Defaults Assumed\n');
-    console.log(formatList(safeDefaultsForPreflight(route, fast, profile.values)));
-    console.log('\n## Quality Floor\n');
-    console.log(formatQualityFloorTable(quality));
-    console.log('\n## Fast-Pass Decision\n');
-    console.log(formatList(fast.reasons));
-    return;
-  }
-
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-task-preflight.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Task Preflight
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Case ID: ${caseId || 'not provided'}
-Work class: ${taskType(task)}
-Route: ${route}
-Classification confidence: ${confidence}
-Fast-pass eligible: ${fast.eligible ? 'yes' : 'no'}
-Task breadth: ${breadth.level}
-
-## One-Screen Decision Summary
-
-- Affected repos: ${splitList(profile.values.relatedRepositories).join(', ') || 'primary repository only / unknown'}
-- Affected units: ${formatInlineList(units.map((unit) => unit.name))}
-- Context buckets: ${formatInlineList(dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)))}
-- Testing surfaces: ${formatInlineList(surfaces)}
-- QA mode: ${qaMode}
-- Artifact budget: ${budget.name}
-- Task breadth signals: ${formatInlineList(breadth.signals)}
-- Security/tool triggers: ${triggers.length ? triggers.join('; ') : 'none detected'}
-- Next action: ${next}
-
-## Safe Defaults Assumed
-
-${formatList(safeDefaultsForPreflight(route, fast, profile.values))}
-
-## Human Approval Gates
-
-${formatList(runStartGates(route, task, git, profile.values))}
-
-## Quality Floor Checklist
-
-${formatQualityFloorTable(quality)}
-
-## Artifact Budget
-
-${formatArtifactBudget(budget)}
-
-## Fast-Pass Assessment
-
-${formatList(fast.reasons)}
-
-## Confidence Summary
-
-${confidenceBlock({ proved: preflightProved(route, units, surfaces, git), inferred: preflightInferred(route, qaMode), human: preflightHumanJudgment(fast, triggers), nextAction: next })}
-`;
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function taskFastPass(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so fast-pass can be evaluated.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
-  const files = optionFiles(options, git.changedFiles);
-  const units = affectedUnits(repo, files, profile, options.unit);
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  const triggers = securityTriggers(task, profile.values);
-  const breadth = taskBreadthAssessment(task, files, surfaces);
-  const fast = fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers);
-  const budget = artifactBudgetForRoute(route, fast.eligible ? 'micro' : '');
-  printObject({
-    repository: repo,
-    task,
-    route,
-    eligible: fast.eligible ? 'yes' : 'no',
-    artifactBudget: budget.name,
-    changedFiles: files.length,
-    affectedUnits: units.map((unit) => unit.name).join(', ') || 'default',
-    testingSurfaces: surfaces.join(', ') || 'service-behavior',
-    taskBreadth: breadth.level,
-    taskBreadthSignals: breadth.signals.join(', ') || 'none',
-    nextAction: fast.eligible ? 'Proceed inline with one verification path and final confidence block.' : `Escalate to: sdlc task preflight --task "${escapeCommandArg(task)}" --lock`,
-  });
-  console.log('\n## Decision Reasons\n');
-  console.log(formatList(fast.reasons));
-  console.log('\n## Minimum Evidence\n');
-  console.log(formatArtifactBudget(budget));
-}
-
-function taskStart(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the task contract can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
-  const modes = detectWorkModes(repo, task, profile.values, git.changedFiles);
-  const triggers = securityTriggers(task, profile.values);
-  const related = splitList(profile.values.relatedRepositories);
-  const caseId = taskCaseId(task, options, profile.values);
-  const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
-  const testingSurfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-task-start.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Task Start Contract
-
-Date: ${new Date().toISOString()}
-Case ID: ${caseId || 'not provided'}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Status: ${git.status || 'clean'}
-Suggested route: ${route}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-
-## Normalized Task Shape
-
-- Task type: ${taskType(task)}
-- Work modes: ${formatInlineList(modes)}
-- Affected repositories: ${related.length ? related.join(', ') : 'primary repository only / unknown'}
-- Affected units: ${formatInlineList(units.map((unit) => unit.name))}
-- Context buckets: ${formatInlineList(dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)))}
-- Testing surfaces: ${formatInlineList(testingSurfaces)}
-- Deploy methods: ${formatInlineList(dedupe(units.map((unit) => unit.deployMethod).filter(Boolean)))}
-- Expected QA need: ${expectedQaNeed(task, git.changedFiles, profile.values)}
-- Likely surfaces: ${formatInlineList(inferDirtySurfaces(task, git))}
-- Verification maturity: ${verificationMaturity(profile.values, commands)}
-- Commit/push preference: human decision at finish; never automatic
-
-## Constraints And Gates
-
-${formatList(runStartGates(route, task, git, profile.values))}
-
-## Context To Check
-
-\`\`\`bash
-sdlc context freshness --task "${escapeCommandArg(task)}"
-sdlc context pack --task "${escapeCommandArg(task)}"
-sdlc change graph --task "${escapeCommandArg(task)}"
-\`\`\`
-
-## Suggested Task Flow
-
-\`\`\`bash
-sdlc task ledger --task "${escapeCommandArg(task)}"
-sdlc unit detect --task "${escapeCommandArg(task)}"
-sdlc surface detect --task "${escapeCommandArg(task)}"
-sdlc touched packet
-sdlc impact packet --task "${escapeCommandArg(task)}"
-sdlc verify packet --task "${escapeCommandArg(task)}"
-sdlc smoke packet --task "${escapeCommandArg(task)}"
-sdlc qa script --task "${escapeCommandArg(task)}"
-sdlc task finish --task "${escapeCommandArg(task)}"
-\`\`\`
-
-## Security And Tool Triggers
-
-${formatList(triggers)}
-`;
-
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function taskId(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." to generate a task id.');
-  printObject({
-    repository: repo,
-    task,
-    taskId: taskRunId(task, options),
-  });
-}
-
-function taskCurrent(repo, options = {}) {
-  const packets = findPackets(repo, {});
-  const taskPackets = packets.filter((packet) => ['task-start', 'task-ledger', 'task-finish'].includes(packet.kind));
-  const current = taskPackets[0] || packets[0];
-  if (!current) {
-    printObject({ repository: repo, currentTask: 'none', suggestedNextCommand: 'sdlc task open --task "..."' });
-    return;
-  }
-  const task = firstMatch(current.text, /^Task:\s*(.+)$/m);
-  const git = getGitInfo(repo);
-  const open = finalGateOpenItems(repo, task, git, packets);
-  printObject({
-    repository: repo,
-    currentPacket: relative(repo, current.path),
-    currentKind: current.kind,
-    task: task || 'not found',
-    route: task ? inferRouteFromTask(task, git, loadProfile(repo).values) : current.route,
-    changedFiles: git.changedFiles.length,
-    openGates: open.join('; ') || 'none detected',
-    suggestedNextCommand: task ? (open[0] ? suggestedFinalGateCommand(open[0], task) : `sdlc task review --task "${task}"`) : 'sdlc task open --task "..."',
-  });
-}
-
-function taskOpen(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the task can be opened.');
-
-  const outDir = options.outDir ? resolve(repo, options.outDir) : defaultRunsDir(repo);
-  mkdirSync(outDir, { recursive: true });
-  const taskSlug = taskRunId(task, options);
-  const outputs = [
-    ['task-start', () => taskStart(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-task-start.md`) })],
-    ['context-freshness', () => contextFreshness(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-context-freshness.md`) })],
-    ['context-contradictions', () => contextContradictions(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-context-contradictions.md`) })],
-    ['change-graph', () => changeGraph(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-change-graph.md`) }, graphSearchDependencies())],
-    ['task-ledger', () => taskLedger(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-task-ledger.md`) })],
-  ];
-
-  printObject({
-    repository: repo,
-    task,
-    taskId: taskSlug,
-    action: 'opening task with start contract, context checks, change graph, and ledger',
-  });
-  for (const [, run] of outputs) run();
-}
-
-function taskBundle(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the task bundle can be scoped.');
-  const outDir = options.outDir ? resolve(repo, options.outDir) : defaultRunsDir(repo);
-  const taskSlug = taskRunId(task, options);
-  mkdirSync(outDir, { recursive: true });
-  printObject({
-    repository: repo,
-    task,
-    taskId: taskSlug,
-    action: 'bundling task evidence',
-  });
-  touchedPacket(repo, { ...options, out: join(outDir, `${taskSlug}-touched-surface-ledger.md`) });
-  impactPacket(repo, { ...options, out: join(outDir, `${taskSlug}-impact-packet.md`) });
-  verifyPacket(repo, { ...options, out: join(outDir, `${taskSlug}-developer-verification-packet.md`) });
-  smokePacket(repo, { ...options, out: join(outDir, `${taskSlug}-manual-smoke-packet.md`) }, smokeDependencies());
-  qaScript(repo, { ...options, out: join(outDir, `${taskSlug}-qa-test-script.md`) });
-  taskLedger(repo, { ...options, taskId: taskSlug, out: join(outDir, `${taskSlug}-task-ledger.md`), refresh: true });
-}
-
-function taskStatus(repo, options = {}) {
-  const task = options.task || '';
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const open = finalGateOpenItems(repo, task, git, packets);
-  const metrics = taskMetrics(repo, task, git, packets);
-
-  printObject({
-    repository: repo,
-    task: task || 'not provided',
-    branch: git.branch || 'unknown',
-    status: git.status || 'clean',
-    route: task ? inferRouteFromTask(task, git, loadProfile(repo).values) : 'not provided',
-    packets: packets.length,
-    finalGate: open.length ? 'open' : 'ready with explicit human approval',
-    openGates: open.join('; ') || 'none detected',
-    suggestedNextCommand: open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc task finish --task "..."',
-  });
-  console.log('\n## Metrics\n');
-  console.log(formatList(Object.entries(metrics).map(([key, value]) => `${humanize(key)}: ${value}`)));
-}
-
-function taskReview(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const open = finalGateOpenItems(repo, task, git, packets);
-  const latest = (kind) => latestPacketPath(repo, packets, kind);
-  const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
-  const testingSurfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
-
-  printObject({
-    repository: repo,
-    task: task || 'not provided',
-    branch: git.branch || 'unknown',
-    status: git.status || 'clean',
-    route: task ? inferRouteFromTask(task, git, profile.values) : 'not provided',
-    changedFiles: git.changedFiles.length,
-    affectedUnits: units.map((unit) => unit.name).join(', ') || 'default',
-    testingSurfaces: testingSurfaces.join(', ') || 'service-behavior',
-    finalGate: open.length ? 'open' : 'ready with explicit human approval',
-    readyForQaHandoff: packets.some((packet) => packet.kind === 'qa-script') ? 'yes' : 'no',
-    readyToCommit: open.length ? 'no' : 'yes, with explicit human approval only',
-    readyToPush: open.length ? 'no' : 'only with explicit human approval',
-    mergeDeployRelease: 'forbidden by SDLC default; project-specific human process only',
-  });
-
-  console.log('\n## Evidence\n');
-  console.log(formatList([
-    `Task ledger: ${latest('task-ledger')}`,
-    `Touched packet: ${latest('touched')}`,
-    `Impact packet: ${latest('impact')}`,
-    `Developer verification: ${latest('developer-verification')}`,
-    `Manual smoke: ${latest('manual-smoke')}`,
-    `QA script: ${latest('qa-script')}`,
-    `Git packet: ${latest('git-action')}`,
-  ]));
-  console.log('\n## Open Gates\n');
-  console.log(formatList(open));
-  console.log('\n## Recommended Next Action\n');
-  console.log(`- ${open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc task finish --task "..."'}`);
-}
-
-function taskLedger(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the task ledger can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const route = inferRouteFromTask(task, git, profile.values);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-task-ledger.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Task Ledger
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Route: ${route}
-Status: ${git.status || 'clean'}
-
-## Evidence Index
-
-| Kind | Latest packet | Completed |
-| --- | --- | --- |
-${taskLedgerRows(repo, packets).join('\n')}
-
-## Context And Change Understanding
-
-- Context freshness:
-- Context pack:
-- Change graph:
-- Context update plan:
-
-## Verification And QA
-
-- Developer verification:
-- Manual smoke:
-- Human QA Markdown script:
-- Test introduction plan:
-- Render/browser evidence:
-- Caps:
-
-## Files Touched
-
-${formatList(git.changedFiles)}
-
-## Finish Decision
-
-\`\`\`bash
-sdlc task finish --task "${escapeCommandArg(task)}"
-\`\`\`
-`;
-
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function taskVerify(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so task verification can be scoped.');
-
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  printObject({
-    repository: repo,
-    task,
-    suggestedVerifyPacket: `sdlc verify packet --task "${task}"`,
-    suggestedManualSmoke: `sdlc smoke packet --task "${task}"`,
-    suggestedTestPlan: shouldSuggestTestPlan(repo, task, git.changedFiles) ? `sdlc test plan --task "${task}"` : 'not required by detected surfaces',
-    latestDeveloperVerification: latestPacketPath(repo, packets, 'developer-verification'),
-    latestManualSmoke: latestPacketPath(repo, packets, 'manual-smoke'),
-  });
-}
-
-function taskQa(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so task QA can be scoped.');
-
-  const packets = findPackets(repo, {});
-  printObject({
-    repository: repo,
-    task,
-    suggestedQaScript: `sdlc qa script --task "${task}"`,
-    latestImpactPacket: latestPacketPath(repo, packets, 'impact'),
-    latestQaScript: latestPacketPath(repo, packets, 'qa-script'),
-    note: 'QA scripts are Markdown for human testers and YouTrack paste-in; they do not assume AI use.',
-  });
-}
-
-function taskFinish(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the finish decision can be scoped.');
-
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const route = inferRouteFromTask(task, git, profile.values);
-  const open = finalGateOpenItems(repo, task, git, packets);
-  const metrics = taskMetrics(repo, task, git, packets);
-  const caseId = taskCaseId(task, options, profile.values);
-  const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
-  const proposedMessage = proposedCommitMessage(git.changedFiles, packets.find((packet) => packet.kind === 'impact'), { caseId, profile: profile.values });
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-task-finish-decision.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Task Finish Decision
-
-Date: ${new Date().toISOString()}
-Case ID: ${caseId || 'not provided'}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Head: ${git.head || 'unknown'}
-Route: ${route}
-Status: ${git.status || 'clean'}
-
-## Decision Summary
-
-- Ready to commit: ${open.length ? 'no' : 'yes, with explicit human approval only'}
-- Ready to push: ${open.length ? 'no' : 'only with explicit human approval'}
-- Ready for QA handoff: ${packets.some((packet) => packet.kind === 'qa-script') ? 'yes' : 'no'}
-- Merge/deploy/release: forbidden by SDLC default; project-specific human process only
-- Suggested commit message: ${proposedMessage}
-- Affected units: ${formatInlineList(units.map((unit) => unit.name))}
-- Context buckets: ${formatInlineList(dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)))}
-- Testing surfaces: ${formatInlineList(inferTestingSurfaces(repo, task, git.changedFiles, profile))}
-- Deploy methods: ${formatInlineList(dedupe(units.map((unit) => unit.deployMethod).filter(Boolean)))}
-
-## Open Gates
-
-${formatList(open)}
-
-## Evidence Summary
-
-${formatList(taskEvidenceSummary(repo, packets))}
-
-## Task Metrics
-
-${formatList(Object.entries(metrics).map(([key, value]) => `${humanize(key)}: ${value}`))}
-
-## Human Approval Choices
-
-- [ ] No action.
-- [ ] Commit only.
-- [ ] Commit and push.
-- [ ] Generate/update QA handoff only.
-
-## Next Commands
-
-\`\`\`bash
-${open.length ? suggestedFinalGateCommand(open[0], task) : 'sdlc git packet'}
-sdlc calibrate add --route ${route} --outcome "" --route-fit "" --caps "" --friction "" --process-change-proposed ""
-\`\`\`
-
-## Final Response Shape For Agent
-
-- Ready to commit: ${open.length ? 'no' : 'yes, with explicit human approval only'}
-- Ready to push: ${open.length ? 'no' : 'only with explicit human approval'}
-- QA script ready: ${packets.some((packet) => packet.kind === 'qa-script') ? 'yes' : 'no'}
-- Tests/checks run:
-- Caps:
-- Files changed: ${git.changedFiles.length}
-- Recommended next action: ${open[0] ? suggestedFinalGateCommand(open[0], task) : 'Ask human to choose no action / commit only / commit and push.'}
-
-## Confidence Summary
-
-${confidenceBlock({
-    proved: [`${git.changedFiles.length} changed file(s) observed`, `${packets.length} SDLC packet(s) available`, `route inferred as ${route}`],
-    inferred: [`QA readiness is ${packets.some((packet) => packet.kind === 'qa-script') ? 'available' : 'not available'}`, `commit message proposal: ${proposedMessage}`],
-    human: open.length ? open : ['choose no action / commit only / commit and push'],
-    nextAction: open[0] ? suggestedFinalGateCommand(open[0], task) : 'Ask human to choose finish action.',
-  })}
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-  if (open.length) process.exitCode = 1;
-}
-
 function getRecipe(route) {
   if (!route) fail('Pass a route name, such as standard, release-push, review-only, or multi-repo-integration.');
 
@@ -1581,6 +1045,53 @@ function contextControlDependencies() {
 
 function learningDependencies() {
   return { agentsRoot, findPackets, matchRecipes, packetHas, resolvePacketPath, taskBreadthAssessment, taskEvidenceSummary };
+}
+
+function taskDependencies() {
+  return {
+    changeGraph,
+    changeImpactDependencies,
+    confidenceBlock,
+    contextContradictions,
+    contextFreshness,
+    detectWorkModes,
+    escapeCommandArg,
+    expectedQaNeed,
+    fastPassAssessment,
+    finalGateOpenItems,
+    findPackets,
+    firstMatch,
+    formatQualityFloorTable,
+    graphSearchDependencies,
+    humanize,
+    impactPacket,
+    latestPacketPath,
+    optionFiles,
+    preflightHumanJudgment,
+    preflightInferred,
+    preflightProved,
+    proposedCommitMessage,
+    qaDependencies,
+    qualityFloorRows,
+    routeConfidence,
+    runStartGates,
+    safeDefaultsForPreflight,
+    shouldSuggestTestPlan,
+    smokeDependencies,
+    smokePacket,
+    suggestedFinalGateCommand,
+    taskBreadthAssessment,
+    taskCaseId,
+    taskEvidenceSummary,
+    taskLedgerRows,
+    taskMetrics,
+    taskRunId,
+    taskType,
+    touchedPacket,
+    verificationMaturity,
+    verifyDependencies,
+    verifyPacket,
+  };
 }
 
 function fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers) {

@@ -6,6 +6,7 @@ import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { matchRecipes } from './recipes.mjs';
 import { inferRouteFromTask, securityTriggers } from './routes.mjs';
+import { detectStack } from './units.mjs';
 
 const modulePath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(modulePath), '..', '..', '..');
@@ -485,7 +486,7 @@ function contextPlacementRecommendation(fact, profile = {}) {
   };
 }
 
-function detectContextContradictions(repo, profile, commands, docs, related) {
+export function detectContextContradictions(repo, profile, commands, docs, related) {
   const values = profile.values;
   const contradictions = [];
   const stack = detectStack(repo);
