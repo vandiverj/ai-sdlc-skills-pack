@@ -15,6 +15,7 @@ import { evalAddCase, evalReport, evalRun, scenarioList, scenarioShow, scenarioT
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
+import { contextAssemble, contextBudget, contextCompact, contextLedger } from './context.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
 import { workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
 import { multiLedger, multiPacket, multiQa, multiStatus } from './multi.mjs';
@@ -98,10 +99,10 @@ export async function main(argv) {
   if (area === 'context' && action === 'gate') return contextGate(repo, options);
   if (area === 'context' && action === 'place') return contextPlace(repo, options);
   if (area === 'context' && action === 'update-plan') return contextUpdatePlan(repo, options);
-  if (area === 'context' && action === 'budget') return contextBudget(repo, options);
-  if (area === 'context' && action === 'assemble') return contextAssemble(repo, options);
-  if (area === 'context' && action === 'compact') return contextCompact(repo, options);
-  if (area === 'context' && action === 'ledger') return contextLedger(repo, options);
+  if (area === 'context' && action === 'budget') return contextBudget(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'assemble') return contextAssemble(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'compact') return contextCompact(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'ledger') return contextLedger(repo, options, contextControlDependencies());
   if (area === 'change' && (action === 'graph' || action === 'graph-lite')) return changeGraph(repo, options, graphSearchDependencies());
   if (area === 'search' && action === 'classify') return searchClassify(repo, options, graphSearchDependencies());
   if (area === 'search' && action === 'classify-results') return searchClassify(repo, options, graphSearchDependencies());
@@ -1580,6 +1581,10 @@ function graphSearchDependencies() {
 
 function checkDependencies() {
   return { appendControlEvent };
+}
+
+function contextControlDependencies() {
+  return { contextDocCandidates };
 }
 
 function learnCapture(repo, options = {}) {
@@ -3796,49 +3801,6 @@ function learningSuggestionsFromRun(repo, runDir, task) {
   return dedupe(suggestions);
 }
 
-function contextBudget(repo, options = {}) {
-  const rows = contextBudgetRows(repo, options);
-  printTable(['Source', 'Approx Tokens', 'Status', 'Note'], rows.map((row) => [row.source, row.tokens, row.status, row.note]));
-  const total = rows.reduce((sum, row) => sum + row.tokens, 0);
-  console.log(`Total approximate tokens: ${total}`);
-  if (rows.some((row) => row.status === 'warn')) process.exitCode = 1;
-}
-
-function contextAssemble(repo, options = {}) {
-  const phase = options.phase || 'planning';
-  const packet = buildContextPacket(repo, phase, options);
-  const outPath = options.out ? resolve(repo, options.out) : join(ensureControlRunDir(repo, options, options.task || phase), 'context', `${phase}.context.md`);
-  safeWriteTextFile(repo, outPath, renderContextPacket(packet));
-  appendContextLedger(repo, outPath, packet);
-  console.log(relative(repo, outPath));
-}
-
-function contextCompact(repo, options = {}) {
-  const info = readCurrentStateInfo(repo, options);
-  const state = readCurrentState(repo, options) || synthesizeState(repo, options.task || '', options);
-  const manifest = info.runDir ? readEvidenceManifest(info.runDir) : { required: [], captured: [] };
-  const lines = ['# SDLC Compact Context', '', `Task: ${state.task || options.task || 'not provided'}`, `Route: ${state.route || 'unknown'}`, `Stage: ${state.stage || 'unknown'}`, '', '## Evidence Snapshot', '', ...formatList((manifest.captured || []).map((item) => `${item.kind}: ${item.summary}`).slice(-12)).split('\n'), '', '## Next Action', '', nextActionForStage(state.stage || 'intake', state.task || options.task || '')];
-  const outPath = options.out ? resolve(repo, options.out) : join(ensureControlRunDir(repo, options, options.task || 'compact'), 'context', 'compact.context.md');
-  safeWriteTextFile(repo, outPath, `${lines.join('\n')}\n`);
-  console.log(relative(repo, outPath));
-}
-
-function contextLedger(repo, options = {}) {
-  const info = readCurrentStateInfo(repo, options);
-  const ledgers = [];
-  if (info.runDir) ledgers.push(join(info.runDir, 'context', 'context-ledger.jsonl'));
-  const root = defaultRunsDir(repo);
-  if (existsSync(root)) {
-    for (const file of readdirSync(root)) {
-      const candidate = join(root, file, 'context', 'context-ledger.jsonl');
-      if (existsSync(candidate)) ledgers.push(candidate);
-    }
-  }
-  const rows = dedupe(ledgers).flatMap((ledger) => readJsonLines(ledger));
-  if (!rows.length) return console.log('No context ledger rows found. Run sdlc context assemble first.');
-  printTable(['Time', 'Phase', 'Tokens', 'Path'], rows.map((row) => [row.timestamp, row.phase, row.approxTokens, row.path]));
-}
-
 function learnExport(repo, options = {}) {
   const rows = readJsonLines(defaultLearningBacklogPath(repo)).map(sanitizePortableObject);
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), 'sdlc-learnings.sanitized.json');
@@ -3867,58 +3829,6 @@ function sanitizePortableObject(value) {
     .replace(/\/Users\/[^\s/]+/g, '/Users/[redacted]')
     .replace(/\b[A-Z]{1,10}-\d{1,8}\b/g, '[ticket-id]')
     .replace(/\b(?:client|customer|company|tenant)[-_ ]?[A-Za-z0-9]+\b/gi, '[redacted-entity]');
-}
-
-function contextBudgetRows(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const state = readCurrentState(repo, options) || loadRunState(repo, options.task || '') || {};
-  const docs = contextDocCandidates(repo, profile.values).filter((item) => existsSync(item.path));
-  return [
-    budgetRow('runtime adapter/global skill prompt', 2500, 'estimate', 'keep static instructions minimal'),
-    budgetRow('repo profile', approxTokens(profile.path ? readFileSync(profile.path, 'utf8') : ''), profile.path ? 'ok' : 'warn', profile.path ? relative(repo, profile.path) : 'missing'),
-    budgetRow('task state', approxTokens(JSON.stringify(state)), state.task || options.task ? 'ok' : 'warn', state.task ? 'current state found' : options.task ? 'task provided without current state file' : 'task not provided'),
-    budgetRow('context docs', docs.reduce((sum, item) => sum + approxTokens(safeReadSmall(item.path, 12000)), 0), docs.length > 4 ? 'warn' : 'ok', `${docs.length} candidate docs`),
-    budgetRow('tool output summaries', 600, 'estimate', 'prefer summaries over raw logs'),
-  ];
-}
-
-function budgetRow(source, tokens, status, note) {
-  return { source, tokens: Math.round(tokens || 0), status, note };
-}
-
-function approxTokens(text) {
-  return Math.ceil(String(text || '').length / 4);
-}
-
-function buildContextPacket(repo, phase, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
-  const files = optionFiles(options, git.changedFiles);
-  const units = affectedUnits(repo, files, profile, options.unit);
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  const requirements = evidenceRequirementsForTask(repo, task, route, git, profile, options);
-  return { phase, task, route, repo, branch: git.branch, files, units, surfaces, requirements, profilePath: profile.path ? relative(repo, profile.path) : '', nextAction: nextActionForPhase(phase, task) };
-}
-
-function renderContextPacket(packet) {
-  return ['# SDLC Context Packet', '', `Phase: ${packet.phase}`, `Task: ${packet.task || 'not provided'}`, `Route: ${packet.route}`, `Repository: ${packet.repo}`, `Branch: ${packet.branch || 'unknown'}`, '', '## Affected Units', '', ...formatList(packet.units.map((unit) => `${unit.name}: ${unit.path} (${unit.testSurface || 'surface?'})`)).split('\n'), '', '## Changed Files', '', ...formatList(packet.files).split('\n'), '', '## Testing Surfaces', '', ...formatList(packet.surfaces).split('\n'), '', '## Required Evidence', '', ...formatList(packet.requirements.map((item) => `${item.level}: ${item.id} - ${item.summary}`)).split('\n'), '', '## Context Source', '', `- Profile: ${packet.profilePath || 'not found'}`, '- Archived plans excluded by default.', '- Load exact code or docs only when needed for this phase.', '', '## Next Action', '', packet.nextAction, ''].join('\n');
-}
-
-function appendContextLedger(repo, outPath, packet) {
-  const ledger = join(dirname(outPath), 'context-ledger.jsonl');
-  appendControlJsonLine(repo, ledger, { timestamp: new Date().toISOString(), phase: packet.phase, task: packet.task, path: outPath, approxTokens: approxTokens(renderContextPacket(packet)) });
-}
-
-function nextActionForPhase(phase, task) {
-  if (phase === 'intake') return 'sdlc config validate && sdlc capability snapshot';
-  if (phase === 'planning') return `sdlc recipe compile --task "${escapeCommandArg(task || '...')}"`;
-  if (phase === 'implementation') return 'edit within affected units and keep scope ledger current';
-  if (phase === 'verification') return `sdlc checks plan && sdlc evidence plan --task "${escapeCommandArg(task || '...')}"`;
-  if (phase === 'qa') return `sdlc qa build --task "${escapeCommandArg(task || '...')}"`;
-  if (phase === 'finish') return `sdlc complete check --task "${escapeCommandArg(task || '...')}"`;
-  return 'continue with SDLC state/current evidence';
 }
 
 function defaultLearningBacklogPath(repo) {
