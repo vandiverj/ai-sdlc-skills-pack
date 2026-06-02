@@ -29,6 +29,7 @@ import { permissionPolicyPacket, riskAgentic, safetyFinish, safetyPreflight, too
 import { doctorFull, health, installCheck, processHealth, setupBootstrap, setupDoctor } from './health.mjs';
 import { actionPreview, completeCheck, completeExplain, completeWaive, finalGate, finishPacket, gitGuard, gitPacket } from './finish.mjs';
 import { scopeCheck, scopeExpect } from './scope.mjs';
+import { fixturePlan, testBootstrapPlan, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
@@ -184,11 +185,11 @@ export async function main(argv) {
   if (area === 'ticket' && action === 'update-preview') return ticketUpdatePreview(repo, options);
   if (area === 'integration' && action === 'packet') return integrationPacket(repo, options, { classifyTouchedSurface });
   if (area === 'validate' && action === 'ladder') return validationLadder(repo, options);
-  if (area === 'fixture' && action === 'plan') return fixturePlan(repo, options);
-  if (area === 'test' && action === 'plan') return testPlan(repo, options);
-  if (area === 'test' && action === 'suggest') return testSuggest(repo, options);
-  if (area === 'test' && action === 'bootstrap-plan') return testBootstrapPlan(repo, options);
-  if (area === 'test' && action === 'regression-plan') return testRegressionPlan(repo, options);
+  if (area === 'fixture' && action === 'plan') return fixturePlan(repo, options, testPlanDependencies());
+  if (area === 'test' && action === 'plan') return testPlan(repo, options, testPlanDependencies());
+  if (area === 'test' && action === 'suggest') return testSuggest(repo, options, testPlanDependencies());
+  if (area === 'test' && action === 'bootstrap-plan') return testBootstrapPlan(repo, options, testPlanDependencies());
+  if (area === 'test' && action === 'regression-plan') return testRegressionPlan(repo, options, testPlanDependencies());
   if (area === 'bug' && (action === 'evidence' || action === 'packet')) return bugEvidencePacket(repo, options);
   if (area === 'bug' && action === 'live-evidence') return bugLiveEvidence(repo, options);
   if (area === 'bug' && action === 'evidence-check') return bugEvidenceCheck(repo, options);
@@ -2574,6 +2575,20 @@ function scopeDependencies() {
   return { appendControlEvent, classifyControlPathActivity, classifyTouchedSurface };
 }
 
+function testPlanDependencies() {
+  return {
+    classifyTouchedSurface,
+    detectTestFrameworks,
+    formatValidationLadder,
+    inferBootstrapFramework,
+    testBootstrapChecklist,
+    testPlanRecommendations,
+    testRecommendationsForSurfaces,
+    validationLadderRows,
+    verificationMaturity,
+  };
+}
+
 function validationLadder(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "..." so the validation ladder can be scoped.');
@@ -2598,201 +2613,6 @@ Use the strongest available validation surface. If a stronger surface is unavail
 `;
   if (outPath) {
     safeWriteTextFile(repo, outPath, content);
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function fixturePlan(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the fixture validation plan can be scoped.');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = git.changedFiles;
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-fixture-validation-plan.md`);
-  const content = `# SDLC Fixture Validation Plan
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Branch: ${git.branch || 'unknown'}
-Intent: keep-change / throwaway-test / process-only
-
-## Mixed-Scope Task Set
-
-### Small
-- Copy/label polish:
-- Minor feedback state:
-- One focused test:
-
-### Medium
-- Settings/mode behavior:
-- Stateful UI/API/CLI flow:
-- Validation path:
-
-### Large
-- Multi-surface feature:
-- Integration or release/QA handoff:
-- Cross-module regression:
-
-## Required Proof
-
-- Preflight route and breadth:
-- Changed-files scope:
-- Tests/build or surface-equivalent verification:
-- Rendered/API/CLI/job/data smoke or explicit cap:
-- QA Markdown if testers are involved:
-- Commit preview when changes are kept:
-
-## Validation Ladder
-
-${formatValidationLadder(validationLadderRows(task, surfaces))}
-`;
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
-function testPlan(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so the test introduction plan can be scoped.');
-
-  const profile = loadProfile(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const git = getGitInfo(repo);
-  const maturity = verificationMaturity(profile.values, commands);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-test-introduction-plan.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-
-  const content = `# SDLC Test Introduction Plan
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Verification maturity: ${maturity}
-
-## Current Test Harness
-
-- Test command: ${commands.test || 'not configured'}
-- Build command: ${commands.build || 'not configured'}
-- Lint/typecheck command: ${commands.lint || 'not configured'}
-
-## Touched Surfaces
-
-${formatList(dedupe(git.changedFiles.map(classifyTouchedSurface)))}
-
-## Smallest Useful New Test
-
-- Unit/characterization test:
-- API/service smoke:
-- UI/rendered smoke:
-- Data/integration check:
-- Manual QA only cap:
-
-## Task-First Test Growth
-
-- Target behavior:
-- Smallest useful test now:
-- Proposed test file/location:
-- Command to run it:
-- Why this test is worth adding:
-- If not adding a test now, explicit cap:
-
-## Recommendation
-
-${formatList(testPlanRecommendations(maturity, git.changedFiles))}
-`;
-
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function testSuggest(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "..." so test suggestions can be scoped.');
-  const profile = loadProfile(repo);
-  const packageJson = readJsonIfExists(join(repo, 'package.json'));
-  const commands = discoverCommands(profile.values, packageJson);
-  const git = getGitInfo(repo);
-  const maturity = verificationMaturity(profile.values, commands);
-  const suggestions = testPlanRecommendations(maturity, git.changedFiles);
-  const units = affectedUnits(repo, git.changedFiles, profile, options.unit);
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Test Suggestion
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-Verification maturity: ${maturity}
-
-## Current Harness
-
-- Test command: ${commands.test || 'not configured'}
-- Build command: ${commands.build || 'not configured'}
-- Test frameworks: ${formatInlineList(detectTestFrameworks(repo, packageJson))}
-- Affected units: ${formatInlineList(units.map((unit) => unit.name))}
-- Unit test commands: ${formatInlineList(dedupe(units.map((unit) => unit.testCommand).filter(Boolean)))}
-- Testing surfaces: ${formatInlineList(inferTestingSurfaces(repo, task, git.changedFiles, profile))}
-
-## Smallest Useful Test
-
-${formatList(suggestions)}
-
-## If No Test Is Added Now
-
-- Reason:
-- Manual smoke replacing it:
-- Future test to add:
-- Cap owner:
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function testBootstrapPlan(repo, options = {}) {
-  const unitName = options.unit || options.name || 'default';
-  const framework = String(options.framework || inferBootstrapFramework(repo)).toLowerCase();
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const checklist = testBootstrapChecklist(framework);
-  const content = `# SDLC Test Bootstrap Plan
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Unit: ${unitName}
-Framework: ${framework}
-
-## Goal
-
-Add the smallest focused test harness needed for the active task without pretending the legacy or multi-project repository is fully covered.
-
-## Checklist
-
-${formatList(checklist)}
-
-## Validation
-
-- Focused test command:
-- Broader build/test command when feasible:
-- Dependency/package warnings:
-- Environment/setup caps:
-- Manual smoke or QA replacement when automation cannot be added:
-
-## Guardrails
-
-- Do not backfill broad legacy coverage as part of a narrow task unless explicitly requested.
-- Record dependency warnings separately from product/test failures.
-- Keep the first test close to the active bug, route, data invariant, or workflow.
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
     console.log(relative(repo, outPath));
   } else {
     console.log(content.trimEnd());
@@ -4544,36 +4364,6 @@ ${formatList(recipes.flatMap((recipe) => recipe.qaAdditions))}
 - QA tester follows this Markdown manually.
 - QA tester does not need AI, source-code access, or developer command knowledge.
 - Developer owns any listed caps, setup notes, and environment limitations.
-`;
-  writeFileSync(outPath, content, 'utf8');
-  console.log(relative(repo, outPath));
-}
-
-function testRegressionPlan(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "...".');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-regression-plan.md`);
-  mkdirSync(dirname(outPath), { recursive: true });
-  const content = `# SDLC Targeted Regression Plan
-
-Date: ${new Date().toISOString()}
-Task: ${task}
-Repository: ${repo}
-
-## Smallest Useful Regression
-
-${formatList(testRecommendationsForSurfaces(inferDirtySurfaces(task, git), task))}
-
-## Existing Evidence Recipe Matches
-
-${formatList(matchRecipes(task, git, profile.values).map((recipe) => `${recipe.id}: ${recipe.requiredProof.join('; ')}`))}
-
-## Caps
-
-- If no automated test is practical, record why and produce a QA handoff/manual smoke replacement.
-- Do not backfill broad legacy coverage as part of a narrow task unless explicitly approved.
 `;
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
