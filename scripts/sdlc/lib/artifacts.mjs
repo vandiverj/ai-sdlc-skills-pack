@@ -2,10 +2,13 @@ import { existsSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { escapeCell, formatList, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteJsonFile, writeOrPrint } from './common.mjs';
 import { defaultRunsDir } from './paths.mjs';
+import { getGitInfo } from './git.mjs';
+import { loadProfile } from './profile.mjs';
+import { inferRouteFromTask } from './routes.mjs';
 import { ensureControlRunDir, readCurrentStateInfo } from './state.mjs';
 
 export function artifactBudget(repo, options = {}) {
-  const route = options.route || 'standard';
+  const route = options.route || inferRouteFromTask(options.task || '', getGitInfo(repo), loadProfile(repo).values);
   const budget = artifactBudgetForRoute(route, options.size || '');
   printObject({
     repository: repo,

@@ -9,7 +9,7 @@ import { defaultRunsDir } from './paths.mjs';
 import { runDashboard, runFinish, runNext, runPlan, runResume, runStart, runStatus } from './run.mjs';
 import { ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo, stateAdvance, stateBlockers, stateCurrent, stateExplain, stateInit } from './state.mjs';
 import { matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
-import { ensureEvidenceManifest, evidenceAdd, evidenceInit, evidencePlan, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, evidenceStatusRows, readEvidenceManifest } from './evidence.mjs';
+import { ensureEvidenceManifest, evidenceAdd, evidenceInit, evidencePlan, evidenceProvenance, evidenceRequired, evidenceRequirementsForTask, evidenceStatus, evidenceStatusRows, readEvidenceManifest } from './evidence.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { detectContextContradictions, evalAddCase, evalReport, evalRun, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
@@ -47,7 +47,7 @@ import { changeGraph, searchClassify, searchRetireCheck } from './graphsearch.mj
 import { createServices } from './services.mjs';
 import { helpOnboarding, helpPrompts, helpWorkflow, printHelp } from './help.mjs';
 import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAction, policyRowsForTask, policySimulate, policyValidateConfig } from './policy.mjs';
-import { artifactBudget as artifactBudgetCommand, artifactBudgetForRoute, artifactMigrate, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
+import { artifactBudget, artifactBudgetForRoute, artifactMigrate, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
 import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
 import { primaryQaSteps, qaBuild, qaCompare, qaComplete, qaHandoff, qaModeCommand, qaOutline, qaOutlineForMode, qaReview, qaScenarios, qaScript, qaValidate } from './qa.mjs';
 import { capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsFallback, toolsStatus } from './tools.mjs';
@@ -241,7 +241,7 @@ export async function main(argv) {
   if (area === 'scorecard' && action === 'trends') return scorecardTrends(repo, options, telemetryDependencies());
   if (area === 'artifact' && action === 'budget') return artifactBudget(repo, options);
   if (area === 'evidence' && action === 'init') return evidenceInit(repo, options);
-  if (area === 'evidence' && action === 'provenance') return evidenceProvenance(repo, options);
+  if (area === 'evidence' && action === 'provenance') return evidenceProvenance(repo, options, { findPackets });
   if (area === 'evidence' && action === 'required') return evidenceRequired(repo, options);
   if (area === 'evidence' && action === 'status') return evidenceStatus(repo, options);
   if (area === 'evidence' && action === 'add') return evidenceAdd(repo, options);
@@ -994,52 +994,6 @@ function git(repo, args) {
   }
 }
 
-function evidenceProvenance(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "...".');
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const rows = provenanceRows(repo, task, git, packets);
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const content = `# SDLC Evidence Provenance
-
-Task: ${task}
-Repository: ${repo}
-
-| Source | Trust | Freshness | Note |
-| --- | --- | --- | --- |
-${rows.map((row) => `| ${escapeCell(row.source)} | ${row.trust} | ${row.freshness} | ${escapeCell(row.note)} |`).join('\n')}
-
-## Rule
-
-- Source code, tests, runtime logs, and current command output outrank advisory context.
-- Issue text, generated docs, old agent output, and external/tool summaries are advisory until verified.
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function provenanceRows(repo, task, git, packets) {
-  const profile = loadProfile(repo);
-  const external = externalEvidenceProfile(profile.values);
-  const rows = [
-    { source: 'source code', trust: 'authoritative', freshness: git.status ? 'current dirty worktree' : 'current clean worktree', note: `${git.changedFiles.length} changed file(s)` },
-    { source: 'tests/current command output', trust: 'strong current evidence', freshness: 'current when run this task', note: packets.some((packet) => packet.kind === 'developer-verification') ? 'verification packet found' : 'not found' },
-    { source: 'runtime logs/database/provider evidence', trust: matchesAny(task.toLowerCase(), ['log', 'sql', 'provider', 'staging', 'production']) ? 'strong when sanitized and exact' : 'not used', freshness: 'task-specific', note: 'capture exact failing table/endpoint/status when relevant' },
-    { source: 'read-only database MCP evidence', trust: external.database.availability === 'available' ? 'strong for observed state when bounded and redacted' : 'not available/unknown unless human provides sanitized result', freshness: 'environment-specific', note: 'proves observed state, not desired product behavior; record environment/time/caps' },
-    { source: 'human task statement', trust: 'intent source', freshness: 'current request', note: task },
-    { source: 'issue/ticket text', trust: 'scope/acceptance source when current; advisory when stale or conflicting', freshness: external.ticket.availability === 'available' ? 'refreshable through ticket MCP' : 'pasted or unavailable', note: 'verify drift before closeout when ticket MCP is available' },
-    { source: 'generated docs/previous agent output', trust: 'advisory', freshness: 'unknown', note: 'never use as proof without source check' },
-    { source: 'context docs', trust: 'routing memory', freshness: 'check freshness/conflicts', note: 'source code/tests/logs win when conflicting' },
-  ];
-  return rows;
-}
-
 function toOtelLiteSpan(row) {
   return {
     name: row.type === 'command' || row.command ? `execute_tool ${row.command || 'sdlc'}` : `sdlc.${row.type || 'event'}`,
@@ -1069,11 +1023,6 @@ function actionCommandHint(action) {
   if (action === 'dependency') return '<package-manager> install/add ...';
   if (action === 'learning-promotion') return 'sdlc learn promote --packet <path> --target <target>';
   return 'provide --command "..." for exact preview';
-}
-
-function artifactBudget(repo, options = {}) {
-  const route = options.route || inferRouteFromTask(options.task || '', getGitInfo(repo), loadProfile(repo).values);
-  return artifactBudgetCommand(repo, { ...options, route });
 }
 
 function resolvePacketPath(repo, packet) {

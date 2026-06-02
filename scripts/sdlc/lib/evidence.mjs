@@ -7,7 +7,8 @@ import { defaultRunsDir } from './paths.mjs';
 import { ensureControlRunDir, readCurrentState, readCurrentStateInfo } from './state.mjs';
 import { matchRecipes } from './recipes.mjs';
 import { inferRouteFromTask, securityTriggers } from './routes.mjs';
-import { inferTestingSurfaces, qaModeForSurfaces } from './units.mjs';
+import { externalEvidenceProfile } from './tools.mjs';
+import { inferTestingSurfaces, matchesAny, qaModeForSurfaces } from './units.mjs';
 
 export function evidenceInit(repo, options = {}) {
   const route = options.route || 'standard';
@@ -117,6 +118,36 @@ export function evidencePlan(repo, options = {}) {
   writeOrPrint(repo, options.out, content);
 }
 
+export function evidenceProvenance(repo, options = {}, deps = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const git = getGitInfo(repo);
+  const packets = deps.findPackets(repo, {});
+  const rows = provenanceRows(repo, task, git, packets);
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  const content = `# SDLC Evidence Provenance
+
+Task: ${task}
+Repository: ${repo}
+
+| Source | Trust | Freshness | Note |
+| --- | --- | --- | --- |
+${rows.map((row) => `| ${escapeCell(row.source)} | ${row.trust} | ${row.freshness} | ${escapeCell(row.note)} |`).join('\n')}
+
+## Rule
+
+- Source code, tests, runtime logs, and current command output outrank advisory context.
+- Issue text, generated docs, old agent output, and external/tool summaries are advisory until verified.
+`;
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
 export function ensureEvidenceManifest(repo, runDir, task, route, options = {}) {
   const path = join(runDir, 'evidence.json');
   const existing = readJsonIfExists(path);
@@ -177,6 +208,21 @@ export function evidenceRequirementsForTask(repo, task, route, git, profile, opt
   if (triggers.length) requirements.push(evidenceRequirement('policy', 'required', `Security/tool triggers checked: ${triggers.join(', ')}.`));
   for (const recipeItem of recipes) requirements.push(evidenceRequirement(`recipe-${recipeItem.id}`, recipeItem.status === 'experimental' ? 'recommended' : 'required', `${recipeItem.id}: ${recipeItem.requiredProof.join('; ')}`));
   return dedupeBy(requirements, (item) => item.id);
+}
+
+function provenanceRows(repo, task, git, packets) {
+  const profile = loadProfile(repo);
+  const external = externalEvidenceProfile(profile.values);
+  return [
+    { source: 'source code', trust: 'authoritative', freshness: git.status ? 'current dirty worktree' : 'current clean worktree', note: `${git.changedFiles.length} changed file(s)` },
+    { source: 'tests/current command output', trust: 'strong current evidence', freshness: 'current when run this task', note: packets.some((packet) => packet.kind === 'developer-verification') ? 'verification packet found' : 'not found' },
+    { source: 'runtime logs/database/provider evidence', trust: matchesAny(task.toLowerCase(), ['log', 'sql', 'provider', 'staging', 'production']) ? 'strong when sanitized and exact' : 'not used', freshness: 'task-specific', note: 'capture exact failing table/endpoint/status when relevant' },
+    { source: 'read-only database MCP evidence', trust: external.database.availability === 'available' ? 'strong for observed state when bounded and redacted' : 'not available/unknown unless human provides sanitized result', freshness: 'environment-specific', note: 'proves observed state, not desired product behavior; record environment/time/caps' },
+    { source: 'human task statement', trust: 'intent source', freshness: 'current request', note: task },
+    { source: 'issue/ticket text', trust: 'scope/acceptance source when current; advisory when stale or conflicting', freshness: external.ticket.availability === 'available' ? 'refreshable through ticket MCP' : 'pasted or unavailable', note: 'verify drift before closeout when ticket MCP is available' },
+    { source: 'generated docs/previous agent output', trust: 'advisory', freshness: 'unknown', note: 'never use as proof without source check' },
+    { source: 'context docs', trust: 'routing memory', freshness: 'check freshness/conflicts', note: 'source code/tests/logs win when conflicting' },
+  ];
 }
 
 export function evidenceRequirement(id, level, summary) {
