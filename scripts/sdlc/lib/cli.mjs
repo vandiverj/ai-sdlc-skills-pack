@@ -17,7 +17,7 @@ import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { contextAssemble, contextBudget, contextCompact, contextLedger } from './context.mjs';
 import { learnArchive, learnBacklog, learnCandidates, learnCapture, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck } from './learning.mjs';
-import { taskBundle, taskCurrent, taskFastPass, taskFinish, taskId, taskLedger, taskOpen, taskPreflight, taskQa, taskReview, taskStart, taskStatus, taskVerify } from './task.mjs';
+import { taskBundle, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskOpen, taskPreflight, taskQa, taskReview, taskStart, taskStatus, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
 import { workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
 import { multiLedger, multiPacket, multiQa, multiStatus } from './multi.mjs';
@@ -124,7 +124,7 @@ export async function main(argv) {
   if (area === 'task' && (action === 'open')) return taskOpen(repo, options, taskDependencies());
   if (area === 'task' && (action === 'bundle')) return taskBundle(repo, options, taskDependencies());
   if (area === 'task' && action === 'status') return taskStatus(repo, options, taskDependencies());
-  if (area === 'task' && action === 'doctor') return taskDoctor(repo, options);
+  if (area === 'task' && action === 'doctor') return taskDoctor(repo, options, taskDependencies());
   if (area === 'task' && (action === 'review' || action === 'checkpoint')) return taskReview(repo, options, taskDependencies());
   if (area === 'task' && action === 'ledger') return taskLedger(repo, options, taskDependencies());
   if (area === 'task' && action === 'verify') return taskVerify(repo, options, taskDependencies());
@@ -1537,27 +1537,6 @@ ${rows.map((row) => `| ${escapeCell(row.source)} | ${row.trust} | ${row.freshnes
   } else {
     console.log(content.trimEnd());
   }
-}
-
-function taskDoctor(repo, options = {}) {
-  const task = options.task || '';
-  if (!task) fail('Pass --task "...".');
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const packets = findPackets(repo, {});
-  const open = finalGateOpenItems(repo, task, git, packets);
-  printObject({
-    repository: repo,
-    task,
-    route: inferRouteFromTask(task, git, profile.values),
-    changedFiles: git.changedFiles.length,
-    recipes: matchRecipes(task, git, profile.values).map((recipe) => recipe.id).join(', ') || 'none',
-    evidence: taskEvidenceSummary(repo, packets).join('; ') || 'none',
-    missing: open.join('; ') || 'none detected',
-    qaReady: packets.some((packet) => packet.kind === 'qa-script') ? 'yes' : 'no or not needed',
-    nextDecision: open[0] || 'approve commit/push/handoff choice if satisfied',
-    nextCommand: open[0] ? suggestedFinalGateCommand(open[0], task) : 'sdlc finish packet --task "..."',
-  });
 }
 
 function provenanceRows(repo, task, git, packets) {

@@ -4,6 +4,7 @@ import { dedupe, fail, formatInlineList, formatList, printObject, readJsonIfExis
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
+import { matchRecipes } from './recipes.mjs';
 import { inferDirtySurfaces, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { affectedUnits, inferTestingSurfaces, qaModeForSurfaces } from './units.mjs';
 import { artifactBudgetForRoute, formatArtifactBudget } from './artifacts.mjs';
@@ -512,4 +513,25 @@ ${deps.confidenceBlock({
   writeFileSync(outPath, content, 'utf8');
   console.log(relative(repo, outPath));
   if (open.length) process.exitCode = 1;
+}
+
+export function taskDoctor(repo, options = {}, deps = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packets = deps.findPackets(repo, {});
+  const open = deps.finalGateOpenItems(repo, task, git, packets);
+  printObject({
+    repository: repo,
+    task,
+    route: inferRouteFromTask(task, git, profile.values),
+    changedFiles: git.changedFiles.length,
+    recipes: matchRecipes(task, git, profile.values).map((recipe) => recipe.id).join(', ') || 'none',
+    evidence: deps.taskEvidenceSummary(repo, packets).join('; ') || 'none',
+    missing: open.join('; ') || 'none detected',
+    qaReady: packets.some((packet) => packet.kind === 'qa-script') ? 'yes' : 'no or not needed',
+    nextDecision: open[0] || 'approve commit/push/handoff choice if satisfied',
+    nextCommand: open[0] ? deps.suggestedFinalGateCommand(open[0], task) : 'sdlc finish packet --task "..."',
+  });
 }
