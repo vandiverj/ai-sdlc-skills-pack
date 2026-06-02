@@ -17,7 +17,7 @@ import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAc
 import { artifactBudget as artifactBudgetCommand, artifactBudgetForRoute, artifactMigrate, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
 import { addEvidenceFromCheck, checksDoctor, checksPlan, checksRun, classifyRunCheckFailure, summarizeCommandOutput } from './checks.mjs';
 import { primaryQaSteps, qaBuild, qaOutlineForMode, qaValidate } from './qa.mjs';
-import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, hasFileExt, inferTestingSurfaces, normalizeUnitPath, qaModeForSurfaces, unitRegistry } from './units.mjs';
+import { affectedUnits, classifyTestingSurface, detectPackageManager, detectStack, existsAny, hasFileExt, inferTestingSurfaces, normalizeUnitPath, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitRegistry, unitResolve } from './units.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(scriptPath), '..', '..', '..');
@@ -2463,170 +2463,6 @@ function workmodeDetect(repo, options = {}) {
     verificationMaturity: verificationMaturity(profile.values, discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')))),
     stack: detectStack(repo).join(', ') || 'generic',
     recommendedNextCommand: `sdlc impact packet --task "${escapeCommandArg(task || 'current task')}"`,
-  });
-}
-
-function surfaceList() {
-  console.log(`# SDLC Testing Surface Taxonomy
-
-| Surface | Use For | Not For |
-| --- | --- | --- |
-| rendered-product-ui | browser-visible product UI, layout, interaction, copy, animation | Swagger/OpenAPI-only APIs |
-| api-contract | Swagger/OpenAPI, HTTP endpoints, request/response contracts, developer API testing | human browser layout review |
-| service-behavior | backend logic, domain services, business rules, controllers without UI rendering | end-user visual acceptance |
-| data-persistence | SQL, EF, migrations, stored procedures, persistence invariants | generic UI smoke |
-| integration-provider | third-party/provider calls, webhooks, exports/imports, sandbox behavior | local-only unit behavior |
-| background-job | scheduled jobs, queues, workers, import/export processes | interactive UI workflows |
-| package-tooling | dependency upgrades, build/test/toolchain changes | product behavior without startup/build risk |
-| docs-process | docs, agent process, prompts, templates, context routing | product runtime behavior |
-`);
-}
-
-function surfaceDetect(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = optionFiles(options, git.changedFiles);
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  printObject({
-    repository: repo,
-    task: task || 'not provided',
-    files: files.length,
-    testingSurfaces: surfaces.join(', ') || 'service-behavior',
-    renderedUiRequired: surfaces.includes('rendered-product-ui') ? 'yes' : 'no',
-    apiContractTesting: surfaces.includes('api-contract') ? 'yes' : 'no',
-    recommendedNextCommand: surfaces.includes('api-contract') ? `sdlc qa script --mode api --task "${escapeCommandArg(task || 'current task')}"` : `sdlc smoke packet --task "${escapeCommandArg(task || 'current task')}"`,
-  });
-}
-
-function unitMap(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const units = unitRegistry(repo, profile);
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const rows = units.map((unit) => `| ${escapeCell(unit.name)} | ${escapeCell(unit.path)} | ${escapeCell(unit.type)} | ${escapeCell(unit.testSurface)} | ${escapeCell(unit.contextBucket)} | ${escapeCell(unit.deployMethod)} | ${escapeCell(unit.localProfile ? relative(repo, unit.localProfile) : '')} |`);
-  const content = `# SDLC Deployable Unit Map
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-
-## Units
-
-| Unit | Path | Type | Test surface | Context bucket | Deploy method | Unit-local profile |
-| --- | --- | --- | --- | --- | --- | --- |
-${rows.join('\n')}
-
-## Resolution Order
-
-1. Explicit \`--unit\`.
-2. Changed file path matched to the longest unit path.
-3. Repo-level unit registry.
-4. Optional unit-local \`.ai-local/sdlc-profile.md\`.
-5. Repo-level defaults.
-6. Shared context root fallback.
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function unitDetect(repo, options = {}) {
-  const task = options.task || '';
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = optionFiles(options, git.changedFiles);
-  const units = affectedUnits(repo, files, profile, options.unit);
-  printObject({
-    repository: repo,
-    task: task || 'not provided',
-    changedFiles: files.length,
-    affectedUnits: units.map((unit) => unit.name).join(', ') || 'default',
-    contextBuckets: dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)).join(', ') || 'not configured',
-    testingSurfaces: dedupe(units.map((unit) => unit.testSurface).filter(Boolean)).join(', ') || inferTestingSurfaces(repo, task, files, profile).join(', '),
-    deployMethods: dedupe(units.map((unit) => unit.deployMethod).filter(Boolean)).join(', ') || 'not configured',
-  });
-}
-
-function unitDoctor(repo, options = {}) {
-  const profile = loadProfile(repo);
-  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
-  const units = unitRegistry(repo, profile);
-  const inferred = inferRepoUnits(repo);
-  const findings = [];
-  if (inferred.length > 1 && !profile.units?.length) findings.push('Multiple deployable/codebase units were inferred but no explicit repo-level unit registry is configured.');
-  for (const unit of units) {
-    if (!unit.path) findings.push(`${unit.name}: missing path.`);
-    if (!unit.type) findings.push(`${unit.name}: missing type.`);
-    if (!unit.testSurface) findings.push(`${unit.name}: missing test surface.`);
-    if (!unit.contextBucket) findings.push(`${unit.name}: missing context bucket.`);
-    if (!unit.buildCommand && !unit.testCommand && !commands.test && !commands.build) findings.push(`${unit.name}: missing build/test command or explicit verification cap.`);
-    if (!unit.deployMethod && !profile.values.releasePolicy) findings.push(`${unit.name}: missing deploy method or explicit cap.`);
-    if (unit.testSurface === 'rendered-product-ui' && unit.swaggerOpenapi) findings.push(`${unit.name}: has Swagger/OpenAPI hint but is marked rendered UI; verify surface.`);
-  }
-  const outPath = options.out ? resolve(repo, options.out) : '';
-  const rows = units.map((unit) => `| ${escapeCell(unit.name)} | ${escapeCell(unit.path)} | ${escapeCell(unit.type)} | ${escapeCell(unit.testSurface)} | ${escapeCell(unit.contextBucket)} | ${escapeCell(unit.buildCommand || unit.testCommand || commands.test || commands.build || '')} | ${escapeCell(unit.deployMethod || profile.values.releasePolicy || '')} |`);
-  const content = `# SDLC Unit Doctor
-
-Date: ${new Date().toISOString()}
-Repository: ${repo}
-Profile: ${profile.path ? relative(repo, profile.path) : 'not found'}
-Result: ${findings.length ? 'needs attention' : 'ready-looking'}
-
-## Units
-
-| Unit | Path | Type | Test surface | Context bucket | Command | Deploy method |
-| --- | --- | --- | --- | --- | --- | --- |
-${rows.join('\n')}
-
-## Findings
-
-${formatList(findings.length ? findings : ['No obvious unit registry gaps detected.'])}
-
-## Recommended Registry Fields
-
-- name
-- path
-- type
-- testSurface
-- contextBucket
-- durableContextFile
-- buildCommand
-- testCommand
-- deployMethod
-- swaggerOpenapi when applicable
-`;
-  if (outPath) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, content, 'utf8');
-    console.log(relative(repo, outPath));
-  } else {
-    console.log(content.trimEnd());
-  }
-}
-
-function unitProfile(repo, options = {}) {
-  const unitName = options.unit || options.name || '';
-  if (!unitName) fail('Pass --unit <name> so the unit profile can be selected.');
-  const profile = loadProfile(repo);
-  const unit = unitRegistry(repo, profile).find((item) => item.name.toLowerCase() === unitName.toLowerCase());
-  if (!unit) fail(`Unit not found in profile or inferred units: ${unitName}`);
-  printObject({
-    repository: repo,
-    unit: unit.name,
-    path: unit.path,
-    type: unit.type || 'not configured',
-    testSurface: unit.testSurface || 'not configured',
-    contextBucket: unit.contextBucket || 'not configured',
-    durableContextFile: unit.durableContextFile || 'not configured',
-    buildCommand: unit.buildCommand || 'not configured',
-    testCommand: unit.testCommand || 'not configured',
-    deployMethod: unit.deployMethod || 'not configured',
-    swaggerOpenapi: unit.swaggerOpenapi || 'not configured',
-    unitLocalProfile: unit.localProfile ? relative(repo, unit.localProfile) : 'none',
   });
 }
 
@@ -10036,26 +9872,6 @@ function workspaceImpact(repo, options = {}) {
   const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const lines = ['# SDLC Workspace Impact', '', `Task: ${task || 'not provided'}`, '', '## Changed Files', '', ...formatList(files).split('\n'), '', '## Affected Units', '', ...formatList(units.map((unit) => `${unit.name} (${unit.path}) -> ${unit.testSurface || 'surface?'}`)).split('\n'), '', '## Testing Surfaces', '', ...formatList(surfaces).split('\n')];
   writeOrPrint(repo, options.out, `${lines.join('\n')}\n`);
-}
-
-function unitList(repo, options = {}) {
-  const units = unitRegistry(repo, loadProfile(repo));
-  printTable(['Unit', 'Path', 'Type', 'Surface', 'Context'], units.map((unit) => [unit.name, unit.path, unit.type, unit.testSurface, unit.contextBucket || '']));
-}
-
-function unitResolve(repo, options = {}) {
-  const path = options.path || options.file || '';
-  if (!path) fail('Pass --path <path>.');
-  const unit = affectedUnits(repo, [path], loadProfile(repo), options.unit)[0];
-  printObject({ path, unit: unit?.name || 'none', unitPath: unit?.path || '', testSurface: unit?.testSurface || '', contextBucket: unit?.contextBucket || '' });
-}
-
-function unitContext(repo, options = {}) {
-  const name = options.unit || options.name || '';
-  if (!name) fail('Pass --unit <name>.');
-  const unit = unitRegistry(repo, loadProfile(repo)).find((item) => item.name.toLowerCase() === String(name).toLowerCase());
-  if (!unit) fail(`Unit not found: ${name}`);
-  printObject({ unit: unit.name, path: unit.path, contextBucket: unit.contextBucket || 'not configured', durableContextFile: unit.durableContextFile || 'not configured', localProfile: unit.localProfile ? relative(repo, unit.localProfile) : 'not found' });
 }
 
 function capabilitySnapshot(repo, options = {}) {
