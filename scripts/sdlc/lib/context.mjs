@@ -11,6 +11,12 @@ import { loadRunState } from './runstate.mjs';
 import { ensureControlRunDir, nextActionForStage, readCurrentState, readCurrentStateInfo } from './state.mjs';
 import { affectedUnits, inferTestingSurfaces, normalizeUnitPath } from './units.mjs';
 
+export function recommendedContextFile(unit) {
+  if (unit.contextBucket) return `${unit.contextBucket}/context.md`;
+  if (unit.path && unit.path !== '.') return `${unit.path}/.ai-local/sdlc-profile.md`;
+  return '.ai-local/sdlc-profile.md';
+}
+
 function optionFiles(options, fallback = []) {
   return options.files ? String(options.files).split(/[,;\n]/).map((item) => item.trim()).filter(Boolean) : fallback;
 }

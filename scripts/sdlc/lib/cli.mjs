@@ -17,7 +17,7 @@ import { detectContextContradictions, evalAddCase, evalReport, evalRun, scenario
 import { adapterGenerate, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
-import { contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextFinalCheck, contextFreshness, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextResolve, contextRestore, contextUpdatePlan } from './context.mjs';
+import { contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextFinalCheck, contextFreshness, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextResolve, contextRestore, contextUpdatePlan, recommendedContextFile } from './context.mjs';
 import { learnArchive, learnBacklog, learnCandidates, learnCapture, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck } from './learning.mjs';
 import { taskBundle, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskOpen, taskPreflight, taskQa, taskReview, taskStart, taskStatus, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
@@ -731,12 +731,6 @@ ${formatList(human)}
 ### Safe Next Action
 
 - ${nextAction || 'continue with the smallest route that satisfies the quality floor'}`;
-}
-
-function recommendedContextFile(unit) {
-  if (unit.contextBucket) return `${unit.contextBucket}/context.md`;
-  if (unit.path && unit.path !== '.') return `${unit.path}/.ai-local/sdlc-profile.md`;
-  return '.ai-local/sdlc-profile.md';
 }
 
 function bugNextCommand(action, task) {
