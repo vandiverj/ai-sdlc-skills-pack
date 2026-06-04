@@ -1,0 +1,3 @@
+display_name: Improvement Loop
+short_description: Measurably improve an artifact through critique, scoring, viewpoint shifts, and convergence.
+default_prompt: Run an improvement loop on this target with repeated critique/revision cycles, frozen evaluator scoring when useful, forced fresh viewpoints, convergence tracking, and a compact evolution ledger.
