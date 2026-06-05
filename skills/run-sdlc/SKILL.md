@@ -28,10 +28,54 @@ The SDLC must not automatically merge, deploy, release, move code between branch
 
 Temporary helper scripts created by the agent are local scratch artifacts, not product code. Do not place one-off `.ps1`, `.sh`, `.cmd`, or `.bat` files in the repository root or product source folders. Use `.ai-local/sdlc-scratch/scripts/` for repo-relative scratch scripts, keep `.ai-local/` ignored/local, and use `sdlc artifact scratch-audit` plus `sdlc artifact scratch-cleanup` to detect and age out stale scratch scripts. Only create a durable repo script when the task explicitly needs project tooling and the file is intentionally reviewed as part of the product diff.
 
+Avoid failed optional-context probes. Do not directly read `docs/memory-bank/*`, `docs/context-state.md`, or other optional durable-context files unless the user names them, project guidance says they exist, or a successful directory/file listing has confirmed them. If using shell discovery for optional docs, make the command tolerate absence, for example by checking the directory before running `find`; an absent optional context directory should be recorded as a cap, not a failed tool call.
+
+Avoid guessed configuration-file probes. Do not directly read framework/config filenames such as `tsconfig.app.json`, `vitest.config.ts`, `playwright.config.ts`, `.eslintrc*`, or similar unless the user names them, package scripts reference them, project guidance names them, or a successful file listing confirms them. If configuration discovery is needed, list the repository root or use package scripts first, then read only confirmed files.
+
 ## Core rule
 Do not run the whole workflow by default. Run the smallest route that prevents the most likely expensive failure.
 
 Use the route matrix from `classify-work`: Micro, Tiny, Standard, High-risk, Exploratory, Review-only, or Release/handoff. Treat the full SDLC as available capability, not a mandatory ladder.
+
+### Tiny read-only orientation fast path
+When the user explicitly asks for read-only orientation, classification, or next-action reporting and names the exact files to inspect:
+
+- classify as Tiny or Micro unless security/data/release/multi-repo triggers are present,
+- inspect each named file at most once and do not inspect unnamed files,
+- do not run helper CLI commands, verification commands, git commands, browser tools, write/edit tools, or worker/delegation commands,
+- do not continue into implementation, QA packets, handoff packets, or broader context restore unless the user explicitly asks,
+- report the route, evidence used, caps from the file limit, next action, and stop.
+
+This fast path exists to prevent tiny orientation tasks from loading broad process context, repeatedly reading files, or exposing unnecessary tool/process surfaces.
+
+### Read-only planning and review budgets
+For read-only planning, diagnosis, verification-strategy, release-readiness, or handoff tasks, treat the user's explicit caps as hard boundaries. "Do not edit", "do not run commands", "stop before verification", "inspect only", and named-file limits override the normal urge to restore broad context.
+
+Default budgets unless the user asks for broader discovery:
+
+- Tiny orientation: named files only, or at most 2 files.
+- Tiny implementation plan: up to 6 relevant files; no local ignored docs unless the task is about SDLC context itself.
+- Bug diagnosis: up to 8 relevant source/test files; run no commands unless the user explicitly asks for live verification.
+- Verification strategy: up to 8 relevant source/test/UI files; describe commands to run later, but do not run them.
+- Release/readiness review: project guidance, package scripts, and changed-files evidence only when command use is explicitly allowed; otherwise list git/test/build/browser evidence as missing.
+
+Before reading beyond the budget, running a shell command, loading ignored local docs, or using helper CLI commands, stop and report the cap plus the smallest next question. Do not spend another model turn trying to improve the plan after enough evidence exists for the requested route.
+
+When a route is read-only or plan-only:
+
+- prefer `read` over `bash`, and never use `edit`/`write`,
+- do not run `bash`, `npm`, `git`, dev servers, browser review, helper CLI, file-discovery commands, search commands, or verification commands unless explicitly allowed,
+- do not read `.ai-local/`, ignored `docs/`, memory banks, or historical run artifacts unless the task asks for process/context review,
+- for implementation-readiness, verification-strategy, and test-strategy routes, prioritize source files, tests, package scripts, and project guidance over durable-context documents. Do not read `docs/memory-bank/`, `docs/context-state.md`, `docs/application-model.md`, archived plans, or other broad context-restoration files unless the user names them, the task is about product/context modeling, or source/test evidence is insufficient and you report the reason before reading them,
+- do not load secondary skill bodies such as `release`, `review`, `quality`, or `implementation` unless the user explicitly invoked them or the requested output depends on their exact local wording,
+- do not probe guessed filenames. Use files named by the user, files named by already-read project guidance, or obvious active files from a confirmed repo layout; if the needed file is not known, stop and ask for discovery permission instead of trying multiple likely names,
+- do not treat common framework names as evidence. Paths such as `src/App.jsx`, `src/App.tsx`, `src/index.ts`, `src/main.tsx`, `src/game/index.ts`, `src/game/state.ts`, `gameLogic.js`, `Scoreboard.jsx`, or `ShotControls.jsx` are guessed unless they were named by the user, project guidance, a directory listing, or a previously-read import,
+- do not call `read` on a directory path. If you know only a directory, either use a single explicitly-allowed discovery command or stop and report that file discovery is needed,
+- preserve the quality floor while reducing context. A failed `read`, failed search, failed helper command, or missing-file probe in a read-only/plan-only route is a quality regression, not an acceptable optimization cost,
+- after any failed local read/tool operation, stop probing alternate filenames or extensions; answer from available evidence and name the missing discovery permission,
+- make one evidence plan before reading files: identify the route, the exact files to inspect, the cap, and the reason for each file. Read that set once, then answer from it,
+- do not inspect every caller or UI surface just because it might be relevant; pick the minimal representative files and name the remaining uncertainty as a cap,
+- finish with route, evidence used, caps, missing evidence, and one next action.
 
 For skill-pack architecture, phase ownership, and future consolidation decisions, use the local reference `references/router-map.md`. Do not load that reference for every normal task; load it when route ownership, skill reachability, or skill-vs-reference-vs-agent placement matters.
 
@@ -116,6 +160,14 @@ sdlc prompt audit --task "<human task>" --repo <repo>
 The original human prompt remains authoritative. Prompt cleanup is suggestion-first and must not silently rewrite product terms, ticket IDs, file paths, branch names, code symbols, API names, or user constraints. Use `sdlc prompt compile --phase <phase> --task "<human task>"` or `sdlc prompt compile --role <role> --task "<human task>"` when a bounded paste-ready prompt is useful.
 
 Use `sdlc context project --task "<human task>" --phase <phase>` when prompt context needs to be kept small. It should return a compact projection of high-value artifacts, local facts, and evidence gaps instead of inviting the agent to load every document.
+
+When optimizing token use, measure the whole model-bound budget, not only visible context snippets. A smaller `AGENTS.md`, profile, or hand-written task packet is not an improvement if it increases model requests, total provider payload, repeated session carryover, tool calls, or final-quality repair loops. Prefer deterministic local projection of confirmed facts, but reject prompt/profile changes unless flight evidence shows preserved quality and lower or justified total provider budget.
+
+Do not add feature-specific hand-written prompt packets as a default optimization. They can oversteer the model, increase turns, or hide missing local tooling. Use machine-generated, task-scoped context packets only when they are measured against a baseline with quality-control and prompt-budget comparison evidence.
+
+After tests/build/typecheck pass, treat additional cleanup as a bounded reviewability decision, not an open-ended polish phase. Do post-green cleanup only when the stale code, style, docs, or tests would cause correctness risk, failing lint/format/diff checks, visible dead UI in an already-inspected touched surface, reviewer confusion on the product diff, or a user-requested acceptance gap. If cleanup is optional, record it as a follow-up or final note instead of reopening source reads/edits; if cleanup is necessary, batch it once with a precise target and rerun only the smallest verification that can prove it.
+
+When a change removes UI branches, constants, or controls that may have related CSS/docs/tests, include the obvious same-surface cleanup in the first implementation pass before the first full green verification. After green verification, do not start CSS-only orphan-selector discovery just because a selector name might remain; only do it when a check fails, an already-read touched diff shows confusing dead style, rendered/manual evidence shows a visible problem, or the user explicitly asked for cleanup.
 
 Use bounded agent handoff packets when they reduce ambiguity, organize verification/review/release/learning work, or support restart:
 
@@ -646,6 +698,11 @@ rather than active context routing.
 - When work spans fixture, product, and reusable-skill repositories, state which repos are editable, read-only, test fixtures, and push-allowed before acting. In SDLC pilots, fixture agents should test the workflow in the fixture repo; the orchestrator owns reusable skill-pack review and edits unless the human explicitly changes that boundary.
 - For SDLC pilot work, use the pilot workflow and fixture prompt templates when available so the task intent, assigned phase, evidence, and role boundaries are explicit.
 - For Git-tracked code/text edits, include diff hygiene such as `git diff --check` in the verification expectation when available.
+- When editing repeated code, tests, JSX props, object literals, labels, options, or config-like branches, use enough surrounding context that each replacement target is unique. Avoid large multi-edit batches with short `oldText` snippets that may match multiple locations. For UI component files, patch by the named enclosing component, prop group, conditional branch, or nearby visible label rather than by repeated leaf text such as a button prop or status value. Do not replace a bare shared assignment/property line by itself, such as `shotLimit: ...`, `disabled: ...`, `className: ...`, or another value line likely to appear in multiple state updates; include the enclosing function name, state update block, or JSX branch in the edit context. If unsure whether an `oldText` snippet is unique, search/count it before calling the edit tool. In test files, include the surrounding `it(...)`/`describe(...)` name or adjacent assertions in each replacement; do not edit repeated assertion snippets by themselves. If more than one component branch or test block changes, prefer one narrow edit per branch/block instead of one broad multi-edit call. If an edit fails because the target is non-unique, read the exact nearby region and retry one narrow edit with unique context before continuing.
+- Before the first edit in repeated UI/test/control surfaces, make a brief local edit map: file, enclosing function/component/test block, symbols or labels to remove, symbols or labels to add, and the exact current anchor that makes each edit unique. Do not mix imports, state-update branches, repeated JSX option branches, and tests into one speculative edit batch. Edit the import/type/constant area separately from each repeated UI branch or test block, using current-file anchors copied after the latest read.
+- Before a coordinated same-file edit with several import/type/export/constant/function changes, read the current file region and copy `oldText` from the current content rather than inferring it from memory or from adjacent files. If removing or renaming a symbol, first confirm the symbol still exists in that file; skip stale removals instead of letting one bad edit fail the whole batch. Prefer splitting a large same-file change into smaller ordered edits when the file contains repeated imports, constants, or state update blocks.
+- For TypeScript work that changes union-like domain values, shared types, component props, or test mocks/helpers, treat a passing test command as insufficient by itself. Run the repo's build/typecheck path before final verification, and run it earlier when a small type-risk edit could otherwise compound into later repair work. When adding, narrowing, or renaming domain ID/type unions, search the tests and fixtures for typed string literals that may no longer satisfy the union; update or intentionally type/cast those fixtures in the same first pass instead of waiting for build to discover them.
+- When using search to confirm a symbol or pattern is absent after a removal, make the command absence-tolerant so an expected no-match result is not recorded as a failed tool call. For example, use a shell conditional, `rg "oldSymbol" src || true`, or phrase the result as an expected cap; reserve failing search exits for unexpected missing evidence.
 - Do not claim completion without fresh verification evidence.
 
 ## Next skills
