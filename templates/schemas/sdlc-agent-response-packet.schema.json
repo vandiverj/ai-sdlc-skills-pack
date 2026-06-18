@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SDLC Agent Response Packet",
+  "type": "object",
+  "required": [
+    "status",
+    "role",
+    "scopeHandled",
+    "evidenceUsed",
+    "structuredClaims",
+    "boundaryCheck",
+    "capsRisks",
+    "recommendedNextAction"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "blocked",
+        "needs-human-review"
+      ]
+    },
+    "role": {
+      "type": "string"
+    },
+    "scopeHandled": {
+      "type": "string"
+    },
+    "evidenceUsed": {
+      "type": "array"
+    },
+    "structuredClaims": {
+      "type": "array"
+    },
+    "boundaryCheck": {
+      "type": "string"
+    },
+    "capsRisks": {
+      "type": "array"
+    },
+    "recommendedNextAction": {
+      "type": "string"
+    }
+  }
+}

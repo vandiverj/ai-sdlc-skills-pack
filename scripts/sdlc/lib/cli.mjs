@@ -64,6 +64,7 @@ import { affectedUnits, classifyTestingSurface, detectPackageManager, inferTesti
 import { contextGateRows, controlGateRows } from './gates.mjs';
 import { promptAudit, promptClean, promptCompile, promptSanitize, promptScore, promptStructure } from './prompt.mjs';
 import { agentsLint, agentsPacket, agentsPlan, agentsStatus } from './agentpackets.mjs';
+import { modelsInventory } from './models.mjs';
 import { acceptanceCoverage, humanReviewPacket, qaHumanLint, responseLint, reviewLocal } from './localreview.mjs';
 import { overrideAdd } from './overrides.mjs';
 import { operatorDashboard, operatorInspect, operatorNext, operatorPhase, operatorStart } from './operator.mjs';
@@ -301,6 +302,7 @@ export async function main(argv) {
   if (area === 'agents' && action === 'packet') return agentsPacket(repo, options);
   if (area === 'agents' && action === 'status') return agentsStatus(repo, options);
   if (area === 'agents' && action === 'lint') return agentsLint(repo, options);
+  if (area === 'models' && action === 'inventory') return modelsInventory(repo, options);
   if (area === 'review' && action === 'local') return reviewLocal(repo, options);
   if (area === 'response' && action === 'lint') return responseLint(repo, options);
   if (area === 'response' && action === 'draft') return responseDraft(repo, options);

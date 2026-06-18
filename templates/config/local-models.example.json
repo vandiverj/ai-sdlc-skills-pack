@@ -1,0 +1,40 @@
+{
+  "schema": "sdlc-local-models-v1",
+  "models": [
+    {
+      "modelId": "google/gemma-4-26b-a4b-qat",
+      "modelFamily": "Gemma",
+      "modelVersionBuild": "4 26B A4B QAT",
+      "runtime": "unknown",
+      "providerSource": "google",
+      "quantization": "A4B QAT",
+      "contextWindow": "unknown",
+      "runsFullyLocal": "expected when loaded in a verified local runtime",
+      "hardwareProfile": "unknown",
+      "toolCallSupport": "unknown",
+      "structuredOutputReliability": "unknown",
+      "bestSuspectedRoles": [
+        "read-only summarization",
+        "context organization",
+        "speculative review"
+      ],
+      "weakForbiddenRoles": [
+        "final orchestration",
+        "security/privacy judgment",
+        "release approval",
+        "write-capable automation without later-cycle approval"
+      ],
+      "privacyLoggingNotes": "Verify runtime logging before treating output as local-only.",
+      "metadataSource": "Cycle 1 seed; local measurement required.",
+      "fieldsRequiringLocalMeasurement": [
+        "contextWindow",
+        "hardwareProfile",
+        "toolCallSupport",
+        "structuredOutputReliability",
+        "latency",
+        "role quality"
+      ],
+      "lastEvaluated": "not evaluated"
+    }
+  ]
+}

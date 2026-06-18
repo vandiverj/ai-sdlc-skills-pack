@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SDLC Local Models",
+  "type": "object",
+  "required": [
+    "schema",
+    "models"
+  ],
+  "properties": {
+    "schema": {
+      "const": "sdlc-local-models-v1"
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "modelId",
+          "runtime",
+          "metadataSource",
+          "fieldsRequiringLocalMeasurement",
+          "lastEvaluated"
+        ],
+        "additionalProperties": true
+      }
+    }
+  }
+}

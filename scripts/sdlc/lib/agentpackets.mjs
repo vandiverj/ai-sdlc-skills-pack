@@ -57,7 +57,7 @@ export function agentsPacket(repo, options = {}) {
   const outPath = options.out ? resolve(repo, options.out) : join(runAgentDir(repo, task, options), `${role}.md`);
   safeWriteTextFile(repo, outPath, packet);
   upsertTaskJournal(repo, task, {
-    agents: [{ role, status: 'packet-created', path: relative(repo, outPath) }],
+    agents: [{ role, status: options.dryRun ? 'dry-run-packet-created' : 'packet-created', path: relative(repo, outPath) }],
     packets: [{ kind: `agent-${role}`, path: relative(repo, outPath) }],
     nextRecommendedAction: `Review ${relative(repo, outPath)} or run sdlc agents lint --packet "${escapeCommandArg(relative(repo, outPath))}"`,
   }, options);
@@ -168,10 +168,23 @@ Created: ${new Date().toISOString()}
 Repository: ${repo}
 Branch: ${git.branch || 'unknown'}
 Journal: ${journal.paths?.markdown ? relative(repo, journal.paths.markdown) : 'not started'}
+Packet mode: ${options.dryRun ? 'dry-run packet only' : 'packet only'}
+
+## Execution Status
+
+This packet has not executed delegated work, invoked a model, changed files, or granted write authority. It is a bounded handoff artifact for human/orchestrator review.
 
 ## Why This Packet Exists
 
 ${rolePurpose(role)}
+
+## Intent Trace
+
+- Original task: ${task}
+- Interpreted objective: ${analysis.intent || task}
+- Acceptance evidence expected: ${evidenceForRole(role).join('; ')}
+- Current packet claim: packet prepared only; no implementation, verification, review, release, or learning work has been completed by this packet.
+- Human-visible next action: review the packet, lint it, then decide whether to run the role manually or through an approved runtime adapter.
 
 ## Allowed Scope
 
@@ -205,19 +218,29 @@ ${formatList([
 
 ${formatList(roleCommands(role, task))}
 
+## Advisory Runtime / Model Recommendation
+
+${formatList(runtimeRecommendation(role))}
+
 ## Evidence Required
 
 ${formatList(evidenceForRole(role))}
 
-## Output Format
+## Role Done Contract
 
-Write a concise Markdown result with:
+${formatList(roleDoneContract(role))}
+
+## Required Response Packet Fields
+
+Return a concise Markdown result with:
 
 1. Scope handled.
 2. Evidence used.
 3. Findings or changes.
 4. Caps/risks.
 5. Recommended next action.
+
+Do not claim completion, safety, release readiness, or model quality beyond the evidence listed in the response.
 
 ## Stop Conditions
 
@@ -279,13 +302,45 @@ function evidenceForRole(role) {
   }[role] || ['Evidence appropriate to packet role.'];
 }
 
+function roleDoneContract(role) {
+  return {
+    'implementation-worker': ['Changed files and rationale are listed.', 'Evidence commands are run or explicitly capped.', 'No release, Git publication, dependency install, migration, or external-service action occurred.'],
+    'verification-worker': ['Commands/tools run, results, skipped checks, and caps are listed.', 'Failures stop at evidence reporting unless a new approved packet allows repair.', 'No files were edited to make checks pass.'],
+    'independent-reviewer': ['Findings are severity-ranked and source-linked where possible.', 'No-findings result includes evidence and residual risk.', 'Missing evidence is reported instead of accepted silently.'],
+    'release-handoff-worker': ['QA/finish material is tester-readable.', 'Commit/push/deploy choices remain explicit human decisions.', 'Residual risks and evidence gaps are surfaced.'],
+    'process-learning-reviewer': ['Reusable learning is sanitized and source-linked.', 'Promotion state is proposed, not silently made durable.', 'Product/client-sensitive details are excluded.'],
+  }[role] || ['Role output names scope, evidence, caps, and next action.'];
+}
+
+function runtimeRecommendation(role) {
+  const common = [
+    'Recommendation is advisory only; runtime adapters must not change role authority or evidence requirements.',
+    'Default fallback: manual packet handoff using this file.',
+  ];
+  return {
+    'implementation-worker': ['Suggested tier: cheaper frontier or standard model only after safe edit boundary is approved.', ...common],
+    'verification-worker': ['Suggested tier: deterministic commands first; model only interprets failures or caps.', ...common],
+    'independent-reviewer': ['Suggested tier: standard/deep model when risk warrants; deterministic evidence remains primary.', ...common],
+    'release-handoff-worker': ['Suggested tier: standard model or manual synthesis; release authority stays human.', ...common],
+    'process-learning-reviewer': ['Suggested tier: local/standard model for read-only synthesis; promotion requires review.', ...common],
+  }[role] || common;
+}
+
 function lintAgentPacket(text) {
   const checks = [
     { ok: /^Role:/m.test(text), finding: 'Missing Role line.' },
     { ok: /^Task:/m.test(text), finding: 'Missing Task line.' },
+    { ok: /^Packet mode:/m.test(text), finding: 'Missing packet mode line.' },
+    { ok: /Execution Status/i.test(text), finding: 'Missing execution status / not-executed statement.' },
+    { ok: /has not executed delegated work|not executed/i.test(text), finding: 'Missing explicit no-execution claim.' },
+    { ok: /Intent Trace/i.test(text), finding: 'Missing intent trace.' },
     { ok: /Allowed Scope/i.test(text), finding: 'Missing allowed scope.' },
     { ok: /Forbidden Scope/i.test(text), finding: 'Missing forbidden scope.' },
+    { ok: /Commands \/ Tools Allowed/i.test(text), finding: 'Missing allowed commands/tools.' },
+    { ok: /Advisory Runtime \/ Model Recommendation/i.test(text), finding: 'Missing advisory runtime/model recommendation.' },
     { ok: /Evidence Required/i.test(text), finding: 'Missing evidence requirements.' },
+    { ok: /Role Done Contract/i.test(text), finding: 'Missing role done contract.' },
+    { ok: /Required Response Packet Fields/i.test(text), finding: 'Missing required response packet fields.' },
     { ok: /Stop Conditions/i.test(text), finding: 'Missing stop conditions.' },
     { ok: /Do not merge, deploy, release, or push/i.test(text), finding: 'Missing release safety boundary.' },
   ];

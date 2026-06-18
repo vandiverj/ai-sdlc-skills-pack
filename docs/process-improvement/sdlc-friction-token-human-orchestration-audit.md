@@ -1,0 +1,64 @@
+# SDLC Friction, Token, And Human-Orchestration Audit
+
+Status: Candidate contract
+Promotion state: Experiment
+Last updated: 2026-06-18
+
+## Purpose
+
+Measure whether routing, packets, and dry-run helpers reduce human orchestration burden without weakening evidence.
+
+## Record Shape
+
+```text
+Task:
+Route:
+Step:
+Friction category:
+Manual action count:
+Estimated minutes:
+Token/turn signal:
+Evidence gap:
+Could helper reduce this: yes/no/unknown
+Candidate helper:
+```
+
+## Required Fields
+
+Use every field in the record shape for comparable audits.
+
+## Optional Fields
+
+- `Runtime`
+- `Model tier`
+- `Retry count`
+- `Misroute tax`
+- `Human correction`
+
+## Source Of Truth
+
+Task-local run journals and audit rows own measured values. This file owns the category shape.
+
+## Initial Categories
+
+1. Re-explaining task intent and scope after context shifts.
+2. Manually selecting and summarizing relevant files/context.
+3. Manually deciding which model/agent should do which subtask.
+4. Manually turning agent output into a verification checklist.
+5. Manually reconciling findings, uncertainty, and next actions.
+
+## Source Of Truth
+
+Task-local run journals, evidence packets, and human notes own measurements. Shared docs define categories only.
+
+## Forbidden Claims
+
+Do not claim token savings from one dry run. Do not count saved cloud tokens while ignoring added human coordination.
+
+## Validation Path
+
+Fill this audit for one fixture or real task after Cycle 1 smoke tests.
+
+## No-Install Fallback
+
+Use a Markdown note or JSONL row under ignored `.ai-local`.

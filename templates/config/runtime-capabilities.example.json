@@ -1,0 +1,56 @@
+{
+  "schema": "sdlc-runtime-capabilities-v1",
+  "runtimes": [
+    {
+      "runtime": "codex-exec",
+      "invocationMethod": "codex exec with an approved SDLC role packet",
+      "supportsStructuredOutput": "prompt/lint enforced",
+      "supportsNoninteractiveExecution": "yes when installed and approved",
+      "supportsLocalProvider": "unknown",
+      "supportsMcp": "configured runtime feature",
+      "supportsHooksEvents": "tool/plugin dependent",
+      "supportsSandboxToolBoundaries": "runtime/sandbox dependent",
+      "supportsResponseSchemaEnforcement": "prompt/lint fallback",
+      "supportsUsageTokenCapture": "runtime dependent",
+      "knownCaps": [
+        "Cycle 1 does not invoke codex exec automatically"
+      ],
+      "fallback": "manual-packet",
+      "recommendedNextArtifact": "sdlc agents packet --role <role> --task \"<task>\" --dry-run"
+    },
+    {
+      "runtime": "claude-code",
+      "invocationMethod": "Claude Code prompt/subagent with approved SDLC role packet",
+      "supportsStructuredOutput": "prompt/lint enforced",
+      "supportsNoninteractiveExecution": "runtime dependent",
+      "supportsLocalProvider": "unknown",
+      "supportsMcp": "configured runtime feature",
+      "supportsHooksEvents": "runtime-specific optional hooks",
+      "supportsSandboxToolBoundaries": "runtime/config dependent",
+      "supportsResponseSchemaEnforcement": "prompt/lint fallback",
+      "supportsUsageTokenCapture": "runtime dependent",
+      "knownCaps": [
+        "Claude Code configuration is outside portable SDLC policy"
+      ],
+      "fallback": "manual-packet",
+      "recommendedNextArtifact": "sdlc agents packet --role <role> --task \"<task>\" --dry-run"
+    },
+    {
+      "runtime": "manual-packet",
+      "invocationMethod": "human reads or copies the generated packet",
+      "supportsStructuredOutput": "template discipline",
+      "supportsNoninteractiveExecution": "no",
+      "supportsLocalProvider": "no",
+      "supportsMcp": "no",
+      "supportsHooksEvents": "no",
+      "supportsSandboxToolBoundaries": "human enforced",
+      "supportsResponseSchemaEnforcement": "manual review and lint",
+      "supportsUsageTokenCapture": "no",
+      "knownCaps": [
+        "No automation is implied"
+      ],
+      "fallback": "orchestrator review",
+      "recommendedNextArtifact": "sdlc agents lint --packet <path>"
+    }
+  ]
+}

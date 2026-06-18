@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SDLC Runtime Capabilities",
+  "type": "object",
+  "required": [
+    "runtime",
+    "invocationMethod",
+    "supportsStructuredOutput",
+    "supportsNoninteractiveExecution",
+    "supportsLocalProvider",
+    "supportsMcp",
+    "supportsHooksEvents",
+    "supportsSandboxToolBoundaries",
+    "supportsResponseSchemaEnforcement",
+    "supportsUsageTokenCapture",
+    "knownCaps",
+    "fallback",
+    "recommendedNextArtifact"
+  ],
+  "properties": {
+    "runtime": {
+      "type": "string"
+    },
+    "knownCaps": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

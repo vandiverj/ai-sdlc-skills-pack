@@ -46,10 +46,12 @@ export function adapterLimits(repo, options = {}) {
 export function adapterDoctor(repo, options = {}) {
   const runtime = String(options.runtime || 'generic').toLowerCase();
   const profile = runtimeProfile(runtime);
+  const capability = runtimeCapability(runtime);
   const result = {
     schema: 'sdlc-adapter-doctor-v1',
     runtime,
     repository: repo,
+    cycle1: capability,
     capabilities: {
       shell: profile.shell,
       hooks: profile.hooks,
@@ -72,6 +74,22 @@ export function adapterDoctor(repo, options = {}) {
   if (options.json) console.log(JSON.stringify(result, null, 2));
   else {
     printObject({ runtime, shell: profile.shell, hooks: profile.hooks, mcp: profile.mcp, browser: profile.browser });
+    console.log('\n## Cycle 1 Runtime Capability\n');
+    printObject({
+      invocationMethod: capability.invocationMethod,
+      supportsStructuredOutput: capability.supportsStructuredOutput,
+      supportsNoninteractiveExecution: capability.supportsNoninteractiveExecution,
+      supportsLocalProvider: capability.supportsLocalProvider,
+      supportsMcp: capability.supportsMcp,
+      supportsHooksEvents: capability.supportsHooksEvents,
+      supportsSandboxToolBoundaries: capability.supportsSandboxToolBoundaries,
+      supportsResponseSchemaEnforcement: capability.supportsResponseSchemaEnforcement,
+      supportsUsageTokenCapture: capability.supportsUsageTokenCapture,
+      fallback: capability.fallback,
+      recommendedNextArtifact: capability.recommendedNextArtifact,
+    });
+    console.log('\n## Known Caps\n');
+    console.log(formatList(capability.knownCaps));
     console.log('\n## Preferred CLI\n');
     console.log(formatList(result.preferredCli));
     console.log('\n## Fallback Guidance\n');
@@ -206,7 +224,69 @@ function runtimeProfile(runtime) {
   };
   if (runtime === 'augment') return { ...base, hooks: 'limited/extension-dependent', guidance: [...base.guidance, 'Use VS Code extension prompt; Auggie CLI can run the same SDLC commands.'] };
   if (runtime === 'auggie') return { ...base, hooks: 'CLI-dependent', guidance: [...base.guidance, 'Use terminal commands directly for operator and command recommendation phases.'] };
-  if (runtime === 'codex') return { ...base, hooks: 'plugin/tool dependent', guidance: [...base.guidance, 'Prefer local CLI commands and explicit evidence summaries.'] };
+  if (runtime === 'codex' || runtime === 'codex-exec') return { ...base, hooks: 'plugin/tool dependent', guidance: [...base.guidance, 'Prefer local CLI commands and explicit evidence summaries.'] };
+  if (runtime === 'claude-code') return { ...base, hooks: 'runtime-specific', guidance: [...base.guidance, 'Use Claude Code prompts or settings only as adapters over portable SDLC packets.'] };
+  if (runtime === 'manual-packet') return { ...base, shell: 'human/operator provided', hooks: 'none', mcp: 'none unless pasted or separately configured', browser: 'none unless human supplies evidence', guidance: [...base.guidance, 'Use generated packets directly; record caps for unavailable runtime features.'] };
+  return base;
+}
+
+function runtimeCapability(runtime) {
+  const base = {
+    runtime,
+    invocationMethod: 'chat or CLI prompt with generated SDLC packet',
+    supportsStructuredOutput: 'partial / prompt-enforced',
+    supportsNoninteractiveExecution: 'unknown',
+    supportsLocalProvider: 'unknown',
+    supportsMcp: 'optional / developer-configured',
+    supportsHooksEvents: 'optional / runtime-specific',
+    supportsSandboxToolBoundaries: 'runtime-specific',
+    supportsResponseSchemaEnforcement: 'prompt/lint fallback',
+    supportsUsageTokenCapture: 'unknown',
+    knownCaps: ['Do not assume execution, tool access, schema enforcement, or usage capture without local proof.'],
+    fallback: 'manual-packet',
+    recommendedNextArtifact: 'sdlc agents packet --role <role> --task "<task>" --dry-run',
+  };
+  if (runtime === 'codex-exec' || runtime === 'codex') return {
+    ...base,
+    runtime: 'codex-exec',
+    invocationMethod: 'codex exec with a portable role packet, when explicitly approved by the orchestrator',
+    supportsStructuredOutput: 'prompt-enforced; validate response with sdlc response lint where applicable',
+    supportsNoninteractiveExecution: 'yes when Codex CLI is installed and approved',
+    supportsLocalProvider: 'no direct assumption; adapter may route prompts only',
+    supportsMcp: 'yes when configured in the Codex environment',
+    supportsHooksEvents: 'tool/plugin dependent',
+    supportsSandboxToolBoundaries: 'yes, runtime/sandbox dependent',
+    supportsResponseSchemaEnforcement: 'prompt/lint fallback',
+    supportsUsageTokenCapture: 'runtime dependent; do not claim unless reported',
+    knownCaps: ['Codex CLI availability is local-environment dependent.', 'Cycle 1 does not invoke codex exec automatically.', 'Packet lint does not prove model behavior.'],
+  };
+  if (runtime === 'claude-code') return {
+    ...base,
+    invocationMethod: 'Claude Code prompt/subagent using the portable packet as the source of truth',
+    supportsStructuredOutput: 'prompt-enforced; validate response with lint/manual review',
+    supportsNoninteractiveExecution: 'runtime dependent',
+    supportsLocalProvider: 'no default assumption',
+    supportsMcp: 'yes when configured in Claude Code',
+    supportsHooksEvents: 'runtime-specific hooks may exist; keep optional',
+    supportsSandboxToolBoundaries: 'runtime/config dependent',
+    supportsResponseSchemaEnforcement: 'prompt/lint fallback',
+    supportsUsageTokenCapture: 'runtime dependent; do not claim unless reported',
+    knownCaps: ['Claude Code configuration is outside portable SDLC policy.', 'Cycle 1 does not generate Claude-specific subagent files here.', 'Human approval gates remain outside hooks.'],
+  };
+  if (runtime === 'manual-packet') return {
+    ...base,
+    invocationMethod: 'human copies or reads the generated packet and manually runs approved commands',
+    supportsStructuredOutput: 'yes by template discipline; not machine-enforced',
+    supportsNoninteractiveExecution: 'no',
+    supportsLocalProvider: 'no',
+    supportsMcp: 'no',
+    supportsHooksEvents: 'no',
+    supportsSandboxToolBoundaries: 'human enforced',
+    supportsResponseSchemaEnforcement: 'manual review and sdlc agents lint / response lint',
+    supportsUsageTokenCapture: 'no',
+    knownCaps: ['No automation is implied.', 'Evidence must be pasted, linked, or recorded manually.', 'Best fallback when runtime tooling is unavailable.'],
+    fallback: 'manual review by orchestrator',
+  };
   return base;
 }
 
