@@ -1,0 +1,13 @@
+we need to get a glossary for consistent terms
+
+we need to look at using more deterministic tools that can improve quality without need for tokens
+
+need to consider can we split agent responsibilites in a way that is not just the task but also the verifcation/validation criteria for what done means for that agents task
+
+I would think things like an implementator of code could have deterministic tests that verify it effectiveness, how would we verifier a planner or researcher, does adding gauranteed structure and sections help with consideration?
+
+How do we gaurantee the statement provided by developer is accurately and fully brought into fruition before beginning and allow for adjustment and actions cause the need for adjustment.
+
+I feel as I have worked with ai there seems to be some need for a knowledge bank of sorts, meaning a reliable searchable retrievable location accessible by the agents from whereever they are being run in order to answer the expanded knowledge gained on the systems it works on, perhaps with nightly insight consolidation and optimization. I currently have been building a repo that has md files that hte ai updates on tasks but the consistency and structure seems to vary even with the skills being in place as I d ont always ask for the context to be set the same way and it does not always trigger the sdlc rule of updating it at the end of a task.
+
+I think airteracode mcp may need to be updated with a knowledge layer, so instead of just feedback perhaps a callback in that can add learnings about what the agent experienced on tasks and knowledge about how the system operates, purpose, regulations, how things are tested, where things are being overlooked, any information that could be used to imrpove the effectiveness of the software development or the llm capabilities or be used to improve the skills and tooling of the environment. We could then look at the way anthropic does dreaming in the sense of having a decently intellegent local model spend the night consolidating aranging and learning from the data so that the next time calls are made the context is better found, the purposes are better understood. There is knowldege in libraries and then there is knowledger in how to use libraries and the information it contains. I feel the software is our library product and we need to store how it is contained and used in order to better improve the product and the ability to improve the product in this metaphor.

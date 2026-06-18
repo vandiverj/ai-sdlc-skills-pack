@@ -376,6 +376,7 @@ See `WORKFLOW.md` for the canonical workflow map.
 - `choose-technical-approach` selects and records approved stack, architecture, runtime, persistence, deployment, testing, operations, and dependency constraints. It does not implement.
 - `choose-quality-automation` selects and records appropriate automated checks, command wiring, CI/local preflight expectations, and lifecycle usage. It does not replace spec or code review.
 - `choose-retrieval-approach` decides whether optional retrieval/RAG/indexing is justified and records source, trust, freshness, privacy, and lifecycle boundaries. It does not replace source artifacts.
+- `counterpoint` challenges a favored plan, design, workflow, or decision from a credible opposing lens before the direction is treated as settled.
 - `model-application` defines structure and diagrams using approved technical constraints. It does not create implementation issues.
 - `to-prd` defines durable requirements. It does not break work into tasks.
 - `write-contract-spec` defines observable public or cross-boundary behavior. It does not implement.

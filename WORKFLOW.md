@@ -390,6 +390,7 @@ Use `review-agent-work` when a human wants to inspect prior AI work before conti
 - `choose-technical-approach`: select and record approved stack, architecture, runtime, persistence, deployment, testing, operations, and dependency constraints.
 - `choose-quality-automation`: select and record project-appropriate automated quality checks, command wiring, CI/local preflight expectations, and lifecycle usage.
 - `choose-retrieval-approach`: decide whether optional retrieval/RAG/indexing is justified and define source, trust, freshness, privacy, and lifecycle boundaries.
+- `counterpoint`: challenge a favored plan, design, workflow, or decision from a credible opposing lens before the direction is treated as settled.
 - `grill-me`: resolve assumptions through targeted questioning.
 - `model-application`: create or update the durable diagrammed application model using approved technical constraints.
 - `review-application-model`: challenge the model before PRD creation.

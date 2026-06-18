@@ -34,7 +34,7 @@ Do not treat this file as a replacement for `classify-work` or the phase routers
 | Agent strategy | model tiers, delegation patterns, agent definitions, runtime adapters, AGENTS.md | `agents` router |
 | Tools and retrieval | tool trust, retrieval choice, graph/index build/query | `tools` router |
 | Process learning | process events, repeated lessons, skill/template/pattern updates | `process-learning` router; `test-skill-behavior` remains top-level |
-| Specialist utilities | direct-trigger or domain work outside ordinary SDLC routing | `find-skills`, `document-processing`, `vercel-react-best-practices`, `caveman` |
+| Specialist utilities | direct-trigger or domain work outside ordinary SDLC routing | `find-skills`, `counterpoint`, `document-processing`, `vercel-react-best-practices`, `caveman` |
 
 ## Skill, Reference, Or Agent
 
@@ -55,6 +55,7 @@ Keep these top-level for now:
 - `classify-work`
 - `setup-sdlc-in-repo`
 - `find-skills`
+- `counterpoint`
 - `test-skill-behavior`
 - `context`
 - `planning`

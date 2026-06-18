@@ -427,6 +427,7 @@ implementation, when starting a project or changing technical surfaces
 quality, when quality rails are missing or changing
 tools, when retrieval/RAG/indexing may be justified
 agents, when delegation, specialists, or model tiers may matter
+counterpoint, when the favored direction needs adversarial challenge before proceeding
 grill-me
 planning
 review
@@ -440,6 +441,7 @@ quality, when verification or tooling rails are missing or changing
 tools, when context selection or retrieval rails are missing or changing
 agents, when delegation, specialist review, or independent verification would reduce risk
 implementation, for safe edit boundary, execution, TDD, technical approach, and patterns
+counterpoint, when new context may invalidate the favored approach
 quality, for verification before completion
 review, for spec compliance, code quality, threat, design, planning, and release review
 context, for durable docs/context updates and save
@@ -450,6 +452,7 @@ For process improvement across projects, use:
 
 ```text
 process-learning, when real work exposes process friction, gaps, corrections, near misses, useful successes, or repeated lessons
+counterpoint, when a workflow change needs adversarial challenge before promotion
 agents, when reviewed evidence shows agent roles, model tiers, or adapters should change
 implementation, when reviewed evidence shows project patterns should emerge, harden, deprecate, or change
 ```
