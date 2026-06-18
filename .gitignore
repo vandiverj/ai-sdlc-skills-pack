@@ -1,4 +1,5 @@
 .DS_Store
+**/.DS_Stores
 Thumbs.db
 *.log
 .env
