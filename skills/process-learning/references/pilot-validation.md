@@ -3,7 +3,7 @@
 Use to record whether a pilot project proves or disproves the SDLC route, router/reference, evidence, agent, and review assumptions.
 
 ## Template
-- `.agents/templates/docs/pilot/battle-soccer-validation-report.md`
+- `.agents/templates/docs/pilot/fixture-validation-report.md`
 
 ## Pilot Tasks
 - Micro/Tiny task.

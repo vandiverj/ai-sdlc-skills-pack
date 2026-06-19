@@ -150,10 +150,12 @@ export function classifyTestingSurface(file) {
 
 export function qaModeForSurfaces(surfaces, task = '') {
   const text = String(task || '').toLowerCase();
+  const uniqueSurfaces = [...new Set(surfaces || [])].filter(Boolean);
   if (matchesAny(text, ['scenario', 'retest'])) return 'scenario-retest';
   if (matchesAny(text, ['interactive', 'stateful', 'game', 'gameplay', 'difficulty', 'settings', 'animation', 'mode', 'wizard', 'dashboard'])) return 'interactive-stateful';
   if (matchesAny(text, ['cli', 'command line', 'terminal command'])) return 'cli-workflow';
   if (matchesAny(text, ['worker', 'background job', 'queue', 'scheduled job', 'import job', 'export job'])) return 'background-job';
+  if (uniqueSurfaces.includes('docs-process') && uniqueSurfaces.some((surface) => surface !== 'docs-process')) return 'mixed-scope';
   if (surfaces.includes('api-contract')) return 'api-contract';
   if (surfaces.includes('rendered-product-ui')) return 'ui-workflow';
   if (surfaces.includes('data-persistence')) return 'data-persistence';

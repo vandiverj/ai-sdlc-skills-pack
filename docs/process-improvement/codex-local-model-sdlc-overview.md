@@ -2452,9 +2452,9 @@ This is a maintainability requirement, not a call for a heavyweight benchmark la
 | Process learning review | local-standard or cheaper frontier | top frontier for durable SDLC promotion |
 | Overnight case-pattern scan | local first in isolated sandbox | cheaper frontier/top frontier only for high-value candidates |
 
-## Battle Soccer Or Fixture Validation
+## Fixture Or Dry-Run Validation
 
-The process-improvement skill expects fixture validation before durable promotion. This idea should use Battle Soccer or another fixture to test:
+The process-improvement skill expects fixture or dry-run validation before durable promotion. This idea should use an approved disposable fixture, configured pilot repository, or repo-local dry run to test:
 
 - local read-only review,
 - context explorer usefulness,

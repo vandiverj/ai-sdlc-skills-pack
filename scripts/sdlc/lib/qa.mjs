@@ -51,6 +51,14 @@ export function primaryQaSteps(mode) {
 3. Check an adjacent existing instruction.
    - Expected: The change did not contradict nearby guidance.`;
   }
+  if (mode === 'mixed-scope') {
+    return `1. Identify the docs/process change and each non-doc changed surface separately.
+   - Expected: The task scope distinguishes requested work from dirty-tree or runtime behavior risk.
+2. Validate the docs/process path against source truth.
+   - Expected: Links, examples, commands, and referenced files are current.
+3. Validate or cap the non-doc runtime surface with the closest approved developer check.
+   - Expected: Product/runtime risk is covered by evidence or an explicit cap before handoff.`;
+  }
   if (mode === 'scenario-retest') {
     return `1. Open the named QA scenario in the target environment.
    - Expected: Preconditions and test data are available.
@@ -200,6 +208,7 @@ export function qaModeCommand(repo, action, options = {}, rest = [], deps = {}) 
     cli: 'cli-workflow',
     job: 'background-job',
     docs: 'docs-process',
+    mixed: 'mixed-scope',
   };
   return qaScript(repo, { ...options, mode: modeMap[action] || action }, deps);
 }
@@ -656,6 +665,7 @@ function qaSummaryForMode(mode) {
   if (mode === 'interactive-stateful') return 'Validate the changed interactive or stateful workflow, including setup, mode/settings changes, primary user path, feedback/animation, reset/recovery, and nearby regression behavior.';
   if (mode === 'multi-repo-workflow') return 'Validate the full tester-visible workflow that spans repositories or deployable units. The script should hide repository mechanics and focus on environment, steps, expected results, and release-order caps.';
   if (mode === 'docs-process') return 'Validate the documentation/process change by checking the intended reader path, links, examples, and whether current instructions match source truth.';
+  if (mode === 'mixed-scope') return 'Validate docs/process and non-doc runtime surfaces as separate scopes. Use this when dirty-tree or broad task evidence mixes documentation/process changes with product, API, data, tooling, or integration risk.';
   if (mode === 'scenario-retest') return 'Validate the named QA/business scenario in the target environment and record pass/fail evidence for the tracking ticket.';
   return 'Validate the changed behavior for this task and regression-test the affected site/application areas. This Markdown is intended to be pasted into YouTrack and followed by human QA testers. It does not assume QA will use AI, inspect source code, run developer commands, or know the SDLC.';
 }

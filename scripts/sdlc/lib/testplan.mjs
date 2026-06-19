@@ -274,39 +274,6 @@ ${footholds[0]?.command || 'Create a manual smoke/QA cap if no automated foothol
   writeOrPrint(repo, outPath, content);
 }
 
-export function fixtureBattleSoccerPlan(repo, options = {}) {
-  const scenarios = battleSoccerScenarios();
-  console.log('# Battle Soccer SDLC Evaluation Suite\n');
-  console.log('| ID | Scope | Task Shape | Proof |');
-  console.log('| --- | --- | --- | --- |');
-  for (const item of scenarios) console.log(`| ${item.id} | ${item.scope} | ${item.task} | ${item.proof} |`);
-}
-
-export function fixtureBattleSoccerRun(repo, options = {}) {
-  const scenario = battleSoccerScenarios().find((item) => item.id === (options.scenario || options.id));
-  if (!scenario) fail(`Pass --scenario with one of: ${battleSoccerScenarios().map((item) => item.id).join(', ')}`);
-  const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-battle-soccer-${scenario.id}.md`);
-  const content = `# Battle Soccer Fixture Scenario
-
-Scenario: ${scenario.id}
-Scope: ${scenario.scope}
-Task: ${scenario.task}
-
-## Acceptance
-
-${formatList(scenario.acceptance)}
-
-## SDLC Validation
-
-- Start: \`sdlc start --task "${scenario.task}"\`
-- Verify: ${scenario.proof}
-- QA: produce Markdown if behavior is tester-visible.
-- Finish: keep useful game changes; commit only after human approval.
-`;
-  safeWriteTextFile(repo, outPath, content);
-  console.log(relative(repo, outPath));
-}
-
 function inferBootstrapFramework(repo) {
   if (hasFileExt(repo, ['.csproj', '.sln'])) return 'dotnet';
   if (existsAny(repo, ['package.json'])) return 'node';
@@ -345,16 +312,6 @@ function footholdRecommendations(task, files, surfaces, commands) {
 
 function foothold(name, effort, confidence, blastRadius, command) {
   return { name, effort, confidence, blastRadius, command };
-}
-
-function battleSoccerScenarios() {
-  return [
-    { id: 'tiny-visual-polish', scope: 'tiny', task: 'Battle Soccer improve one board label or visual state', proof: 'unit test or rendered smoke if UI-visible', acceptance: ['one small visual change', 'no gameplay regression', 'finish-ready explains QA need'] },
-    { id: 'medium-interaction', scope: 'medium', task: 'Battle Soccer add a turn feedback animation or delay', proof: 'npm run test plus rendered/manual smoke', acceptance: ['turn still advances correctly', 'feedback is visible', 'QA script covers player/computer turn'] },
-    { id: 'large-gameplay', scope: 'large', task: 'Battle Soccer add manual component placement before match start', proof: 'tests plus human QA Markdown', acceptance: ['player can place components', 'invalid placement is blocked', 'game start uses placed components'] },
-    { id: 'bugfix-regression', scope: 'bugfix', task: 'Battle Soccer reproduce and fix an invalid attack or placement edge case', proof: 'failing regression test then pass', acceptance: ['bug is reproduced', 'fix is scoped', 'regression evidence captured'] },
-    { id: 'finish-readiness', scope: 'finish', task: 'Battle Soccer review current task readiness for commit', proof: 'finish packet and action preview', acceptance: ['commit/push not automatic', 'open gates listed', 'human decision requested'] },
-  ];
 }
 
 function testBootstrapChecklist(framework) {

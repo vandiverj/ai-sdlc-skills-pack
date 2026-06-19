@@ -24,7 +24,7 @@ Purpose: converge the AI SDLC skills pack toward a compact, executable, multi-re
 1. Implement the missing CLI affordances as thin wrappers over existing profile, context, packet, and calibration data.
 2. Update route docs and CLI examples so agents know when to use each helper.
 3. Add scenario regression cases for route and gate behavior.
-4. Validate against the SDLC pack itself and a downstream Battle Soccer smoke path.
+4. Validate against the SDLC pack itself and a configured downstream fixture or dry-run smoke path.
 5. Commit/push after user approval.
 
 ## Definition Of Done

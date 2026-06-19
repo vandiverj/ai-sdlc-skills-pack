@@ -15,7 +15,7 @@ This cycle implemented two tracks:
 1. `.agents` SDLC pack changes in this repository.
 2. AirteraCode MCP changes in `/Users/jerrickvandiver/context-engine`.
 
-Battle Soccer note: Battle Soccer was a personal machine test repository used to exercise SDLC behavior. It is not a fixture owned by, required by, or hardcoded into the reusable SDLC skills pack. Cycle 1B validation should use generic synthetic candidates and, when needed, an approved disposable fixture or repo-local dry run.
+Personal fixture note: an early local machine test repository was used to exercise SDLC behavior. It is not a fixture owned by, required by, or hardcoded into the reusable SDLC skills pack. Cycle 1B validation should use generic synthetic candidates and, when needed, an approved disposable fixture or repo-local dry run.
 
 ## Implementation Status
 
@@ -463,7 +463,7 @@ Net process weight: neutral. It adds a gateway but removes ambiguity around how 
 | 6 | Tooling | `server.py` tool registry | tools are tier-gated, schemas frozen by tests | add explicit tool schemas and tier policy | tier may need dedicated capability later |
 | 7 | Reviewability | knowledge contract | MCP must not claim content correctness | structured response says validation only | humans may overtrust stored records |
 | 8 | Usability | process-learning flow | candidate capture could be too heavy | keep required fields identical to existing envelope | add helper command only if useful |
-| 9 | Repo boundary | user correction on Battle Soccer | personal fixture could leak into shared plan | remove Battle Soccer as required fixture | no standard fixture chosen yet |
+| 9 | Repo boundary | user correction on personal fixture | personal fixture could leak into shared plan | remove named personal fixture as required fixture | no standard fixture chosen yet |
 | 10 | Rollback | two-repo split | context-engine and `.agents` can drift | define JSONL/export bridge and shared schema | version mismatch remains possible |
 
 ## Acceptance Criteria
@@ -473,7 +473,7 @@ Net process weight: neutral. It adds a gateway but removes ambiguity around how 
 - Met: contract and schema define the same required fields.
 - Met: fallback JSONL path remains documented and usable.
 - Met: optional MCP submission guidance is documented without making MCP mandatory.
-- Met: no Battle Soccer-specific fixture requirement is introduced.
+- Met: no personal-fixture-specific requirement is introduced.
 
 context-engine track:
 
@@ -493,7 +493,7 @@ Use generic synthetic candidates first. Example candidate themes:
 - invalid candidate missing `sourceArtifacts`,
 - rejected sensitive candidate with placeholder secret-like content.
 
-Do not require Battle Soccer. If a fixture is needed, use an approved disposable repo or a repo-local dry run selected at implementation time.
+Do not require a named personal fixture. If a fixture is needed, use an approved disposable repo or a repo-local dry run selected at implementation time.
 
 ## Rollback Path
 

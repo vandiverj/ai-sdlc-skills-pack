@@ -21,6 +21,10 @@ export function calibrateAdd(repo, options = {}) {
     caps: splitList(options.caps),
     outcome: options.outcome || '',
     routeFit: options.routeFit || '',
+    runtime: options.runtime || '',
+    modelTier: options.modelTier || '',
+    retryCount: options.retryCount || '',
+    misrouteTax: options.misrouteTax || '',
     contextMissing: splitList(options.contextMissing),
     verificationMissing: splitList(options.verificationMissing),
     agentMissedStep: options.agentMissedStep || '',
@@ -28,6 +32,7 @@ export function calibrateAdd(repo, options = {}) {
     issueCaught: options.issueCaught || '',
     friction: options.friction || '',
     humanOverride: options.humanOverride || '',
+    humanCorrection: options.humanCorrection || '',
     processChangeProposed: options.processChangeProposed || '',
   };
   appendFileSync(outPath, `${JSON.stringify(row)}\n`, 'utf8');

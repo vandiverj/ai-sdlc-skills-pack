@@ -686,7 +686,7 @@ function learningSuggestionsFromRun(repo, runDir, task) {
   if (gates.filter((gate) => gate.status === 'block').length > 2) suggestions.push('Multiple blocking gates occurred; review whether preflight should expose these earlier.');
   if (waivers.length) suggestions.push('Waivers were used; review whether this is a repeated cap or a one-off environment limitation.');
   if (checks.some((check) => check.status === 'cap')) suggestions.push('Evidence caps were recorded; consider setup/profile changes if this repeats.');
-  if (matchesAny(String(task || '').toLowerCase(), ['fixture', 'battle soccer'])) suggestions.push('Fixture validation used; split portable process lessons from product-specific game facts.');
+  if (matchesAny(String(task || '').toLowerCase(), ['fixture', 'pilot repo', 'pilot repository', 'dry run'])) suggestions.push('Fixture validation used; split portable process lessons from product-specific facts.');
   return dedupe(suggestions);
 }
 

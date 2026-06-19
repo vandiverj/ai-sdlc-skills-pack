@@ -35,7 +35,7 @@ import { instructionAudit, permissionPolicyPacket, riskAgentic, riskAgenticPrefl
 import { doctorFull, formatCommandList, formatCounts, groupCounts, health, installCheck, missingSetup, normalizeArray, processDashboard, processFriction, processHealth, processReview, readinessChecks, readinessStatus, setupBootstrap, setupDoctor, setupFixPlan } from './health.mjs';
 import { actionPreview, completeCheck, completeExplain, completeWaive, finalGate, finalGateOpenItems, finishPacket, gitGuard, gitPacket, suggestedFinalGateCommand } from './finish.mjs';
 import { scopeCheck, scopeExpect } from './scope.mjs';
-import { fixtureBattleSoccerPlan, fixtureBattleSoccerRun, fixturePlan, testBootstrapPlan, testFoothold, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
+import { fixturePlan, testBootstrapPlan, testFoothold, testPlan, testRegressionPlan, testSuggest } from './testplan.mjs';
 import { verifyComplete, verifyLadder, verifyPacket, verifyRun } from './verify.mjs';
 import { doneCheck, packetStatus, routeProof, routeRetire, routeStart } from './routepackets.mjs';
 import { bugEvidenceCheck, bugEvidencePacket, bugLiveEvidence, bugNextCommand, bugWorkflowPacket, commandClassify, dotnetEfcoreDiagnose, fixScope, patternAnalog } from './diagnostics.mjs';
@@ -239,7 +239,7 @@ export async function main(argv) {
   if (area === 'qa' && action === 'compare') return qaCompare(repo, options, qaDependencies());
   if (area === 'qa' && action === 'lint') return qaLint(repo, options);
   if (area === 'qa' && action === 'coverage') return qaCoverage(repo, options);
-  if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi', 'interactive', 'cli', 'job', 'docs'].includes(action)) return qaModeCommand(repo, action, options, rest, qaDependencies());
+  if (area === 'qa' && ['ui', 'api', 'data', 'integration', 'scenario', 'multi', 'interactive', 'cli', 'job', 'docs', 'mixed'].includes(action)) return qaModeCommand(repo, action, options, rest, qaDependencies());
   if (area === 'qa' && action === 'complete') return qaComplete(repo, options, qaDependencies());
   if (area === 'qa' && action === 'review') return qaReview(repo, options, qaDependencies());
   if (area === 'qa' && action === 'build') return qaBuild(repo, options);
@@ -263,8 +263,6 @@ export async function main(argv) {
   if (area === 'integration' && action === 'packet') return integrationPacket(repo, options, { classifyTouchedSurface });
   if (area === 'validate' && action === 'ladder') return validationLadder(repo, options, assessmentDependencies());
   if (area === 'fixture' && action === 'plan') return fixturePlan(repo, options, testPlanDependencies());
-  if (area === 'fixture' && action === 'battle-soccer' && rest[0] === 'plan') return fixtureBattleSoccerPlan(repo, options);
-  if (area === 'fixture' && action === 'battle-soccer' && rest[0] === 'run') return fixtureBattleSoccerRun(repo, options);
   if (area === 'test' && action === 'plan') return testPlan(repo, options, testPlanDependencies());
   if (area === 'test' && action === 'suggest') return testSuggest(repo, options, testPlanDependencies());
   if (area === 'test' && action === 'bootstrap-plan') return testBootstrapPlan(repo, options, testPlanDependencies());

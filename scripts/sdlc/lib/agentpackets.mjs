@@ -3,9 +3,11 @@ import { join, relative, resolve } from 'node:path';
 import { escapeCell, escapeCommandArg, fail, formatList, printObject, printTable, safeWriteTextFile, slug } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadTaskJournal, upsertTaskJournal } from './journal.mjs';
+import { loadProfile } from './profile.mjs';
 import { analyzePrompt, renderPromptAnalysis } from './prompt.mjs';
 import { buildLocalFirstPlan, renderLocalFirstPlan } from './tools.mjs';
 import { defaultRunsDir } from './paths.mjs';
+import { inferRouteFromTask, securityTriggers } from './routes.mjs';
 
 export const HANDOFF_ROLES = [
   'implementation-worker',
@@ -18,15 +20,23 @@ export const HANDOFF_ROLES = [
 export function agentsPlan(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "...".');
+  const journal = loadTaskJournal(repo, task, options);
+  const analysis = journal.promptAnalysis || analyzePrompt(task, repo, options);
+  const localFirst = journal.localFirst || buildLocalFirstPlan(repo, task, options);
+  const routingReceipt = tierRoutingReceipt(repo, task, '', { ...options, analysis, localFirst });
   const recommendations = recommendAgentPackets(repo, task, options);
   if (options.json) {
-    console.log(JSON.stringify({ schema: 'sdlc-agent-plan-v1', task, repository: repo, recommendations }, null, 2));
+    console.log(JSON.stringify({ schema: 'sdlc-agent-plan-v1', task, repository: repo, routingReceipt, recommendations }, null, 2));
     return;
   }
   const content = `# SDLC Agent Handoff Plan
 
 Task: ${task}
 Repository: ${repo}
+
+## Tier-Routing Receipt
+
+${renderTierRoutingReceipt(routingReceipt)}
 
 | Role | Recommendation | Score | Why |
 | --- | --- | --- | --- |
@@ -37,12 +47,17 @@ ${recommendations.map((row) => `| ${row.role} | ${row.recommendation} | ${row.sc
 - Create packets only when they reduce ambiguity, improve evidence, clarify boundaries, or support restart/handoff.
 - Tiny/low-risk work can proceed without packets.
 - Packets are bounded work orders, not autonomous subagents.
+- After using a packet or response, capture route fit with: sdlc calibrate add --route "${routingReceipt.workClass}" --route-fit "<right-sized|too heavy|too light>" --friction "<category>".
 `;
   const outPath = options.out ? resolve(repo, options.out) : join(runAgentDir(repo, task, options), 'agent-plan.md');
   safeWriteTextFile(repo, outPath, content);
   upsertTaskJournal(repo, task, {
     agents: recommendations.map((row) => ({ role: row.role, status: row.recommendation, why: row.why })),
     packets: [{ kind: 'agent-plan', path: relative(repo, outPath) }],
+    promptAnalysis: analysis,
+    localFirst,
+    routingReceipt,
+    nextRecommendedAction: `Review ${relative(repo, outPath)} or capture route fit with sdlc calibrate add --route "${routingReceipt.workClass}" --route-fit "<right-sized|too heavy|too light>" --friction "<category>"`,
   }, options);
   console.log(content.trimEnd());
   console.log(`\nSaved: ${relative(repo, outPath)}`);
@@ -56,7 +71,8 @@ export function agentsPacket(repo, options = {}) {
   const journal = loadTaskJournal(repo, task, options);
   const analysis = journal.promptAnalysis || analyzePrompt(task, repo, options);
   const localFirst = journal.localFirst || buildLocalFirstPlan(repo, task, options);
-  const packet = renderAgentPacket(repo, task, role, { ...options, journal, analysis, localFirst });
+  const routingReceipt = journal.routingReceipt || tierRoutingReceipt(repo, task, role, { ...options, analysis, localFirst });
+  const packet = renderAgentPacket(repo, task, role, { ...options, journal, analysis, localFirst, routingReceipt });
   const outPath = options.out ? resolve(repo, options.out) : join(runAgentDir(repo, task, options), `${role}.md`);
   safeWriteTextFile(repo, outPath, packet);
   upsertTaskJournal(repo, task, {
@@ -64,7 +80,8 @@ export function agentsPacket(repo, options = {}) {
     packets: [{ kind: `agent-${role}`, path: relative(repo, outPath) }],
     promptAnalysis: analysis,
     localFirst,
-    nextRecommendedAction: `Review ${relative(repo, outPath)} or run sdlc agents lint --packet "${escapeCommandArg(relative(repo, outPath))}"`,
+    routingReceipt,
+    nextRecommendedAction: `Review ${relative(repo, outPath)}, run sdlc agents lint --packet "${escapeCommandArg(relative(repo, outPath))}", then capture route fit with sdlc calibrate add --route "${routingReceipt.workClass}" --route-fit "<right-sized|too heavy|too light>" --friction "<category>"`,
   }, options);
   console.log(relative(repo, outPath));
 }
@@ -164,6 +181,7 @@ function renderAgentPacket(repo, task, role, options) {
   const journal = options.journal || loadTaskJournal(repo, task, options);
   const analysis = options.analysis || journal.promptAnalysis || analyzePrompt(task, repo, options);
   const localFirst = options.localFirst || journal.localFirst || buildLocalFirstPlan(repo, task, options);
+  const routingReceipt = options.routingReceipt || journal.routingReceipt || tierRoutingReceipt(repo, task, role, { ...options, analysis, localFirst });
   const git = getGitInfo(repo);
   return `# SDLC Agent Handoff Packet
 
@@ -212,6 +230,10 @@ ${renderPromptAnalysis(analysis).trim()}
 
 ${renderLocalFirstPlan(localFirst).trim()}
 
+## Tier-Routing Receipt
+
+${renderTierRoutingReceipt(routingReceipt)}
+
 ## Linked Artifacts
 
 ${formatList([
@@ -247,6 +269,8 @@ Return a concise Markdown result with:
 
 Do not claim completion, safety, release readiness, or model quality beyond the evidence listed in the response.
 
+Lint role responses with: sdlc response lint --file <path> --role-response before the orchestrator relies on them.
+
 ## Stop Conditions
 
 ${formatList([
@@ -258,8 +282,99 @@ ${formatList([
 
 ## Run Journal Update
 
-After work, record evidence or caps with the relevant SDLC command and keep the packet linked in the task run journal.
+After work, record evidence or caps with the relevant SDLC command, keep the packet linked in the task run journal, and capture route fit with: sdlc calibrate add --route "${routingReceipt.workClass}" --route-fit "<right-sized|too heavy|too light>" --friction "<category>".
 `;
+}
+
+export function tierRoutingReceipt(repo, task, role = '', options = {}) {
+  const git = getGitInfo(repo);
+  const profile = loadProfile(repo);
+  const profileValues = profile.values || {};
+  const route = inferRouteFromTask(task, git, profileValues);
+  const lower = String(task || '').toLowerCase();
+  const analysis = options.analysis || {};
+  const localFirst = options.localFirst || {};
+  const triggers = securityTriggers(task, profileValues);
+  const riskSignals = [
+    ...triggers,
+    ...(analysis.riskTerms || []).map((term) => `prompt risk: ${term}`),
+    ...(git.status ? ['dirty worktree'] : []),
+    ...(hasTerm(lower, ['production', 'database', 'sql', 'security', 'auth', 'secret', 'token']) ? ['sensitive or high-risk task terms'] : []),
+  ];
+  const candidateTier = candidateTierForRole(role, lower, riskSignals, localFirst);
+  return {
+    task,
+    workClass: route,
+    riskSignals: [...new Set(riskSignals)],
+    candidateTier,
+    evidenceContract: evidenceContractForTier(candidateTier, role, localFirst),
+    escalationTriggers: escalationTriggersForTier(candidateTier),
+    fallbackTier: fallbackTierFor(candidateTier),
+    doNotClaim: [
+      'lower tier quality from price alone',
+      'model self-confidence as evidence',
+      'delegated work executed from packet generation',
+      'release, deploy, merge, push, or model quality without explicit evidence',
+    ],
+  };
+}
+
+function candidateTierForRole(role, lower, riskSignals, localFirst) {
+  if ((localFirst?.canProveLocally || []).length && role === 'verification-worker') return 'deterministic-tools';
+  if (role === 'verification-worker') return 'deterministic-tools';
+  if (riskSignals.length || hasTerm(lower, ['architecture', 'public contract', 'security', 'privacy', 'production'])) return 'top-frontier-orchestrator';
+  if (role === 'process-learning-reviewer') return 'local-or-standard-read-only';
+  if (role === 'independent-reviewer') return 'standard-review';
+  if (role === 'release-handoff-worker') return 'standard-or-manual';
+  if (role === 'implementation-worker') return 'cheaper-frontier-after-safe-boundary';
+  return 'manual-or-cheaper-frontier';
+}
+
+function evidenceContractForTier(candidateTier, role, localFirst) {
+  const localProof = localFirst?.canProveLocally || [];
+  const common = [
+    'source-linked scope and boundary check',
+    'explicit caps for unavailable evidence',
+    'human approval boundary for commit/push/merge/deploy/release',
+  ];
+  if (candidateTier === 'deterministic-tools') return [...localProof.slice(0, 3), 'fresh command output or explicit cap', ...common].filter(Boolean);
+  if (role === 'verification-worker') return ['verification command output, manual smoke evidence, or cap', ...common];
+  if (role === 'independent-reviewer') return ['findings or no-findings statement tied to files/evidence', ...common];
+  if (role === 'implementation-worker') return ['changed files and rationale', 'verification run or cap', ...common];
+  return common;
+}
+
+function escalationTriggersForTier(candidateTier) {
+  const common = [
+    'failed deterministic check',
+    'missing source links',
+    'scope or safe-edit boundary drift',
+    'human correction',
+    'sensitive data or approval uncertainty',
+  ];
+  if (candidateTier.includes('local')) return ['weak structured output', 'latency or retry burden', ...common];
+  if (candidateTier.includes('cheaper')) return ['repeated repair loop', ...common];
+  return common;
+}
+
+function fallbackTierFor(candidateTier) {
+  if (candidateTier === 'deterministic-tools') return 'manual packet or standard model only for interpretation';
+  if (candidateTier.includes('local')) return 'manual-packet or standard frontier review';
+  if (candidateTier.includes('cheaper')) return 'top-frontier-orchestrator';
+  return 'manual-packet with top-frontier reconciliation';
+}
+
+function renderTierRoutingReceipt(receipt) {
+  return formatList([
+    `Task: ${receipt.task}`,
+    `Work class: ${receipt.workClass}`,
+    `Risk signals: ${receipt.riskSignals.length ? receipt.riskSignals.join('; ') : 'none detected'}`,
+    `Candidate tier: ${receipt.candidateTier}`,
+    `Evidence contract: ${receipt.evidenceContract.join('; ')}`,
+    `Escalation triggers: ${receipt.escalationTriggers.join('; ')}`,
+    `Fallback tier: ${receipt.fallbackTier}`,
+    `Do not claim: ${receipt.doNotClaim.join('; ')}`,
+  ]);
 }
 
 function runAgentDir(repo, task, options) {
@@ -341,6 +456,9 @@ function lintAgentPacket(text) {
     { ok: /Intent Trace/i.test(text), finding: 'Missing intent trace.' },
     { ok: /Allowed Scope/i.test(text), finding: 'Missing allowed scope.' },
     { ok: /Forbidden Scope/i.test(text), finding: 'Missing forbidden scope.' },
+    { ok: /Tier-Routing Receipt/i.test(text), finding: 'Missing tier-routing receipt.' },
+    { ok: /Candidate tier:/i.test(text), finding: 'Missing candidate tier in routing receipt.' },
+    { ok: /Escalation triggers:/i.test(text), finding: 'Missing escalation triggers in routing receipt.' },
     { ok: /Commands \/ Tools Allowed/i.test(text), finding: 'Missing allowed commands/tools.' },
     { ok: /Advisory Runtime \/ Model Recommendation/i.test(text), finding: 'Missing advisory runtime/model recommendation.' },
     { ok: /Evidence Required/i.test(text), finding: 'Missing evidence requirements.' },

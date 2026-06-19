@@ -243,7 +243,7 @@ Done criteria:
 
 ### fixture-validation-kept-change
 
-Trigger: Battle Soccer or another fixture app is used to validate the SDLC and the resulting product improvement should be saved.
+Trigger: A configured fixture, approved pilot repository, or repo-local dry run is used to validate the SDLC and the resulting product improvement should be saved.
 
 Context packet:
 

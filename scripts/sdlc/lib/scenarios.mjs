@@ -8,7 +8,7 @@ import { matchRecipes } from './recipes.mjs';
 import { inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { detectStack } from './units.mjs';
 import { analyzePrompt } from './prompt.mjs';
-import { recommendAgentPackets } from './agentpackets.mjs';
+import { recommendAgentPackets, tierRoutingReceipt } from './agentpackets.mjs';
 
 const modulePath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(modulePath), '..', '..', '..');
@@ -92,11 +92,13 @@ export function scenarioTest(repo, options = {}) {
   }
   const agentResults = agentRegressionCases().map((item) => {
     const rows = recommendAgentPackets(repo, item.task, options);
-    const pass = Object.entries(item.expected || {}).every(([role, recommendation]) => rows.find((row) => row.role === role)?.recommendation === recommendation);
-    return { ...item, rows, pass };
+    const receipt = tierRoutingReceipt(repo, item.task, item.receiptRole || '', options);
+    const recommendationPass = Object.entries(item.expected || {}).every(([role, recommendation]) => rows.find((row) => row.role === role)?.recommendation === recommendation);
+    const tierPass = item.expectedTier ? receipt.candidateTier === item.expectedTier : true;
+    return { ...item, rows, receipt, pass: recommendationPass && tierPass };
   });
   for (const result of agentResults) {
-    console.log(`${result.pass ? 'PASS' : 'FAIL'} agents ${result.name}: ${result.rows.map((row) => `${row.role}=${row.recommendation}`).join(', ')}`);
+    console.log(`${result.pass ? 'PASS' : 'FAIL'} agents ${result.name}: ${result.rows.map((row) => `${row.role}=${row.recommendation}`).join(', ')} tier=${result.receipt.candidateTier}`);
     if (!result.pass) console.log(`  task: ${result.task}`);
   }
   if (promptResults.some((result) => !result.pass) || agentResults.some((result) => !result.pass)) process.exitCode = 1;
@@ -130,7 +132,7 @@ export function scenarioRegressionCases() {
     },
     {
       name: 'fixture kept change',
-      task: 'use the Battle Soccer fixture app to test SDLC and keep useful changes with a commit preview',
+      task: 'use an approved disposable fixture app to test SDLC and keep useful changes with a commit preview',
       expectedRoute: 'standard',
       expectedRecipes: ['fixture-validation-kept-change'],
     },
@@ -415,8 +417,8 @@ export function scenarioRegressionCases() {
 export function promptRegressionCases() {
   return [
     {
-      name: 'soccer is not soc',
-      task: 'Battle Soccer validation',
+      name: 'fixture task has no sensitive terms',
+      task: 'approved fixture validation',
       noRiskTerms: true,
     },
     {
@@ -436,8 +438,10 @@ export function promptRegressionCases() {
 export function agentRegressionCases() {
   return [
     {
-      name: 'battle soccer verify only',
-      task: 'Battle Soccer validation verify game behavior',
+      name: 'fixture verify only',
+      task: 'approved fixture validation verify behavior',
+      receiptRole: 'verification-worker',
+      expectedTier: 'deterministic-tools',
       expected: {
         'verification-worker': 'recommended',
         'independent-reviewer': 'skip',
