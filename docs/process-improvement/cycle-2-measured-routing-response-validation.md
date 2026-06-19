@@ -692,13 +692,13 @@ Expected evidence:
 Routing receipt present, verification-worker recommendation preserved, packet lint passes, no execution claim appears.
 
 Actual evidence:
-To be filled during implementation.
+Implemented and recorded in [cycle-2-implementation-report.md](cycle-2-implementation-report.md). Local scenario validation passed for `approved fixture validation verify behavior`, including deterministic-tool-first verification routing and no execution claim.
 
 Regression concerns:
 Agent-plan output must remain readable and tiny-task bypass must remain clear.
 
 Follow-up changes:
-To be filled during implementation.
+Repo-first validation target policy was added after implementation review. Use current repository deterministic checks and dry-run packets first; use a repo-local configured target or developer-approved fixture only when stronger realism is needed.
 
 ## Verification Commands
 
@@ -759,56 +759,15 @@ Not changed:
 
 ## Human Attention Items
 
-Needs decision before work:
+Resolved in Cycle 2:
 
-Question:
-Should Cycle 2 formalize `mixed-scope` as a QA mode?
+- `mixed-scope` was formalized as a QA mode for mixed docs/process plus non-doc runtime surfaces.
+- Normal written `sdlc agents plan` runs now persist `promptAnalysis`, `localFirst`, and routing receipt fields so journal checks do not look accidentally incomplete.
 
-Recommendation:
-Yes.
+Carried forward:
 
-Why this fits current evidence:
-The backlog describes a real mixed docs/source dirty-tree case where `docs-process` understated the QA surface.
-
-Tradeoff or risk:
-A new QA mode requires help/evidence text updates.
-
-Default action if approved or not corrected:
-Implement `mixed-scope` and document it as a temporary mode until file scoping narrows the task.
-
-Recommended default unless corrected:
-
-Question:
-Should `sdlc agents plan` persist `promptAnalysis` and `localFirst`?
-
-Recommendation:
-Yes for normal written runs; keep JSON inspection no-write.
-
-Why this fits current evidence:
-It makes agent-plan-only journals complete enough for `journal-check` and reuses existing helpers already imported by `agentpackets.mjs`.
-
-Tradeoff or risk:
-It writes more journal state from a planning command.
-
-Default action if approved or not corrected:
-Persist the same analysis fields that `agents packet` already persists.
-
-Recorded for later:
-
-Question:
-Should Cycle 3 invoke `codex exec` or a local LM Studio role?
-
-Recommendation:
-Do not decide in Cycle 2.
-
-Why this fits current evidence:
-Cycle 2 should first prove route receipts, response lint, and friction capture.
-
-Tradeoff or risk:
-Delays direct automation proof.
-
-Default action if approved or not corrected:
-Leave runtime execution as a separate Cycle 3 approval gate.
+- Cycle 3 must separately decide whether to invoke `codex exec`, local LM Studio, or another runtime. Cycle 2 intentionally stopped at dry-run packets, response lint, and route-fit capture.
+- Stronger external validation targets remain optional. Use a repo-local configured target or developer-approved disposable fixture only when current-repo validation is insufficient.
 
 ## Commit / Push Approval Needed
 
