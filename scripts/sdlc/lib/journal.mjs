@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { dedupe, escapeCommandArg, formatList, printObject, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, slug } from './common.mjs';
 import { getGitInfo } from './git.mjs';
@@ -36,49 +36,51 @@ export function loadTaskJournal(repo, task = '', options = {}) {
 export function upsertTaskJournal(repo, task, updates = {}, options = {}) {
   if (!task) return {};
   const paths = journalPaths(repo, task, options);
-  const existing = readJsonIfExists(paths.json) || {};
-  const profile = loadProfile(repo);
-  const git = getGitInfo(repo);
-  const files = Array.isArray(updates.touchedFiles) ? updates.touchedFiles : git.changedFiles;
-  const units = affectedUnits(repo, files, profile, options.unit);
-  const surfaces = inferTestingSurfaces(repo, task, files, profile);
-  const route = updates.route || existing.route || options.route || inferRouteFromTask(task, git, profile.values);
-  const now = new Date().toISOString();
-  const journal = {
-    schema: 'sdlc-task-journal-v1',
-    taskId: existing.taskId || journalTaskId(task, options),
-    task,
-    repository: repo,
-    branch: git.branch || existing.branch || '',
-    head: git.head || existing.head || '',
-    route,
-    mode: updates.mode || existing.mode || 'normal',
-    status: updates.status || existing.status || 'started',
-    createdAt: existing.createdAt || now,
-    updatedAt: now,
-    affectedUnits: dedupe([...(existing.affectedUnits || []), ...units.map((unit) => unit.name)]),
-    contextBuckets: dedupe([...(existing.contextBuckets || []), ...units.map((unit) => unit.contextBucket).filter(Boolean)]),
-    testingSurfaces: dedupe([...(existing.testingSurfaces || []), ...surfaces]),
-    qaMode: updates.qaMode || existing.qaMode || qaModeForSurfaces(surfaces, task),
-    touchedFiles: dedupe([...(existing.touchedFiles || []), ...files]),
-    context: mergeArray(existing.context, updates.context),
-    decisions: mergeArray(existing.decisions, updates.decisions),
-    evidenceRequired: mergeArray(existing.evidenceRequired, updates.evidenceRequired),
-    evidenceCaptured: mergeArray(existing.evidenceCaptured, updates.evidenceCaptured),
-    packets: mergeArray(existing.packets, updates.packets),
-    promptAnalysis: updates.promptAnalysis || existing.promptAnalysis || null,
-    promptHistory: mergeRecords(existing.promptHistory, updates.promptHistory, 'recordedAt'),
-    localFirst: updates.localFirst || existing.localFirst || null,
-    agents: mergeRecords(existing.agents, updates.agents, 'role'),
-    qaImpact: updates.qaImpact || existing.qaImpact || '',
-    caps: mergeArray(existing.caps, updates.caps),
-    waivers: mergeArray(existing.waivers, updates.waivers),
-    nextRecommendedAction: updates.nextRecommendedAction || existing.nextRecommendedAction || `sdlc next --task "${escapeCommandArg(task)}"`,
-    finalHandoffSummary: updates.finalHandoffSummary || existing.finalHandoffSummary || '',
-  };
-  safeWriteJsonFile(repo, paths.json, journal);
-  safeWriteTextFile(repo, paths.markdown, renderTaskJournal(journal, paths, repo));
-  return { ...journal, paths };
+  return withJournalLock(paths, () => {
+    const existing = readJsonIfExists(paths.json) || {};
+    const profile = loadProfile(repo);
+    const git = getGitInfo(repo);
+    const files = Array.isArray(updates.touchedFiles) ? updates.touchedFiles : git.changedFiles;
+    const units = affectedUnits(repo, files, profile, options.unit);
+    const surfaces = inferTestingSurfaces(repo, task, files, profile);
+    const route = updates.route || existing.route || options.route || inferRouteFromTask(task, git, profile.values);
+    const now = new Date().toISOString();
+    const journal = {
+      schema: 'sdlc-task-journal-v1',
+      taskId: existing.taskId || journalTaskId(task, options),
+      task,
+      repository: repo,
+      branch: git.branch || existing.branch || '',
+      head: git.head || existing.head || '',
+      route,
+      mode: updates.mode || existing.mode || 'normal',
+      status: updates.status || existing.status || 'started',
+      createdAt: existing.createdAt || now,
+      updatedAt: now,
+      affectedUnits: dedupe([...(existing.affectedUnits || []), ...units.map((unit) => unit.name)]),
+      contextBuckets: dedupe([...(existing.contextBuckets || []), ...units.map((unit) => unit.contextBucket).filter(Boolean)]),
+      testingSurfaces: dedupe([...(existing.testingSurfaces || []), ...surfaces]),
+      qaMode: updates.qaMode || existing.qaMode || qaModeForSurfaces(surfaces, task),
+      touchedFiles: dedupe([...(existing.touchedFiles || []), ...files]),
+      context: mergeArray(existing.context, updates.context),
+      decisions: mergeArray(existing.decisions, updates.decisions),
+      evidenceRequired: mergeArray(existing.evidenceRequired, updates.evidenceRequired),
+      evidenceCaptured: mergeArray(existing.evidenceCaptured, updates.evidenceCaptured),
+      packets: mergePackets(existing.packets, updates.packets),
+      promptAnalysis: updates.promptAnalysis || existing.promptAnalysis || null,
+      promptHistory: mergeRecords(existing.promptHistory, updates.promptHistory, 'recordedAt'),
+      localFirst: updates.localFirst || existing.localFirst || null,
+      agents: mergeRecords(existing.agents, updates.agents, 'role'),
+      qaImpact: updates.qaImpact || existing.qaImpact || '',
+      caps: mergeArray(existing.caps, updates.caps),
+      waivers: mergeArray(existing.waivers, updates.waivers),
+      nextRecommendedAction: updates.nextRecommendedAction || existing.nextRecommendedAction || `sdlc next --task "${escapeCommandArg(task)}"`,
+      finalHandoffSummary: updates.finalHandoffSummary || existing.finalHandoffSummary || '',
+    };
+    safeWriteJsonFile(repo, paths.json, journal);
+    safeWriteTextFile(repo, paths.markdown, renderTaskJournal(journal, paths, repo));
+    return { ...journal, paths };
+  });
 }
 
 export function printTaskJournalStatus(repo, task, options = {}) {
@@ -107,7 +109,9 @@ export function printTaskJournalStatus(repo, task, options = {}) {
 export function journalCheck(repo, options = {}) {
   const task = options.task || '';
   const journal = loadTaskJournal(repo, task, options);
-  const rows = validateJournal(journal);
+  const profile = loadProfile(repo);
+  const currentRoute = journal.task ? inferRouteFromTask(journal.task, getGitInfo(repo), profile.values) : '';
+  const rows = validateJournal(journal, { currentRoute });
   if (options.json) {
     console.log(JSON.stringify({ schema: 'sdlc-journal-check-v1', task: journal.task || task || '', result: rows.some((row) => row.status === 'block') ? 'block' : rows.some((row) => row.status === 'warn') ? 'warn' : 'pass', checks: rows }, null, 2));
   } else {
@@ -118,12 +122,13 @@ export function journalCheck(repo, options = {}) {
   if (rows.some((row) => row.status === 'block')) process.exitCode = 1;
 }
 
-export function validateJournal(journal = {}) {
+export function validateJournal(journal = {}, context = {}) {
   const rows = [];
   rows.push(checkRow('task', journal.task ? 'pass' : 'block', journal.task || 'missing task'));
   rows.push(checkRow('schema', journal.schema ? 'pass' : 'warn', journal.schema || 'older journal or missing schema'));
   rows.push(checkRow('taskId', journal.taskId ? 'pass' : 'block', journal.taskId || 'missing taskId'));
   rows.push(checkRow('route', journal.route ? 'pass' : 'warn', journal.route || 'missing route'));
+  if (journal.route && context.currentRoute && journal.route !== context.currentRoute) rows.push(checkRow('routeFreshness', 'warn', `journal route ${journal.route} differs from current inferred route ${context.currentRoute}`));
   rows.push(checkRow('promptAnalysis', journal.promptAnalysis ? 'pass' : 'warn', journal.promptAnalysis ? 'present' : 'missing; run sdlc prompt audit --task "..."'));
   rows.push(checkRow('localFirst', journal.localFirst ? 'pass' : 'warn', journal.localFirst ? 'present' : 'missing; run sdlc capabilities negotiate --task "..."'));
   rows.push(checkRow('agents', Array.isArray(journal.agents || []) ? 'pass' : 'warn', Array.isArray(journal.agents || []) ? `${(journal.agents || []).length} records` : 'not structured'));
@@ -282,6 +287,80 @@ function mergeArray(left = [], right = []) {
   const a = Array.isArray(left) ? left : left ? [left] : [];
   const b = Array.isArray(right) ? right : right ? [right] : [];
   return dedupe([...a, ...b].map((item) => typeof item === 'string' ? item : JSON.stringify(item)));
+}
+
+function mergePackets(left = [], right = []) {
+  const rows = [
+    ...(Array.isArray(left) ? left : left ? [left] : []),
+    ...(Array.isArray(right) ? right : right ? [right] : []),
+  ].map(normalizePacket).filter(Boolean);
+  const map = new Map();
+  for (const row of rows) {
+    const key = `${row.kind || 'packet'}:${row.path || JSON.stringify(row)}`;
+    map.set(key, { ...(map.get(key) || {}), ...row });
+  }
+  return [...map.values()];
+}
+
+function normalizePacket(packet) {
+  if (!packet) return null;
+  if (typeof packet === 'string') {
+    try {
+      const parsed = JSON.parse(packet);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    } catch {
+      return { kind: 'packet', path: packet };
+    }
+    return { kind: 'packet', path: packet };
+  }
+  if (typeof packet === 'object' && !Array.isArray(packet)) return packet;
+  return { kind: 'packet', value: String(packet) };
+}
+
+function withJournalLock(paths, fn) {
+  mkdirSync(paths.dir, { recursive: true });
+  const lockPath = join(paths.dir, '.run.lock');
+  const started = Date.now();
+  while (true) {
+    try {
+      const fd = openSync(lockPath, 'wx');
+      try {
+        return fn();
+      } finally {
+        closeSync(fd);
+        try {
+          unlinkSync(lockPath);
+        } catch {
+          // Lock cleanup is best-effort; stale-lock recovery handles leftovers.
+        }
+      }
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? error.code : '';
+      if (code !== 'EEXIST') throw error;
+      if (isStaleLock(lockPath)) {
+        try {
+          unlinkSync(lockPath);
+        } catch {
+          // Another process may have cleaned it first.
+        }
+        continue;
+      }
+      if (Date.now() - started > 10000) throw new Error(`Timed out waiting for task journal lock: ${lockPath}`);
+      sleepMs(50);
+    }
+  }
+}
+
+function isStaleLock(lockPath) {
+  try {
+    return Date.now() - statSync(lockPath).mtimeMs > 30000;
+  } catch {
+    return false;
+  }
+}
+
+function sleepMs(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 function mergeRecords(left = [], right = [], key = 'id') {

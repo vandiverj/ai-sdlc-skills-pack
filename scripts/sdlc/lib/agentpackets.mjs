@@ -53,12 +53,17 @@ export function agentsPacket(repo, options = {}) {
   const task = options.task || '';
   if (!role || !task) fail('Pass --role <role> and --task "...".');
   if (!HANDOFF_ROLES.includes(role)) fail(`Unknown role "${role}". Use one of: ${HANDOFF_ROLES.join(', ')}`);
-  const packet = renderAgentPacket(repo, task, role, options);
+  const journal = loadTaskJournal(repo, task, options);
+  const analysis = journal.promptAnalysis || analyzePrompt(task, repo, options);
+  const localFirst = journal.localFirst || buildLocalFirstPlan(repo, task, options);
+  const packet = renderAgentPacket(repo, task, role, { ...options, journal, analysis, localFirst });
   const outPath = options.out ? resolve(repo, options.out) : join(runAgentDir(repo, task, options), `${role}.md`);
   safeWriteTextFile(repo, outPath, packet);
   upsertTaskJournal(repo, task, {
     agents: [{ role, status: options.dryRun ? 'dry-run-packet-created' : 'packet-created', path: relative(repo, outPath) }],
     packets: [{ kind: `agent-${role}`, path: relative(repo, outPath) }],
+    promptAnalysis: analysis,
+    localFirst,
     nextRecommendedAction: `Review ${relative(repo, outPath)} or run sdlc agents lint --packet "${escapeCommandArg(relative(repo, outPath))}"`,
   }, options);
   console.log(relative(repo, outPath));
@@ -156,9 +161,9 @@ function recommendationForScore(score) {
 }
 
 function renderAgentPacket(repo, task, role, options) {
-  const journal = loadTaskJournal(repo, task, options);
-  const analysis = journal.promptAnalysis || analyzePrompt(task, repo, options);
-  const localFirst = journal.localFirst || buildLocalFirstPlan(repo, task, options);
+  const journal = options.journal || loadTaskJournal(repo, task, options);
+  const analysis = options.analysis || journal.promptAnalysis || analyzePrompt(task, repo, options);
+  const localFirst = options.localFirst || journal.localFirst || buildLocalFirstPlan(repo, task, options);
   const git = getGitInfo(repo);
   return `# SDLC Agent Handoff Packet
 
