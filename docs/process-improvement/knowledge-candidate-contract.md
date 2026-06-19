@@ -70,7 +70,15 @@ Export rows for MCP review with:
 sdlc learn candidate-export --repo .
 ```
 
+Review candidate staleness, missing anchors, expired confidence, and deterministic anchor-hash caps with:
+
+```bash
+sdlc learn candidate-drift --repo .
+```
+
 MCP submission should be mechanical because the fallback row uses the same required fields as the live AirteraCode gateway.
+
+Cycle 3 drift reporting is conservative. It does not validate candidate content correctness, promote candidates, or claim anchor-change detection unless a stored anchor hash is available.
 
 ## No-Install Fallback
 

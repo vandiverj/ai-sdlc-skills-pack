@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
-import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatList, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, safeWriteTextFile, slug, stamp } from './common.mjs';
+import { appendControlJsonLine, dedupe, escapeCell, fail, formatInlineList, formatList, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, safeWriteTextFile, slug, stamp, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { loadProfile } from './profile.mjs';
@@ -633,6 +634,40 @@ export function learnCandidateExport(repo, options = {}) {
   });
 }
 
+export function learnCandidateDrift(repo, options = {}) {
+  const sourcePath = options.file ? resolve(repo, options.file) : defaultKnowledgeCandidatePath(repo);
+  const candidates = existsSync(sourcePath) ? readKnowledgeCandidateFile(sourcePath) : [];
+  const rows = candidates.map((candidate, index) => candidateDriftRow(repo, candidate, index + 1, options));
+  if (options.json) {
+    console.log(JSON.stringify({ schema: 'sdlc.knowledge_candidate_drift_report.v1', repository: repo, source: sourcePath, rows }, null, 2));
+    if (rows.some((row) => row.status === 'invalid' || row.status === 'anchor-missing' || row.status === 'hash-mismatch')) process.exitCode = 1;
+    return;
+  }
+  const content = `# SDLC Knowledge Candidate Drift Report
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Source: ${relative(repo, sourcePath)}
+Candidates: ${rows.length}
+
+| Row | Status | Claim | Owner | Sensitivity | Revalidation action |
+| --- | --- | --- | --- | --- | --- |
+${rows.map((row) => `| ${row.index} | ${row.status} | ${escapeCell(row.claim)} | ${escapeCell(row.ownerArtifact)} | ${row.sensitivity} | ${escapeCell(row.revalidationAction)} |`).join('\n') || '| none | capped | no candidates found | n/a | n/a | capture or export candidates before drift review |'}
+
+## Caps
+
+${formatList(rows.flatMap((row) => row.caps.map((cap) => `row ${row.index}: ${cap}`)))}
+
+## Boundary
+
+- This report checks envelope, anchors, decay, and explicit drift signals only.
+- It does not validate content correctness or promote candidates.
+- Sensitive or restricted records require explicit review before shared documentation or MCP detail reads.
+`;
+  writeOrPrint(repo, options.out, content);
+  if (rows.some((row) => row.status === 'invalid' || row.status === 'anchor-missing' || row.status === 'hash-mismatch')) process.exitCode = 1;
+}
+
 function sanitizeLearningBuckets(text) {
   const lines = String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const portable = lines.filter((line) => /process improvement|run-sdlc|sdlc|route|qa|verification|context bucket|learning|checklist/i.test(line)).slice(0, 20);
@@ -802,6 +837,79 @@ function validateKnowledgeCandidate(candidate) {
   if ('sensitivity' in candidate && !['public', 'internal', 'sensitive', 'restricted'].includes(candidate.sensitivity)) errors.push('sensitivity must be public, internal, sensitive, or restricted');
   if (candidateTextHasSecretHint(candidate)) errors.push('candidate appears to contain secret-like content');
   return dedupe(errors);
+}
+
+function candidateDriftRow(repo, candidate, index, options = {}) {
+  const errors = validateKnowledgeCandidate(candidate);
+  const caps = [];
+  const anchors = Array.isArray(candidate?.anchors) ? candidate.anchors : [];
+  const sourceArtifacts = Array.isArray(candidate?.sourceArtifacts) ? candidate.sourceArtifacts : [];
+  const anchorChecks = anchors.map((anchor) => checkAnchor(repo, anchor));
+  const missingAnchor = anchors.length === 0;
+  const missingSource = sourceArtifacts.some((source) => source.path && !existsSync(resolve(repo, source.path)));
+  const missingAnchorPath = anchorChecks.some((row) => row.status === 'missing');
+  const hashMismatch = anchorChecks.some((row) => row.status === 'hash-mismatch');
+  const hashUnavailable = anchorChecks.some((row) => row.status === 'hash-not-stored');
+  const expired = candidateTimeExpired(candidate, options);
+  const explicitDrift = candidate?.driftStatus && !['current', 'fresh'].includes(String(candidate.driftStatus).toLowerCase());
+  if (hashUnavailable) caps.push('anchor hash not stored; cannot detect anchor content changes deterministically');
+  if (candidate?.sensitivity === 'sensitive' || candidate?.sensitivity === 'restricted') caps.push('sensitive/restricted candidate requires explicit review before shared use');
+  let status = 'current';
+  let revalidationAction = 'use only as source pointer; reconcile against source artifacts';
+  if (errors.length) {
+    status = 'invalid';
+    revalidationAction = `fix envelope before use: ${errors.join('; ')}`;
+  } else if (missingAnchor) {
+    status = 'missing-anchor';
+    revalidationAction = 'add at least one source-linked anchor before relying on retrieval';
+  } else if (missingSource || missingAnchorPath) {
+    status = 'anchor-missing';
+    revalidationAction = 'review candidate; source or anchor path is missing';
+  } else if (hashMismatch) {
+    status = 'hash-mismatch';
+    revalidationAction = 'revalidate claim against changed anchor before reuse';
+  } else if (explicitDrift) {
+    status = String(candidate.driftStatus);
+    revalidationAction = 'revalidate because candidate drift status is not current';
+  } else if (expired) {
+    status = 'time-expired';
+    revalidationAction = 'refresh confidence or downgrade before reuse';
+  } else if (hashUnavailable) {
+    status = 'current-with-cap';
+  }
+  return {
+    index,
+    status,
+    claim: sanitizeOneLine(candidate?.claim || ''),
+    ownerArtifact: candidate?.ownerArtifact || '',
+    sensitivity: candidate?.sensitivity || '',
+    driftStatus: candidate?.driftStatus || '',
+    anchorChecks,
+    errors,
+    caps,
+    revalidationAction,
+  };
+}
+
+function checkAnchor(repo, anchor) {
+  const anchorPath = anchor?.path || anchor?.file || anchor?.artifact || '';
+  if (!anchorPath) return { status: 'missing', detail: 'anchor has no path' };
+  const resolved = resolve(repo, anchorPath);
+  if (!existsSync(resolved)) return { status: 'missing', path: anchorPath };
+  const expectedHash = anchor.sha256 || anchor.hash || '';
+  if (!expectedHash) return { status: 'hash-not-stored', path: anchorPath };
+  const actualHash = createHash('sha256').update(readFileSync(resolved)).digest('hex');
+  return { status: actualHash === expectedHash ? 'current' : 'hash-mismatch', path: anchorPath, expectedHash, actualHash };
+}
+
+function candidateTimeExpired(candidate, options = {}) {
+  const confirmed = Date.parse(candidate?.confidenceLastConfirmed || '');
+  if (!Number.isFinite(confirmed)) return true;
+  const policy = candidate?.decayPolicy || {};
+  const days = Number(options.reviewAfterDays || policy.reviewAfterDays || policy.revisitAfterDays || 0);
+  if (!days) return false;
+  const expiresAt = confirmed + days * 24 * 60 * 60 * 1000;
+  return Date.now() > expiresAt;
 }
 
 function knowledgeCandidateRequiredFields() {

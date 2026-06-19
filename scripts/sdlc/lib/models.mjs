@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { formatList, printObject, printTable, readJsonIfExists } from './common.mjs';
+import { join, relative, resolve } from 'node:path';
+import { defaultCalibrationPath } from './paths.mjs';
+import { escapeCell, formatList, printObject, printTable, readJsonIfExists, readJsonLines, writeOrPrint } from './common.mjs';
 
 const DEFAULT_LOCAL_MODELS = [
   {
@@ -46,6 +47,35 @@ export function modelsInventory(repo, options = {}) {
   console.log(formatList([...new Set(inventory.flatMap((model) => model.fieldsRequiringLocalMeasurement || []))]));
 }
 
+export function modelsRevalidate(repo, options = {}) {
+  const inventory = loadModelInventory(repo, options);
+  const calibrationPath = options.calibration ? resolve(repo, options.calibration) : defaultCalibrationPath(repo);
+  const calibrationRows = readJsonLines(calibrationPath).filter((row) => !row.parseError);
+  const rows = inventory.map((model) => modelRevalidationRow(model, calibrationRows));
+  if (options.json) {
+    console.log(JSON.stringify({ schema: 'sdlc.model_revalidation_report.v1', repository: repo, calibration: calibrationPath, rows }, null, 2));
+    return;
+  }
+  const content = `# SDLC Model Revalidation Report
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Calibration: ${relative(repo, calibrationPath)}
+Models: ${rows.length}
+
+| Model | Runtime | Status | Unknown fields | Drift signals | Revalidation action |
+| --- | --- | --- | --- | --- | --- |
+${rows.map((row) => `| ${escapeCell(row.modelId)} | ${escapeCell(row.runtime)} | ${row.status} | ${escapeCell(row.unknownFields.join(', ') || 'none')} | ${escapeCell(row.driftSignals.join('; ') || 'none')} | ${escapeCell(row.revalidationAction)} |`).join('\n') || '| none | n/a | capped | none | no inventory | add local inventory before model routing |'}
+
+## Boundary
+
+- This report emits revalidation prompts only.
+- It does not promote a model, scorecard, learned router, or write-capable local automation.
+- Vendor metadata and seed inventory are not model capability evidence.
+`;
+  writeOrPrint(repo, options.out, content);
+}
+
 function loadModelInventory(repo, options) {
   const explicit = options.file ? join(repo, options.file) : '';
   const candidates = [
@@ -66,4 +96,39 @@ function loadModelInventory(repo, options) {
     }
   }
   return DEFAULT_LOCAL_MODELS;
+}
+
+function modelRevalidationRow(model, calibrationRows) {
+  const modelId = model.modelId || model.id || 'unknown';
+  const runtime = model.runtime || 'unknown';
+  const unknownFields = [
+    ...new Set([
+      ...unknownProfileFields(model),
+      ...(model.fieldsRequiringLocalMeasurement || []),
+    ]),
+  ];
+  const matchingCalibration = calibrationRows.filter((row) => row.modelId === modelId || row.modelTier === modelId || row.modelTier === model.modelTier || row.runtime === runtime);
+  const driftSignals = [];
+  if (!matchingCalibration.length) driftSignals.push('no calibration rows for this model/runtime');
+  if (!model.lastEvaluated || /not evaluated|unknown/i.test(String(model.lastEvaluated))) driftSignals.push('lastEvaluated missing or seed-level');
+  if (matchingCalibration.some((row) => row.humanCorrection)) driftSignals.push('human correction recorded in calibration');
+  if (matchingCalibration.some((row) => row.misrouteTax)) driftSignals.push('misroute tax recorded in calibration');
+  if (matchingCalibration.some((row) => Number(row.retryCount || 0) > 1)) driftSignals.push('retry count above one in calibration');
+  const status = unknownFields.length || driftSignals.length ? 'needs-revalidation' : 'current-with-local-evidence';
+  return {
+    modelId,
+    runtime,
+    status,
+    unknownFields,
+    calibrationRows: matchingCalibration.length,
+    driftSignals,
+    revalidationAction: status === 'needs-revalidation'
+      ? 'run role-specific smoke evals before using this model for routing decisions'
+      : 'keep using only inside previously validated role boundaries',
+  };
+}
+
+function unknownProfileFields(model) {
+  const fields = ['runtime', 'contextWindow', 'hardwareProfile', 'toolCallSupport', 'structuredOutputReliability', 'latency', 'lastEvaluated'];
+  return fields.filter((field) => !model[field] || /unknown|not evaluated|unverified/i.test(String(model[field])));
 }

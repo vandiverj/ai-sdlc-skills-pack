@@ -171,6 +171,9 @@ Maintenance examples:
 sdlc scenario test
 sdlc recipe list
 sdlc recipe review --since YYYY-MM-DD
+sdlc eval retrieval-run --repo .
+sdlc learn candidate-drift --repo .
+sdlc models revalidate --repo .
 sdlc trace export --trace .ai-local/sdlc-runs/<trace>.jsonl --format otel-lite
 sdlc learn backlog
 ```
@@ -211,8 +214,11 @@ Key commands added for the global-local model:
 - `sdlc adapter generate`: generate runtime-specific usage guidance for Augment, Auggie, Codex, Claude, or generic agents.
 - `sdlc dashboard`: produce a compact local status artifact.
 - `sdlc eval run|add-case|report`: regression-test SDLC routing and evidence behavior.
+- `sdlc eval retrieval-add|retrieval-run|retrieval-report`: build the Cycle 3 deterministic retrieval floor and report pointer-quality metrics without adding retrieval infrastructure.
 - `sdlc learn export|import`: move sanitized learning candidates between environments.
 - `sdlc learn candidate-add|candidate-validate|candidate-export`: capture source-linked knowledge candidates under ignored `.ai-local/sdlc-cache/knowledge-candidates.jsonl` and export them for MCP review without making them source of truth.
+- `sdlc learn candidate-drift`: report invalid, missing-anchor, time-expired, sensitive, or hash-mismatched knowledge candidates without promoting them.
+- `sdlc models revalidate`: report model/profile fields that need role-specific smoke evidence before routing decisions.
 - `sdlc upgrade plan|apply|explain`: update local SDLC artifacts without merging, deploying, or overwriting team configuration.
 
 Context rule: durable state lives in local files; prompts should receive the smallest useful phase packet. Prefer `sdlc context assemble --phase <phase>` over copying full strategy docs, archived plans, raw logs, or unrelated repository memory into the model.
