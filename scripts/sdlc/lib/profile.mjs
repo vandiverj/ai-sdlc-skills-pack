@@ -67,6 +67,13 @@ export function normalizeProfileJsonValues(json = {}) {
     values.humanApprovalGates = json.policy.approvalGates || values.humanApprovalGates || '';
     values.sensitiveDataRestrictions = json.policy.sensitiveData || values.sensitiveDataRestrictions || '';
   }
+  if (json.validationTarget && typeof json.validationTarget === 'object') {
+    values.validationTarget = json.validationTarget;
+    values.validationTargetType = json.validationTarget.type || values.validationTargetType || '';
+    values.validationTargetPath = json.validationTarget.path || values.validationTargetPath || '';
+    values.validationTargetApproval = json.validationTarget.approval || values.validationTargetApproval || '';
+    values.validationTargetUnavailableBehavior = json.validationTarget.unavailableBehavior || values.validationTargetUnavailableBehavior || '';
+  }
   return values;
 }
 
@@ -207,6 +214,13 @@ Purpose: local repository profile for SDLC helper automation. Keep this file ign
 - Accessibility review policy: optional
 - Verification maturity: no automated tests / manual QA only / smoke tests / partial automated tests / mature CI
 
+## Validation Target
+- Validation target policy: current repository deterministic checks and dry-run packets first; use configured local target second; ask developer for a disposable fixture when neither is enough
+- Validation target type: current-repo / fixture-repo / workspace-repo / dry-run-only
+- Validation target path: .
+- Validation target approval: current repo allowed; external targets require developer approval unless explicitly configured here
+- Validation target unavailable behavior: record the evidence gap and use a repo-local dry-run packet without claiming fixture validation
+
 ## External Evidence Capabilities
 - Ticket system provider:
 - Ticket MCP availability: available / unavailable / blocked / unknown
@@ -336,7 +350,7 @@ function profileSuggestionsForTask(task, profile = {}, recipes = []) {
   if (recipes.some((item) => item.id === 'ticket-evidence') && !profile.ticketMcpAvailability) suggestions.push('Record ticket system/YouTrack MCP availability or fallback intake fields.');
   if (recipes.some((item) => item.id === 'database-evidence') && !profile.databaseMcpAvailability) suggestions.push('Record read-only database MCP availability, allowed environments, allowed operations, and redaction rules.');
   if (recipes.some((item) => item.id === 'interactive-stateful-feature') && !profile.renderedUiReviewCommand) suggestions.push('Record the strongest available rendered/interactive validation command or cap for stateful workflows.');
-  if (recipes.some((item) => item.id === 'fixture-validation-kept-change')) suggestions.push('Record fixture-app policy: when useful validation changes should be kept, verified, and commit-previewed.');
+  if (recipes.some((item) => item.id === 'fixture-validation-kept-change')) suggestions.push('Record validation target policy: current repo/dry-run default, optional configured fixture path, and developer approval before external fixture use.');
   if (!suggestions.length) suggestions.push('No obvious profile additions for this task.');
   return dedupe(suggestions);
 }

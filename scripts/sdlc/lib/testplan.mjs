@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { dedupe, fail, formatInlineList, formatList, readJsonIfExists, safeWriteTextFile, stamp, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
@@ -17,6 +17,7 @@ export function fixturePlan(repo, options = {}, dependencies = {}) {
   const git = getGitInfo(repo);
   const files = git.changedFiles;
   const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const validationTargets = validationTargetRows(repo, profile.values);
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-fixture-validation-plan.md`);
   const content = `# SDLC Fixture Validation Plan
 
@@ -25,6 +26,10 @@ Task: ${task}
 Repository: ${repo}
 Branch: ${git.branch || 'unknown'}
 Intent: keep-change / throwaway-test / process-only
+
+## Validation Target Resolution
+
+${formatList(validationTargets)}
 
 ## Mixed-Scope Task Set
 
@@ -58,6 +63,22 @@ ${formatValidationLadder(validationLadderRows(task, surfaces))}
 `;
   safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
+}
+
+function validationTargetRows(repo, profile = {}) {
+  const configured = profile.validationTarget && typeof profile.validationTarget === 'object' ? profile.validationTarget : {};
+  const type = configured.type || profile.validationTargetType || 'current-repo';
+  const targetPath = configured.path || profile.validationTargetPath || '.';
+  const approval = configured.approval || profile.validationTargetApproval || 'external targets require developer approval';
+  const unavailable = configured.unavailableBehavior || profile.validationTargetUnavailableBehavior || 'record the evidence gap and use a repo-local dry-run packet';
+  const configuredPath = targetPath && targetPath !== '.' ? resolve(repo, targetPath) : '';
+  const configuredStatus = configuredPath ? (existsSync(configuredPath) ? `configured target available: ${targetPath} (${type})` : `configured target missing: ${targetPath} (${type})`) : 'no external validation target configured';
+  return [
+    'Current repository deterministic checks and dry-run packets are the default validation target.',
+    `Repo-local configured validation target: ${configuredStatus}.`,
+    `Developer-provided disposable fixture/workspace repo: use only after approval (${approval}).`,
+    `If no suitable fixture can run, ${unavailable}; do not claim runnable fixture validation.`,
+  ];
 }
 
 export function testPlan(repo, options = {}, dependencies = {}) {

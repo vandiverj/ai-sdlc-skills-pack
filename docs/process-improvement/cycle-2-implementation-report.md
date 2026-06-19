@@ -34,7 +34,7 @@ Standard SDLC process improvement.
 - Added a generic fixture verify-only regression check for deterministic-tool-first verification routing.
 
 Post-implementation correction:
-Named personal fixture references were removed from reusable SDLC guidance and helper surfaces. Fixture validation now means an approved disposable fixture, configured pilot repository, or repo-local dry run selected for the current validation task.
+Named personal fixture references were removed from reusable SDLC guidance and helper surfaces. Validation now resolves current repository deterministic checks and dry-run packets first, then a repo-local configured target, then a developer-approved disposable fixture or workspace repo.
 
 ## Files Changed
 
@@ -99,8 +99,8 @@ Cycle 2 does not prove model promotion, learned routing, cost reduction, local-m
 
 ## Fixture Validation
 
-Fixture target:
-Generic dry-run agent-routing scenario in the local scenario regression suite.
+Validation target:
+Current repository deterministic checks and dry-run packets. No repo-local external validation target was configured for this run.
 
 Changed SDLC behavior:
 Tier-routing receipt and deterministic-tool-first verification recommendation.
@@ -118,7 +118,7 @@ Regression concerns:
 This validates the dry-run routing/helper path, not a runnable fixture app.
 
 Follow-up changes:
-Use a configured disposable fixture or approved pilot repository in a later cycle before promoting routing behavior beyond Experiment.
+Use a repo-local configured target or developer-approved disposable fixture in a later cycle only if current-repo dry-run validation is insufficient for the behavior being promoted. Do not require a personal fixture repo before promotion.
 
 ## Process Weight And Adoption
 

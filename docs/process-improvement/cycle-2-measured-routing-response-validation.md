@@ -20,7 +20,7 @@ human intent + repo facts + task risk + available tools
 -> bounded agent packet
 -> response packet / response lint
 -> friction, route-fit, and failure-attribution row
--> fixture or real-task validation packet
+-> current-repo validation packet, optional configured target, or real-task validation packet
 -> human-readable next action
 ```
 
@@ -92,7 +92,7 @@ Expected code-quality change:
 Delegated outputs become easier to reject, repair, or escalate because response claims, caps, boundaries, and evidence gaps are explicit before the orchestrator uses them.
 
 How we will know it worked:
-A fixture or real task can produce a routing receipt, agent packet, response-lint result, and calibration/friction row. Known Cycle 2 backlog issues no longer produce misleading QA mode or journal warnings.
+A current-repo dry-run, configured validation target, developer-approved fixture, or real task can produce a routing receipt, agent packet, response-lint result, and calibration/friction row. Known Cycle 2 backlog issues no longer produce misleading QA mode or journal warnings.
 
 How it could make things worse:
 It could add more artifact work without improving decisions, make tiny tasks feel heavier, or create false confidence from a lint pass that only proves response shape.
@@ -184,7 +184,7 @@ No-install fallback:
 Manual packet and Markdown response fields remain valid.
 
 Evidence and validation path:
-CLI smoke tests, response-lint fixtures, scenario validation, and a generic fixture or dry-run fallback packet.
+CLI smoke tests, response-lint fixtures, scenario validation, and a current-repo dry-run packet. Optional configured fixtures can add evidence but are not the default.
 
 External inspiration used:
 Scientific small experiment and quality-control sampling: measure route fit before promoting a process rule.
@@ -416,7 +416,7 @@ Move to Experiment when:
 The planned CLI/doc changes are implemented and smoke-tested without adding runtime execution.
 
 Move to Provisional when:
-At least one fixture or real task shows the route receipt, response lint, and friction capture reduced orchestration burden or prevented a bad delegated-output claim.
+At least one current-repo dry-run, configured validation target, developer-approved fixture, or real task shows the route receipt, response lint, and friction capture reduced orchestration burden or prevented a bad delegated-output claim.
 
 Do not move to Durable until:
 Multiple task shapes have been validated and tiny-task bypass remains lightweight.
@@ -436,7 +436,7 @@ Where the analogy breaks:
 Agent work is not a stable manufacturing process; task variance and human judgment remain central.
 
 Smallest experiment:
-Generate a routing receipt, response-lint result, and friction/route-fit row for one fixture or real task.
+Generate a routing receipt, response-lint result, and friction/route-fit row for one current-repo dry-run, configured validation target, developer-approved fixture, or real task.
 
 Success signal:
 The receipt and lint result make orchestration or rejection easier than manual review alone.
@@ -448,7 +448,7 @@ Adoption criteria:
 Keep the fields only if they produce useful review or routing evidence.
 
 Rollback criteria:
-Remove or demote fields if they are not used during fixture validation.
+Remove or demote fields if they are not used during validation.
 
 ## Machine-Native Representation Plan
 
@@ -471,7 +471,7 @@ Discarded fields:
 Model prose that lacks source links, unsupported confidence, and redundant packet narration.
 
 Fixture/task:
-Generic fixture validation or a dry-run agent-routing scenario and a local no-execution task.
+Current-repo dry-run agent-routing scenario and local no-execution task; optional configured fixture only if present and approved.
 
 Success signal:
 The JSON outputs can be compared across runs without reading full transcripts.
@@ -497,7 +497,7 @@ The experiment should:
 - lint a good and bad response packet,
 - capture one route-fit/friction row,
 - exercise the mixed-scope QA mode and agent-plan-only journal fixes,
-- validate against a configured fixture or dry-run packet and record any fixture gaps.
+- validate using the validation-target order and record any fixture gaps without claiming runnable fixture validation.
 
 No model scorecard, learned router, or runtime execution should be promoted from this cycle.
 
@@ -602,8 +602,10 @@ Prove the changed behavior is reachable and proportional.
 
 Changes:
 - Add or update scenario validation for agent routing and response linting.
-- Use a configured disposable fixture, approved pilot repository, or dry-run packet for routing/helper behavior.
-- If no fixture is configured, record the cap and use a dry-run packet scenario instead.
+- Use current repository deterministic checks and dry-run packets first for routing/helper behavior.
+- If a repo-local validation target is configured, use it after current-repo checks when it is appropriate for the behavior under test.
+- Use a developer-approved disposable fixture, pilot repository, or workspace repo only when current-repo checks and configured local targets are insufficient.
+- If no runnable fixture is available, record the cap and use a dry-run packet scenario instead.
 
 Files likely to modify:
 - `scripts/sdlc/lib/scenarios.mjs`
@@ -664,14 +666,14 @@ Cycle 2 is complete when:
 - agent plans or packets include an advisory tier-routing receipt,
 - `sdlc response lint` can validate role response packets against core response fields,
 - at least one calibration/friction or route-fit row can be captured for the experiment,
-- a scenario, configured fixture, or dry-run validation packet exercises the changed routing/helper behavior,
+- a current-repo scenario, configured validation target, developer-approved fixture, or dry-run validation packet exercises the changed routing/helper behavior,
 - Cycle 2 implementation report records proof, caps, and promotion recommendation,
 - no write-capable delegated automation, learned router, runtime execution, or local model execution has been added.
 
 ## Fixture Validation Plan
 
-Fixture target:
-Configured disposable fixture or approved pilot repository if available; otherwise a dry-run scenario packet in this repository.
+Validation target:
+Current repository deterministic checks and dry-run packets first. If a repo-local validation target is configured, use it second. Use a developer-approved disposable fixture, pilot repository, or workspace repo only when current-repo validation is insufficient.
 
 Changed SDLC behavior:
 Tier-routing receipt, response-packet lint alignment, mixed-scope QA mode, and agent-plan journal completeness.
@@ -679,7 +681,7 @@ Tier-routing receipt, response-packet lint alignment, mixed-scope QA mode, and a
 Scenario exercised:
 Verification-focused task with no write-capable delegation.
 
-Commands to run for the dry-run fallback:
+Commands to run for the current-repo dry-run validation:
 ```bash
 node scripts/sdlc/sdlc.mjs agents plan --task "approved fixture validation verify behavior" --repo . --json
 node scripts/sdlc/sdlc.mjs agents packet --role verification-worker --task "approved fixture validation verify behavior" --repo . --dry-run --out /private/tmp/cycle2-verification-worker.md

@@ -33,6 +33,40 @@
         ]
       }
     },
+    "validationTarget": {
+      "type": "object",
+      "description": "Optional local target for SDLC fixture or dry-run validation. Current repository deterministic checks remain the default when this is omitted.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "current-repo",
+            "dry-run-only",
+            "fixture-repo",
+            "workspace-repo"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "approval": {
+          "type": "string"
+        },
+        "unavailableBehavior": {
+          "type": "string"
+        },
+        "allowedCommands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
     "policy": {
       "type": "object"
     }

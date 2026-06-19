@@ -102,15 +102,16 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 7. Check Git identity and privacy expectations before public or shared publication: `git config user.name`, `git config user.email`, whether a noreply email is desired, and how to verify author/committer with `git log --format=fuller -1`.
 8. Review infrastructure and quality capabilities: install/build/run commands, formatter, linter, typecheck/compiler, unit/integration/contract/E2E tests, rendered UI tooling, accessibility checks, security/dependency scans, CI/local preflight, deployment/smoke checks, logs/debugging, QA/manual validation.
 9. Classify each capability as available/documented, available/undocumented, partial, missing but valuable, not applicable, or blocked by environment/security.
-10. Draft changes without overwriting project-specific guidance.
-11. Merge existing instructions by linking to deeper docs and preserving local commands/conventions.
-12. Add `docs/patterns/README.md` and pattern templates when repeated project-specific implementation guidance should be captured.
-13. Add runtime adapters only for tools the project actually uses or explicitly wants.
-14. Add evidence packet and independent-reviewer templates when the project will use local handoffs, local review packets, or agent review roles.
-15. Run documentation verification checks and `git diff --check`.
-16. Run `sdlc readiness` again when available and report remaining setup gaps.
-17. For mixed legacy/modern UI systems, add or link `docs/context-root/mixed-ui-guidance.md` or an equivalent shared-context note so future agents do not flatten ASP Classic, React, shared CSS, API, and SQL risks into one generic UI bucket.
-17. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
+10. Establish validation-target policy. Default to current repository deterministic checks and dry-run packets; optionally record a repo-local configured validation target in `.ai-local/sdlc-profile.md` or `.ai-local/sdlc-profile.json`; ask the developer before using an external disposable fixture or workspace repo.
+11. Draft changes without overwriting project-specific guidance.
+12. Merge existing instructions by linking to deeper docs and preserving local commands/conventions.
+13. Add `docs/patterns/README.md` and pattern templates when repeated project-specific implementation guidance should be captured.
+14. Add runtime adapters only for tools the project actually uses or explicitly wants.
+15. Add evidence packet and independent-reviewer templates when the project will use local handoffs, local review packets, or agent review roles.
+16. Run documentation verification checks and `git diff --check`.
+17. Run `sdlc readiness` again when available and report remaining setup gaps.
+18. For mixed legacy/modern UI systems, add or link `docs/context-root/mixed-ui-guidance.md` or an equivalent shared-context note so future agents do not flatten ASP Classic, React, shared CSS, API, and SQL risks into one generic UI bucket.
+19. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
 
 ## Helper CLI setup flow
 When the SDLC helper is available, use it to make setup concrete:
@@ -175,6 +176,7 @@ Minimum setup facts to capture:
 - ignored AI-local paths,
 - Git author/committer privacy policy,
 - validation commands,
+- validation target policy and any optional local fixture path,
 - rendered-review tools,
 - approved/blocked tools and MCPs,
 - work/personal data boundary,
@@ -275,6 +277,8 @@ sdlc adapter generate --runtime generic
 ```
 
 For multi-project repositories, ensure the profile has one unit per deployable codebase or testing surface. API-only units should declare an API/OpenAPI testing surface so rendered UI review is not selected by mistake.
+
+For validation targets, the setup default is `current-repo`: use the repository's deterministic checks and SDLC dry-run packets first. Configure `validationTarget` in `.ai-local/sdlc-profile.json` or the Validation Target section of `.ai-local/sdlc-profile.md` only when the developer has an approved disposable fixture, pilot repository, or workspace repo. If no external target exists, leave it unconfigured and record fixture validation as unavailable rather than inventing a machine-specific default.
 
 For multi-repo workspaces, configure a local workspace profile or related repositories and use:
 

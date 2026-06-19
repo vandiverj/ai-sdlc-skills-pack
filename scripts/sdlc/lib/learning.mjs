@@ -132,7 +132,7 @@ ${owner}
 ## Validation Needed
 
 - Add or update scenario coverage.
-- Validate against a fixture or real task.
+- Validate with current-repo deterministic checks or dry-run packets first; add a configured target, developer-approved fixture, or real task only when stronger realism is needed.
 - Confirm privacy/sanitization before promotion.
 
 ## Rollback / Deprecation Path

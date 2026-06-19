@@ -243,7 +243,7 @@ Done criteria:
 
 ### fixture-validation-kept-change
 
-Trigger: A configured fixture, approved pilot repository, or repo-local dry run is used to validate the SDLC and the resulting product improvement should be saved.
+Trigger: Current-repo checks, a repo-local configured validation target, or a developer-approved disposable fixture/pilot repository is used to validate the SDLC and the resulting product improvement should be saved.
 
 Context packet:
 

@@ -1,13 +1,13 @@
-# SDLC Fixture Validation Report
+# SDLC Validation Target Report
 
-Purpose: record whether SDLC routers, evidence packets, agent roles, and verification/review gates work on an approved disposable fixture, configured pilot repository, or repo-local dry run.
+Purpose: record whether SDLC routers, evidence packets, agent roles, and verification/review gates work with current repository checks, repo-local dry-run packets, a configured validation target, or a developer-approved disposable fixture/pilot repository.
 
 ## Environment
 - Date:
 - Runtime:
 - Machine:
 - `.agents` branch:
-- Fixture or dry-run target:
+- Validation target:
 
 ## Task Runs
 | Task | Route predicted | Route used | Evidence packet | Result | Friction |

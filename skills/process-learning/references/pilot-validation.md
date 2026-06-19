@@ -1,6 +1,8 @@
 # Pilot Validation
 
-Use to record whether a pilot project proves or disproves the SDLC route, router/reference, evidence, agent, and review assumptions.
+Use to record whether current-repo dry runs, configured validation targets, or pilot projects prove or disprove the SDLC route, router/reference, evidence, agent, and review assumptions.
+
+Default to current repository deterministic checks and dry-run packets. Use a configured validation target or disposable pilot only when additional realism is needed and the developer has approved the target.
 
 ## Template
 - `.agents/templates/docs/pilot/fixture-validation-report.md`

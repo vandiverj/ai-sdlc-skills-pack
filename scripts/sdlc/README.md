@@ -159,6 +159,8 @@ sdlc finish packet --task "<task>" --intent keep-change
 sdlc learn from-run --task "<task>"
 ```
 
+`sdlc fixture plan` resolves validation targets from current-repository checks and dry-run packets first, optional `.ai-local` profile configuration second, and developer-approved disposable fixture/workspace repos third.
+
 ## Lower-Level Helpers
 
 Use `sdlc --help` for the full command reference. Most commands are lower-level helpers for agents and process maintainers, not commands a developer should run by hand during normal work.

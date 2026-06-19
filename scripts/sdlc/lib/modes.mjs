@@ -11,7 +11,7 @@ export const modeDefinitions = {
   legacy: 'Weak/no automated tests, mixed old/new system, or manual smoke likely.',
   'multi-repo': 'More than one repo or deployable unit may be affected.',
   ticket: 'Ticket-centered work where acceptance criteria and QA handoff matter.',
-  fixture: 'Validation fixture, approved pilot repository, or repo-local dry-run work.',
+  fixture: 'Current-repo dry-run validation, configured validation target, or developer-approved fixture/pilot work.',
   sensitive: 'Production/client/data-sensitive work needing tighter context and approval boundaries.',
   exploratory: 'Research/spike work where implementation may not follow.',
 };

@@ -51,6 +51,7 @@ export function configExplain(repo, options = {}) {
     `- Repository kind: ${profile.repository.kind || 'not configured'}`,
     `- Units: ${profile.units.map((unit) => `${unit.id || unit.name} (${unit.kind || unit.type || 'generic'} / ${unit.testSurface || 'surface?'})`).join(', ') || 'none'}`,
     `- Commands: ${profile.commands.map((command) => `${command.kind}:${command.command}`).join('; ') || 'none'}`,
+    `- Validation target: ${profile.validationTarget.type || 'current-repo'} at ${profile.validationTarget.path || '.'}`,
     `- Capability overlays: ${Object.entries(profile.capabilities).map(([key, value]) => `${key}=${value}`).join(', ')}`,
     `- Context roots: ${[profile.context.sharedRoot, profile.context.product, profile.context.repo].filter(Boolean).join('; ') || 'not configured'}`,
     '', '## Next Useful Commands', '', '```bash',
@@ -92,6 +93,7 @@ export function normalizedSdlcProfile(repo, options = {}) {
   const packageJson = readJsonIfExists(join(repo, 'package.json'));
   const commands = discoverCommands(profile.values, packageJson);
   const units = unitRegistry(repo, profile);
+  const validationTarget = normalizedValidationTarget(profile.values);
   return {
     schemaVersion: 'sdlc-profile-v1',
     generatedAt: new Date().toISOString(),
@@ -100,7 +102,20 @@ export function normalizedSdlcProfile(repo, options = {}) {
     commands: Object.entries(commands).filter(([, command]) => command).map(([kind, command]) => ({ kind, command })),
     capabilities: { ticketMcp: profile.values.ticketMcpAvailability || 'unknown', databaseMcp: profile.values.databaseMcpAvailability || 'unknown', browser: profile.values.renderedUiReviewCommand ? 'configured' : 'unknown' },
     units: units.map((unit) => ({ id: unit.name, root: unit.path, kind: unit.type || 'generic', testSurface: unit.testSurface || '', contextBucket: unit.contextBucket || '', buildCommand: unit.buildCommand || '', testCommand: unit.testCommand || '', deployMethod: unit.deployMethod || '', swaggerOpenapi: unit.swaggerOpenapi || '' })),
+    validationTarget,
     policy: { release: profile.values.releasePolicy || '', approvalGates: profile.values.humanApprovalGates || '', sensitiveData: profile.values.sensitiveDataRestrictions || '' },
+  };
+}
+
+export function normalizedValidationTarget(profile = {}) {
+  const configured = profile.validationTarget && typeof profile.validationTarget === 'object' ? profile.validationTarget : {};
+  return {
+    type: configured.type || profile.validationTargetType || 'current-repo',
+    path: configured.path || profile.validationTargetPath || '.',
+    approval: configured.approval || profile.validationTargetApproval || 'external targets require developer approval',
+    unavailableBehavior: configured.unavailableBehavior || profile.validationTargetUnavailableBehavior || 'record evidence gap and use repo-local dry-run packet',
+    allowedCommands: Array.isArray(configured.allowedCommands) ? configured.allowedCommands : [],
+    notes: configured.notes || 'Default validation starts with the current repository deterministic checks and dry-run packets.',
   };
 }
 

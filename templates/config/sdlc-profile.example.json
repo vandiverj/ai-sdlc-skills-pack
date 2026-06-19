@@ -30,6 +30,17 @@
       "contextBucket": "api"
     }
   ],
+  "validationTarget": {
+    "type": "current-repo",
+    "path": ".",
+    "approval": "external targets require developer approval",
+    "unavailableBehavior": "record evidence gap and use repo-local dry-run packet",
+    "allowedCommands": [
+      "sdlc scenario test --repo .",
+      "sdlc fixture plan --task \"<task>\" --repo ."
+    ],
+    "notes": "Default validation starts with current repository deterministic checks and dry-run packets. Configure a disposable fixture repo in .ai-local only when the developer approves it."
+  },
   "policy": {
     "release": "human controlled",
     "approvalGates": "commit,push",
