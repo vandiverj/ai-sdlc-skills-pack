@@ -705,9 +705,11 @@ To be filled during implementation.
 Document checks:
 ```bash
 git diff --check
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-SkillFiles.ps1
-Select-String -Path README.md,SUMMARY.md,WORKFLOW.md,skills\*\SKILL.md -Pattern "[\x00-\x08\x0B\x0C\x0E-\x1F]"
+node scripts/test-skill-files.mjs
+rg -n -P "[\x00-\x08\x0B\x0C\x0E-\x1F]" README.md SUMMARY.md WORKFLOW.md skills/*/SKILL.md
 ```
+
+The PowerShell wrapper `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-SkillFiles.ps1` may be used on Windows, but the Node script is canonical.
 
 Local CLI checks:
 ```bash

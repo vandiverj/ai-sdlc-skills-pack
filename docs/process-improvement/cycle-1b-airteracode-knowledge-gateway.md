@@ -164,7 +164,7 @@ Keep `.agents` changes small and portable. This repo should define the candidate
 git diff --check
 node --check scripts/sdlc/lib/learning.mjs
 node ~/.agents/scripts/sdlc/sdlc.mjs learn candidate-validate --file <sample-jsonl>
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-SkillFiles.ps1
+node scripts/test-skill-files.mjs
 ```
 
 Use the PowerShell skill-file test when running on the primary Windows maintenance environment. On macOS, record a cap if PowerShell is unavailable.

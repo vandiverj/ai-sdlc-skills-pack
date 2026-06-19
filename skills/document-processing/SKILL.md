@@ -2,6 +2,7 @@
 name: document-processing
 description: Use when working with "PDF", "Excel", "Word", "PowerPoint", "XLSX", "DOCX", "PPTX", "spreadsheets", "presentations", "extract text", "merge documents", "convert documents", or asking about "office document manipulation"
 version: 1.0.0
+user-invocable: true
 ---
 
 # Document Processing Guide
