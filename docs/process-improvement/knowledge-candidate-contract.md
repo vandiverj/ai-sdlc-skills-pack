@@ -64,6 +64,8 @@ Create a fallback row with:
 sdlc learn candidate-add --claim "..." --source <path> --owner <artifact>
 ```
 
+When `--source` points to an existing local file, `candidate-add` stores a `sha256` on the source anchor so later drift checks can detect file-content changes deterministically.
+
 Export rows for MCP review with:
 
 ```bash
@@ -74,6 +76,12 @@ Review candidate staleness, missing anchors, expired confidence, and determinist
 
 ```bash
 sdlc learn candidate-drift --repo .
+```
+
+Run the candidate regression suite with:
+
+```bash
+sdlc learn candidate-test --repo .
 ```
 
 MCP submission should be mechanical because the fallback row uses the same required fields as the live AirteraCode gateway.

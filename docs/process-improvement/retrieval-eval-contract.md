@@ -89,6 +89,12 @@ Use JSON output when another helper needs machine-readable evidence:
 sdlc eval retrieval-run --repo . --json
 ```
 
+Run negative regression checks for impossible expected artifacts and semantic-tail caps:
+
+```bash
+sdlc eval retrieval-test --repo .
+```
+
 ## No-Install Fallback
 
 Use Markdown or JSONL cases under `.ai-local/sdlc-retrieval-eval-cases.jsonl`, run `rg -l` manually, and record caps when deterministic search is unavailable.

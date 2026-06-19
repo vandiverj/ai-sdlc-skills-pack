@@ -24,9 +24,12 @@ Standard SDLC process improvement.
 ## What Changed
 
 - Added `sdlc eval retrieval-run`, `sdlc eval retrieval-report`, and `sdlc eval retrieval-add`.
+- Added `sdlc eval retrieval-test` for negative retrieval regressions.
 - Added built-in Stage 1 deterministic retrieval cases for knowledge-candidate, tier-routing, and eval-helper references.
 - Added retrieval result metrics: hit@k, precision@k, candidate artifacts, expected artifacts, missing expected artifacts, overreturned context, context bytes, and caps.
 - Added `sdlc learn candidate-drift` to report invalid envelopes, missing anchors, missing source/anchor paths, time-expired confidence, stored-hash mismatches, and hash-unavailable caps.
+- Added `sdlc learn candidate-test` for malformed-candidate, missing-anchor, and hash-mismatch regressions.
+- `sdlc learn candidate-add` now stores `sha256` for existing local file anchors.
 - Added `sdlc models revalidate` to report unknown model/profile fields and calibration-derived revalidation signals without promoting model routing.
 - Added [retrieval-eval-contract.md](retrieval-eval-contract.md).
 - Added `templates/schemas/sdlc-retrieval-eval-case.schema.json`.
@@ -60,9 +63,11 @@ node --check scripts/sdlc/lib/models.mjs
 node --check scripts/sdlc/lib/cli.mjs
 node scripts/sdlc/sdlc.mjs eval retrieval-run --repo . --out /private/tmp/cycle3-retrieval-eval.md
 node scripts/sdlc/sdlc.mjs eval retrieval-run --repo . --json
+node scripts/sdlc/sdlc.mjs eval retrieval-test --repo . --json
 node scripts/sdlc/sdlc.mjs eval retrieval-add --name "cycle3 ad hoc eval smoke" --query "Find retrieval eval contract references" --pattern "retrieval eval" --file /private/tmp/cycle3-retrieval-cases.jsonl --repo .
 node scripts/sdlc/sdlc.mjs eval retrieval-run --file /private/tmp/cycle3-retrieval-cases.jsonl --no-defaults --repo . --out /private/tmp/cycle3-retrieval-ad-hoc.md
 node scripts/sdlc/sdlc.mjs learn candidate-validate --file .ai-local/sdlc-cache/knowledge-candidates.jsonl --repo .
+node scripts/sdlc/sdlc.mjs learn candidate-test --repo . --json
 node scripts/sdlc/sdlc.mjs learn candidate-drift --repo . --out /private/tmp/cycle3-candidate-drift.md
 node scripts/sdlc/sdlc.mjs learn candidate-drift --repo . --json
 node scripts/sdlc/sdlc.mjs models revalidate --repo . --out /private/tmp/cycle3-model-revalidate.md
@@ -77,7 +82,9 @@ Observed results:
 - Retrieval eval reported no missing expected artifacts.
 - Knowledge-candidate and tier-routing retrieval cases exceeded the initial context byte budget and recorded caps instead of claiming clean context economy.
 - Ad hoc retrieval-add wrote `/private/tmp/cycle3-retrieval-cases.jsonl`, and retrieval-run consumed it with `--no-defaults`.
+- Retrieval regression checks confirmed impossible expected artifacts fail and semantic-tail cases cap instead of passing.
 - Existing knowledge candidate fallback JSONL validated successfully.
+- Candidate regression checks confirmed malformed candidates, missing anchors, and hash mismatches are caught.
 - Candidate drift report found one current internal candidate and recorded a cap because no anchor hash was stored.
 - Model revalidation report marked the seed Gemma profile `needs-revalidation` because key fields remain unknown and no calibration rows exist for the model/runtime.
 - Scenario test passed, including the new retrieval deterministic floor checks.

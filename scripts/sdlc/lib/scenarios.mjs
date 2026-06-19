@@ -965,6 +965,55 @@ export function evalRetrievalReport(repo, options = {}) {
   return evalRetrievalRun(repo, options);
 }
 
+export function evalRetrievalTest(repo, options = {}) {
+  const impossible = runRetrievalEvalCase(repo, {
+    schemaVersion: 'sdlc.retrieval_eval_case.v1',
+    id: 'cycle3-impossible-expected-artifact',
+    name: 'impossible expected artifact fails',
+    query: 'Find retrieval eval references',
+    pattern: 'retrieval eval',
+    expectedArtifacts: ['docs/process-improvement/no-such-artifact.md'],
+    gradingMode: 'deterministic',
+    difficulty: 'mechanical',
+    holdout: 'adhoc',
+    topK: 5,
+    costBudget: { maxArtifacts: 20, maxBytes: 500000 },
+    ownerArtifact: 'docs/process-improvement/retrieval-eval-contract.md',
+  }, options);
+  const semanticTail = runRetrievalEvalCase(repo, {
+    schemaVersion: 'sdlc.retrieval_eval_case.v1',
+    id: 'cycle3-semantic-tail-caps',
+    name: 'semantic-tail caps instead of passing',
+    query: 'Explain why retrieval output must stay pointer-only.',
+    expectedArtifacts: ['docs/process-improvement/retrieval-eval-contract.md'],
+    gradingMode: 'human-graded',
+    difficulty: 'semantic-tail',
+    holdout: 'adhoc',
+    topK: 5,
+    ownerArtifact: 'docs/process-improvement/retrieval-eval-contract.md',
+  }, options);
+  const rows = [
+    {
+      name: impossible.name,
+      status: impossible.status === 'fail' && impossible.missingExpected.includes('docs/process-improvement/no-such-artifact.md') ? 'pass' : 'fail',
+      detail: `actual status=${impossible.status}; missing=${impossible.missingExpected.join(', ') || 'none'}`,
+    },
+    {
+      name: semanticTail.name,
+      status: semanticTail.status === 'capped' && semanticTail.caps.length ? 'pass' : 'fail',
+      detail: `actual status=${semanticTail.status}; caps=${semanticTail.caps.join('; ') || 'none'}`,
+    },
+  ];
+  if (options.json) {
+    console.log(JSON.stringify({ schema: 'sdlc.retrieval_regression.v1', repository: repo, rows }, null, 2));
+  } else {
+    console.log('| Case | Status | Detail |');
+    console.log('| --- | --- | --- |');
+    for (const row of rows) console.log(`| ${escapeCell(row.name)} | ${row.status} | ${escapeCell(row.detail)} |`);
+  }
+  if (rows.some((row) => row.status !== 'pass')) process.exitCode = 1;
+}
+
 export function evalLocalFirstSuite(repo, options = {}) {
   scenarioTest(repo, { ...options, verbose: true });
   if (options.strict) {

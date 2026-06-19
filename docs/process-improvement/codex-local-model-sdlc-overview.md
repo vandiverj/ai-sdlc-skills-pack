@@ -1790,31 +1790,33 @@ Separate AirteraCode MCP session responsibilities:
 Cycle 1B boundary:
 The SDLC implementation must not block on MCP internals. If MCP work is not ready, Cycle 1 uses Markdown/JSONL candidate files as the fallback.
 
-### Cycle 2: Fixture Delegation And Bounded Write
+### Cycle 2: Measured Routing And Response Validation
 
 Goal:
-Test whether the contracts survive real delegated execution on a fixture or disposable branch/worktree.
+Prove that the Cycle 1 dry-run control plane can recommend tiers, generate bounded packets, validate response shape, and capture route-fit/friction evidence before any delegated execution or write-capable automation.
 
 Primary outputs:
 
-1. Plan-counterpoint experiment using Gemma read-only.
-2. Human-orchestration burden baseline from a fixture task.
-3. Deterministic proof plan for the fixture.
-4. Fixture-only bounded-write worker packet.
-5. Response packet reconciliation checklist.
-6. Misroute tax and repair-loop capture.
-7. Model profile update from role-specific smoke evals.
+1. Tier-routing receipt emitted by `sdlc agents plan` and generated role packets.
+2. Role response packet lint aligned to the response contract.
+3. Route-fit, misroute tax, retry, runtime, model-tier, and human-correction calibration fields.
+4. Mixed-scope QA mode for docs/process tasks with non-doc dirty or verification surfaces.
+5. Agent-plan-only journal handling that records prompt analysis, local-first signals, and routing evidence.
+6. Verify-only fixture scenario proving deterministic-tool-first routing.
 
 Allowed automation:
 
-- read-only local critique,
-- read-only context/review worker,
-- fixture-only bounded write after explicit route approval,
-- deterministic verification commands,
+- dry-run packet generation,
+- deterministic lint and scenario checks,
+- calibration row capture,
+- current-repo validation packets,
 - no commit, push, deploy, migration, dependency, or production authority.
 
 Cycle 2 acceptance:
-The route either proves that delegated work preserves quality with less top-frontier or human orchestration burden, or it produces enough failure evidence to narrow, defer, or kill that role.
+The route either proves that routing and response contracts are inspectable enough to support later delegated experiments, or it produces enough failure evidence to narrow, defer, or kill delegated execution.
+
+Cycle 2 implementation status:
+Cycle 2 is implemented as an Experiment. The plan is [cycle-2-measured-routing-response-validation.md](cycle-2-measured-routing-response-validation.md), and the implementation report is [cycle-2-implementation-report.md](cycle-2-implementation-report.md). The fixture delegation and bounded-write scope was intentionally deferred until routing receipts, response lint, mixed-scope QA, and calibration capture were validated.
 
 Cycle 2 planning inputs:
 
@@ -1839,9 +1841,37 @@ Primary outputs:
 Acceptance:
 Retrieval must match the deterministic floor on mechanical queries and show useful precision/context-economy behavior before any automated tuning is trusted.
 
+Cycle 3 implementation status:
+Cycle 3 is implemented as an Experiment. The plan is [cycle-3-knowledge-retrieval-adaptivity.md](cycle-3-knowledge-retrieval-adaptivity.md), and the implementation report is [cycle-3-implementation-report.md](cycle-3-implementation-report.md). The implemented slice proves deterministic retrieval eval, retrieval regression caps, candidate validation/drift checks, local anchor hashes for new candidates, and model revalidation prompts. It does not yet prove broad knowledge consolidation, human-graded semantic-tail usefulness, or local-model automation.
+
+### Cycle 4 Candidate: Measurement Pilot And Read-Only Counterpoint
+
+Goal:
+Measure whether the SDLC actually reduces human orchestration or frontier-token burden before expanding automation authority.
+
+Primary outputs:
+
+1. Human-orchestration baseline from one real or fixture task using the current route.
+2. Helper-compiled treatment run on the same or comparable task.
+3. Optional read-only plan-counterpoint packet for a Standard+ planning task.
+4. A small human-graded semantic-tail retrieval set, if the task reveals reusable knowledge questions.
+5. Calibration rows that connect routing decisions, friction, repair loops, verification evidence, and accepted/rejected counterpoint findings.
+
+Cycle 4 stop line:
+
+```text
+No write-capable local automation.
+No learned routing.
+No automatic knowledge promotion.
+No model promotion from stale or one-off profile evidence.
+```
+
+Cycle 4 acceptance:
+The pilot must show lower human orchestration burden, fewer repair loops, clearer evidence, or better context selection without weakening deterministic checks or review quality. If it does not, narrow the trigger or continue improving helper-compiled single-agent workflows before delegated execution.
+
 ### Later Cycles: Narrow Automation Expansion
 
-Only after Cycles 1-3 produce evidence should the plan consider:
+Only after Cycles 1-4 produce evidence should the plan consider:
 
 - Codex custom subagent UX,
 - additional local model roles,
@@ -2639,21 +2669,28 @@ Cycle 3 knowledge/retrieval questions:
 19. `docs/process-improvement/cycle-1-implementation-report.md`
 20. `docs/process-improvement/cycle-1b-airteracode-knowledge-gateway.md`
 21. `docs/process-improvement/cycle-2-backlog.md`
-22. `docs/process-improvement/cycle-2-fixture-delegation-bounded-write.md`
-23. `docs/process-improvement/cycle-3-knowledge-retrieval-adaptivity.md`
-24. `templates/config/local-models.example.json`
-25. `templates/config/runtime-capabilities.example.json`
-26. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
+22. `docs/process-improvement/cycle-2-measured-routing-response-validation.md`
+23. `docs/process-improvement/cycle-2-implementation-report.md`
+24. `docs/process-improvement/cycle-2-fixture-delegation-bounded-write.md`
+25. `docs/process-improvement/cycle-3-knowledge-retrieval-adaptivity.md`
+26. `docs/process-improvement/cycle-3-implementation-report.md`
+27. `docs/process-improvement/retrieval-eval-contract.md`
+28. `docs/process-improvement/knowledge-candidate-contract.md`
+29. `docs/process-improvement/model-capability-drift-revalidation.md`
+30. `templates/config/local-models.example.json`
+31. `templates/config/runtime-capabilities.example.json`
+32. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
 
 ## Decision Status
 
-The 16 high-level human decisions that blocked implementation sequencing are resolved in the `Resolved Planning Decisions` section. Cycle 1 has implemented and smoke-validated the contracts and dry-run control-plane baseline. Cycle 1B has implemented and live-validated the AirteraCode knowledge candidate gateway and `.agents` JSONL fallback bridge. The plan should now move from broad overview and Cycle 1/1B validation into Cycle 2 planning.
+The 16 high-level human decisions that blocked implementation sequencing are resolved in the `Resolved Planning Decisions` section. Cycle 1 implemented and smoke-validated the contracts and dry-run control-plane baseline. Cycle 1B implemented and live-validated the AirteraCode knowledge candidate gateway and `.agents` JSONL fallback bridge. Cycle 2 implemented measured routing and response validation without delegated execution. Cycle 3 implemented deterministic retrieval evaluation, candidate drift checks, and model revalidation prompts without retrieval infrastructure or local-model automation. The plan should now move into Cycle 4 measurement: human-orchestration baseline, helper-compiled treatment, optional read-only plan-counterpoint, and a small human-graded semantic-tail retrieval set if the task produces reusable knowledge questions.
 
 Remaining decisions should be made inside the relevant cycle, not at the overview level:
 
 1. Cycle 1 follow-up: decide whether to promote the dry-run baseline from Experiment to Provisional after another non-docs fixture run.
 2. Cycle 1B follow-up: decide when to promote the knowledge gateway from Provisional after standard-tier denial or cross-restart persistence is validated.
-3. Cycle 2: exact fixture task and bounded-write file boundary.
-4. Cycle 2: exact plan-counterpoint prompt packet and scoring rubric.
-5. Cycle 2: whether to implement mixed-scope QA mode and agent-plan-only journal handling from [cycle-2-backlog.md](cycle-2-backlog.md).
-6. Cycle 3: exact retrieval eval file format, seed query set, and semantic-tail grading process.
+3. Cycle 3 follow-up: decide whether the deterministic retrieval helpers are ready for Provisional after repeated non-docs runs with acceptable context economy.
+4. Cycle 4: choose the measurement task, baseline route, helper-compiled treatment, and friction metrics.
+5. Cycle 4: decide whether the first read-only plan-counterpoint packet uses the seed Gemma profile, a different-family frontier model, or a manual packet fallback.
+6. Cycle 4: define three to five human-graded semantic-tail retrieval questions only if the task exposes reusable knowledge that deterministic search does not capture well.
+7. Later cycle: revisit fixture bounded-write only after Cycle 4 shows measurable orchestration or repair-loop savings without evidence-quality regression.

@@ -668,6 +668,48 @@ ${formatList(rows.flatMap((row) => row.caps.map((cap) => `row ${row.index}: ${ca
   if (rows.some((row) => row.status === 'invalid' || row.status === 'anchor-missing' || row.status === 'hash-mismatch')) process.exitCode = 1;
 }
 
+export function learnCandidateTest(repo, options = {}) {
+  const base = buildKnowledgeCandidate(repo, {
+    claim: 'Cycle 3 candidate regression test',
+    source: 'docs/process-improvement/retrieval-eval-contract.md',
+    owner: 'docs/process-improvement/retrieval-eval-contract.md',
+  });
+  const invalid = { ...base };
+  delete invalid.sourceArtifacts;
+  const missingAnchor = { ...base, anchors: [{ path: 'docs/process-improvement/does-not-exist.md' }] };
+  const hashMismatch = { ...base, anchors: [{ path: 'docs/process-improvement/retrieval-eval-contract.md', sha256: 'deadbeef' }] };
+  const rows = [
+    {
+      name: 'valid candidate envelope',
+      status: validateKnowledgeCandidate(base).length ? 'fail' : 'pass',
+      detail: validateKnowledgeCandidate(base).join('; ') || 'valid candidate accepted',
+    },
+    {
+      name: 'malformed candidate validation',
+      status: validateKnowledgeCandidate(invalid).some((error) => error.includes('sourceArtifacts')) ? 'pass' : 'fail',
+      detail: validateKnowledgeCandidate(invalid).join('; ') || 'malformed candidate was not rejected',
+    },
+    {
+      name: 'missing anchor drift',
+      status: candidateDriftRow(repo, missingAnchor, 1, options).status === 'anchor-missing' ? 'pass' : 'fail',
+      detail: candidateDriftRow(repo, missingAnchor, 1, options).revalidationAction,
+    },
+    {
+      name: 'hash mismatch drift',
+      status: candidateDriftRow(repo, hashMismatch, 1, options).status === 'hash-mismatch' ? 'pass' : 'fail',
+      detail: candidateDriftRow(repo, hashMismatch, 1, options).revalidationAction,
+    },
+  ];
+  if (options.json) {
+    console.log(JSON.stringify({ schema: 'sdlc.knowledge_candidate_regression.v1', repository: repo, rows }, null, 2));
+  } else {
+    console.log('| Case | Status | Detail |');
+    console.log('| --- | --- | --- |');
+    for (const row of rows) console.log(`| ${escapeCell(row.name)} | ${row.status} | ${escapeCell(row.detail)} |`);
+  }
+  if (rows.some((row) => row.status !== 'pass')) process.exitCode = 1;
+}
+
 function sanitizeLearningBuckets(text) {
   const lines = String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const portable = lines.filter((line) => /process improvement|run-sdlc|sdlc|route|qa|verification|context bucket|learning|checklist/i.test(line)).slice(0, 20);
@@ -771,13 +813,14 @@ function defaultKnowledgeCandidatePath(repo) {
 
 function buildKnowledgeCandidate(repo, options) {
   const source = options.source;
+  const anchor = buildCandidateAnchor(repo, source, options);
   return {
     schemaVersion: options.schemaVersion || 'sdlc.knowledge_candidate.v1',
     kind: options.kind || 'process-learning',
     class: options.class || options.candidateClass || 'sdlc-process',
     claim: sanitizeOneLine(options.claim),
     sourceArtifacts: [{ path: source, type: options.sourceType || 'artifact' }],
-    anchors: [{ path: source, selector: options.anchor || 'whole-artifact' }],
+    anchors: [anchor],
     taskRunEvidence: {
       task: options.task || '',
       taskId: options.taskId || '',
@@ -796,6 +839,13 @@ function buildKnowledgeCandidate(repo, options) {
     suggestedAction: options.suggestedAction || 'Review before promotion; do not treat this candidate as source of truth.',
     redactionNotes: options.redactionNotes || 'Candidate should contain sanitized process learning only.',
   };
+}
+
+function buildCandidateAnchor(repo, source, options = {}) {
+  const anchor = { path: source, selector: options.anchor || 'whole-artifact' };
+  const resolved = resolve(repo, source || '');
+  if (source && existsSync(resolved)) anchor.sha256 = createHash('sha256').update(readFileSync(resolved)).digest('hex');
+  return anchor;
 }
 
 function readKnowledgeCandidateFile(filePath) {

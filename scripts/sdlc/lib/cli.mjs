@@ -13,12 +13,12 @@ import { getRecipe, matchRecipes, recipeCompile, recipeExplain, recipeList, reci
 import { ensureEvidenceManifest, evidenceAdd, evidenceGap, evidenceInit, evidenceMatrix, evidencePlan, evidenceProvenance, evidenceRequired, evidenceRequirementsForTask, evidenceSanitizeCheck, evidenceStatus, readEvidenceManifest } from './evidence.mjs';
 import { detectCiSystems, detectDeploySystems, detectTestFrameworks, sharedContextDetails, sharedContextReachability } from './environment.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
-import { detectContextContradictions, evalAddCase, evalCase, evalCompare, evalLocalFirstSuite, evalReport, evalRetrievalAdd, evalRetrievalReport, evalRetrievalRun, evalRun, evalSuite, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
+import { detectContextContradictions, evalAddCase, evalCase, evalCompare, evalLocalFirstSuite, evalReport, evalRetrievalAdd, evalRetrievalReport, evalRetrievalRun, evalRetrievalTest, evalRun, evalSuite, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
 import { adapterDoctor, adapterGenerate, adapterLimits, adapterProfile, adapterPrompt, eventReplay, eventValidate, hooksAudit, hooksContract, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { contextAliases, contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextDecision, contextDocCandidates, contextFinalCheck, contextFreshness, contextFreshnessRecommendations, contextFreshnessRow, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextPlacement, contextPlacementRecommendation, contextPrune, contextResolve, contextRestore, contextUpdatePlan, contextUpdateTargets, contextWhy, finalContextSignals, formatContextDocs, recommendedContextFile } from './context.mjs';
-import { learnArchive, learnBacklog, learnCandidateAdd, learnCandidateDrift, learnCandidateExport, learnCandidateValidate, learnCandidates, learnCapture, learnDedupe, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnProposeChange, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck, learnWorkbench } from './learning.mjs';
+import { learnArchive, learnBacklog, learnCandidateAdd, learnCandidateDrift, learnCandidateExport, learnCandidateTest, learnCandidateValidate, learnCandidates, learnCapture, learnDedupe, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnProposeChange, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck, learnWorkbench } from './learning.mjs';
 import { caseIdPolicy, expectedQaNeed, proposedCommitMessage, requiresCaseId, shouldSuggestTestPlan, taskBundle, taskCaseId, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskLedgerRows, taskMetrics, taskOpen, taskPreflight, taskQa, taskReview, taskRunId, taskStart, taskStatus, taskType, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
 import { workspaceDependencies, workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
@@ -401,6 +401,7 @@ export async function main(argv) {
   if (area === 'eval' && action === 'retrieval-run') return evalRetrievalRun(repo, options);
   if (area === 'eval' && action === 'retrieval-report') return evalRetrievalReport(repo, options);
   if (area === 'eval' && action === 'retrieval-add') return evalRetrievalAdd(repo, options);
+  if (area === 'eval' && action === 'retrieval-test') return evalRetrievalTest(repo, options);
   if (area === 'eval' && action === 'local-first-suite') return evalLocalFirstSuite(repo, options);
   if (area === 'upgrade' && action === 'plan') return upgradePlan(repo, options);
   if (area === 'upgrade' && action === 'apply') return upgradeApply(repo, options);
@@ -440,6 +441,7 @@ export async function main(argv) {
   if (area === 'learn' && action === 'candidate-add') return learnCandidateAdd(repo, options);
   if (area === 'learn' && action === 'candidate-export') return learnCandidateExport(repo, options);
   if (area === 'learn' && action === 'candidate-drift') return learnCandidateDrift(repo, options);
+  if (area === 'learn' && action === 'candidate-test') return learnCandidateTest(repo, options);
   if (area === 'learn' && action === 'export') return learnExport(repo, options);
   if (area === 'learn' && action === 'import') return learnImport(repo, options);
   if (area === 'readiness') return statusReadiness(resolve(areaOptions.repo || process.cwd()), statusDependencies());
