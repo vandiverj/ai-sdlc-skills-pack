@@ -92,6 +92,7 @@ export function inferTestingSurfaces(repo, task, files, profile = loadProfile(re
   const surfaces = [];
   for (const unit of affectedUnits(repo, files, profile)) if (unit.testSurface) surfaces.push(unit.testSurface);
   for (const file of files) surfaces.push(classifyTestingSurface(file));
+  if (matchesAny(text, ['docs', 'readme', 'markdown']) || /\b[\w./-]+\.md\b/.test(text)) surfaces.push('docs-process');
   if (matchesAny(text, ['swagger', 'openapi', 'endpoint', 'api-only', 'api only', 'developer testing'])) surfaces.push('api-contract');
   if (matchesAny(text, ['user interface', 'visible ui', 'rendered product ui', 'layout', 'screen', 'page', 'button', 'board', 'placement', 'animation'])) surfaces.push('rendered-product-ui');
   if (matchesAny(text, ['database', 'sql', 'ef core', 'migration', 'foreign key', 'stored procedure'])) surfaces.push('data-persistence');
@@ -99,11 +100,25 @@ export function inferTestingSurfaces(repo, task, files, profile = loadProfile(re
   if (matchesAny(text, ['worker', 'queue', 'scheduled', 'import', 'export', 'background job'])) surfaces.push('background-job');
   if (matchesAny(text, ['package', 'dependency', 'tooling', 'build'])) surfaces.push('package-tooling');
   let result = dedupe(surfaces.filter(Boolean));
+  if (result.includes('docs-process') && docsOnlyTask(text, files)) {
+    result = result.filter((surface) => surface === 'docs-process');
+  }
   const hasUiFile = files.some((file) => classifyTestingSurface(file) === 'rendered-product-ui');
   if (result.includes('api-contract') && !hasUiFile && matchesAny(text, ['api-only', 'api only', 'swagger', 'openapi', 'developer testing'])) {
     result = result.filter((surface) => surface !== 'rendered-product-ui');
   }
   return result;
+}
+
+function docsOnlyTask(text, files = []) {
+  const hasDocsIntent = matchesAny(text, ['docs', 'readme', 'markdown']) || /\b[\w./-]+\.md\b/.test(text);
+  if (!hasDocsIntent) return false;
+  const behaviorIntent = matchesAny(text, ['api', 'service', 'database', 'integration', 'provider', 'worker', 'queue', 'ui', 'screen', 'layout', 'button', 'package', 'dependency', 'build']);
+  if (behaviorIntent) return false;
+  return files.every((file) => {
+    const surface = classifyTestingSurface(file);
+    return !surface || surface === 'docs-process';
+  });
 }
 
 export function classifyTestingSurface(file) {

@@ -104,7 +104,7 @@ export function recommendAgentPackets(repo, task, options = {}) {
     scoreRole({
     role: 'implementation-worker',
       score: (changed ? 2 : 0) + (signals.implementation ? 2 : 0) + (signals.multiRepo ? 1 : 0),
-      why: changed ? 'Implementation changes exist; packet can bound follow-up edits.' : signals.implementation ? 'Implementation intent is present; packet is optional unless scope grows.' : 'No implementation surface detected yet.',
+      why: changed ? 'Git has existing changed files; use this packet only if those files are in scope.' : signals.implementation ? 'Implementation intent is present; packet is optional unless scope grows.' : 'No implementation surface detected yet.',
     }),
     scoreRole({
     role: 'verification-worker',
@@ -118,7 +118,7 @@ export function recommendAgentPackets(repo, task, options = {}) {
     }),
     scoreRole({
     role: 'release-handoff-worker',
-      score: (signals.qa ? 3 : 0) + (signals.release ? 3 : 0) + (/commit|push|finish/.test(lower) ? 1 : 0),
+      score: (signals.qa ? 3 : 0) + (signals.release ? 3 : 0) + (hasTerm(lower, ['commit', 'push', 'finish']) ? 1 : 0),
       why: signals.qa || signals.release ? 'Human QA, finish, or git decision needs developer/tester-facing clarity.' : 'No finish/handoff need detected.',
     }),
     scoreRole({
@@ -139,14 +139,14 @@ function agentSignals(lower, changed) {
     sensitive: hasTerm(lower, ['production', 'database', 'sql', 'customer', 'client', 'private', 'secret', 'token', 'soc']),
     multiRepo: /multi-repo|multi repo|multiple repositories|cross repo|workspace|several repositories/.test(lower),
     qa: /\b(qa|tester|manual|youtrack|test script|quality assurance)\b/.test(lower),
-    release: /\b(commit|push|merge|deploy|release|handoff|finish)\b/.test(lower),
+    release: hasTerm(lower, ['commit', 'push', 'merge', 'deploy', 'release', 'handoff', 'finish']),
     process: /\b(learning|process|sdlc|workflow|agent|friction|redundancy)\b/.test(lower),
     repeatedFriction: /\b(stuck|repeated|redundant|loop|friction|retry)\b/.test(lower),
   };
 }
 
 function hasTerm(text, terms) {
-  return new RegExp(`(^|[^a-z0-9])(${terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})([^a-z0-9]|$)`, 'i').test(text);
+  return new RegExp(`(^|[^a-z0-9-])(${terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})([^a-z0-9-]|$)`, 'i').test(text);
 }
 
 function scoreRole(row) {

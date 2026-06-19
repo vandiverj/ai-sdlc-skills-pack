@@ -36,6 +36,10 @@ export function inferRouteFromTask(task, gitInfo, profile = {}) {
   return inferLikelyRoute(gitInfo) === 'tiny-docs' ? 'tiny-docs' : 'standard';
 }
 
+export function inferTaskRoute(task, profile = {}) {
+  return inferRouteFromTask(task, { status: '', changedFiles: [] }, profile);
+}
+
 export function inferDirtySurfaces(task, gitInfo) {
   const text = task.toLowerCase();
   const surfaces = [];

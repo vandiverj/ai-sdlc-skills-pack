@@ -43,7 +43,7 @@ import { commandExplain, commandHelpPhase, commandHelpRoute, commandNext, comman
 import { guideFinish, guideStart, guideStatus } from './guide.mjs';
 import { consoleFinish, consoleHelp, consoleNext, consoleQa, consoleStart, consoleStatus, consoleVerify } from './console.mjs';
 import { modeDetect, modeExplain } from './modes.mjs';
-import { journalCheck } from './journal.mjs';
+import { journalCheck, journalRefreshRoute } from './journal.mjs';
 import { scorecardSummary, scorecardTask, scorecardTrends, traceAttach, traceEvent, traceExport, traceFinish, traceStart } from './telemetry.mjs';
 import { activityCommand } from './activity.mjs';
 import { automationBudget, demo, feedbackActionPlan, feedbackCapture, feedbackFriction, feedbackQuick, feedbackReview, feedbackSummary, feedbackSynthesize, onboardingPilot, sdlcEvent, setupWizard, welcome } from './adoption.mjs';
@@ -70,6 +70,7 @@ import { overrideAdd } from './overrides.mjs';
 import { operatorDashboard, operatorInspect, operatorNext, operatorPhase, operatorStart } from './operator.mjs';
 import { commandCapture, commandInterpret, contextProject, evidenceConfidence as toolEvidenceConfidence, evidenceFromCommand, evidenceLedger as toolEvidenceLedger, handoffCompile, responseDraft } from './toolflow.mjs';
 import { setupApplyLocal, setupInspect, setupRecommend } from './setupquality.mjs';
+import { dryRunValidate } from './dryrun.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(scriptPath), '..', '..', '..');
@@ -168,6 +169,7 @@ export async function main(argv) {
   if (area === 'task' && (action === 'bundle')) return taskBundle(repo, options, taskDependencies());
   if (area === 'task' && action === 'status') return taskStatus(repo, options, taskDependencies());
   if (area === 'task' && action === 'journal-check') return journalCheck(repo, options);
+  if (area === 'task' && action === 'refresh-route') return journalRefreshRoute(repo, options);
   if (area === 'task' && action === 'doctor') return taskDoctor(repo, options, taskDependencies());
   if (area === 'task' && (action === 'review' || action === 'checkpoint')) return taskReview(repo, options, taskDependencies());
   if (area === 'task' && action === 'ledger') return taskLedger(repo, options, taskDependencies());
@@ -367,6 +369,7 @@ export async function main(argv) {
   if (area === 'verify' && action === 'ladder') return verifyLadder(repo, options);
   if (area === 'verify' && action === 'run') return verifyRun(repo, options);
   if (area === 'verify') return verify(resolve(areaOptions.repo || process.cwd()), areaOptions);
+  if (area === 'dry-run' && action === 'validate') return dryRunValidate(repo, options);
   if (area === 'final' && action === 'gate') return finalGate(repo, options, finishDependencies());
   if (area === 'finish' && action === 'packet') return finishPacket(repo, options, finishDependencies());
   if (area === 'git' && action === 'packet') return gitPacket(repo, options, finishDependencies());

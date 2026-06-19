@@ -1,6 +1,6 @@
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { dedupe, escapeCommandArg, formatList, printObject, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, slug } from './common.mjs';
+import { dedupe, escapeCommandArg, formatList, optionFiles, printObject, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, slug } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -27,6 +27,7 @@ export function journalPaths(repo, task, options = {}) {
 export function loadTaskJournal(repo, task = '', options = {}) {
   const explicit = task ? journalPaths(repo, task, options) : null;
   if (explicit && existsSync(explicit.json)) return { ...readJsonIfExists(explicit.json), paths: explicit };
+  if (explicit) return {};
   const latest = findLatestJournal(repo);
   if (!latest) return {};
   const data = readJsonIfExists(latest.json) || {};
@@ -40,10 +41,11 @@ export function upsertTaskJournal(repo, task, updates = {}, options = {}) {
     const existing = readJsonIfExists(paths.json) || {};
     const profile = loadProfile(repo);
     const git = getGitInfo(repo);
-    const files = Array.isArray(updates.touchedFiles) ? updates.touchedFiles : git.changedFiles;
+    const files = Array.isArray(updates.touchedFiles) ? updates.touchedFiles : optionFiles(options, git.changedFiles);
+    const scopedGit = scopedJournalGit(git, files, Boolean(options.files));
     const units = affectedUnits(repo, files, profile, options.unit);
     const surfaces = inferTestingSurfaces(repo, task, files, profile);
-    const route = updates.route || existing.route || options.route || inferRouteFromTask(task, git, profile.values);
+    const route = updates.route || existing.route || options.route || inferRouteFromTask(task, scopedGit, profile.values);
     const now = new Date().toISOString();
     const journal = {
       schema: 'sdlc-task-journal-v1',
@@ -110,7 +112,13 @@ export function journalCheck(repo, options = {}) {
   const task = options.task || '';
   const journal = loadTaskJournal(repo, task, options);
   const profile = loadProfile(repo);
-  const currentRoute = journal.task ? inferRouteFromTask(journal.task, getGitInfo(repo), profile.values) : '';
+  const git = getGitInfo(repo);
+  const files = optionFiles(options, git.changedFiles);
+  const currentRoute = journal.task ? inferRouteFromTask(journal.task, scopedJournalGit(git, files, Boolean(options.files)), profile.values) : '';
+  if (options.fixRoute) {
+    journalRefreshRoute(repo, { ...options, apply: true });
+    return;
+  }
   const rows = validateJournal(journal, { currentRoute });
   if (options.json) {
     console.log(JSON.stringify({ schema: 'sdlc-journal-check-v1', task: journal.task || task || '', result: rows.some((row) => row.status === 'block') ? 'block' : rows.some((row) => row.status === 'warn') ? 'warn' : 'pass', checks: rows }, null, 2));
@@ -122,13 +130,48 @@ export function journalCheck(repo, options = {}) {
   if (rows.some((row) => row.status === 'block')) process.exitCode = 1;
 }
 
+export function journalRefreshRoute(repo, options = {}) {
+  const task = options.task || '';
+  const journal = loadTaskJournal(repo, task, options);
+  if (!journal.task) {
+    printObject({
+      repository: repo,
+      task: task || 'not provided',
+      result: 'missing journal',
+      nextAction: task ? `sdlc task start --task "${escapeCommandArg(task)}"` : 'sdlc task start --task "..."',
+    });
+    return;
+  }
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = optionFiles(options, git.changedFiles);
+  const currentRoute = inferRouteFromTask(journal.task, scopedJournalGit(git, files, Boolean(options.files)), profile.values);
+  const changed = journal.route !== currentRoute;
+  const shouldApply = Boolean(options.apply || options.fix || options.fixRoute);
+  if (changed && shouldApply) {
+    upsertTaskJournal(repo, journal.task, {
+      route: currentRoute,
+      decisions: [`Route refreshed from ${journal.route || 'unknown'} to ${currentRoute} after current repo/task inference.`],
+      nextRecommendedAction: journal.nextRecommendedAction || `sdlc next --task "${escapeCommandArg(journal.task)}"`,
+    }, options);
+  }
+  printObject({
+    task: journal.task,
+    taskId: journal.taskId || journalTaskId(journal.task, options),
+    storedRoute: journal.route || 'unknown',
+    currentInferredRoute: currentRoute || 'unknown',
+    action: !changed ? 'keep' : shouldApply ? 'refreshed journal route' : 'preview only',
+    nextAction: !changed ? 'none' : shouldApply ? 'rerun sdlc task journal-check to confirm' : `run sdlc task refresh-route --task "${escapeCommandArg(journal.task)}" --task-id "${escapeCommandArg(journal.taskId || journalTaskId(journal.task, options))}" --apply, or start a new task id if this is a different run`,
+  });
+}
+
 export function validateJournal(journal = {}, context = {}) {
   const rows = [];
   rows.push(checkRow('task', journal.task ? 'pass' : 'block', journal.task || 'missing task'));
   rows.push(checkRow('schema', journal.schema ? 'pass' : 'warn', journal.schema || 'older journal or missing schema'));
   rows.push(checkRow('taskId', journal.taskId ? 'pass' : 'block', journal.taskId || 'missing taskId'));
   rows.push(checkRow('route', journal.route ? 'pass' : 'warn', journal.route || 'missing route'));
-  if (journal.route && context.currentRoute && journal.route !== context.currentRoute) rows.push(checkRow('routeFreshness', 'warn', `journal route ${journal.route} differs from current inferred route ${context.currentRoute}`));
+  if (journal.route && context.currentRoute && journal.route !== context.currentRoute) rows.push(checkRow('routeFreshness', 'warn', `journal route ${journal.route} differs from current inferred route ${context.currentRoute}; run sdlc task refresh-route --task "${escapeCommandArg(journal.task || '')}" --task-id "${escapeCommandArg(journal.taskId || '')}" --apply, or use a new task id if this is a distinct run`));
   rows.push(checkRow('promptAnalysis', journal.promptAnalysis ? 'pass' : 'warn', journal.promptAnalysis ? 'present' : 'missing; run sdlc prompt audit --task "..."'));
   rows.push(checkRow('localFirst', journal.localFirst ? 'pass' : 'warn', journal.localFirst ? 'present' : 'missing; run sdlc capabilities negotiate --task "..."'));
   rows.push(checkRow('agents', Array.isArray(journal.agents || []) ? 'pass' : 'warn', Array.isArray(journal.agents || []) ? `${(journal.agents || []).length} records` : 'not structured'));
@@ -315,6 +358,15 @@ function normalizePacket(packet) {
   }
   if (typeof packet === 'object' && !Array.isArray(packet)) return packet;
   return { kind: 'packet', value: String(packet) };
+}
+
+function scopedJournalGit(git, files, explicitFiles = false) {
+  if (!explicitFiles) return git;
+  return {
+    ...git,
+    changedFiles: files,
+    status: files.length ? files.map((file) => `scoped ${file}`).join('\n') : '',
+  };
 }
 
 function withJournalLock(paths, fn) {

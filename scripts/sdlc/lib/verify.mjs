@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { appendControlJsonLine, fail, formatInlineStatus, formatOptionList, printObject, readJsonIfExists, stamp } from './common.mjs';
+import { appendControlJsonLine, fail, formatInlineStatus, formatOptionList, optionFiles, printObject, readJsonIfExists, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -135,11 +135,26 @@ export function verifyRun(repo, options = {}) {
 function buildVerifyLadder(repo, task, options = {}) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const files = optionFiles(options, git.changedFiles);
+  const scopedGit = options.files ? { ...git, changedFiles: files, status: files.length ? files.map((file) => `scoped ${file}`).join('\n') : '' } : git;
+  const route = options.route || inferRouteFromTask(task, scopedGit, profile.values);
   const packageJson = readJsonIfExists(join(repo, 'package.json'));
   const commands = discoverCommands(profile.values, packageJson);
-  const surfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const qaMode = qaModeForSurfaces(surfaces, task);
+  if (route === 'tiny-docs' || surfaces.includes('docs-process')) {
+    return {
+      task,
+      route,
+      surfaces,
+      qaMode,
+      rows: [
+        { level: 'targeted', command: 'manual focused inspection or markdown diff', why: 'smallest fresh proof for docs/process text changes' },
+        { level: 'broad', command: commands.build ? commands.build : 'broader project check not needed for docs-only change', why: 'run only if docs examples or generated docs depend on build output' },
+        { level: 'qa optional', command: 'not needed unless human handoff is required', why: 'tiny docs changes are not tester-visible product behavior by default' },
+      ],
+    };
+  }
   const rows = [
     { level: 'targeted', command: commands.test || commands.build || 'manual focused inspection', why: 'smallest fresh proof for changed unit' },
     { level: 'broad', command: commands.build || commands.test || 'broader project check unavailable', why: 'catch integration/type/build regressions when feasible' },
