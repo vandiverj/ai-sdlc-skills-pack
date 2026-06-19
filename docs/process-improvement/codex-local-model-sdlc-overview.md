@@ -1740,7 +1740,13 @@ Allowed helper prototype scope:
 
 ```text
 sdlc agents packet --role <role> --task "<task>" --dry-run
-sdlc runtime adapter-check --runtime <runtime>
+sdlc agents plan --task "<task>"
+sdlc agents lint --packet <path>
+sdlc task preflight --task "<task>"
+sdlc task journal-check --task "<task>" --task-id <id>
+sdlc task refresh-route --task "<task>" --task-id <id>
+sdlc dry-run validate --task "<task>" --task-id <id>
+sdlc adapter doctor --runtime <runtime>
 sdlc models inventory
 ```
 
@@ -1755,6 +1761,9 @@ No AirteraCode MCP implementation in this coding session.
 
 Cycle 1 acceptance:
 Another developer can understand the default `sdlc start` / `sdlc next` / `sdlc prove` / `sdlc finish-ready` teaching path, inspect a generated dry-run role packet, see why a model/runtime was recommended or rejected, and understand what evidence would be required before implementation.
+
+Cycle 1 implementation status:
+Cycle 1 is implemented as an Experiment and validated enough to proceed to Cycle 2 planning. The implementation report is [cycle-1-implementation-report.md](cycle-1-implementation-report.md). Dry runs validated clean/scoped docs tasks, dirty-unrelated source changes broadening a docs task from `tiny-docs` to `standard`, route freshness warnings and refresh, structured journal packet links, prompt/local-first preservation, docs-only local-first evidence, and post-commit wording that does not trigger release-handoff noise. Deferred polish candidates are tracked in [cycle-2-backlog.md](cycle-2-backlog.md).
 
 ### Cycle 1B: Separate AirteraCode MCP Knowledge Gateway Stream
 
@@ -1806,6 +1815,12 @@ Allowed automation:
 
 Cycle 2 acceptance:
 The route either proves that delegated work preserves quality with less top-frontier or human orchestration burden, or it produces enough failure evidence to narrow, defer, or kill that role.
+
+Cycle 2 planning inputs:
+
+- [cycle-1-implementation-report.md](cycle-1-implementation-report.md)
+- [cycle-2-backlog.md](cycle-2-backlog.md)
+- Cycle 1 dry-run validation artifacts from `DacService`, including docs clean/scoped, dirty-unrelated, small-code, integration-surface, and post-commit wording runs.
 
 ### Cycle 3: Knowledge Retrieval And Adaptivity
 
@@ -2621,23 +2636,23 @@ Cycle 3 knowledge/retrieval questions:
 16. `docs/process-improvement/change-detection-adaptivity-model.md`
 17. `docs/process-improvement/local-model-experiment-plan.md`
 18. `docs/process-improvement/cycle-1-contracts-dry-run-control-plane.md`
-19. `docs/process-improvement/cycle-2-fixture-delegation-bounded-write.md`
-20. `docs/process-improvement/cycle-3-knowledge-retrieval-adaptivity.md`
-21. `templates/config/local-models.example.json`
-22. `templates/config/runtime-capabilities.example.json`
-23. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
+19. `docs/process-improvement/cycle-1-implementation-report.md`
+20. `docs/process-improvement/cycle-2-backlog.md`
+21. `docs/process-improvement/cycle-2-fixture-delegation-bounded-write.md`
+22. `docs/process-improvement/cycle-3-knowledge-retrieval-adaptivity.md`
+23. `templates/config/local-models.example.json`
+24. `templates/config/runtime-capabilities.example.json`
+25. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
 
 ## Decision Status
 
-The 16 high-level human decisions that blocked implementation sequencing are resolved in the `Resolved Planning Decisions` section. The plan should now move from broad overview to cycle-specific implementation artifacts.
+The 16 high-level human decisions that blocked implementation sequencing are resolved in the `Resolved Planning Decisions` section. Cycle 1 has implemented and smoke-validated the contracts and dry-run control-plane baseline. The plan should now move from broad overview and Cycle 1 validation into Cycle 2 planning.
 
 Remaining decisions should be made inside the relevant cycle, not at the overview level:
 
-1. Cycle 1: exact packet schemas, helper command output formats, and fixture/dry-run examples.
-2. Cycle 1: exact Codex `codex exec` adapter invocation and fallback manual packet format.
-3. Cycle 1: exact Claude Code portability smoke artifact.
-4. Cycle 1: exact local model inventory format and Gemma metadata fields.
-5. Cycle 2: exact fixture task and bounded-write file boundary.
-6. Cycle 2: exact plan-counterpoint prompt packet and scoring rubric.
-7. Cycle 3: exact retrieval eval file format, seed query set, and semantic-tail grading process.
-8. Separate AirteraCode MCP session: endpoint/tool names, persistence shape, and validation response schema.
+1. Cycle 1 follow-up: decide whether to promote the dry-run baseline from Experiment to Provisional after another non-docs fixture run.
+2. Cycle 2: exact fixture task and bounded-write file boundary.
+3. Cycle 2: exact plan-counterpoint prompt packet and scoring rubric.
+4. Cycle 2: whether to implement mixed-scope QA mode and agent-plan-only journal handling from [cycle-2-backlog.md](cycle-2-backlog.md).
+5. Cycle 3: exact retrieval eval file format, seed query set, and semantic-tail grading process.
+6. Separate AirteraCode MCP session: endpoint/tool names, persistence shape, and validation response schema.
