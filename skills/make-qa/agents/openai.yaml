@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make QA"
+  short_description: "Draft tester-ready YouTrack QA scripts"
+  default_prompt: "Use $make-qa to draft a staging QA script for a YouTrack case."
