@@ -566,6 +566,73 @@ export function learnImport(repo, options = {}) {
   console.log(`${rows.length} learning rows imported to ${relative(repo, target)}`);
 }
 
+export function learnCandidateValidate(repo, options = {}) {
+  if (!options.file) fail('Pass --file <json|jsonl>.');
+  const filePath = resolve(repo, options.file);
+  const rows = readKnowledgeCandidateFile(filePath);
+  const results = rows.map((row, index) => ({ index: index + 1, errors: validateKnowledgeCandidate(row) }));
+  const invalid = results.filter((row) => row.errors.length);
+  printObject({ file: relative(repo, filePath), candidates: rows.length, result: invalid.length ? 'fail' : 'pass' });
+  if (invalid.length) {
+    console.log('| Row | Errors |');
+    console.log('| --- | --- |');
+    for (const row of invalid) console.log(`| ${row.index} | ${escapeCell(row.errors.join('; '))} |`);
+    process.exitCode = 1;
+  } else {
+    console.log(formatList(['All candidate envelopes match the required Cycle 1B fallback contract.']));
+  }
+}
+
+export function learnCandidateAdd(repo, options = {}) {
+  const claim = options.claim || '';
+  const source = options.source || '';
+  const owner = options.owner || options.ownerArtifact || '';
+  if (!claim || !source || !owner) fail('Pass --claim "...", --source <path>, and --owner <artifact>.');
+  const candidate = buildKnowledgeCandidate(repo, options);
+  const errors = validateKnowledgeCandidate(candidate);
+  if (errors.length) fail(`Candidate is invalid:\n${formatList(errors)}`);
+  const outPath = options.out ? resolve(repo, options.out) : defaultKnowledgeCandidatePath(repo);
+  appendControlJsonLine(repo, outPath, candidate);
+  printObject({
+    status: 'added',
+    path: relative(repo, outPath),
+    schemaVersion: candidate.schemaVersion,
+    sensitivity: candidate.sensitivity,
+    ownerArtifact: candidate.ownerArtifact,
+  });
+}
+
+export function learnCandidateExport(repo, options = {}) {
+  const sourcePath = options.file ? resolve(repo, options.file) : defaultKnowledgeCandidatePath(repo);
+  const candidates = existsSync(sourcePath) ? readKnowledgeCandidateFile(sourcePath) : [];
+  const valid = [];
+  const invalid = [];
+  candidates.forEach((candidate, index) => {
+    const errors = validateKnowledgeCandidate(candidate);
+    if (errors.length) invalid.push({ index: index + 1, errors });
+    else valid.push(candidate);
+  });
+  if (invalid.length && !options.includeInvalid) {
+    printObject({ source: relative(repo, sourcePath), result: 'fail', invalid: invalid.length });
+    console.log(formatList(invalid.map((row) => `row ${row.index}: ${row.errors.join('; ')}`)));
+    process.exitCode = 1;
+    return;
+  }
+  const outPath = options.out
+    ? resolve(repo, options.out)
+    : join(defaultRunsDir(repo), `${stamp()}-knowledge-candidates.jsonl`);
+  const rows = options.includeInvalid ? candidates : valid;
+  const format = options.format || (outPath.endsWith('.json') ? 'json' : 'jsonl');
+  if (format === 'json') safeWriteJsonFile(repo, outPath, { schema: 'sdlc-knowledge-candidate-export-v1', exportedAt: new Date().toISOString(), candidates: rows });
+  else safeWriteTextFile(repo, outPath, `${rows.map((row) => JSON.stringify(row)).join('\n')}${rows.length ? '\n' : ''}`);
+  printObject({
+    source: relative(repo, sourcePath),
+    exported: rows.length,
+    skippedInvalid: options.includeInvalid ? 0 : invalid.length,
+    out: relative(repo, outPath),
+  });
+}
+
 function sanitizeLearningBuckets(text) {
   const lines = String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const portable = lines.filter((line) => /process improvement|run-sdlc|sdlc|route|qa|verification|context bucket|learning|checklist/i.test(line)).slice(0, 20);
@@ -661,6 +728,104 @@ function sanitizePortableObject(value) {
 
 function defaultLearningBacklogPath(repo) {
   return join(repo, '.ai-local', 'sdlc-learning-backlog.jsonl');
+}
+
+function defaultKnowledgeCandidatePath(repo) {
+  return join(repo, '.ai-local', 'sdlc-cache', 'knowledge-candidates.jsonl');
+}
+
+function buildKnowledgeCandidate(repo, options) {
+  const source = options.source;
+  return {
+    schemaVersion: options.schemaVersion || 'sdlc.knowledge_candidate.v1',
+    kind: options.kind || 'process-learning',
+    class: options.class || options.candidateClass || 'sdlc-process',
+    claim: sanitizeOneLine(options.claim),
+    sourceArtifacts: [{ path: source, type: options.sourceType || 'artifact' }],
+    anchors: [{ path: source, selector: options.anchor || 'whole-artifact' }],
+    taskRunEvidence: {
+      task: options.task || '',
+      taskId: options.taskId || '',
+      evidencePath: source,
+    },
+    appliesTo: {
+      repository: options.appliesTo || basename(repo),
+      scope: options.scope || 'portable-sdlc-process',
+    },
+    confidence: options.confidence || 'low',
+    confidenceLastConfirmed: options.confidenceLastConfirmed || new Date().toISOString().slice(0, 10),
+    decayPolicy: { reviewAfterDays: Number(options.reviewAfterDays || 90) },
+    driftStatus: options.driftStatus || 'current',
+    sensitivity: options.sensitivity || 'internal',
+    ownerArtifact: options.owner || options.ownerArtifact,
+    suggestedAction: options.suggestedAction || 'Review before promotion; do not treat this candidate as source of truth.',
+    redactionNotes: options.redactionNotes || 'Candidate should contain sanitized process learning only.',
+  };
+}
+
+function readKnowledgeCandidateFile(filePath) {
+  const text = readFileSync(filePath, 'utf8').trim();
+  if (!text) return [];
+  if (filePath.endsWith('.jsonl')) return text.split(/\r?\n/).filter(Boolean).map((line) => parseKnowledgeCandidateJson(line, filePath));
+  const parsed = parseKnowledgeCandidateJson(text, filePath);
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.candidates)) return parsed.candidates;
+  if (Array.isArray(parsed?.rows)) return parsed.rows;
+  return [parsed];
+}
+
+function parseKnowledgeCandidateJson(text, filePath) {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    fail(`Could not parse knowledge candidate JSON from ${filePath}: ${error.message}`);
+  }
+}
+
+function validateKnowledgeCandidate(candidate) {
+  const errors = [];
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return ['candidate must be a JSON object'];
+  for (const field of knowledgeCandidateRequiredFields()) {
+    if (!(field in candidate)) errors.push(`missing required field: ${field}`);
+  }
+  for (const field of ['schemaVersion', 'kind', 'class', 'claim', 'confidence', 'confidenceLastConfirmed', 'driftStatus', 'sensitivity', 'ownerArtifact', 'suggestedAction']) {
+    if (field in candidate && (!candidate[field] || typeof candidate[field] !== 'string')) errors.push(`${field} must be a non-empty string`);
+  }
+  for (const field of ['sourceArtifacts', 'anchors']) {
+    if (field in candidate && !Array.isArray(candidate[field])) errors.push(`${field} must be an array`);
+  }
+  for (const field of ['taskRunEvidence', 'appliesTo', 'decayPolicy']) {
+    if (field in candidate && (!candidate[field] || typeof candidate[field] !== 'object')) errors.push(`${field} must be an object or array`);
+  }
+  if ('sourceArtifacts' in candidate && Array.isArray(candidate.sourceArtifacts) && !candidate.sourceArtifacts.length) errors.push('sourceArtifacts must include at least one source');
+  if ('confidence' in candidate && !['low', 'medium', 'high'].includes(candidate.confidence)) errors.push('confidence must be low, medium, or high');
+  if ('sensitivity' in candidate && !['public', 'internal', 'sensitive', 'restricted'].includes(candidate.sensitivity)) errors.push('sensitivity must be public, internal, sensitive, or restricted');
+  if (candidateTextHasSecretHint(candidate)) errors.push('candidate appears to contain secret-like content');
+  return dedupe(errors);
+}
+
+function knowledgeCandidateRequiredFields() {
+  return [
+    'schemaVersion',
+    'kind',
+    'class',
+    'claim',
+    'sourceArtifacts',
+    'anchors',
+    'taskRunEvidence',
+    'appliesTo',
+    'confidence',
+    'confidenceLastConfirmed',
+    'decayPolicy',
+    'driftStatus',
+    'sensitivity',
+    'ownerArtifact',
+    'suggestedAction',
+  ];
+}
+
+function candidateTextHasSecretHint(candidate) {
+  return /(api[_-]?key|access[_-]?token|secret|password|passwd|private[_ -]?key|bearer\s+[a-z0-9._~+/=-]{16,})/i.test(JSON.stringify(candidate));
 }
 
 function sanitizeOneLine(value) {

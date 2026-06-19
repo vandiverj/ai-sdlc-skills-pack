@@ -2637,22 +2637,23 @@ Cycle 3 knowledge/retrieval questions:
 17. `docs/process-improvement/local-model-experiment-plan.md`
 18. `docs/process-improvement/cycle-1-contracts-dry-run-control-plane.md`
 19. `docs/process-improvement/cycle-1-implementation-report.md`
-20. `docs/process-improvement/cycle-2-backlog.md`
-21. `docs/process-improvement/cycle-2-fixture-delegation-bounded-write.md`
-22. `docs/process-improvement/cycle-3-knowledge-retrieval-adaptivity.md`
-23. `templates/config/local-models.example.json`
-24. `templates/config/runtime-capabilities.example.json`
-25. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
+20. `docs/process-improvement/cycle-1b-airteracode-knowledge-gateway.md`
+21. `docs/process-improvement/cycle-2-backlog.md`
+22. `docs/process-improvement/cycle-2-fixture-delegation-bounded-write.md`
+23. `docs/process-improvement/cycle-3-knowledge-retrieval-adaptivity.md`
+24. `templates/config/local-models.example.json`
+25. `templates/config/runtime-capabilities.example.json`
+26. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
 
 ## Decision Status
 
-The 16 high-level human decisions that blocked implementation sequencing are resolved in the `Resolved Planning Decisions` section. Cycle 1 has implemented and smoke-validated the contracts and dry-run control-plane baseline. The plan should now move from broad overview and Cycle 1 validation into Cycle 2 planning.
+The 16 high-level human decisions that blocked implementation sequencing are resolved in the `Resolved Planning Decisions` section. Cycle 1 has implemented and smoke-validated the contracts and dry-run control-plane baseline. Cycle 1B has implemented and live-validated the AirteraCode knowledge candidate gateway and `.agents` JSONL fallback bridge. The plan should now move from broad overview and Cycle 1/1B validation into Cycle 2 planning.
 
 Remaining decisions should be made inside the relevant cycle, not at the overview level:
 
 1. Cycle 1 follow-up: decide whether to promote the dry-run baseline from Experiment to Provisional after another non-docs fixture run.
-2. Cycle 2: exact fixture task and bounded-write file boundary.
-3. Cycle 2: exact plan-counterpoint prompt packet and scoring rubric.
-4. Cycle 2: whether to implement mixed-scope QA mode and agent-plan-only journal handling from [cycle-2-backlog.md](cycle-2-backlog.md).
-5. Cycle 3: exact retrieval eval file format, seed query set, and semantic-tail grading process.
-6. Separate AirteraCode MCP session: endpoint/tool names, persistence shape, and validation response schema.
+2. Cycle 1B follow-up: decide when to promote the knowledge gateway from Provisional after standard-tier denial or cross-restart persistence is validated.
+3. Cycle 2: exact fixture task and bounded-write file boundary.
+4. Cycle 2: exact plan-counterpoint prompt packet and scoring rubric.
+5. Cycle 2: whether to implement mixed-scope QA mode and agent-plan-only journal handling from [cycle-2-backlog.md](cycle-2-backlog.md).
+6. Cycle 3: exact retrieval eval file format, seed query set, and semantic-tail grading process.

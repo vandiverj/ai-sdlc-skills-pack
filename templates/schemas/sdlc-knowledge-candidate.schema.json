@@ -21,16 +21,86 @@
   ],
   "properties": {
     "schemaVersion": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "minLength": 1
+    },
+    "class": {
+      "type": "string",
+      "minLength": 1
     },
     "claim": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "sourceArtifacts": {
-      "type": "array"
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
     },
     "anchors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "taskRunEvidence": {
+      "type": ["object", "array"],
+      "additionalProperties": true
+    },
+    "appliesTo": {
+      "type": ["object", "array"],
+      "additionalProperties": true
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "confidenceLastConfirmed": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decayPolicy": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "driftStatus": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": ["public", "internal", "sensitive", "restricted"]
+    },
+    "ownerArtifact": {
+      "type": "string",
+      "minLength": 1
+    },
+    "suggestedAction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expiresAt": {
+      "type": "string"
+    },
+    "reviewer": {
+      "type": "string"
+    },
+    "relatedCandidates": {
       "type": "array"
+    },
+    "redactionNotes": {
+      "type": "string"
+    },
+    "migrationTarget": {
+      "type": "string"
     }
   },
   "additionalProperties": true

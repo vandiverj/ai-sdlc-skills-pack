@@ -18,7 +18,7 @@ import { adapterDoctor, adapterGenerate, adapterLimits, adapterProfile, adapterP
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { contextAliases, contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextDecision, contextDocCandidates, contextFinalCheck, contextFreshness, contextFreshnessRecommendations, contextFreshnessRow, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextPlacement, contextPlacementRecommendation, contextPrune, contextResolve, contextRestore, contextUpdatePlan, contextUpdateTargets, contextWhy, finalContextSignals, formatContextDocs, recommendedContextFile } from './context.mjs';
-import { learnArchive, learnBacklog, learnCandidates, learnCapture, learnDedupe, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnProposeChange, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck, learnWorkbench } from './learning.mjs';
+import { learnArchive, learnBacklog, learnCandidateAdd, learnCandidateExport, learnCandidateValidate, learnCandidates, learnCapture, learnDedupe, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnProposeChange, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck, learnWorkbench } from './learning.mjs';
 import { caseIdPolicy, expectedQaNeed, proposedCommitMessage, requiresCaseId, shouldSuggestTestPlan, taskBundle, taskCaseId, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskLedgerRows, taskMetrics, taskOpen, taskPreflight, taskQa, taskReview, taskRunId, taskStart, taskStatus, taskType, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
 import { workspaceDependencies, workspaceDoctor, workspaceGraph, workspaceImpact, workspaceInit, workspaceLedger, workspaceMap, workspacePacket, workspaceRepoRole, workspaceRepos, workspaceStatus } from './workspace.mjs';
@@ -434,6 +434,9 @@ export async function main(argv) {
   if (area === 'learn' && action === 'workbench') return learnWorkbench(repo, options, learningDependencies());
   if (area === 'learn' && action === 'dedupe') return learnDedupe(repo, options, learningDependencies());
   if (area === 'learn' && action === 'propose-change') return learnProposeChange(repo, options, learningDependencies());
+  if (area === 'learn' && action === 'candidate-validate') return learnCandidateValidate(repo, options);
+  if (area === 'learn' && action === 'candidate-add') return learnCandidateAdd(repo, options);
+  if (area === 'learn' && action === 'candidate-export') return learnCandidateExport(repo, options);
   if (area === 'learn' && action === 'export') return learnExport(repo, options);
   if (area === 'learn' && action === 'import') return learnImport(repo, options);
   if (area === 'readiness') return statusReadiness(resolve(areaOptions.repo || process.cwd()), statusDependencies());

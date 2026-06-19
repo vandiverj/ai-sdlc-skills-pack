@@ -293,7 +293,7 @@ function roleCommands(role, task) {
     'verification-worker': [...common, `sdlc verify ladder --task "${escapeCommandArg(task)}"`, `sdlc verify packet --task "${escapeCommandArg(task)}"`],
     'independent-reviewer': [...common, `sdlc review local --task "${escapeCommandArg(task)}"`],
     'release-handoff-worker': [...common, `sdlc qa script --task "${escapeCommandArg(task)}"`, `sdlc finish-ready --task "${escapeCommandArg(task)}"`],
-    'process-learning-reviewer': [...common, `sdlc learn quick --task "${escapeCommandArg(task)}"`],
+    'process-learning-reviewer': [...common, `sdlc learn quick --task "${escapeCommandArg(task)}"`, 'sdlc learn candidate-add --claim "..." --source <path> --owner <artifact>'],
   }[role] || common;
 }
 
@@ -303,7 +303,7 @@ function evidenceForRole(role) {
     'verification-worker': ['Command output, manual smoke, QA script, or explicit cap.'],
     'independent-reviewer': ['Findings, no-findings statement, evidence gaps, and residual risk.'],
     'release-handoff-worker': ['Tester-readable QA script and explicit commit/push decision options.'],
-    'process-learning-reviewer': ['Sanitized learning candidate and whether it should be promoted.'],
+    'process-learning-reviewer': ['Sanitized learning candidate and whether it should be promoted.', 'Knowledge candidate envelope when reusable process learning should be reviewed later.'],
   }[role] || ['Evidence appropriate to packet role.'];
 }
 
@@ -313,7 +313,7 @@ function roleDoneContract(role) {
     'verification-worker': ['Commands/tools run, results, skipped checks, and caps are listed.', 'Failures stop at evidence reporting unless a new approved packet allows repair.', 'No files were edited to make checks pass.'],
     'independent-reviewer': ['Findings are severity-ranked and source-linked where possible.', 'No-findings result includes evidence and residual risk.', 'Missing evidence is reported instead of accepted silently.'],
     'release-handoff-worker': ['QA/finish material is tester-readable.', 'Commit/push/deploy choices remain explicit human decisions.', 'Residual risks and evidence gaps are surfaced.'],
-    'process-learning-reviewer': ['Reusable learning is sanitized and source-linked.', 'Promotion state is proposed, not silently made durable.', 'Product/client-sensitive details are excluded.'],
+    'process-learning-reviewer': ['Reusable learning is sanitized and source-linked.', 'Promotion state is proposed, not silently made durable.', 'Product/client-sensitive details are excluded.', 'Knowledge candidates cite source artifacts and owner artifact before MCP or JSONL handoff.'],
   }[role] || ['Role output names scope, evidence, caps, and next action.'];
 }
 

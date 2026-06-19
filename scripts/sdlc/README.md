@@ -210,6 +210,7 @@ Key commands added for the global-local model:
 - `sdlc dashboard`: produce a compact local status artifact.
 - `sdlc eval run|add-case|report`: regression-test SDLC routing and evidence behavior.
 - `sdlc learn export|import`: move sanitized learning candidates between environments.
+- `sdlc learn candidate-add|candidate-validate|candidate-export`: capture source-linked knowledge candidates under ignored `.ai-local/sdlc-cache/knowledge-candidates.jsonl` and export them for MCP review without making them source of truth.
 - `sdlc upgrade plan|apply|explain`: update local SDLC artifacts without merging, deploying, or overwriting team configuration.
 
 Context rule: durable state lives in local files; prompts should receive the smallest useful phase packet. Prefer `sdlc context assemble --phase <phase>` over copying full strategy docs, archived plans, raw logs, or unrelated repository memory into the model.

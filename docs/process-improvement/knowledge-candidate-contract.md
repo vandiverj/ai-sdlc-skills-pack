@@ -1,12 +1,12 @@
 # Knowledge Candidate Contract
 
-Status: Candidate fallback contract
-Promotion state: Experiment
-Last updated: 2026-06-18
+Status: Implemented fallback contract
+Promotion state: Provisional
+Last updated: 2026-06-19
 
 ## Purpose
 
-Define the no-MCP fallback envelope for reusable learning candidates until the AirteraCode MCP owns candidate submission.
+Define the no-MCP fallback envelope for reusable learning candidates. The AirteraCode MCP now owns live candidate submission when available, while this JSONL path remains the portable no-install fallback and export bridge.
 
 ## Fallback Path
 
@@ -52,7 +52,25 @@ Knowledge candidates point to source-of-truth artifacts. They do not outrank cod
 
 ## Validation Path
 
-Validate candidate JSONL rows against the envelope manually or with future schema checks. Later MCP migration should be mechanical.
+Validate candidate JSON or JSONL rows against the envelope with:
+
+```bash
+sdlc learn candidate-validate --file <json|jsonl>
+```
+
+Create a fallback row with:
+
+```bash
+sdlc learn candidate-add --claim "..." --source <path> --owner <artifact>
+```
+
+Export rows for MCP review with:
+
+```bash
+sdlc learn candidate-export --repo .
+```
+
+MCP submission should be mechanical because the fallback row uses the same required fields as the live AirteraCode gateway.
 
 ## No-Install Fallback
 
