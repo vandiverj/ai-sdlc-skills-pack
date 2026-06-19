@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, relative, resolve } from 'node:path';
-import { escapeCell, fail, formatList, printObject, printTable, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, splitList } from './common.mjs';
+import { escapeCell, fail, formatList, optionFiles, printObject, printTable, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, splitList } from './common.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { getGitInfo } from './git.mjs';
@@ -218,12 +218,15 @@ export function buildLocalFirstPlan(repo, task, options = {}) {
   const inventory = readToolInventory(repo) || buildToolInventory(repo);
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
-  const surfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const files = optionFiles(options, git.changedFiles);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const tool = (name) => inventory.tools.find((item) => item.name === name);
   const availableScripts = inventory.scripts.filter((script) => /test|build|lint|typecheck|check/i.test(script.name));
+  const docsOnly = surfaces.length === 1 && surfaces.includes('docs-process');
   const canProve = [];
   if (git.branch) canProve.push(`Git scope and branch state (${git.branch}).`);
-  if (availableScripts.length) canProve.push(`Local command evidence via ${availableScripts.map((script) => script.command).slice(0, 4).join(', ')}.`);
+  if (docsOnly) canProve.push('Docs/process evidence through focused Markdown diff or manual README inspection.');
+  else if (availableScripts.length) canProve.push(`Local command evidence via ${availableScripts.map((script) => script.command).slice(0, 4).join(', ')}.`);
   if (surfaces.includes('api-contract') || /api|swagger|openapi/i.test(task)) canProve.push('API contract shape when OpenAPI/Swagger files or endpoint tests are present.');
   if (surfaces.includes('data-persistence') || /database|sql|data/i.test(task)) canProve.push('Data behavior through code/schema/tests or approved read-only aggregate evidence.');
   const needsLlm = [
@@ -236,7 +239,7 @@ export function buildLocalFirstPlan(repo, task, options = {}) {
   if (/commit|push/i.test(task)) humanApproval.push('Commit/push decision remains explicit human approval.');
   if (/merge|deploy|release|production|prod/i.test(task)) humanApproval.push('Merge, deploy, release, and production-sensitive actions require project-specific human approval.');
   if (/(^|[^a-z0-9])(database|sql|customer|client|soc|private)([^a-z0-9]|$)/i.test(task)) humanApproval.push('Sensitive database/ticket evidence may require approval and redaction.');
-  const recommendedNextLocalCommand = availableScripts[0]?.command || (tool('git')?.status === 'available' ? 'git status --short' : 'sdlc tools inventory');
+  const recommendedNextLocalCommand = docsOnly ? docsEvidenceCommand(task, files) : availableScripts[0]?.command || (tool('git')?.status === 'available' ? 'git status --short' : 'sdlc tools inventory');
   return {
     schema: 'sdlc-local-first-plan-v1',
     task,
@@ -251,6 +254,13 @@ export function buildLocalFirstPlan(repo, task, options = {}) {
     recommendedNextLocalCommand,
     trustBoundary: 'Local deterministic facts are evidence; recommendations are suggestions; model output remains judgment unless verified.',
   };
+}
+
+function docsEvidenceCommand(task, files = []) {
+  const docsFiles = files.filter((file) => /\.md$/i.test(file));
+  if (docsFiles.length) return `git diff -- ${docsFiles.join(' ')}`;
+  if (/\breadme(?:\.md)?\b/i.test(task)) return 'git diff -- README.md';
+  return 'manual focused inspection or markdown diff';
 }
 
 export function renderLocalFirstPlan(plan) {

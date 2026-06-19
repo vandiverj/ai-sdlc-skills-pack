@@ -69,7 +69,10 @@ export function inferUnitSurface(fullPath, unit = {}) {
 export function affectedUnits(repo, files, profile = loadProfile(repo), explicitUnit = '') {
   const units = unitRegistry(repo, profile);
   if (explicitUnit) return units.filter((unit) => unit.name.toLowerCase() === String(explicitUnit).toLowerCase());
-  if (!files.length) return units.filter((unit) => unit.path === '.') || units.slice(0, 1);
+  if (!files.length) {
+    const rootUnits = units.filter((unit) => unit.path === '.');
+    return rootUnits.length ? rootUnits : [repositoryUnit(files)];
+  }
   const matched = [];
   for (const file of files) {
     const normalizedFile = normalizeUnitPath(file);
@@ -79,7 +82,18 @@ export function affectedUnits(repo, files, profile = loadProfile(repo), explicit
     });
     if (unit) matched.push(unit);
   }
-  return dedupeBy(matched.length ? matched : units.slice(0, 1), (unit) => unit.name);
+  return dedupeBy(matched.length ? matched : [repositoryUnit(files)], (unit) => unit.name);
+}
+
+function repositoryUnit(files = []) {
+  const surfaces = dedupe(files.map(classifyTestingSurface).filter(Boolean));
+  return {
+    name: 'repository',
+    path: '.',
+    type: 'repository',
+    testSurface: surfaces.length === 1 ? surfaces[0] : 'service-behavior',
+    contextBucket: '',
+  };
 }
 
 export function normalizeUnitPath(value) {
