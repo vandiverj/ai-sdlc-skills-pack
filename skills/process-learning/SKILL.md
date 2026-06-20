@@ -28,6 +28,12 @@ Turn repeated SDLC friction and useful workflow discoveries into reviewed, porta
 - Use `agents`, `quality`, `implementation`, or `planning` when the learning changes a router's rules.
 - Use `test-skill-behavior` before relying on a meaningful skill change.
 
+## Passive Feedback
+- When a real task exposes repeated friction, a route-fit problem, a verification gap, an agent miss, or a likely reusable improvement, capture a sanitized passive SDLC feedback event if the runtime provides `sdlc_feedback`.
+- If the MCP tool is unavailable but the local helper CLI is available, use `sdlc feedback add` as the fallback. The default fallback log is `.ai-local/sdlc-cache/sdlc-feedback.jsonl`.
+- Capture source pointers and short summaries only. Do not include raw source, raw diffs, ticket text, database output, secrets, customer data, or full prompt/chat transcripts.
+- Treat feedback as input to later process-learning review. Do not promote one passive feedback event directly into durable skill guidance.
+
 ## Required Output
 ```text
 Learning task:

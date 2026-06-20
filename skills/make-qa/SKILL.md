@@ -1,6 +1,7 @@
 ---
 name: make-qa
 description: Create or revise YouTrack QA Test Script content for non-technical human product testers. Use when Codex needs to turn a YouTrack issue, parent or linked issue context, comments, engineering-context docs, git history, code changes, screenshots or attachments, and development chat context into a staging-focused, assignment-ready QA script written in product workflow language; default to presenting the proposed script in chat for developer approval and only update YouTrack when explicitly instructed.
+user-invocable: true
 ---
 
 # make-qa

@@ -37,6 +37,14 @@ Learning signals:
 - Write access: No.
 - Expected output: Files/artifacts to load, why they matter, uncertainty, and next recommended skill.
 
+### read-only-code-scout
+- Purpose: Perform bounded read-only code discovery for a named language profile and task type.
+- Default model tier: `local`, `fast`, or `standard` depending on runtime support and sensitivity.
+- Write access: No.
+- Expected output: Source-linked findings, uncertainty, verification questions, caps, and recommended next action.
+- Common task types: duplication-scan, abandoned-code-scan, extraction-candidate-scan, test-gap-scan, risk-surface-scan, context-summary.
+- Escalation triggers: unclear scope, missing source pointers, sensitive boundary uncertainty, invented facts, or findings more expensive to verify than manual review.
+
 ### implementation-planner
 - Purpose: Convert approved issue/contract/context into an executable, testable, bounded plan.
 - Default model tier: `standard`; escalate to `deep` for high-risk planning.

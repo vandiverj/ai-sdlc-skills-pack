@@ -91,6 +91,8 @@ For repositories containing multiple deployable codebases, reason at `workspace 
 
 Process learnings may be captured in `.agents/learnings/` only after sanitizing product/client details. Keep portable SDLC lessons separate from product-specific durable facts. Product facts usually belong in repo/unit/shared external context, not the skills pack.
 
+For passive process improvement, prefer the AirteraCode MCP `sdlc_feedback` tool when available. If it is unavailable, use `sdlc feedback add` as the local fallback. Capture only sanitized event metadata, source pointers, evidence summaries, friction, human corrections, route fit, and suggested actions; never include raw code, raw diffs, ticket text, database output, secrets, customer data, or full prompt/chat transcripts.
+
 Optional external evidence MCPs such as YouTrack and read-only database access are capability-aware overlays, not required dependencies. Use them only when profile/runtime policy allows and they materially reduce task uncertainty. If they are unavailable, use pasted ticket context, local code/tests/docs, and human-provided sanitized logs/query results instead. Read-only access still needs data-boundary care because it can expose private tickets, customer data, proprietary schemas, production records, or secrets.
 
 ## Helper CLI operating model
@@ -297,7 +299,7 @@ Use recipe overlays when the task shape calls for specific proof. Recipes are ad
 
 When the developer is unsure where things stand, use `sdlc task doctor --task "<human task>"` and summarize only the current route, recipes, evidence, missing gates, QA readiness, and next decision.
 
-For context, multi-repo, contract, health, and calibration improvement work, use the dedicated helpers:
+For context, multi-repo, contract, health, and process-improvement work, use the dedicated helpers:
 
 ```bash
 sdlc context audit
@@ -306,9 +308,13 @@ sdlc multi status
 sdlc multi packet --task "<human task>"
 sdlc contract packet --task "<human task>"
 sdlc health
+sdlc feedback add --task "<human task>" --source "<file-or-artifact>" --route <route> --route-fit unknown --suggested-action "review if repeated"
+sdlc feedback validate
 sdlc calibrate inspect
 sdlc calibrate propose
 ```
+
+Prefer `sdlc_feedback` through AirteraCode MCP, or local `sdlc feedback add`, for normal passive SDLC improvement signals. Use `sdlc calibrate` helpers for targeted research or explicit baseline/treatment comparisons.
 
 If a security trigger appears in the context pack or route packet, keep the security overlay in the evidence and stop for any consent gate before acting.
 

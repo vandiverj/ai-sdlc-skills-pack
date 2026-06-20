@@ -17,6 +17,25 @@ export const HANDOFF_ROLES = [
   'process-learning-reviewer',
 ];
 
+export const SCOUT_LANGUAGE_PROFILES = [
+  'generic',
+  'classic-asp',
+  'dotnet-csharp',
+  'typescript-react',
+  'sql',
+  'node',
+  'python',
+];
+
+export const SCOUT_TASK_TYPES = [
+  'duplication-scan',
+  'abandoned-code-scan',
+  'extraction-candidate-scan',
+  'test-gap-scan',
+  'risk-surface-scan',
+  'context-summary',
+];
+
 export function agentsPlan(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "...".');
@@ -84,6 +103,47 @@ export function agentsPacket(repo, options = {}) {
     nextRecommendedAction: `Review ${relative(repo, outPath)}, run sdlc agents lint --packet "${escapeCommandArg(relative(repo, outPath))}", then capture route fit with sdlc calibrate add --route "${routingReceipt.workClass}" --route-fit "<right-sized|too heavy|too light>" --friction "<category>"`,
   }, options);
   console.log(relative(repo, outPath));
+}
+
+export function agentsScoutPacket(repo, options = {}) {
+  const task = options.task || '';
+  const languageProfile = options.languageProfile || 'generic';
+  const taskType = options.taskType || 'context-summary';
+  const scope = options.scope || options.files || '';
+  if (!task) fail('Pass --task "...".');
+  if (!scope) fail('Pass --scope <path-or-list>.');
+  if (!SCOUT_LANGUAGE_PROFILES.includes(languageProfile)) fail(`Unknown language profile "${languageProfile}". Use one of: ${SCOUT_LANGUAGE_PROFILES.join(', ')}`);
+  if (!SCOUT_TASK_TYPES.includes(taskType)) fail(`Unknown task type "${taskType}". Use one of: ${SCOUT_TASK_TYPES.join(', ')}`);
+
+  const packet = buildScoutRequest(repo, { ...options, task, languageProfile, taskType, scope });
+  if (options.json) {
+    console.log(JSON.stringify(packet, null, 2));
+    return;
+  }
+
+  const content = renderScoutPacketMarkdown(packet);
+  const outPath = options.out ? resolve(repo, options.out) : join(runAgentDir(repo, task, options), `read-only-code-scout-${taskType}.md`);
+  safeWriteTextFile(repo, outPath, content);
+  upsertTaskJournal(repo, task, {
+    agents: [{ role: 'read-only-code-scout', status: 'scout-packet-created', path: relative(repo, outPath), taskType, languageProfile }],
+    packets: [{ kind: `agent-read-only-code-scout-${taskType}`, path: relative(repo, outPath) }],
+    nextRecommendedAction: `Review ${relative(repo, outPath)}. If a scout returns JSON findings, validate with sdlc agents scout-validate --packet <findings.json>.`,
+  }, options);
+  console.log(relative(repo, outPath));
+}
+
+export function agentsScoutValidate(repo, options = {}) {
+  const packet = options.packet || options.file || '';
+  if (!packet) fail('Pass --packet <findings.json>.');
+  const packetPath = resolve(repo, packet);
+  const findings = readJsonFile(packetPath);
+  const errors = validateScoutFindings(findings);
+  printObject({
+    packet: relative(repo, packetPath),
+    result: errors.length ? 'needs review' : 'valid-looking',
+  });
+  console.log(formatList(errors.length ? errors : ['No obvious scout findings contract gaps detected.']));
+  if (errors.length) process.exitCode = 1;
 }
 
 export function agentsStatus(repo, options = {}) {
@@ -379,6 +439,199 @@ function renderTierRoutingReceipt(receipt) {
 
 function runAgentDir(repo, task, options) {
   return join(defaultRunsDir(repo), options.taskId || slug(task), 'agents');
+}
+
+function buildScoutRequest(repo, options = {}) {
+  const git = getGitInfo(repo);
+  const scope = String(options.scope || '').split(/[,;\n]/).map((item) => item.trim()).filter(Boolean);
+  return {
+    schemaVersion: 'sdlc.read_only_code_scout.request.v1',
+    agentRole: 'read-only-code-scout',
+    languageProfile: options.languageProfile,
+    taskType: options.taskType,
+    taskSummary: options.task,
+    repository: repo,
+    git: {
+      branch: git.branch,
+      commit: git.head,
+      dirty: Boolean(git.status),
+    },
+    scope,
+    allowedActions: ['read'],
+    forbiddenActions: [
+      'edit files',
+      'stage files',
+      'commit',
+      'push',
+      'merge',
+      'deploy',
+      'release',
+      'write tickets',
+      'query databases',
+      'store raw secrets or sensitive data',
+    ],
+    evidenceRequired: [
+      'source-linked findings',
+      'explicit uncertainty',
+      'caps for unavailable or unreviewed scope',
+      'recommended next action for the orchestrator',
+    ],
+    outputSchema: {
+      schemaVersion: 'sdlc.read_only_code_scout.findings.v1',
+      required: [
+        'schemaVersion',
+        'agentRole',
+        'languageProfile',
+        'taskType',
+        'scopeReviewed',
+        'findings',
+        'sourcePointers',
+        'confidence',
+        'uncertainty',
+        'verificationQuestions',
+        'caps',
+        'recommendedNextAction',
+      ],
+    },
+    escalationTriggers: [
+      'scope is unclear',
+      'task requires edits',
+      'finding lacks source pointer',
+      'sensitive data boundary is unclear',
+      'model/runtime output invents facts',
+      'findings are more expensive to verify than manual review',
+    ],
+    modelTierPreference: options.modelTierPreference || options.modelTier || 'local-or-low-tier',
+    fallbackInstruction: 'If runtime invocation is unavailable or not approved, return this packet for manual scout execution. Findings remain advisory until orchestrator verification.',
+  };
+}
+
+function renderScoutPacketMarkdown(packet) {
+  return `# Read-Only Code Scout Packet
+
+Role: ${packet.agentRole}
+Task type: ${packet.taskType}
+Language profile: ${packet.languageProfile}
+Task: ${packet.taskSummary}
+Created: ${new Date().toISOString()}
+Repository: ${packet.repository}
+Branch: ${packet.git.branch || 'unknown'}
+Packet mode: read-only packet only
+
+## Execution Status
+
+This packet has not invoked a model, executed delegated work, changed files, or granted write authority.
+
+## Scope
+
+${formatList(packet.scope)}
+
+## Allowed Actions
+
+${formatList(packet.allowedActions)}
+
+## Forbidden Actions
+
+${formatList(packet.forbiddenActions)}
+
+## Evidence Required
+
+${formatList(packet.evidenceRequired)}
+
+## Escalation Triggers
+
+${formatList(packet.escalationTriggers)}
+
+## Runtime Guidance
+
+- Model tier preference: ${packet.modelTierPreference}
+- ${packet.fallbackInstruction}
+- The orchestrator must verify source pointers before acting on findings.
+- Record useful or noisy runs through \`sdlc_feedback\` or local \`sdlc feedback add\`.
+
+## Request JSON
+
+\`\`\`json
+${JSON.stringify(packet, null, 2)}
+\`\`\`
+
+## Required Findings JSON
+
+\`\`\`json
+{
+  "schemaVersion": "sdlc.read_only_code_scout.findings.v1",
+  "agentRole": "read-only-code-scout",
+  "languageProfile": "${packet.languageProfile}",
+  "taskType": "${packet.taskType}",
+  "scopeReviewed": ${JSON.stringify(packet.scope, null, 2)},
+  "findings": [],
+  "sourcePointers": [],
+  "confidence": "low|medium|high",
+  "uncertainty": [],
+  "verificationQuestions": [],
+  "caps": [],
+  "recommendedNextAction": "orchestrator verify source pointers before acting"
+}
+\`\`\`
+`;
+}
+
+function readJsonFile(path) {
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch (error) {
+    fail(`Could not read JSON packet: ${error.message || String(error)}`);
+  }
+}
+
+function validateScoutFindings(packet) {
+  const errors = [];
+  if (!packet || typeof packet !== 'object' || Array.isArray(packet)) return ['Findings packet must be a JSON object.'];
+  const required = [
+    'schemaVersion',
+    'agentRole',
+    'languageProfile',
+    'taskType',
+    'scopeReviewed',
+    'findings',
+    'sourcePointers',
+    'confidence',
+    'uncertainty',
+    'verificationQuestions',
+    'caps',
+    'recommendedNextAction',
+  ];
+  for (const field of required) {
+    if (!(field in packet)) errors.push(`Missing required field: ${field}`);
+  }
+  if (packet.schemaVersion !== 'sdlc.read_only_code_scout.findings.v1') errors.push('schemaVersion must be sdlc.read_only_code_scout.findings.v1.');
+  if (packet.agentRole !== 'read-only-code-scout') errors.push('agentRole must be read-only-code-scout.');
+  if (!SCOUT_LANGUAGE_PROFILES.includes(packet.languageProfile)) errors.push(`languageProfile must be one of: ${SCOUT_LANGUAGE_PROFILES.join(', ')}`);
+  if (!SCOUT_TASK_TYPES.includes(packet.taskType)) errors.push(`taskType must be one of: ${SCOUT_TASK_TYPES.join(', ')}`);
+  if (!Array.isArray(packet.scopeReviewed) || !packet.scopeReviewed.length) errors.push('scopeReviewed must be a non-empty array.');
+  if (!Array.isArray(packet.findings)) errors.push('findings must be an array.');
+  if (!Array.isArray(packet.sourcePointers) || !packet.sourcePointers.length) errors.push('sourcePointers must include at least one pointer.');
+  if (Array.isArray(packet.findings)) {
+    for (const [index, finding] of packet.findings.entries()) {
+      if (!finding || typeof finding !== 'object') {
+        errors.push(`finding ${index + 1} must be an object.`);
+        continue;
+      }
+      if (!finding.summary) errors.push(`finding ${index + 1} is missing summary.`);
+      if (!finding.sourcePointer && !finding.sourcePointers) errors.push(`finding ${index + 1} is missing sourcePointer/sourcePointers.`);
+      if (/edit|edited|changed|fixed|committed|pushed|deployed/i.test(String(finding.actionTaken || finding.summary || ''))) {
+        errors.push(`finding ${index + 1} appears to claim forbidden action or edit work.`);
+      }
+    }
+  }
+  const serialized = JSON.stringify(packet);
+  if (/rawDiff|rawCode|rawTicketText|databaseOutput|secret|password|access[_-]?token/i.test(serialized)) {
+    errors.push('Findings packet appears to contain raw or sensitive content fields.');
+  }
+  if (/edited files|changed files|committed|pushed|deployed|released/i.test(serialized)) {
+    errors.push('Findings packet appears to claim forbidden execution authority.');
+  }
+  return errors;
 }
 
 function rolePurpose(role) {

@@ -580,7 +580,7 @@ Capture the minimum evidence needed to decide whether delegation reduced total w
 
 Changes:
 - Align existing calibration/friction capture with [sdlc-friction-token-human-orchestration-audit.md](sdlc-friction-token-human-orchestration-audit.md).
-- Ensure generated guidance points to `sdlc calibrate add` or existing feedback commands after agent-plan/response-lint workflows.
+- Ensure generated guidance points to passive `sdlc_feedback` or local `sdlc feedback add` after agent-plan/response-lint workflows. Use `sdlc calibrate add` only when running explicit measurement comparisons.
 - Add optional fields for route-fit, misroute tax, retry count, human correction, model tier, and runtime when they are known.
 - Do not require token counts when the runtime does not report usage.
 

@@ -48,6 +48,7 @@ import { scorecardSummary, scorecardTask, scorecardTrends, traceAttach, traceEve
 import { activityCommand } from './activity.mjs';
 import { automationBudget, demo, feedbackActionPlan, feedbackCapture, feedbackFriction, feedbackQuick, feedbackReview, feedbackSummary, feedbackSynthesize, onboardingPilot, sdlcEvent, setupWizard, welcome } from './adoption.mjs';
 import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePilotReport, calibratePilotTest, calibratePromote, calibratePropose, calibrateSummary, learnedFlowCandidates, processProposals, readCalibrationRows } from './calibration.mjs';
+import { sdlcFeedbackAdd, sdlcFeedbackExport, sdlcFeedbackTest, sdlcFeedbackValidate } from './sdlcfeedback.mjs';
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, handoffSplit as statusHandoffSplit, readiness as statusReadiness } from './status.mjs';
 import { intakeCheck, intakePacket } from './intake.mjs';
 import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
@@ -63,7 +64,7 @@ import { capabilitiesNegotiate, capabilityDoctor, capabilityFallback, capability
 import { affectedUnits, classifyTestingSurface, detectPackageManager, inferTestingSurfaces, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitResolve } from './units.mjs';
 import { contextGateRows, controlGateRows } from './gates.mjs';
 import { promptAudit, promptClean, promptCompile, promptSanitize, promptScore, promptStructure } from './prompt.mjs';
-import { agentsLint, agentsPacket, agentsPlan, agentsStatus } from './agentpackets.mjs';
+import { agentsLint, agentsPacket, agentsPlan, agentsScoutPacket, agentsScoutValidate, agentsStatus } from './agentpackets.mjs';
 import { modelsInventory, modelsRevalidate } from './models.mjs';
 import { acceptanceCoverage, humanReviewPacket, qaHumanLint, responseLint, reviewLocal } from './localreview.mjs';
 import { overrideAdd } from './overrides.mjs';
@@ -300,6 +301,8 @@ export async function main(argv) {
   if (area === 'prompt' && action === 'compile') return promptCompile(repo, options);
   if (area === 'agents' && action === 'plan') return agentsPlan(repo, options);
   if (area === 'agents' && action === 'packet') return agentsPacket(repo, options);
+  if (area === 'agents' && action === 'scout-packet') return agentsScoutPacket(repo, options);
+  if (area === 'agents' && action === 'scout-validate') return agentsScoutValidate(repo, options);
   if (area === 'agents' && action === 'status') return agentsStatus(repo, options);
   if (area === 'agents' && action === 'lint') return agentsLint(repo, options);
   if (area === 'models' && action === 'inventory') return modelsInventory(repo, options);
@@ -340,6 +343,10 @@ export async function main(argv) {
   if (area === 'feedback' && action === 'capture') return feedbackCapture(repo, options);
   if (area === 'feedback' && action === 'review') return feedbackReview(repo, options);
   if (area === 'feedback' && action === 'summary') return feedbackSummary(repo, options);
+  if (area === 'feedback' && action === 'add') return sdlcFeedbackAdd(repo, options);
+  if (area === 'feedback' && action === 'validate') return sdlcFeedbackValidate(repo, options);
+  if (area === 'feedback' && action === 'export') return sdlcFeedbackExport(repo, options);
+  if (area === 'feedback' && action === 'test') return sdlcFeedbackTest(repo, options);
   if (area === 'activity') return activityCommand(repo, action, options, rest);
   if (area === 'trace' && action === 'start') return traceStart(repo, options, telemetryDependencies());
   if (area === 'trace' && action === 'event') return traceEvent(repo, options, telemetryDependencies());

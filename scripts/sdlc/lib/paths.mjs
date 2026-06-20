@@ -17,6 +17,10 @@ export function defaultFeedbackPath(repo) {
   return join(defaultRunsDir(repo), 'developer-feedback.jsonl');
 }
 
+export function defaultSdlcFeedbackPath(repo) {
+  return join(repo, '.ai-local', 'sdlc-cache', 'sdlc-feedback.jsonl');
+}
+
 export function defaultTracePath(repo, task) {
   return join(defaultRunsDir(repo), `${slug(task || 'current-task')}-trace.jsonl`);
 }

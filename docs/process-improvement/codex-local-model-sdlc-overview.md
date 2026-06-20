@@ -1872,9 +1872,61 @@ The pilot must show lower human orchestration burden, fewer repair loops, cleare
 Cycle 4 planning status:
 Cycle 4 has an implemented control-plane measurement helper plan at [cycle-4-measurement-pilot-read-only-counterpoint.md](cycle-4-measurement-pilot-read-only-counterpoint.md), with implementation evidence in [cycle-4-implementation-report.md](cycle-4-implementation-report.md). It remains an Experiment until the measured repository set, task shapes, treatment shape, optional counterpoint runtime, and semantic-tail inclusion produce non-`.agents` pilot evidence.
 
+### Cycle 4A Candidate: Passive SDLC Feedback Through AirteraCode MCP
+
+Goal:
+Replace manual measurement operation with passive, agent-owned process feedback from normal SDLC work.
+
+Primary outputs:
+
+1. A dedicated AirteraCode MCP tool named `sdlc_feedback`.
+2. A sanitized `airtera.sdlc.feedback.v1` envelope.
+3. Local `.ai-local` JSONL fallback when MCP is unavailable.
+4. Agent guidance for when to emit feedback without burdening the developer.
+5. Periodic process-learning review that turns repeated feedback into candidate SDLC improvements.
+
+Cycle 4A stop line:
+
+```text
+No raw source, raw ticket text, customer data, database output, secrets, full prompts, or full chat transcripts in v1 feedback.
+No automatic process-rule mutation.
+No lower/local model promotion from feedback capture alone.
+```
+
+Cycle 4A implementation status:
+Cycle 4A has a plan at [cycle-4a-passive-sdlc-feedback-airteracode-mcp.md](cycle-4a-passive-sdlc-feedback-airteracode-mcp.md), a portable contract at [sdlc-feedback-contract.md](sdlc-feedback-contract.md), a local fallback helper through `sdlc feedback add|validate|export|test`, and AirteraCode MCP `sdlc_feedback` validation/persistence. It uses the same AirteraCode MCP service as the knowledge gateway, but a separate `sdlc_feedback` tool and logical collection because SDLC process feedback has different schema, review, and retention needs than MCP parser-improvement feedback.
+
+### Cycle 5 Candidate: Read-Only Code Scout Subagent Pilot
+
+Goal:
+Introduce the first bounded subagent execution path without granting write authority.
+
+Cycle 5 uses a generic `read-only-code-scout` role with `languageProfile` and `taskType` parameters. It does not create one permanent agent per small task such as `duplicate-code-finder`; duplication scanning is only an initial pilot task type.
+
+Primary outputs:
+
+1. A `read-only-code-scout` request/findings packet contract.
+2. Language profiles for at least `generic`, with optional Classic ASP, C#/.NET, TypeScript/React, SQL, Node, and Python profiles.
+3. Task types such as `duplication-scan`, `abandoned-code-scan`, `test-gap-scan`, and `context-summary`.
+4. A local packet generator and findings validator.
+5. A manual or capability-gated runtime pilot using a lower-tier/frontier or LM Studio-compatible local model only when approved.
+6. `sdlc_feedback` capture for accepted findings, rejected findings, friction, and model/runtime caps.
+
+Cycle 5 stop line:
+
+```text
+Read-only only.
+No edits, commits, pushes, database writes, ticket writes, deploys, or releases.
+No local/lower-tier model promotion from one run.
+No finding may drive implementation without orchestrator source verification.
+```
+
+Cycle 5 implementation status:
+Cycle 5 has a plan at [cycle-5-read-only-code-scout-subagent-pilot.md](cycle-5-read-only-code-scout-subagent-pilot.md) and implementation evidence at [cycle-5-implementation-report.md](cycle-5-implementation-report.md). It implemented the first bounded subagent packet path through `sdlc agents scout-packet` and `sdlc agents scout-validate`, while preserving the orchestrator as the final authority. Runtime invocation and local model calls remain gated follow-up work.
+
 ### Later Cycles: Narrow Automation Expansion
 
-Only after Cycles 1-4 produce evidence should the plan consider:
+Only after Cycles 1-5 produce evidence should the plan consider:
 
 - Codex custom subagent UX,
 - additional local model roles,
@@ -2682,20 +2734,26 @@ Cycle 3 knowledge/retrieval questions:
 29. `docs/process-improvement/model-capability-drift-revalidation.md`
 30. `docs/process-improvement/cycle-4-measurement-pilot-read-only-counterpoint.md`
 31. `docs/process-improvement/cycle-4-implementation-report.md`
-32. `templates/config/local-models.example.json`
-33. `templates/config/runtime-capabilities.example.json`
-34. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
+32. `docs/process-improvement/cycle-4a-passive-sdlc-feedback-airteracode-mcp.md`
+33. `docs/process-improvement/sdlc-feedback-contract.md`
+34. `docs/process-improvement/cycle-4a-implementation-report.md`
+35. `docs/process-improvement/cycle-5-read-only-code-scout-subagent-pilot.md`
+36. `docs/process-improvement/cycle-5-implementation-report.md`
+37. `templates/config/local-models.example.json`
+38. `templates/config/runtime-capabilities.example.json`
+39. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
 
 ## Decision Status
 
-The 16 high-level human decisions that blocked implementation sequencing are resolved in the `Resolved Planning Decisions` section. Cycle 1 implemented and smoke-validated the contracts and dry-run control-plane baseline. Cycle 1B implemented and live-validated the AirteraCode knowledge candidate gateway and `.agents` JSONL fallback bridge. Cycle 2 implemented measured routing and response validation without delegated execution. Cycle 3 implemented deterministic retrieval evaluation, candidate drift checks, and model revalidation prompts without retrieval infrastructure or local-model automation. The plan should now move into Cycle 4 measurement: human-orchestration baseline, helper-compiled treatment, optional read-only plan-counterpoint, and a small human-graded semantic-tail retrieval set if the task produces reusable knowledge questions.
+The 16 high-level human decisions that blocked implementation sequencing are resolved in the `Resolved Planning Decisions` section. Cycle 1 implemented and smoke-validated the contracts and dry-run control-plane baseline. Cycle 1B implemented and live-validated the AirteraCode knowledge candidate gateway and `.agents` JSONL fallback bridge. Cycle 2 implemented measured routing and response validation without delegated execution. Cycle 3 implemented deterministic retrieval evaluation, candidate drift checks, and model revalidation prompts without retrieval infrastructure or local-model automation. Cycle 4 implemented a manual measurement helper, but real use showed that manual measurement is too much developer burden for normal rollout. Cycle 4A shifted the long-term improvement path to passive, sanitized `sdlc_feedback` capture through AirteraCode MCP with local fallback.
 
 Remaining decisions should be made inside the relevant cycle, not at the overview level:
 
 1. Cycle 1 follow-up: decide whether to promote the dry-run baseline from Experiment to Provisional after another non-docs fixture run.
 2. Cycle 1B follow-up: decide when to promote the knowledge gateway from Provisional after standard-tier denial or cross-restart persistence is validated.
 3. Cycle 3 follow-up: decide whether the deterministic retrieval helpers are ready for Provisional after repeated non-docs runs with acceptable context economy.
-4. Cycle 4: choose the active SDLC repository set, comparable measurement task shapes, baseline routes, helper-compiled treatments, and friction metrics.
-5. Cycle 4: decide whether the first read-only plan-counterpoint packet uses the seed Gemma profile, a different-family frontier model, or a manual packet fallback.
-6. Cycle 4: define three to five human-graded semantic-tail retrieval questions only if the task exposes reusable knowledge that deterministic search does not capture well.
-7. Later cycle: revisit fixture bounded-write only after Cycle 4 shows measurable orchestration or repair-loop savings without evidence-quality regression.
+4. Cycle 4A follow-up: use `sdlc_feedback` during normal Standard+ work and review repeated events through process-learning before changing durable rules.
+5. Cycle 4A follow-up: decide whether accumulated feedback needs a summarized report command beyond `list_sdlc_feedback` and `sdlc feedback export`.
+6. Cycle 5 follow-up: run a manual scout pilot on a low-risk real task and record accepted/rejected findings through `sdlc_feedback`.
+7. Cycle 5 follow-up: decide whether the first runtime pilot uses manual packet paste, Codex CLI sub-session, cheaper frontier model, or LM Studio local model.
+8. Later cycle: revisit read-only counterpoint, semantic-tail retrieval expansion, and fixture bounded-write only after passive feedback and read-only scout evidence show repeated value and low review burden.

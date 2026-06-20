@@ -1,6 +1,6 @@
 # Cycle 4 Implementation Report
 
-Status: Implemented for control-plane measurement helper
+Status: Implemented for control-plane measurement helper; superseded as the default improvement loop by Cycle 4A passive feedback
 Promotion state: Experiment
 Parent plan: [cycle-4-measurement-pilot-read-only-counterpoint.md](cycle-4-measurement-pilot-read-only-counterpoint.md)
 Last updated: 2026-06-19
@@ -108,6 +108,15 @@ Do not claim reduced human orchestration burden, token savings, model readiness,
 - Semantic-tail retrieval rows are deferred until measured repository tasks expose natural questions.
 - Fixture bounded-write remains out of scope.
 
-## Recommendation
+## Direction After Cycle 4A
 
-Repeat with real pilot data: select at least two non-`.agents` repositories where the SDLC is used, record baseline and helper-compiled treatment rows with `sdlc calibrate add`, then aggregate them with `sdlc calibrate pilot-report`.
+Use Cycle 4 calibration helpers for targeted research, debugging, and explicit baseline/treatment comparisons only. They are not the default ongoing improvement mechanism.
+
+The default improvement loop is now Cycle 4A passive feedback:
+
+```bash
+sdlc feedback add --task "<task>" --source "<file-or-artifact>" --route <route> --route-fit right-sized --suggested-action "review if repeated"
+sdlc feedback validate
+```
+
+When AirteraCode MCP is available, agents should prefer `sdlc_feedback` and keep the local command as fallback. Repeated events should be reviewed through process-learning before any durable SDLC rule changes are promoted.

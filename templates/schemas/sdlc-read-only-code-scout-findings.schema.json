@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airtera.local/schemas/sdlc-read-only-code-scout-findings.schema.json",
+  "title": "SDLC Read-Only Code Scout Findings",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "agentRole",
+    "languageProfile",
+    "taskType",
+    "scopeReviewed",
+    "findings",
+    "sourcePointers",
+    "confidence",
+    "uncertainty",
+    "verificationQuestions",
+    "caps",
+    "recommendedNextAction"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "sdlc.read_only_code_scout.findings.v1"
+    },
+    "agentRole": {
+      "const": "read-only-code-scout"
+    },
+    "languageProfile": {
+      "enum": [
+        "generic",
+        "classic-asp",
+        "dotnet-csharp",
+        "typescript-react",
+        "sql",
+        "node",
+        "python"
+      ]
+    },
+    "taskType": {
+      "enum": [
+        "duplication-scan",
+        "abandoned-code-scan",
+        "extraction-candidate-scan",
+        "test-gap-scan",
+        "risk-surface-scan",
+        "context-summary"
+      ]
+    },
+    "scopeReviewed": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "summary"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourcePointer": {
+            "type": "string"
+          },
+          "sourcePointers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "recommendedAction": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "sourcePointers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "confidence": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "uncertainty": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verificationQuestions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "caps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommendedNextAction": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "not": {
+    "anyOf": [
+      {
+        "required": [
+          "rawCode"
+        ]
+      },
+      {
+        "required": [
+          "rawDiff"
+        ]
+      },
+      {
+        "required": [
+          "rawTicketText"
+        ]
+      },
+      {
+        "required": [
+          "databaseOutput"
+        ]
+      }
+    ]
+  },
+  "additionalProperties": true
+}

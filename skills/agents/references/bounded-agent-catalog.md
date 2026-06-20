@@ -5,6 +5,7 @@ Portable agent definitions live in `.agents/agents/*.md`. Runtime-specific adapt
 ## Current Portable Roles
 | Role | Source | Default access | Primary output |
 | --- | --- | --- | --- |
+| Read-only code scout | `.agents/agents/read-only-code-scout.md` | read-only | source-linked scout findings |
 | Independent reviewer | `.agents/agents/independent-reviewer.md` | read-only | review findings and evidence gaps |
 | Implementation worker | `.agents/agents/implementation-worker.md` | bounded write | implementation handoff |
 | Verification worker | `.agents/agents/verification-worker.md` | read-only commands | fresh verification evidence |

@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airtera.local/schemas/sdlc-feedback.schema.json",
+  "title": "Airtera SDLC Feedback Event",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "eventType",
+    "timestamp",
+    "repoId",
+    "taskSummary",
+    "workClass",
+    "routeUsed",
+    "routeFit",
+    "sensitivity",
+    "rawContentIncluded",
+    "sourcePointers",
+    "evidence",
+    "signals",
+    "suggestedAction"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "airtera.sdlc.feedback.v1"
+    },
+    "eventType": {
+      "enum": [
+        "task-completion",
+        "friction",
+        "route-fit",
+        "verification-gap",
+        "context-gap",
+        "agent-miss",
+        "process-suggestion"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repoId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repoPathHint": {
+      "type": "string"
+    },
+    "taskSummary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workClass": {
+      "type": "string",
+      "minLength": 1
+    },
+    "routeUsed": {
+      "type": "string",
+      "minLength": 1
+    },
+    "routeFit": {
+      "enum": [
+        "right-sized",
+        "too-heavy",
+        "too-light",
+        "unknown"
+      ]
+    },
+    "sensitivity": {
+      "enum": [
+        "public",
+        "internal",
+        "restricted"
+      ]
+    },
+    "rawContentIncluded": {
+      "const": false
+    },
+    "sourcePointers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "pointer"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "pointer": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "checksRun": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "caps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidenceGaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "signals": {
+      "type": "object",
+      "properties": {
+        "friction": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "humanCorrections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "agentMissedSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "candidateDelegation": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "suggestedAction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "git": {
+      "type": "object",
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "dirty": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "runtime": {
+      "type": "string"
+    },
+    "modelTier": {
+      "type": "string"
+    }
+  },
+  "not": {
+    "anyOf": [
+      {
+        "required": [
+          "rawSource"
+        ]
+      },
+      {
+        "required": [
+          "rawCode"
+        ]
+      },
+      {
+        "required": [
+          "rawDiff"
+        ]
+      },
+      {
+        "required": [
+          "rawLog"
+        ]
+      },
+      {
+        "required": [
+          "rawTicketText"
+        ]
+      },
+      {
+        "required": [
+          "rawDatabaseOutput"
+        ]
+      },
+      {
+        "required": [
+          "fullPrompt"
+        ]
+      },
+      {
+        "required": [
+          "chatTranscript"
+        ]
+      }
+    ]
+  },
+  "additionalProperties": true
+}
