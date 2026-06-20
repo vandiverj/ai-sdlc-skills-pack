@@ -173,6 +173,8 @@ sdlc recipe list
 sdlc recipe review --since YYYY-MM-DD
 sdlc eval retrieval-run --repo .
 sdlc eval retrieval-test --repo .
+sdlc calibrate pilot-report --inputs "repo-a/.ai-local/sdlc-calibration.jsonl,repo-b/.ai-local/sdlc-calibration.jsonl" --repo .
+sdlc calibrate pilot-test --repo .
 sdlc learn candidate-drift --repo .
 sdlc learn candidate-test --repo .
 sdlc models revalidate --repo .
@@ -217,6 +219,8 @@ Key commands added for the global-local model:
 - `sdlc dashboard`: produce a compact local status artifact.
 - `sdlc eval run|add-case|report`: regression-test SDLC routing and evidence behavior.
 - `sdlc eval retrieval-add|retrieval-run|retrieval-report|retrieval-test`: build and regression-test the Cycle 3 deterministic retrieval floor and report pointer-quality metrics without adding retrieval infrastructure.
+- `sdlc calibrate add`: accepts Cycle 4 pilot fields such as `--repository-id`, `--task`, `--treatment baseline|treatment`, `--manual-action-count`, `--estimated-minutes`, `--token-turn-signal`, `--evidence-gap`, `--helper-reducible`, `--accepted-counterpoint-findings`, and `--semantic-tail-questions`.
+- `sdlc calibrate pilot-report|pilot-test`: aggregate multi-repo Cycle 4 baseline/treatment rows, cap `.agents`-only evidence, and avoid claiming token savings without token/turn signals.
 - `sdlc learn export|import`: move sanitized learning candidates between environments.
 - `sdlc learn candidate-add|candidate-validate|candidate-export`: capture source-linked knowledge candidates under ignored `.ai-local/sdlc-cache/knowledge-candidates.jsonl` and export them for MCP review without making them source of truth. Existing local file anchors include `sha256` for later drift checks.
 - `sdlc learn candidate-drift|candidate-test`: report and regression-test invalid, missing-anchor, time-expired, sensitive, or hash-mismatched knowledge candidates without promoting them.

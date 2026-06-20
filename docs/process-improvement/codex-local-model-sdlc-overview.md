@@ -1847,12 +1847,12 @@ Cycle 3 is implemented as an Experiment. The plan is [cycle-3-knowledge-retrieva
 ### Cycle 4 Candidate: Measurement Pilot And Read-Only Counterpoint
 
 Goal:
-Measure whether the SDLC actually reduces human orchestration or frontier-token burden before expanding automation authority.
+Measure whether the SDLC actually reduces human orchestration or frontier-token burden across the repositories where it is used before expanding automation authority.
 
 Primary outputs:
 
-1. Human-orchestration baseline from one real or fixture task using the current route.
-2. Helper-compiled treatment run on the same or comparable task.
+1. Human-orchestration baselines from representative active SDLC repositories using the current route.
+2. Helper-compiled treatment runs on the same or comparable tasks in those repositories.
 3. Optional read-only plan-counterpoint packet for a Standard+ planning task.
 4. A small human-graded semantic-tail retrieval set, if the task reveals reusable knowledge questions.
 5. Calibration rows that connect routing decisions, friction, repair loops, verification evidence, and accepted/rejected counterpoint findings.
@@ -1867,7 +1867,10 @@ No model promotion from stale or one-off profile evidence.
 ```
 
 Cycle 4 acceptance:
-The pilot must show lower human orchestration burden, fewer repair loops, clearer evidence, or better context selection without weakening deterministic checks or review quality. If it does not, narrow the trigger or continue improving helper-compiled single-agent workflows before delegated execution.
+The pilot must show lower human orchestration burden, fewer repair loops, clearer evidence, or better context selection in the active SDLC repository set without weakening deterministic checks or review quality. `.agents` can validate the control-plane helper behavior, but it is not sufficient by itself to prove Cycle 4 acceptance. If the pilot does not show useful cross-repo signal, narrow the trigger or continue improving helper-compiled single-agent workflows before delegated execution.
+
+Cycle 4 planning status:
+Cycle 4 has an implemented control-plane measurement helper plan at [cycle-4-measurement-pilot-read-only-counterpoint.md](cycle-4-measurement-pilot-read-only-counterpoint.md), with implementation evidence in [cycle-4-implementation-report.md](cycle-4-implementation-report.md). It remains an Experiment until the measured repository set, task shapes, treatment shape, optional counterpoint runtime, and semantic-tail inclusion produce non-`.agents` pilot evidence.
 
 ### Later Cycles: Narrow Automation Expansion
 
@@ -2677,9 +2680,11 @@ Cycle 3 knowledge/retrieval questions:
 27. `docs/process-improvement/retrieval-eval-contract.md`
 28. `docs/process-improvement/knowledge-candidate-contract.md`
 29. `docs/process-improvement/model-capability-drift-revalidation.md`
-30. `templates/config/local-models.example.json`
-31. `templates/config/runtime-capabilities.example.json`
-32. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
+30. `docs/process-improvement/cycle-4-measurement-pilot-read-only-counterpoint.md`
+31. `docs/process-improvement/cycle-4-implementation-report.md`
+32. `templates/config/local-models.example.json`
+33. `templates/config/runtime-capabilities.example.json`
+34. `docs/process-improvement/sdlc-friction-token-human-orchestration-audit.md`
 
 ## Decision Status
 
@@ -2690,7 +2695,7 @@ Remaining decisions should be made inside the relevant cycle, not at the overvie
 1. Cycle 1 follow-up: decide whether to promote the dry-run baseline from Experiment to Provisional after another non-docs fixture run.
 2. Cycle 1B follow-up: decide when to promote the knowledge gateway from Provisional after standard-tier denial or cross-restart persistence is validated.
 3. Cycle 3 follow-up: decide whether the deterministic retrieval helpers are ready for Provisional after repeated non-docs runs with acceptable context economy.
-4. Cycle 4: choose the measurement task, baseline route, helper-compiled treatment, and friction metrics.
+4. Cycle 4: choose the active SDLC repository set, comparable measurement task shapes, baseline routes, helper-compiled treatments, and friction metrics.
 5. Cycle 4: decide whether the first read-only plan-counterpoint packet uses the seed Gemma profile, a different-family frontier model, or a manual packet fallback.
 6. Cycle 4: define three to five human-graded semantic-tail retrieval questions only if the task exposes reusable knowledge that deterministic search does not capture well.
 7. Later cycle: revisit fixture bounded-write only after Cycle 4 shows measurable orchestration or repair-loop savings without evidence-quality regression.

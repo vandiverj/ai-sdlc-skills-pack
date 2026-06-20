@@ -47,7 +47,7 @@ import { journalCheck, journalRefreshRoute } from './journal.mjs';
 import { scorecardSummary, scorecardTask, scorecardTrends, traceAttach, traceEvent, traceExport, traceFinish, traceStart } from './telemetry.mjs';
 import { activityCommand } from './activity.mjs';
 import { automationBudget, demo, feedbackActionPlan, feedbackCapture, feedbackFriction, feedbackQuick, feedbackReview, feedbackSummary, feedbackSynthesize, onboardingPilot, sdlcEvent, setupWizard, welcome } from './adoption.mjs';
-import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePromote, calibratePropose, calibrateSummary, learnedFlowCandidates, processProposals, readCalibrationRows } from './calibration.mjs';
+import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePilotReport, calibratePilotTest, calibratePromote, calibratePropose, calibrateSummary, learnedFlowCandidates, processProposals, readCalibrationRows } from './calibration.mjs';
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, handoffSplit as statusHandoffSplit, readiness as statusReadiness } from './status.mjs';
 import { intakeCheck, intakePacket } from './intake.mjs';
 import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
@@ -418,6 +418,8 @@ export async function main(argv) {
   if (area === 'calibrate' && action === 'propose') return calibratePropose(repo, options);
   if (area === 'calibrate' && (action === 'flows' || action === 'promote-candidates')) return calibrateFlows(repo, options);
   if (area === 'calibrate' && action === 'promote') return calibratePromote(repo, options);
+  if (area === 'calibrate' && action === 'pilot-report') return calibratePilotReport(repo, options);
+  if (area === 'calibrate' && action === 'pilot-test') return calibratePilotTest(repo, options);
   if (area === 'learn' && action === 'capture') return learnCapture(repo, options, learningDependencies());
   if (area === 'learn' && action === 'quick') return learnQuick(repo, options, learningDependencies());
   if (area === 'learn' && action === 'sanitize') return learnSanitize(repo, options, learningDependencies());

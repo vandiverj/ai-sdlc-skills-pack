@@ -310,6 +310,8 @@ Usage:
   sdlc calibrate propose [--repo <path>] [--in <path>] [--out <path>]
   sdlc calibrate flows [--repo <path>] [--in <path>] [--out <path>]
   sdlc calibrate promote --candidate "..." [--repo <path>] [--out <path>]
+  sdlc calibrate pilot-report [--repo <path>] [--inputs "repo-a/.ai-local/sdlc-calibration.jsonl,repo-b/.ai-local/sdlc-calibration.jsonl"] [--json] [--out <path>]
+  sdlc calibrate pilot-test [--repo <path>] [--json]
   sdlc learn capture --summary "..." [--case <id>] [--repo <path>] [--out <path>]
   sdlc learn quick --summary "..." [--case <id>] [--source work|personal|fixture] [--repo <path>]
   sdlc learn sanitize --packet <path> [--repo <path>] [--out <path>]

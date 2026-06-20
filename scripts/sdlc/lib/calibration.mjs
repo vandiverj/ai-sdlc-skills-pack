@@ -25,6 +25,20 @@ export function calibrateAdd(repo, options = {}) {
     modelTier: options.modelTier || '',
     retryCount: options.retryCount || '',
     misrouteTax: options.misrouteTax || '',
+    task: options.task || '',
+    repositoryId: options.repositoryId || options.repoId || '',
+    treatment: options.treatment || options.treatmentLabel || '',
+    pilot: options.pilot || '',
+    manualActionCount: options.manualActionCount || '',
+    estimatedMinutes: options.estimatedMinutes || '',
+    tokenTurnSignal: options.tokenTurnSignal || '',
+    evidenceGap: options.evidenceGap || '',
+    helperReducible: options.helperReducible || '',
+    candidateHelper: options.candidateHelper || '',
+    evidencePath: options.evidencePath || '',
+    acceptedCounterpointFindings: options.acceptedCounterpointFindings || '',
+    rejectedCounterpointFindings: options.rejectedCounterpointFindings || '',
+    semanticTailQuestions: options.semanticTailQuestions || '',
     contextMissing: splitList(options.contextMissing),
     verificationMissing: splitList(options.verificationMissing),
     agentMissedStep: options.agentMissedStep || '',
@@ -37,6 +51,58 @@ export function calibrateAdd(repo, options = {}) {
   };
   appendFileSync(outPath, `${JSON.stringify(row)}\n`, 'utf8');
   console.log(relative(repo, outPath));
+}
+
+export function calibratePilotReport(repo, options = {}) {
+  const rows = readPilotRows(repo, options);
+  const report = buildPilotReport(repo, rows, options);
+  if (options.json) {
+    console.log(JSON.stringify(report, null, 2));
+    if (report.status === 'fail') process.exitCode = 1;
+    return;
+  }
+  const content = formatPilotReport(report);
+  const outPath = options.out ? resolve(repo, options.out) : '';
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, content, 'utf8');
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+  if (report.status === 'fail') process.exitCode = 1;
+}
+
+export function calibratePilotTest(repo, options = {}) {
+  const rows = pilotRegressionRows();
+  const report = buildPilotReport(repo, rows, { ...options, minNonAgents: 2 });
+  const missingTreatment = buildPilotReport(repo, rows.filter((row) => row.treatment !== 'treatment'), { ...options, minNonAgents: 2 });
+  const agentsOnly = buildPilotReport(repo, rows.filter((row) => row.repositoryId === '.agents'), { ...options, minNonAgents: 2 });
+  const checks = [
+    {
+      name: 'multi-repo baseline and treatment passes',
+      status: report.status === 'pass' && report.nonAgentsRepositories >= 2 ? 'pass' : 'fail',
+      detail: `status=${report.status}; nonAgents=${report.nonAgentsRepositories}; caps=${report.caps.join('; ') || 'none'}`,
+    },
+    {
+      name: 'missing treatment caps',
+      status: missingTreatment.status === 'capped' && missingTreatment.caps.some((cap) => cap.includes('missing treatment')) ? 'pass' : 'fail',
+      detail: `status=${missingTreatment.status}; caps=${missingTreatment.caps.join('; ') || 'none'}`,
+    },
+    {
+      name: 'agents-only evidence caps',
+      status: agentsOnly.status === 'capped' && agentsOnly.caps.some((cap) => cap.includes('fewer than 2 non-.agents')) ? 'pass' : 'fail',
+      detail: `status=${agentsOnly.status}; nonAgents=${agentsOnly.nonAgentsRepositories}; caps=${agentsOnly.caps.join('; ') || 'none'}`,
+    },
+  ];
+  if (options.json) {
+    console.log(JSON.stringify({ schema: 'sdlc.cycle4_pilot_regression.v1', repository: repo, rows: checks }, null, 2));
+  } else {
+    console.log('| Case | Status | Detail |');
+    console.log('| --- | --- | --- |');
+    for (const check of checks) console.log(`| ${check.name} | ${check.status} | ${check.detail} |`);
+  }
+  if (checks.some((check) => check.status !== 'pass')) process.exitCode = 1;
 }
 
 export function calibrateSummary(repo, options = {}) {
@@ -334,4 +400,253 @@ function formatCounts(counts) {
 function normalizeArray(value) {
   if (Array.isArray(value)) return value;
   return splitList(value);
+}
+
+function readPilotRows(repo, options = {}) {
+  const inputs = splitList(options.inputs || options.in);
+  const paths = inputs.length ? inputs.map((input) => resolve(repo, input)) : [defaultCalibrationPath(repo)];
+  const rows = [];
+  for (const inputPath of paths) {
+    if (!existsSync(inputPath)) {
+      rows.push({ parseError: `missing input: ${inputPath}`, sourceFile: inputPath });
+      continue;
+    }
+    for (const row of readCalibrationRows(repo, { in: inputPath, allowMissing: true })) rows.push({ ...row, sourceFile: inputPath });
+  }
+  return rows;
+}
+
+function buildPilotReport(repo, rows, options = {}) {
+  const validRows = rows.filter((row) => !row.parseError);
+  const invalidRows = rows.filter((row) => row.parseError);
+  const pilotRows = validRows.filter((row) => row.treatment || row.pilot || row.manualActionCount || row.estimatedMinutes || row.evidenceGap || row.helperReducible);
+  const groups = groupPilotRows(pilotRows);
+  const groupReports = groups.map(([key, groupRows]) => analyzePilotGroup(key, groupRows));
+  const repositories = [...new Set(pilotRows.map((row) => repoId(row, repo)).filter(Boolean))].sort();
+  const nonAgentsRepositories = repositories.filter((id) => id !== '.agents').length;
+  const caps = [];
+  if (!pilotRows.length) caps.push('no Cycle 4 pilot rows found');
+  if (invalidRows.length) caps.push(`${invalidRows.length} invalid or missing input row(s) ignored`);
+  const minNonAgents = Number(options.minNonAgents || 2);
+  if (nonAgentsRepositories < minNonAgents) caps.push(`fewer than ${minNonAgents} non-.agents repositories measured; .agents is smoke evidence only`);
+  for (const group of groupReports) caps.push(...group.caps.map((cap) => `${group.repositoryId}/${group.task}: ${cap}`));
+  const failingGroups = groupReports.filter((group) => group.status === 'fail');
+  const completeGroups = groupReports.filter((group) => group.status === 'pass');
+  const status = failingGroups.length ? 'fail' : caps.length ? 'capped' : completeGroups.length ? 'pass' : 'capped';
+  return {
+    schema: 'sdlc.cycle4_pilot_report.v1',
+    generatedAt: new Date().toISOString(),
+    repository: repo,
+    status,
+    rows: pilotRows.length,
+    invalidRows: invalidRows.length,
+    repositories,
+    nonAgentsRepositories,
+    minNonAgents,
+    groups: groupReports,
+    totals: pilotTotals(groupReports),
+    caps,
+    recommendation: pilotRecommendation(status, groupReports, caps),
+  };
+}
+
+function groupPilotRows(rows) {
+  const groups = new Map();
+  for (const row of rows) {
+    const key = [repoId(row), row.task || row.taskId || 'unspecified-task'].join('::');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+}
+
+function analyzePilotGroup(key, rows) {
+  const [repositoryId, task] = key.split('::');
+  const baselineRows = rows.filter((row) => treatmentOf(row) === 'baseline');
+  const treatmentRows = rows.filter((row) => treatmentOf(row) === 'treatment');
+  const caps = [];
+  if (!baselineRows.length) caps.push('missing baseline row');
+  if (!treatmentRows.length) caps.push('missing treatment row');
+  const baseline = summarizePilotRows(baselineRows);
+  const treatment = summarizePilotRows(treatmentRows);
+  const delta = {
+    manualActionCount: numericDelta(baseline.manualActionCount, treatment.manualActionCount),
+    estimatedMinutes: numericDelta(baseline.estimatedMinutes, treatment.estimatedMinutes),
+    retryCount: numericDelta(baseline.retryCount, treatment.retryCount),
+    misrouteTax: numericDelta(baseline.misrouteTax, treatment.misrouteTax),
+    humanCorrection: numericDelta(baseline.humanCorrection, treatment.humanCorrection),
+  };
+  if (!baseline.tokenTurnSignals.length && !treatment.tokenTurnSignals.length) caps.push('no token/turn signal; do not claim token savings');
+  const status = caps.some((cap) => cap.startsWith('missing')) ? 'capped' : 'pass';
+  return {
+    repositoryId,
+    task,
+    status,
+    baseline,
+    treatment,
+    delta,
+    evidenceGaps: dedupeStrings(rows.map((row) => row.evidenceGap).filter(Boolean)),
+    helperReducibleFriction: dedupeStrings(rows.filter((row) => truthy(row.helperReducible)).map((row) => row.friction || row.candidateHelper || 'unspecified helper-reducible friction')),
+    acceptedCounterpointFindings: sumNumber(rows.map((row) => row.acceptedCounterpointFindings)),
+    rejectedCounterpointFindings: sumNumber(rows.map((row) => row.rejectedCounterpointFindings)),
+    semanticTailQuestions: sumNumber(rows.map((row) => row.semanticTailQuestions)),
+    caps,
+  };
+}
+
+function summarizePilotRows(rows) {
+  return {
+    rows: rows.length,
+    route: dedupeStrings(rows.map((row) => row.routeUsed || row.routePredicted || row.route).filter(Boolean)).join(', ') || 'unknown',
+    routeFit: dedupeStrings(rows.map((row) => row.routeFit).filter(Boolean)).join(', ') || '',
+    manualActionCount: sumNumber(rows.map((row) => row.manualActionCount)),
+    estimatedMinutes: sumNumber(rows.map((row) => row.estimatedMinutes)),
+    retryCount: sumNumber(rows.map((row) => row.retryCount)),
+    misrouteTax: sumNumber(rows.map((row) => row.misrouteTax)),
+    humanCorrection: sumNumber(rows.map((row) => row.humanCorrection)),
+    tokenTurnSignals: dedupeStrings(rows.map((row) => row.tokenTurnSignal).filter(Boolean)),
+    checks: dedupeStrings(rows.flatMap((row) => normalizeArray(row.checks))),
+    caps: dedupeStrings(rows.flatMap((row) => normalizeArray(row.caps))),
+  };
+}
+
+function pilotTotals(groups) {
+  return {
+    measuredGroups: groups.length,
+    passGroups: groups.filter((group) => group.status === 'pass').length,
+    cappedGroups: groups.filter((group) => group.status === 'capped').length,
+    manualActionDelta: sumNumber(groups.map((group) => group.delta.manualActionCount)),
+    estimatedMinutesDelta: sumNumber(groups.map((group) => group.delta.estimatedMinutes)),
+    retryDelta: sumNumber(groups.map((group) => group.delta.retryCount)),
+    misrouteTaxDelta: sumNumber(groups.map((group) => group.delta.misrouteTax)),
+    humanCorrectionDelta: sumNumber(groups.map((group) => group.delta.humanCorrection)),
+  };
+}
+
+function formatPilotReport(report) {
+  return `# Cycle 4 Pilot Report
+
+Date: ${report.generatedAt}
+Repository: ${report.repository}
+Status: ${report.status}
+Rows: ${report.rows}
+Repositories: ${report.repositories.join(', ') || 'none'}
+Non-.agents repositories: ${report.nonAgentsRepositories}/${report.minNonAgents}
+
+## Totals
+
+- measured groups: ${report.totals.measuredGroups}
+- pass groups: ${report.totals.passGroups}
+- capped groups: ${report.totals.cappedGroups}
+- manual action delta: ${formatDelta(report.totals.manualActionDelta)}
+- estimated minutes delta: ${formatDelta(report.totals.estimatedMinutesDelta)}
+- retry delta: ${formatDelta(report.totals.retryDelta)}
+- misroute tax delta: ${formatDelta(report.totals.misrouteTaxDelta)}
+- human correction delta: ${formatDelta(report.totals.humanCorrectionDelta)}
+
+## Groups
+
+${report.groups.length ? report.groups.map(formatPilotGroup).join('\n\n') : '- none'}
+
+## Caps
+
+${formatList(report.caps)}
+
+## Recommendation
+
+${report.recommendation}
+`;
+}
+
+function formatPilotGroup(group) {
+  return `### ${group.repositoryId}: ${group.task}
+
+Status: ${group.status}
+Baseline route: ${group.baseline.route}
+Treatment route: ${group.treatment.route}
+Manual action delta: ${formatDelta(group.delta.manualActionCount)}
+Estimated minutes delta: ${formatDelta(group.delta.estimatedMinutes)}
+Retry delta: ${formatDelta(group.delta.retryCount)}
+Misroute tax delta: ${formatDelta(group.delta.misrouteTax)}
+Human correction delta: ${formatDelta(group.delta.humanCorrection)}
+Evidence gaps: ${group.evidenceGaps.join(', ') || 'none'}
+Helper-reducible friction: ${group.helperReducibleFriction.join(', ') || 'none'}
+Counterpoint findings: accepted ${group.acceptedCounterpointFindings}, rejected ${group.rejectedCounterpointFindings}
+Semantic-tail questions: ${group.semanticTailQuestions}
+Caps: ${group.caps.join('; ') || 'none'}`;
+}
+
+function pilotRecommendation(status, groups, caps) {
+  if (status === 'fail') return 'defer: fix invalid pilot data before using Cycle 4 evidence.';
+  if (caps.length) return 'repeat: collect missing baseline/treatment or non-.agents repository evidence before automation expansion.';
+  const helpfulGroups = groups.filter((group) => group.delta.manualActionCount < 0 || group.delta.estimatedMinutes < 0 || group.delta.retryCount < 0 || group.delta.humanCorrection < 0);
+  if (helpfulGroups.length === groups.length && groups.length) return 'promote cautiously: repeat on another active repository set before delegated execution.';
+  if (helpfulGroups.length) return 'narrow: keep helper-compiled treatment only where measured deltas improved.';
+  return 'defer: no measured orchestration or repair-loop improvement.';
+}
+
+function pilotRegressionRows() {
+  return [
+    pilotRow('.agents', 'control-plane smoke', 'baseline', 4, 20),
+    pilotRow('.agents', 'control-plane smoke', 'treatment', 3, 15),
+    pilotRow('api-service', 'standard service task', 'baseline', 6, 45),
+    pilotRow('api-service', 'standard service task', 'treatment', 4, 32),
+    pilotRow('ui-app', 'standard ui task', 'baseline', 7, 55),
+    pilotRow('ui-app', 'standard ui task', 'treatment', 5, 38),
+  ];
+}
+
+function pilotRow(repositoryId, task, treatment, manualActionCount, estimatedMinutes) {
+  return {
+    repositoryId,
+    task,
+    treatment,
+    routeUsed: 'standard',
+    routeFit: 'right-sized',
+    manualActionCount,
+    estimatedMinutes,
+    retryCount: treatment === 'baseline' ? 1 : 0,
+    misrouteTax: 0,
+    humanCorrection: treatment === 'baseline' ? 1 : 0,
+    tokenTurnSignal: treatment === 'baseline' ? 'baseline turns recorded' : 'treatment turns recorded',
+    friction: treatment === 'baseline' ? 'manual evidence translation' : 'helper-compiled evidence',
+    helperReducible: treatment === 'baseline' ? 'yes' : 'no',
+    checks: ['synthetic'],
+  };
+}
+
+function treatmentOf(row) {
+  const treatment = String(row.treatment || row.treatmentLabel || '').toLowerCase();
+  if (['baseline', 'control', 'current'].includes(treatment)) return 'baseline';
+  if (['treatment', 'helper', 'helper-compiled'].includes(treatment)) return 'treatment';
+  return treatment || 'unknown';
+}
+
+function repoId(row, fallback = '') {
+  const value = row.repositoryId || row.repoId || row.repository || row.repo || fallback;
+  const text = String(value || '').trim();
+  if (!text) return 'unknown-repo';
+  if (text.endsWith('/.agents') || text === '.agents') return '.agents';
+  return text.split(/[\\/]/).filter(Boolean).pop() || text;
+}
+
+function numericDelta(baseline, treatment) {
+  return Number((Number(treatment || 0) - Number(baseline || 0)).toFixed(3));
+}
+
+function sumNumber(values) {
+  return Number(values.reduce((sum, value) => sum + Number(value || 0), 0).toFixed(3));
+}
+
+function truthy(value) {
+  return ['1', 'true', 'yes', 'y'].includes(String(value || '').toLowerCase());
+}
+
+function dedupeStrings(values) {
+  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
+function formatDelta(value) {
+  const number = Number(value || 0);
+  return number > 0 ? `+${number}` : String(number);
 }
