@@ -21,7 +21,7 @@ Turn repeated SDLC friction and useful workflow discoveries into reviewed, porta
 | Aggregate and review multiple events | `references/review-learning.md` |
 | Update implementation patterns from reviewed evidence | `references/update-patterns.md` |
 | Process review feedback needs disposition | `references/process-review-feedback.md` |
-| Battle Soccer or another fixture should validate router/evidence/agent behavior | `references/pilot-validation.md` |
+| Current-repo dry run, configured validation target, or disposable pilot should validate router/evidence/agent behavior | `references/pilot-validation.md` |
 
 ## Handoffs
 - Use `review` for independent critique of process changes.

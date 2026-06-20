@@ -89,7 +89,7 @@ Active router/reference families:
 2. Remove consolidated process-internal skill folders so runtime tests exercise the router/reference path.
 3. Never hide quality verification, threat/security review, production readiness, or human consent gates inside optional references.
 4. When a top-level skill is folded under a router, preserve its trigger language in the router reference-selection table.
-5. Validate each routing change with at least one real fixture or project task.
+5. Validate each routing change with current-repo deterministic checks or dry-run packets first; add a configured validation target, developer-approved fixture, or project task when stronger realism is needed.
 
 ## Consolidation Status
 

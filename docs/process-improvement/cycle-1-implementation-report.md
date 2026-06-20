@@ -91,9 +91,9 @@ Do not claim: Cycle 1 proves automation quality or cost reduction.
 - Friction audit shape exists.
 - No write-capable local automation was added.
 
-## Battle Soccer Validation Plan
+## Fixture Validation Plan
 
-Battle Soccer was not run in this implementation pass. The next validation should run a small fixture task and record whether generated packets and runtime checks reduce human orchestration burden.
+A named personal fixture was not run in this implementation pass. The next validation should run a configured disposable fixture or repo-local dry run and record whether generated packets and runtime checks reduce human orchestration burden.
 
 ## Rollback Path
 

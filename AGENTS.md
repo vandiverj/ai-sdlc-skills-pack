@@ -4,7 +4,7 @@ This repository is the reusable AI SDLC skills pack. It is not an application te
 
 ## Environment
 
-- Primary local environment: Windows.
+- Primary local maintenance environments: macOS and Windows.
 - Codex may run from a sandbox outside this repository and may need approval to write here.
 - Markdown and text files are normalized to LF by `.gitattributes`.
 - Prefer repo-local Git settings `core.autocrlf=false` and `core.eol=lf` so Windows checkouts do not rewrite text files to CRLF.
@@ -38,14 +38,16 @@ Markdown with `backticks` is safe here.
 
 Run these checks before committing:
 
-```powershell
+```bash
 git diff --check
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-SkillFiles.ps1
-Select-String -Path README.md,SUMMARY.md,WORKFLOW.md,skills\*\SKILL.md -Pattern "[\x00-\x08\x0B\x0C\x0E-\x1F]"
+node scripts/test-skill-files.mjs
+rg -n -P "[\x00-\x08\x0B\x0C\x0E-\x1F]" README.md SUMMARY.md WORKFLOW.md skills/*/SKILL.md
 git status --short
 ```
 
-Also run targeted `Select-String` checks for concepts that were renamed or added, such as skill names, dirty surfaces, gates, or artifact names.
+On Windows, `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-SkillFiles.ps1` is a wrapper around the canonical Node skill-file check, and `Select-String` may be used instead of `rg` for the control-character scan.
+
+Also run targeted `rg` or `Select-String` checks for concepts that were renamed or added, such as skill names, dirty surfaces, gates, or artifact names.
 
 ## Git Workflow
 

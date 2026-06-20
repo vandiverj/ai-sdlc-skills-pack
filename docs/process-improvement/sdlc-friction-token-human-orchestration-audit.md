@@ -34,6 +34,26 @@ Use every field in the record shape for comparable audits.
 - `Retry count`
 - `Misroute tax`
 - `Human correction`
+- `Repository id`
+- `Treatment`: `baseline` or `treatment`
+- `Evidence path`
+- `Accepted counterpoint findings`
+- `Rejected counterpoint findings`
+- `Semantic-tail questions`
+
+## Cycle 4 Pilot Fields
+
+Cycle 4 uses the optional fields above to compare baseline and helper-compiled treatment runs across the repositories where the SDLC is actually used.
+
+Use `.agents` for control-plane smoke rows only. Cycle 4 acceptance requires non-`.agents` repository evidence unless the report records an explicit evidence cap.
+
+Helper support:
+
+```bash
+sdlc calibrate add --repository-id <repo-id> --task "<task>" --treatment baseline --manual-action-count <n> --estimated-minutes <n>
+sdlc calibrate add --repository-id <repo-id> --task "<task>" --treatment treatment --manual-action-count <n> --estimated-minutes <n>
+sdlc calibrate pilot-report --inputs "repo-a/.ai-local/sdlc-calibration.jsonl,repo-b/.ai-local/sdlc-calibration.jsonl" --repo .
+```
 
 ## Source Of Truth
 

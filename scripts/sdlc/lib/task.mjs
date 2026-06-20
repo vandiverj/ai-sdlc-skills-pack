@@ -6,7 +6,7 @@ import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { completionTrackedPacketKinds, firstMatch } from './packets.mjs';
 import { matchRecipes } from './recipes.mjs';
-import { inferDirtySurfaces, inferRouteFromTask, securityTriggers } from './routes.mjs';
+import { inferDirtySurfaces, inferRouteFromTask, inferTaskRoute, securityTriggers } from './routes.mjs';
 import { classifyTouchedSurface, needsManualQa } from './surface.mjs';
 import { affectedUnits, inferTestingSurfaces, matchesAny, qaModeForSurfaces } from './units.mjs';
 import { artifactBudgetForRoute, formatArtifactBudget } from './artifacts.mjs';
@@ -105,16 +105,18 @@ export function taskPreflight(repo, options = {}, deps = {}) {
 
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
   const files = deps.optionFiles(options, git.changedFiles);
+  const scopedGit = scopedGitInfo(git, files, Boolean(options.files));
+  const requestedRoute = inferTaskRoute(task, profile.values);
+  const route = options.route || inferRouteFromTask(task, scopedGit, profile.values);
   const units = affectedUnits(repo, files, profile, options.unit);
   const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const qaMode = qaModeForSurfaces(surfaces, task);
   const triggers = securityTriggers(task, profile.values);
   const caseId = deps.taskCaseId(task, options, profile.values);
   const breadth = deps.taskBreadthAssessment(task, files, surfaces);
-  const fast = deps.fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers);
-  const quality = deps.qualityFloorRows({ task, git, route, units, surfaces, qaMode, profile, packets: deps.findPackets(repo, {}) });
+  const fast = deps.fastPassAssessment(repo, task, route, scopedGit, profile, units, surfaces, triggers);
+  const quality = deps.qualityFloorRows({ task, git: scopedGit, route, units, surfaces, qaMode, profile, packets: deps.findPackets(repo, {}) });
   const budget = artifactBudgetForRoute(route, fast.eligible ? 'micro' : '');
   const confidence = deps.routeConfidence({ task, route, files, units, surfaces, profile, triggers });
   const next = fast.eligible ? `sdlc task fast-pass --task "${deps.escapeCommandArg(task)}"` : `sdlc route start ${route} --task "${deps.escapeCommandArg(task)}"`;
@@ -136,9 +138,20 @@ export function taskPreflight(repo, options = {}, deps = {}) {
     artifactBudget: budget.name,
     nextAction: next,
   };
+  const routeAdjustment = routeAdjustmentReason(requestedRoute, route, git, files, options);
+  if (routeAdjustment) {
+    summary.requestedTaskRoute = requestedRoute;
+    summary.effectiveRoute = route;
+    summary.routeAdjustmentReason = routeAdjustment;
+  }
+  const scopingHint = dirtyScopingHint(task, git, options);
 
   if (!options.lock && !options.out) {
     printObject(summary);
+    if (scopingHint) {
+      console.log('\n## Dirty Worktree Scoping Hint\n');
+      console.log(formatList([scopingHint]));
+    }
     console.log('\n## Human Gates\n');
     console.log(formatList(deps.runStartGates(route, task, git, profile.values)));
     console.log('\n## Safe Defaults Assumed\n');
@@ -174,7 +187,9 @@ Task breadth: ${breadth.level}
 - Artifact budget: ${budget.name}
 - Task breadth signals: ${formatInlineList(breadth.signals)}
 - Security/tool triggers: ${triggers.length ? triggers.join('; ') : 'none detected'}
-- Next action: ${next}
+- Requested task route: ${requestedRoute}
+- Effective route: ${route}
+${routeAdjustment ? `- Route adjustment reason: ${routeAdjustment}\n` : ''}${scopingHint ? `- Dirty worktree scoping hint: ${scopingHint}\n` : ''}- Next action: ${next}
 
 ## Safe Defaults Assumed
 
@@ -209,13 +224,13 @@ export function taskFastPass(repo, options = {}, deps = {}) {
   if (!task) fail('Pass --task "..." so fast-pass can be evaluated.');
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
-  const route = options.route || inferRouteFromTask(task, git, profile.values);
   const files = deps.optionFiles(options, git.changedFiles);
+  const route = options.route || inferRouteFromTask(task, scopedGitInfo(git, files, Boolean(options.files)), profile.values);
   const units = affectedUnits(repo, files, profile, options.unit);
   const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const triggers = securityTriggers(task, profile.values);
   const breadth = deps.taskBreadthAssessment(task, files, surfaces);
-  const fast = deps.fastPassAssessment(repo, task, route, git, profile, units, surfaces, triggers);
+  const fast = deps.fastPassAssessment(repo, task, route, scopedGitInfo(git, files, Boolean(options.files)), profile, units, surfaces, triggers);
   const budget = artifactBudgetForRoute(route, fast.eligible ? 'micro' : '');
   printObject({
     repository: repo,
@@ -234,6 +249,45 @@ export function taskFastPass(repo, options = {}, deps = {}) {
   console.log(formatList(fast.reasons));
   console.log('\n## Minimum Evidence\n');
   console.log(formatArtifactBudget(budget));
+}
+
+function scopedGitInfo(git, files, explicitFiles = false) {
+  if (!explicitFiles) return git;
+  return {
+    ...git,
+    changedFiles: files,
+    status: files.length ? files.map((file) => `scoped ${file}`).join('\n') : '',
+  };
+}
+
+function routeAdjustmentReason(requestedRoute, effectiveRoute, git, files, options = {}) {
+  if (requestedRoute === effectiveRoute) return '';
+  if (options.route) return `route overridden by --route ${options.route}`;
+  if (git.changedFiles.length && !options.files) return `dirty worktree with ${git.changedFiles.length} changed file(s) broadened the route`;
+  if (options.files) return `explicit file scope changed the effective route to ${effectiveRoute}`;
+  if (files.length) return `${files.length} changed file(s) affected route selection`;
+  return 'repo state affected route selection';
+}
+
+function dirtyScopingHint(task, git, options = {}) {
+  if (options.files || !git.changedFiles.length) return '';
+  const mentioned = taskMentionedFiles(task);
+  if (!mentioned.length) return '';
+  const changed = new Set(git.changedFiles.map(normalizePath));
+  const unrelated = mentioned.every((file) => !changed.has(normalizePath(file)));
+  if (!unrelated) return '';
+  return `Task mentions ${mentioned.join(', ')} but git has ${git.changedFiles.length} changed file(s). If those are unrelated, rerun with --files ${mentioned.join(',')} or clean/stash/commit unrelated work first.`;
+}
+
+function taskMentionedFiles(task) {
+  const text = String(task || '');
+  const files = text.match(/\b[\w./-]+\.[a-z0-9]+\b/gi) || [];
+  if (/\breadme\b/i.test(text) && !files.some((file) => /^readme\.md$/i.test(file))) files.push('README.md');
+  return dedupe(files);
+}
+
+function normalizePath(value) {
+  return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase();
 }
 
 export function taskStart(repo, options = {}, deps = {}) {

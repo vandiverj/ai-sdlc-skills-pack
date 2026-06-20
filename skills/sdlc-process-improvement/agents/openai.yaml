@@ -1,3 +1,3 @@
 display_name: SDLC Process Improvement
 short_description: Improve coding-agent SDLC quality, platform support, and repo configurability.
-default_prompt: Improve the SDLC coding-agent process with a research-backed plan, 10 review/revision loops, coding-quality/platform/repo-config analysis, implementation, Battle Soccer validation, and approved commit/push handoff.
+default_prompt: Improve the SDLC coding-agent process with a research-backed plan, 10 review/revision loops, coding-quality/platform/repo-config analysis, implementation, fixture or dry-run validation, and approved commit/push handoff.

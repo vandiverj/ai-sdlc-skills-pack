@@ -53,6 +53,14 @@ Local measurement and fixture evidence own model capability. Static inventory is
 
 `sdlc models inventory --json` reports seed profiles and unknown fields. Later cycles add measured scorecards.
 
+Cycle 3 adds a reporting-only revalidation surface:
+
+```bash
+sdlc models revalidate --repo .
+```
+
+The report combines local model inventory with calibration rows when available and emits revalidation prompts for unknown fields, stale `lastEvaluated` values, human corrections, misroute tax, and retry signals. It does not promote a model for a role or update routing policy.
+
 ## No-Install Fallback
 
 Leave local measurement fields `unknown` and route through manual/frontier review.

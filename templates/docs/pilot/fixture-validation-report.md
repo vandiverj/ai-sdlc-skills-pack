@@ -1,13 +1,13 @@
-# Battle Soccer SDLC Validation Report
+# SDLC Validation Target Report
 
-Purpose: record whether the consolidated SDLC routers, evidence packets, agent roles, and verification/review gates work on the Battle Soccer pilot.
+Purpose: record whether SDLC routers, evidence packets, agent roles, and verification/review gates work with current repository checks, repo-local dry-run packets, a configured validation target, or a developer-approved disposable fixture/pilot repository.
 
 ## Environment
 - Date:
 - Runtime:
 - Machine:
 - `.agents` branch:
-- Fixture repo/path:
+- Validation target:
 
 ## Task Runs
 | Task | Route predicted | Route used | Evidence packet | Result | Friction |

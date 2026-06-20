@@ -11,7 +11,7 @@ export const modeDefinitions = {
   legacy: 'Weak/no automated tests, mixed old/new system, or manual smoke likely.',
   'multi-repo': 'More than one repo or deployable unit may be affected.',
   ticket: 'Ticket-centered work where acceptance criteria and QA handoff matter.',
-  fixture: 'Validation fixture work such as Battle Soccer.',
+  fixture: 'Current-repo dry-run validation, configured validation target, or developer-approved fixture/pilot work.',
   sensitive: 'Production/client/data-sensitive work needing tighter context and approval boundaries.',
   exploratory: 'Research/spike work where implementation may not follow.',
 };
@@ -24,9 +24,9 @@ export function inferMode(repo, task = '', options = {}) {
   const related = String(profile.values.relatedRepositories || '');
   const reasons = [];
   let mode = 'normal';
-  if (/battle[- ]?soccer|fixture|validation app/.test(text) || repoName.includes('battle-soccer')) {
+  if (/fixture|validation app|pilot repo|pilot repository|dry-run fixture/.test(text)) {
     mode = 'fixture';
-    reasons.push('fixture language or Battle Soccer repository detected');
+    reasons.push('fixture or pilot validation language detected');
   } else if (/prod|production|client|customer|database|sql|secret|token|credential|pii|sensitive/.test(text)) {
     mode = 'sensitive';
     reasons.push('sensitive data/system language detected');

@@ -66,14 +66,15 @@ export function responseLint(repo, options = {}) {
   const file = options.file || '';
   if (!file) fail('Pass --file <path>.');
   const text = readFileSync(resolve(repo, file), 'utf8');
-  const findings = responseLintFindings(text);
+  const mode = options.roleResponse || options.role || options.packet ? 'role-response' : 'final-response';
+  const findings = responseLintFindings(text, { mode });
   if (options.json) {
-    console.log(JSON.stringify({ schema: 'sdlc-response-lint-v1', file: relative(repo, resolve(repo, file)), result: lintResult(findings), findings }, null, 2));
+    console.log(JSON.stringify({ schema: 'sdlc-response-lint-v1', file: relative(repo, resolve(repo, file)), mode, result: lintResult(findings), findings }, null, 2));
     if (findings.some((row) => row.severity === 'block')) process.exitCode = 1;
     return;
   }
-  printObject({ file: relative(repo, resolve(repo, file)), result: findings.length ? 'needs review' : 'ready-looking' });
-  printTable(['Severity', 'Finding'], findings.length ? findings.map((row) => [row.severity, row.finding]) : [['record', 'No obvious final-response overclaim detected.']]);
+  printObject({ file: relative(repo, resolve(repo, file)), mode, result: findings.length ? 'needs review' : 'ready-looking' });
+  printTable(['Severity', 'Finding'], findings.length ? findings.map((row) => [row.severity, row.finding]) : [['record', `No obvious ${mode} issues detected.`]]);
   if (findings.some((row) => row.severity === 'block')) process.exitCode = 1;
 }
 
@@ -158,12 +159,43 @@ export function qaHumanLint(repo, options = {}) {
   if (findings.some((row) => row.severity === 'block')) process.exitCode = 1;
 }
 
-function responseLintFindings(text) {
+function responseLintFindings(text, options = {}) {
   const findings = [];
+  if (options.mode === 'role-response') findings.push(...roleResponseLintFindings(text));
   if (/tests? (pass|passed|green)/i.test(text) && !/(npm run|dotnet test|deno test|pytest|cargo test|sdlc verify)/i.test(text)) findings.push({ severity: 'warn', finding: 'Test pass claim without obvious command evidence.' });
   if (/committed|pushed/i.test(text) && !/human approval|approved/i.test(text)) findings.push({ severity: 'warn', finding: 'Commit/push claim should mention explicit human approval.' });
-  if (/no issues|fully verified|complete/i.test(text) && /not run|unable|cap|could not/i.test(text)) findings.push({ severity: 'warn', finding: 'Completion language may conflict with caps or missing evidence.' });
-  if (/merge|deploy|release/i.test(text) && !/do not|not performed|human/i.test(text)) findings.push({ severity: 'block', finding: 'Merge/deploy/release language needs explicit safety boundary.' });
+  if (options.mode !== 'role-response' && /no issues|fully verified|complete/i.test(text) && /not run|unable|cap|could not/i.test(text)) findings.push({ severity: 'warn', finding: 'Completion language may conflict with caps or missing evidence.' });
+  if (/merge|deploy|release/i.test(text) && !/do not|not performed|no release|human/i.test(text)) findings.push({ severity: 'block', finding: 'Merge/deploy/release language needs explicit safety boundary.' });
+  return findings;
+}
+
+function roleResponseLintFindings(text) {
+  const findings = [];
+  const required = [
+    ['status', /^#{1,3}\s*Status\b|^Status\s*:/im],
+    ['role', /^#{1,3}\s*Role\b|^Role\s*:/im],
+    ['scopeHandled', /Scope handled|Scope Handled|scopeHandled/i],
+    ['evidenceUsed', /Evidence used|Evidence Used|evidenceUsed/i],
+    ['structuredClaims', /Structured claims|Structured Claims|structuredClaims/i],
+    ['boundaryCheck', /Boundary check|Boundary Check|boundaryCheck/i],
+    ['capsRisks', /Caps\/risks|Caps and risks|Caps\/Risks|capsRisks/i],
+    ['recommendedNextAction', /Recommended next action|Recommended Next Action|recommendedNextAction/i],
+  ];
+  for (const [field, pattern] of required) {
+    if (!pattern.test(text)) findings.push({ severity: 'block', finding: `Role response missing required field: ${field}.` });
+  }
+  if (/structured claims?|structuredClaims/i.test(text)) {
+    const claimFields = [
+      ['claim kind', /claim kind|claimKind/i],
+      ['evidence/source', /evidence or source|evidenceOrSource|source:/i],
+      ['uncertainty', /uncertainty/i],
+      ['requested escalation', /requested escalation|requestedEscalation/i],
+    ];
+    for (const [field, pattern] of claimFields) {
+      if (!pattern.test(text)) findings.push({ severity: 'warn', finding: `Structured claim should include ${field}.` });
+    }
+  }
+  if (/complete|completed/i.test(text) && !/evidence used|commands run|source|cap/i.test(text)) findings.push({ severity: 'warn', finding: 'Complete role response should name evidence, commands, sources, or caps.' });
   return findings;
 }
 

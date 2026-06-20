@@ -1,14 +1,15 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendControlJsonLine, escapeCell, fail, printObject, slug, writeOrPrint } from './common.mjs';
+import { appendControlJsonLine, escapeCell, fail, formatList, printObject, readJsonIfExists, readJsonLines, slug, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { matchRecipes } from './recipes.mjs';
 import { inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { detectStack } from './units.mjs';
 import { analyzePrompt } from './prompt.mjs';
-import { recommendAgentPackets } from './agentpackets.mjs';
+import { recommendAgentPackets, tierRoutingReceipt } from './agentpackets.mjs';
 
 const modulePath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(modulePath), '..', '..', '..');
@@ -92,16 +93,25 @@ export function scenarioTest(repo, options = {}) {
   }
   const agentResults = agentRegressionCases().map((item) => {
     const rows = recommendAgentPackets(repo, item.task, options);
-    const pass = Object.entries(item.expected || {}).every(([role, recommendation]) => rows.find((row) => row.role === role)?.recommendation === recommendation);
-    return { ...item, rows, pass };
+    const receipt = tierRoutingReceipt(repo, item.task, item.receiptRole || '', options);
+    const recommendationPass = Object.entries(item.expected || {}).every(([role, recommendation]) => rows.find((row) => row.role === role)?.recommendation === recommendation);
+    const tierPass = item.expectedTier ? receipt.candidateTier === item.expectedTier : true;
+    return { ...item, rows, receipt, pass: recommendationPass && tierPass };
   });
   for (const result of agentResults) {
-    console.log(`${result.pass ? 'PASS' : 'FAIL'} agents ${result.name}: ${result.rows.map((row) => `${row.role}=${row.recommendation}`).join(', ')}`);
+    console.log(`${result.pass ? 'PASS' : 'FAIL'} agents ${result.name}: ${result.rows.map((row) => `${row.role}=${row.recommendation}`).join(', ')} tier=${result.receipt.candidateTier}`);
     if (!result.pass) console.log(`  task: ${result.task}`);
   }
-  if (promptResults.some((result) => !result.pass) || agentResults.some((result) => !result.pass)) process.exitCode = 1;
+  const retrievalResults = defaultRetrievalEvalCases().slice(0, 3).map((item) => runRetrievalEvalCase(repo, item, options));
+  for (const result of retrievalResults) {
+    const label = result.status === 'pass' ? 'PASS' : result.status === 'capped' ? 'CAP' : 'FAIL';
+    console.log(`${label} retrieval ${result.name}: hit@${result.topK}=${result.hitAtK} precision@${result.topK}=${result.precisionAtSmallK} candidates=${result.candidateArtifacts.length}`);
+    if (result.caps.length) console.log(`  caps: ${result.caps.join('; ')}`);
+    if (result.missingExpected.length) console.log(`  missing: ${result.missingExpected.join('; ')}`);
+  }
+  if (promptResults.some((result) => !result.pass) || agentResults.some((result) => !result.pass) || retrievalResults.some((result) => result.status === 'fail')) process.exitCode = 1;
   if (options.verbose) {
-    console.log(`\nScenarios tested: ${results.length}; prompt checks: ${promptResults.length}; agent checks: ${agentResults.length}`);
+    console.log(`\nScenarios tested: ${results.length}; prompt checks: ${promptResults.length}; agent checks: ${agentResults.length}; retrieval checks: ${retrievalResults.length}`);
   }
 }
 
@@ -130,7 +140,7 @@ export function scenarioRegressionCases() {
     },
     {
       name: 'fixture kept change',
-      task: 'use the Battle Soccer fixture app to test SDLC and keep useful changes with a commit preview',
+      task: 'use an approved disposable fixture app to test SDLC and keep useful changes with a commit preview',
       expectedRoute: 'standard',
       expectedRecipes: ['fixture-validation-kept-change'],
     },
@@ -415,8 +425,8 @@ export function scenarioRegressionCases() {
 export function promptRegressionCases() {
   return [
     {
-      name: 'soccer is not soc',
-      task: 'Battle Soccer validation',
+      name: 'fixture task has no sensitive terms',
+      task: 'approved fixture validation',
       noRiskTerms: true,
     },
     {
@@ -436,8 +446,10 @@ export function promptRegressionCases() {
 export function agentRegressionCases() {
   return [
     {
-      name: 'battle soccer verify only',
-      task: 'Battle Soccer validation verify game behavior',
+      name: 'fixture verify only',
+      task: 'approved fixture validation verify behavior',
+      receiptRole: 'verification-worker',
+      expectedTier: 'deterministic-tools',
       expected: {
         'verification-worker': 'recommended',
         'independent-reviewer': 'skip',
@@ -883,6 +895,125 @@ export function evalReport(repo, options = {}) {
   return evalRun(repo, options);
 }
 
+export function evalRetrievalAdd(repo, options = {}) {
+  const name = options.name || '';
+  const query = options.query || options.task || '';
+  const pattern = options.pattern || query;
+  if (!name || !query) fail('Pass --name <name> and --query "...".');
+  const row = {
+    schemaVersion: 'sdlc.retrieval_eval_case.v1',
+    id: options.id || slug(name),
+    name,
+    query,
+    pattern,
+    expectedArtifacts: splitList(options.expectedArtifacts || options.expected),
+    gradingMode: options.gradingMode || 'deterministic',
+    difficulty: options.difficulty || 'mechanical',
+    holdout: options.holdout || 'train',
+    topK: Number(options.topK || 5),
+    costBudget: {
+      maxArtifacts: Number(options.maxArtifacts || 10),
+      maxBytes: Number(options.maxBytes || 120000),
+    },
+    ownerArtifact: options.owner || options.ownerArtifact || 'repo-local retrieval eval',
+    createdAt: new Date().toISOString(),
+  };
+  appendControlJsonLine(repo, retrievalEvalPath(repo, options), row);
+  console.log(relative(repo, retrievalEvalPath(repo, options)));
+}
+
+export function evalRetrievalRun(repo, options = {}) {
+  const cases = retrievalEvalCases(repo, options);
+  const results = cases.map((item) => runRetrievalEvalCase(repo, item, options));
+  if (options.json) {
+    console.log(JSON.stringify({ schema: 'sdlc.retrieval_eval_report.v1', repository: repo, results }, null, 2));
+    if (results.some((row) => row.status === 'fail')) process.exitCode = 1;
+    return;
+  }
+  const content = `# SDLC Retrieval Eval Report
+
+Date: ${new Date().toISOString()}
+Repository: ${repo}
+Cases: ${results.length}
+
+## Summary
+
+| Case | Mode | Difficulty | Status | hit@k | precision@k | Candidates | Context bytes | Caps |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+${results.map((row) => `| ${escapeCell(row.name)} | ${row.gradingMode} | ${row.difficulty} | ${row.status} | ${row.hitAtK} | ${row.precisionAtSmallK} | ${row.candidateArtifacts.length} | ${row.contextBytes} | ${escapeCell(row.caps.join('; ') || 'none')} |`).join('\n')}
+
+## Missing Expected Artifacts
+
+${formatList(results.flatMap((row) => row.missingExpected.map((item) => `${row.name}: ${item}`)))}
+
+## Overreturned Context
+
+${formatList(results.flatMap((row) => row.overreturned.slice(0, 10).map((item) => `${row.name}: ${item}`)))}
+
+## Boundary
+
+- Retrieval output is pointer quality, not proof.
+- Deterministic cases use local search as the Stage 1 floor.
+- Human-graded semantic-tail cases are reported as capped until reviewed.
+- This command does not call MCP retrieval, local models, hosted services, or automatic tuning.
+`;
+  writeOrPrint(repo, options.out, content);
+  if (results.some((row) => row.status === 'fail')) process.exitCode = 1;
+}
+
+export function evalRetrievalReport(repo, options = {}) {
+  return evalRetrievalRun(repo, options);
+}
+
+export function evalRetrievalTest(repo, options = {}) {
+  const impossible = runRetrievalEvalCase(repo, {
+    schemaVersion: 'sdlc.retrieval_eval_case.v1',
+    id: 'cycle3-impossible-expected-artifact',
+    name: 'impossible expected artifact fails',
+    query: 'Find retrieval eval references',
+    pattern: 'retrieval eval',
+    expectedArtifacts: ['docs/process-improvement/no-such-artifact.md'],
+    gradingMode: 'deterministic',
+    difficulty: 'mechanical',
+    holdout: 'adhoc',
+    topK: 5,
+    costBudget: { maxArtifacts: 20, maxBytes: 500000 },
+    ownerArtifact: 'docs/process-improvement/retrieval-eval-contract.md',
+  }, options);
+  const semanticTail = runRetrievalEvalCase(repo, {
+    schemaVersion: 'sdlc.retrieval_eval_case.v1',
+    id: 'cycle3-semantic-tail-caps',
+    name: 'semantic-tail caps instead of passing',
+    query: 'Explain why retrieval output must stay pointer-only.',
+    expectedArtifacts: ['docs/process-improvement/retrieval-eval-contract.md'],
+    gradingMode: 'human-graded',
+    difficulty: 'semantic-tail',
+    holdout: 'adhoc',
+    topK: 5,
+    ownerArtifact: 'docs/process-improvement/retrieval-eval-contract.md',
+  }, options);
+  const rows = [
+    {
+      name: impossible.name,
+      status: impossible.status === 'fail' && impossible.missingExpected.includes('docs/process-improvement/no-such-artifact.md') ? 'pass' : 'fail',
+      detail: `actual status=${impossible.status}; missing=${impossible.missingExpected.join(', ') || 'none'}`,
+    },
+    {
+      name: semanticTail.name,
+      status: semanticTail.status === 'capped' && semanticTail.caps.length ? 'pass' : 'fail',
+      detail: `actual status=${semanticTail.status}; caps=${semanticTail.caps.join('; ') || 'none'}`,
+    },
+  ];
+  if (options.json) {
+    console.log(JSON.stringify({ schema: 'sdlc.retrieval_regression.v1', repository: repo, rows }, null, 2));
+  } else {
+    console.log('| Case | Status | Detail |');
+    console.log('| --- | --- | --- |');
+    for (const row of rows) console.log(`| ${escapeCell(row.name)} | ${row.status} | ${escapeCell(row.detail)} |`);
+  }
+  if (rows.some((row) => row.status !== 'pass')) process.exitCode = 1;
+}
+
 export function evalLocalFirstSuite(repo, options = {}) {
   scenarioTest(repo, { ...options, verbose: true });
   if (options.strict) {
@@ -891,5 +1022,177 @@ export function evalLocalFirstSuite(repo, options = {}) {
       console.log(`FAIL strict suite: expected broad coverage, only ${cases.length} scenario cases configured.`);
       process.exitCode = 1;
     }
+  }
+}
+
+function retrievalEvalPath(repo, options = {}) {
+  return resolve(repo, options.file || join('.ai-local', 'sdlc-retrieval-eval-cases.jsonl'));
+}
+
+function retrievalEvalCases(repo, options = {}) {
+  const direct = options.query
+    ? [{
+        schemaVersion: 'sdlc.retrieval_eval_case.v1',
+        id: options.id || slug(options.name || options.query),
+        name: options.name || options.query,
+        query: options.query,
+        pattern: options.pattern || options.query,
+        expectedArtifacts: splitList(options.expectedArtifacts || options.expected),
+        gradingMode: options.gradingMode || 'deterministic',
+        difficulty: options.difficulty || 'mechanical',
+        holdout: options.holdout || 'adhoc',
+        topK: Number(options.topK || 5),
+        costBudget: { maxArtifacts: Number(options.maxArtifacts || 10), maxBytes: Number(options.maxBytes || 120000) },
+        ownerArtifact: options.owner || 'ad hoc retrieval eval',
+      }]
+    : [];
+  const filePath = retrievalEvalPath(repo, options);
+  const fromFile = existsSync(filePath)
+    ? filePath.endsWith('.jsonl')
+      ? readJsonLines(filePath)
+      : normalizeRetrievalCaseJson(readJsonIfExists(filePath))
+    : [];
+  const defaults = options.noDefaults ? [] : defaultRetrievalEvalCases();
+  return [...direct, ...fromFile, ...defaults].filter((row) => row && !row.parseError);
+}
+
+function normalizeRetrievalCaseJson(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.cases)) return value.cases;
+  if (Array.isArray(value?.rows)) return value.rows;
+  return value ? [value] : [];
+}
+
+function defaultRetrievalEvalCases() {
+  return [
+    {
+      schemaVersion: 'sdlc.retrieval_eval_case.v1',
+      id: 'cycle3-knowledge-candidate-contract',
+      name: 'knowledge candidate contract references',
+      query: 'Find source artifacts that define knowledge-candidate fallback behavior.',
+      pattern: 'knowledge-candidate',
+      expectedArtifacts: [],
+      gradingMode: 'deterministic',
+      difficulty: 'mechanical',
+      holdout: 'train',
+      topK: 5,
+      costBudget: { maxArtifacts: 30, maxBytes: 300000 },
+      ownerArtifact: 'docs/process-improvement/knowledge-candidate-contract.md',
+    },
+    {
+      schemaVersion: 'sdlc.retrieval_eval_case.v1',
+      id: 'cycle3-tier-routing-receipt',
+      name: 'tier-routing receipt references',
+      query: 'Find source artifacts that define tier-routing receipt behavior.',
+      pattern: 'tier-routing',
+      expectedArtifacts: [],
+      gradingMode: 'deterministic',
+      difficulty: 'mechanical',
+      holdout: 'train',
+      topK: 5,
+      costBudget: { maxArtifacts: 30, maxBytes: 300000 },
+      ownerArtifact: 'docs/process-improvement/three-tier-routing-matrix.md',
+    },
+    {
+      schemaVersion: 'sdlc.retrieval_eval_case.v1',
+      id: 'cycle3-sdlc-eval-surface',
+      name: 'sdlc eval helper references',
+      query: 'Find source artifacts that mention the SDLC eval helper surface.',
+      pattern: 'sdlc eval',
+      expectedArtifacts: [],
+      gradingMode: 'deterministic',
+      difficulty: 'mechanical',
+      holdout: 'train',
+      topK: 5,
+      costBudget: { maxArtifacts: 30, maxBytes: 300000 },
+      ownerArtifact: 'scripts/sdlc/README.md',
+    },
+  ];
+}
+
+function runRetrievalEvalCase(repo, item, options = {}) {
+  const topK = Number(item.topK || options.topK || 5);
+  const gradingMode = item.gradingMode || 'deterministic';
+  const difficulty = item.difficulty || 'mechanical';
+  const expectedFromCase = normalizeArtifacts(item.expectedArtifacts);
+  const caps = [];
+  if (gradingMode !== 'deterministic') {
+    return {
+      id: item.id || slug(item.name || item.query),
+      name: item.name || item.query || 'unnamed',
+      gradingMode,
+      difficulty,
+      status: 'capped',
+      topK,
+      hitAtK: 'human-graded',
+      precisionAtSmallK: 'human-graded',
+      candidateArtifacts: [],
+      expectedArtifacts: expectedFromCase,
+      missingExpected: [],
+      overreturned: [],
+      contextBytes: 0,
+      caps: ['semantic-tail or non-deterministic case requires human grading'],
+    };
+  }
+  const search = runRgSearch(repo, item.pattern || item.query || '');
+  if (search.cap) caps.push(search.cap);
+  const expectedArtifacts = expectedFromCase.length ? expectedFromCase : search.artifacts;
+  const candidateArtifacts = search.artifacts;
+  const topArtifacts = candidateArtifacts.slice(0, topK);
+  const expectedSet = new Set(expectedArtifacts);
+  const candidateSet = new Set(candidateArtifacts);
+  const hitsInTop = topArtifacts.filter((artifact) => expectedSet.has(artifact)).length;
+  const missingExpected = expectedArtifacts.filter((artifact) => !candidateSet.has(artifact));
+  const overreturned = expectedFromCase.length ? candidateArtifacts.filter((artifact) => !expectedSet.has(artifact)) : [];
+  const hitAtK = expectedArtifacts.length ? hitsInTop / expectedArtifacts.length : candidateArtifacts.length ? 0 : 1;
+  const precisionAtSmallK = topArtifacts.length ? hitsInTop / topArtifacts.length : expectedArtifacts.length ? 0 : 1;
+  const contextBytes = candidateArtifacts.reduce((sum, artifact) => sum + artifactBytes(repo, artifact), 0);
+  const budget = item.costBudget || {};
+  if (budget.maxArtifacts && candidateArtifacts.length > Number(budget.maxArtifacts)) caps.push(`context artifact budget exceeded: ${candidateArtifacts.length}/${budget.maxArtifacts}`);
+  if (budget.maxBytes && contextBytes > Number(budget.maxBytes)) caps.push(`context byte budget exceeded: ${contextBytes}/${budget.maxBytes}`);
+  const status = search.cap ? 'capped' : missingExpected.length ? 'fail' : 'pass';
+  return {
+    id: item.id || slug(item.name || item.query),
+    name: item.name || item.query || 'unnamed',
+    query: item.query || '',
+    pattern: item.pattern || item.query || '',
+    gradingMode,
+    difficulty,
+    holdout: item.holdout || 'train',
+    status,
+    topK,
+    hitAtK: Number(hitAtK.toFixed(3)),
+    precisionAtSmallK: Number(precisionAtSmallK.toFixed(3)),
+    candidateArtifacts,
+    expectedArtifacts,
+    missingExpected,
+    overreturned,
+    contextBytes,
+    caps,
+  };
+}
+
+function runRgSearch(repo, pattern) {
+  if (!pattern) return { artifacts: [], cap: 'missing deterministic search pattern' };
+  const roots = ['README.md', 'SUMMARY.md', 'WORKFLOW.md', 'docs', 'scripts', 'skills', 'templates', 'agents', 'agent-contracts'].filter((root) => existsSync(join(repo, root)));
+  try {
+    const output = execFileSync('rg', ['-l', '--', pattern, ...roots], { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return { artifacts: output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).sort(), cap: '' };
+  } catch (error) {
+    if (error?.status === 1) return { artifacts: [], cap: '' };
+    return { artifacts: [], cap: 'rg unavailable or failed; use manual grading fallback' };
+  }
+}
+
+function normalizeArtifacts(value) {
+  if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean).sort();
+  return splitList(value).sort();
+}
+
+function artifactBytes(repo, artifact) {
+  try {
+    return readFileSync(join(repo, artifact)).length;
+  } catch {
+    return 0;
   }
 }

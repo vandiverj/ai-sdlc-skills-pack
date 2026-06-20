@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SDLC Retrieval Eval Case",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "query",
+    "gradingMode",
+    "difficulty",
+    "holdout",
+    "ownerArtifact"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "query": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pattern": {
+      "type": "string"
+    },
+    "expectedArtifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gradingMode": {
+      "type": "string",
+      "enum": ["deterministic", "human-graded"]
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["mechanical", "semantic-tail"]
+    },
+    "holdout": {
+      "type": "string",
+      "enum": ["train", "test", "adhoc"]
+    },
+    "topK": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "costBudget": {
+      "type": "object",
+      "properties": {
+        "maxArtifacts": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "ownerArtifact": {
+      "type": "string",
+      "minLength": 1
+    },
+    "createdAt": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

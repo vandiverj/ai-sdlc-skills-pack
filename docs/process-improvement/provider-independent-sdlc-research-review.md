@@ -139,7 +139,7 @@ Application to our plan:
 
 - Keep the model capability profile, but make it fixture-first and repo-first.
 - Treat public benchmarks as weak priors only.
-- Build small internal evaluation sets from sanitized tasks, seeded defects, known fixes, and Battle Soccer fixture cases.
+- Build small internal evaluation sets from sanitized tasks, seeded defects, known fixes, and approved fixture or dry-run cases.
 
 Plan update recommended:
 

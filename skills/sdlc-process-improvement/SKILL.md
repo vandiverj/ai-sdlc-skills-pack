@@ -1,6 +1,6 @@
 ---
 name: sdlc-process-improvement
-description: 'Improve the AI SDLC itself through evidence-backed research, implementation planning, repeated review/research/revision loops, implementation, Battle Soccer fixture validation, and approved commit/push handoff.'
+description: 'Improve the AI SDLC itself through evidence-backed research, implementation planning, repeated review/research/revision loops, implementation, fixture or dry-run validation, and approved commit/push handoff.'
 user-invocable: true
 ---
 
@@ -28,7 +28,7 @@ Load references only when the task shape needs them:
 
 | Trigger or surface | Load reference |
 | --- | --- |
-| Battle Soccer fixture validation, fixture dry runs, or validation packet shape | `references/battle-soccer-validation.md` |
+| Fixture validation, fixture dry runs, or validation packet shape | `references/fixture-validation.md` |
 | Cross-domain inspiration, machine-native process representations, prompt compression, or experiment-before-process design | `references/experimental-research.md` |
 
 ## SDLC Support Requirements
@@ -88,7 +88,7 @@ Include at least three candidate approaches unless the user explicitly requests 
 - an incremental improvement to existing SDLC guidance or helper behavior,
 - a deterministic helper CLI or local control-plane capability,
 - a repo-configuration or deployable-unit adaptation,
-- a new validation, evidence, QA, or Battle Soccer fixture pattern,
+- a new validation, evidence, QA, or fixture pattern,
 - an agent handoff, runtime-adapter, prompt, context, or review workflow pattern.
 
 Compare candidates using:
@@ -229,7 +229,7 @@ Developer effort reduced:
 Remaining tradeoff:
 ```
 
-Use Battle Soccer for realistic fixture evidence when relevant. Also consider synthetic fixture shapes when the change targets API-only services, no-test legacy repos, multi-repo workspaces, UI-heavy flows, data-sensitive work, or runtime/tool unavailability.
+Use current repository deterministic checks and dry-run packets first for realistic evidence when relevant. Add a repo-local configured target or developer-approved disposable fixture/workspace only when current-repo validation is insufficient for the behavior under test. Also consider synthetic fixture shapes when the change targets API-only services, no-test legacy repos, multi-repo workspaces, UI-heavy flows, data-sensitive work, or runtime/tool unavailability.
 
 ## Adoption Test
 Before implementing or promoting a durable process change, check whether future agents and repos can actually use it.
@@ -278,7 +278,7 @@ Load `references/experimental-research.md` when the improvement may involve cros
 - A process learning should become a durable SDLC change.
 - The SDLC helper CLI, skills, references, workflow gates, validation fixture, or agent routing needs improvement.
 - The user wants a research-backed implementation plan before changing the SDLC.
-- Battle Soccer or another fixture app should validate that the SDLC still works in practice.
+- Current-repo checks, repo-local dry runs, a configured validation target, or developer-approved disposable test repo should validate that the SDLC still works in practice.
 
 ## Not For
 - Ordinary product work that should use `run-sdlc` directly.
@@ -294,7 +294,7 @@ Load `references/experimental-research.md` when the improvement may involve cros
 6. Create an implementation plan with scope, changes, risks, validation, rollback, affected skills/scripts/tests, coding-quality impact, platform support impact, repo-configuration behavior, process weight, and before/after evaluation.
 7. Run at least 10 critique loops before implementation unless the user explicitly narrows the task to a tiny edit.
 8. Implement the approved/revised plan using existing SDLC patterns and the smallest durable change set.
-9. Validate against the Battle Soccer app or the configured fixture target.
+9. Validate using the validation-target order: current repository deterministic checks and dry-run packets first, repo-local configured target second, developer-provided disposable fixture/workspace third.
 10. Run relevant SDLC helper checks/tests and capture evidence.
 11. Prepare commit/push only after explicit human approval.
 
@@ -332,7 +332,7 @@ Cycle through these lenses during the 10 loops:
 - Best practices: Does it align with current tool, security, testing, and agent guidance?
 - Safety: Are consent gates, sensitive data boundaries, and Git boundaries preserved?
 - Composability: Does it fit existing skills instead of duplicating them?
-- Fixture realism: Would Battle Soccer expose the intended failure or improvement?
+- Validation realism: Would the current-repo dry run, configured target, or approved fixture expose the intended failure or improvement?
 - Maintainability: Is the change understandable, testable, and reversible?
 - Adoption: Will future agents know when and how to use it?
 
@@ -362,7 +362,7 @@ Experiment before durable process:
 Implementation plan:
 Ten-loop review log:
 Acceptance criteria:
-Battle Soccer validation plan:
+Validation target plan:
 Verification commands:
 Configuration/defaults changed:
 Rollback path:
@@ -378,8 +378,16 @@ Commit/push approval needed: yes
 - Use `quality` for verification evidence and rendered/fixture evidence when relevant.
 - Use `release` only for commit/handoff readiness, and stop before commit/push without explicit human approval.
 
-## Battle Soccer Validation
-Use Battle Soccer as the default fixture when validating SDLC process changes that affect routing, helper CLI behavior, planning, implementation, review, QA, or release handoff.
+## Fixture Validation
+Use current repository deterministic checks, repo-local dry-run packets, a configured validation target, or a developer-approved disposable fixture/pilot repository when validating SDLC process changes that affect routing, helper CLI behavior, planning, implementation, review, QA, or release handoff.
+
+Resolve the validation target in this order:
+1. Current repository deterministic checks and dry-run packets.
+2. Repo-local configured validation target in `.ai-local/sdlc-profile.md`, `.ai-local/sdlc-profile.json`, or another approved local profile.
+3. Developer-provided disposable fixture or workspace repository approved for the current validation task.
+4. If none is suitable, record the missing fixture as an evidence gap and do not claim runnable fixture validation.
+
+Initial SDLC setup may offer a validation-target profile field, but it must not require one. The default remains the current repository plus dry-run packets. Shared SDLC guidance must not name or assume a personal-machine fixture path.
 
 Validation should prove:
 - the changed SDLC guidance is reachable when appropriate,
@@ -388,7 +396,7 @@ Validation should prove:
 - generated plans or helper outputs are usable,
 - no human consent gate was hidden or removed.
 
-If Battle Soccer is unavailable, record the missing fixture as an evidence gap and use the closest local fixture or dry-run packet.
+If no runnable fixture is available, record the missing fixture as an evidence gap and use the closest repo-local deterministic check or dry-run packet.
 
 ## Required Output
 
@@ -407,7 +415,7 @@ Promotion state:
 Ten-loop status:
 Plan verdict:
 Implementation status:
-Battle Soccer validation:
+Validation target:
 Verification evidence:
 Git status:
 Human approval needed:

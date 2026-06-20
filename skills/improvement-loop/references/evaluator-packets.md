@@ -305,7 +305,7 @@ Coding-quality focus:
 Platform/tool support:
 Repo configurability:
 No-install fallback:
-Battle Soccer validation readiness:
+Fixture or dry-run validation readiness:
 Promotion discipline:
 Interaction with improvement-loop/run-sdlc/process-learning/review/quality:
 Process weight:

@@ -263,6 +263,7 @@ function nextEvidenceCommand(contract, criterion, proofNeeded) {
 
 function qaImplication(contract, criterion, matched) {
   if (matched) return 'developer evidence exists; QA can focus on user-visible regression if needed';
+  if (contract.qaMode === 'mixed-scope') return 'scope docs/process and product/runtime surfaces separately before QA handoff';
   if (contract.qaMode === 'api-contract') return 'include API/developer validation step or cap';
   if (contract.qaMode === 'rendered-ui') return 'include human-visible workflow step';
   if (contract.qaMode === 'data') return 'include safe setup and expected persisted state';

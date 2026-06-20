@@ -69,7 +69,10 @@ export function inferUnitSurface(fullPath, unit = {}) {
 export function affectedUnits(repo, files, profile = loadProfile(repo), explicitUnit = '') {
   const units = unitRegistry(repo, profile);
   if (explicitUnit) return units.filter((unit) => unit.name.toLowerCase() === String(explicitUnit).toLowerCase());
-  if (!files.length) return units.filter((unit) => unit.path === '.') || units.slice(0, 1);
+  if (!files.length) {
+    const rootUnits = units.filter((unit) => unit.path === '.');
+    return rootUnits.length ? rootUnits : [repositoryUnit(files)];
+  }
   const matched = [];
   for (const file of files) {
     const normalizedFile = normalizeUnitPath(file);
@@ -79,7 +82,18 @@ export function affectedUnits(repo, files, profile = loadProfile(repo), explicit
     });
     if (unit) matched.push(unit);
   }
-  return dedupeBy(matched.length ? matched : units.slice(0, 1), (unit) => unit.name);
+  return dedupeBy(matched.length ? matched : [repositoryUnit(files)], (unit) => unit.name);
+}
+
+function repositoryUnit(files = []) {
+  const surfaces = dedupe(files.map(classifyTestingSurface).filter(Boolean));
+  return {
+    name: 'repository',
+    path: '.',
+    type: 'repository',
+    testSurface: surfaces.length === 1 ? surfaces[0] : 'service-behavior',
+    contextBucket: '',
+  };
 }
 
 export function normalizeUnitPath(value) {
@@ -92,6 +106,7 @@ export function inferTestingSurfaces(repo, task, files, profile = loadProfile(re
   const surfaces = [];
   for (const unit of affectedUnits(repo, files, profile)) if (unit.testSurface) surfaces.push(unit.testSurface);
   for (const file of files) surfaces.push(classifyTestingSurface(file));
+  if (matchesAny(text, ['docs', 'readme', 'markdown']) || /\b[\w./-]+\.md\b/.test(text)) surfaces.push('docs-process');
   if (matchesAny(text, ['swagger', 'openapi', 'endpoint', 'api-only', 'api only', 'developer testing'])) surfaces.push('api-contract');
   if (matchesAny(text, ['user interface', 'visible ui', 'rendered product ui', 'layout', 'screen', 'page', 'button', 'board', 'placement', 'animation'])) surfaces.push('rendered-product-ui');
   if (matchesAny(text, ['database', 'sql', 'ef core', 'migration', 'foreign key', 'stored procedure'])) surfaces.push('data-persistence');
@@ -99,11 +114,25 @@ export function inferTestingSurfaces(repo, task, files, profile = loadProfile(re
   if (matchesAny(text, ['worker', 'queue', 'scheduled', 'import', 'export', 'background job'])) surfaces.push('background-job');
   if (matchesAny(text, ['package', 'dependency', 'tooling', 'build'])) surfaces.push('package-tooling');
   let result = dedupe(surfaces.filter(Boolean));
+  if (result.includes('docs-process') && docsOnlyTask(text, files)) {
+    result = result.filter((surface) => surface === 'docs-process');
+  }
   const hasUiFile = files.some((file) => classifyTestingSurface(file) === 'rendered-product-ui');
   if (result.includes('api-contract') && !hasUiFile && matchesAny(text, ['api-only', 'api only', 'swagger', 'openapi', 'developer testing'])) {
     result = result.filter((surface) => surface !== 'rendered-product-ui');
   }
   return result;
+}
+
+function docsOnlyTask(text, files = []) {
+  const hasDocsIntent = matchesAny(text, ['docs', 'readme', 'markdown']) || /\b[\w./-]+\.md\b/.test(text);
+  if (!hasDocsIntent) return false;
+  const behaviorIntent = matchesAny(text, ['api', 'service', 'database', 'integration', 'provider', 'worker', 'queue', 'ui', 'screen', 'layout', 'button', 'package', 'dependency', 'build']);
+  if (behaviorIntent) return false;
+  return files.every((file) => {
+    const surface = classifyTestingSurface(file);
+    return !surface || surface === 'docs-process';
+  });
 }
 
 export function classifyTestingSurface(file) {
@@ -121,10 +150,12 @@ export function classifyTestingSurface(file) {
 
 export function qaModeForSurfaces(surfaces, task = '') {
   const text = String(task || '').toLowerCase();
+  const uniqueSurfaces = [...new Set(surfaces || [])].filter(Boolean);
   if (matchesAny(text, ['scenario', 'retest'])) return 'scenario-retest';
   if (matchesAny(text, ['interactive', 'stateful', 'game', 'gameplay', 'difficulty', 'settings', 'animation', 'mode', 'wizard', 'dashboard'])) return 'interactive-stateful';
   if (matchesAny(text, ['cli', 'command line', 'terminal command'])) return 'cli-workflow';
   if (matchesAny(text, ['worker', 'background job', 'queue', 'scheduled job', 'import job', 'export job'])) return 'background-job';
+  if (uniqueSurfaces.includes('docs-process') && uniqueSurfaces.some((surface) => surface !== 'docs-process')) return 'mixed-scope';
   if (surfaces.includes('api-contract')) return 'api-contract';
   if (surfaces.includes('rendered-product-ui')) return 'ui-workflow';
   if (surfaces.includes('data-persistence')) return 'data-persistence';

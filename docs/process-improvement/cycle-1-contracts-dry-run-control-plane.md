@@ -666,7 +666,7 @@ rg -n "[[:cntrl:]]" docs/process-improvement/cycle-1-contracts-dry-run-control-p
 Run repo skill checks when PowerShell is available:
 
 ```text
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-SkillFiles.ps1
+node scripts/test-skill-files.mjs
 ```
 
 Run CLI smoke checks after implementation:
