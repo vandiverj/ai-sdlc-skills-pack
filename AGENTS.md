@@ -43,6 +43,7 @@ git diff --check
 node scripts/test-skill-files.mjs
 node scripts/test-agent-contracts.mjs
 node scripts/test-routing-optimization.mjs
+node scripts/test-deterministic-tools.mjs
 rg -n -P "[\x00-\x08\x0B\x0C\x0E-\x1F]" README.md SUMMARY.md WORKFLOW.md skills/*/SKILL.md
 git status --short
 ```

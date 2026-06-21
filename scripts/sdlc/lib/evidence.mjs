@@ -7,7 +7,7 @@ import { defaultRunsDir } from './paths.mjs';
 import { ensureControlRunDir, readCurrentState, readCurrentStateInfo } from './state.mjs';
 import { matchRecipes } from './recipes.mjs';
 import { inferRouteFromTask, securityTriggers } from './routes.mjs';
-import { externalEvidenceProfile } from './tools.mjs';
+import { buildToolInventory, deterministicToolRecommendations, externalEvidenceProfile } from './tools.mjs';
 import { inferTestingSurfaces, matchesAny, qaModeForSurfaces } from './units.mjs';
 import { taskContract } from './contract.mjs';
 
@@ -129,7 +129,9 @@ export function evidenceRecommend(repo, options = {}) {
   const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
   const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const requirements = evidenceRequirementsForTask(repo, task, route, { ...git, changedFiles: files }, profile, options);
-  const checks = recommendedEvidenceChecks({ task, route, files, surfaces, commands, requirements });
+  const inventory = buildToolInventory(repo);
+  const toolRecommendations = deterministicToolRecommendations({ task, files, surfaces, inventory });
+  const checks = recommendedEvidenceChecks({ task, route, files, surfaces, commands, requirements, toolRecommendations });
   const result = {
     schema: 'sdlc.evidence_recommend.v1',
     task,
@@ -138,6 +140,7 @@ export function evidenceRecommend(repo, options = {}) {
     touchedFiles: files,
     surfaces,
     checks,
+    toolRecommendations,
     requirements,
     llmUse: checks.some((check) => check.kind === 'interpretation') ? 'interpret gaps/failures only' : 'not needed before deterministic checks',
   };
@@ -148,7 +151,7 @@ export function evidenceRecommend(repo, options = {}) {
   console.log(renderEvidenceRecommend(result).trimEnd());
 }
 
-function recommendedEvidenceChecks({ route, files, surfaces, commands, requirements }) {
+function recommendedEvidenceChecks({ route, files, surfaces, commands, requirements, toolRecommendations = [] }) {
   const checks = [];
   const add = (id, command, reason, kind = 'deterministic') => {
     if (!command) return;
@@ -167,6 +170,10 @@ function recommendedEvidenceChecks({ route, files, surfaces, commands, requireme
   if (commands.lint && (surfaces.includes('code') || files.some((file) => /\.(js|jsx|ts|tsx|mjs|cjs)$/.test(file)))) add('lint', commands.lint, 'Lint changed JavaScript/TypeScript surface.');
   if (commands.typecheck && files.some((file) => /\.(ts|tsx)$/.test(file))) add('typecheck', commands.typecheck, 'Typecheck TypeScript surface.');
   if (commands.test && !['tiny-docs', 'review-only'].includes(route)) add('test', commands.test, 'Run configured tests for behavior-affecting work.');
+  for (const recommendation of toolRecommendations) {
+    if (recommendation.status !== 'available') continue;
+    add(recommendation.id, recommendation.command, recommendation.reason, 'deterministic-tool');
+  }
   if (surfaces.includes('rendered-product-ui')) add('rendered-ui', 'sdlc render evidence --task "<task>"', 'UI changes need rendered/browser evidence or an explicit cap.');
   if (surfaces.includes('api-contract')) add('api-contract', 'sdlc qa api --task "<task>"', 'API/contract changes need request/response or contract evidence.');
   if (surfaces.includes('data-persistence')) add('data-evidence', 'sdlc data evidence --task "<task>"', 'Data changes need safe data evidence or cap.');
@@ -188,6 +195,12 @@ LLM use: ${result.llmUse}
 | Check | Kind | Command | Reason |
 | --- | --- | --- | --- |
 ${result.checks.map((row) => `| ${escapeCell(row.id)} | ${row.kind} | ${escapeCell(row.command)} | ${escapeCell(row.reason)} |`).join('\n')}
+
+## Optional Deterministic Tool Recommendations
+
+| Surface | Tool | Status | Command Or Fallback |
+| --- | --- | --- | --- |
+${(result.toolRecommendations || []).length ? result.toolRecommendations.map((row) => `| ${escapeCell(row.id)} | ${escapeCell(row.tool)} | ${row.status} | ${escapeCell(row.status === 'available' ? row.command : row.fallback)} |`).join('\n') : '| none | n/a | n/a | n/a |'}
 
 ## Evidence Requirements
 

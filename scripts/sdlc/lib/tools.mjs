@@ -125,7 +125,7 @@ export function toolsGaps(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "...".');
   const inventory = readToolInventory(repo) || buildToolInventory(repo);
-  const rows = toolGapRows(repo, task, inventory);
+  const rows = toolGapRows(repo, task, inventory, optionFiles(options, getGitInfo(repo).changedFiles));
   if (options.json) {
     console.log(JSON.stringify({ schema: 'sdlc-tool-gaps-v1', task, repository: repo, gaps: rows }, null, 2));
     return;
@@ -149,7 +149,7 @@ export function toolsRecommend(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "...".');
   const inventory = readToolInventory(repo) || buildToolInventory(repo);
-  const recommendations = localEvidenceRecommendations(repo, task, inventory);
+  const recommendations = localEvidenceRecommendations(repo, task, inventory, optionFiles(options, getGitInfo(repo).changedFiles));
   if (options.json) {
     console.log(JSON.stringify({ schema: 'sdlc-tool-recommendations-v1', task, repository: repo, recommendations }, null, 2));
     return;
@@ -233,7 +233,7 @@ export function buildLocalFirstPlan(repo, task, options = {}) {
     'Architecture, code-design, and risk tradeoff judgment.',
     'Interpreting ambiguous acceptance criteria or cross-repo business intent.',
   ];
-  const unavailable = toolGapRows(repo, task, inventory).filter((row) => row.severity !== 'suggest').map((row) => row.gap);
+  const unavailable = toolGapRows(repo, task, inventory, files).filter((row) => row.severity !== 'suggest').map((row) => row.gap);
   const fallback = toolFallbacksForTask(task, surfaces, profile.values);
   const humanApproval = [];
   if (/commit|push/i.test(task)) humanApproval.push('Commit/push decision remains explicit human approval.');
@@ -310,7 +310,11 @@ export function buildToolInventory(repo) {
     ...makefileTargets(repo),
   ];
   const commands = discoverCommands(profile.values, packageJson);
-  const toolNames = ['git', 'rg', 'jq', 'node', 'npm', 'pnpm', 'yarn', 'bun', 'deno', 'dotnet', 'cargo', 'pip', 'uv', 'docker', 'podman', 'cspell', 'codespell', 'typos', 'aspell', 'hunspell', 'vale', 'npx'];
+  const toolNames = [
+    'git', 'rg', 'jq', 'yq', 'node', 'npm', 'pnpm', 'yarn', 'bun', 'deno', 'dotnet', 'cargo', 'pip', 'uv',
+    'docker', 'podman', 'gitleaks', 'semgrep', 'shellcheck', 'hadolint', 'osv-scanner', 'lychee',
+    'markdownlint-cli2', 'vale', 'spectral', 'ast-grep', 'cspell', 'codespell', 'typos', 'aspell', 'hunspell', 'npx',
+  ];
   const tools = toolNames.map((name) => ({
     name,
     status: commandExists(name) ? 'available' : 'missing',
@@ -337,10 +341,11 @@ export function readToolInventory(repo) {
   return readJsonIfExists(join(repo, '.ai-local', 'sdlc-cache', 'tools.json'));
 }
 
-function toolGapRows(repo, task, inventory) {
+function toolGapRows(repo, task, inventory, files = []) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
-  const surfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const touchedFiles = files.length ? files : git.changedFiles;
+  const surfaces = inferTestingSurfaces(repo, task, touchedFiles, profile);
   const hasScript = (pattern) => inventory.scripts.some((script) => pattern.test(script.name) || pattern.test(script.command));
   const hasTool = (name) => inventory.tools.some((tool) => tool.name === name && tool.status === 'available');
   const rows = [];
@@ -349,16 +354,29 @@ function toolGapRows(repo, task, inventory) {
   if (surfaces.includes('rendered-product-ui') && !hasTool('npx')) rows.push({ gap: 'Rendered UI tooling not obvious.', severity: 'suggest', trust: 'optional-suggestion', suggestion: 'Use configured rendered evidence command, browser smoke, or manual QA cap.' });
   if (/api|swagger|openapi/i.test(task) && !inventory.files.some((file) => /openapi|swagger/i.test(file.path))) rows.push({ gap: 'API task without detected OpenAPI/Swagger artifact.', severity: 'suggest', trust: 'weak-signal', suggestion: 'Use endpoint tests, API client evidence, or profile the API contract source.' });
   if (/database|sql|data/i.test(task) && externalEvidenceProfile(profile.values).database.availability !== 'available') rows.push({ gap: 'Database MCP unavailable or unknown.', severity: 'warn', trust: 'human-judgment-required', suggestion: 'Use code/schema/test evidence or ask for approved sanitized aggregate evidence.' });
+  for (const recommendation of deterministicToolRecommendations({ task, files: touchedFiles, surfaces, inventory })) {
+    if (recommendation.status === 'missing') rows.push({
+      gap: `${recommendation.tool} unavailable for ${recommendation.id}.`,
+      severity: 'suggest',
+      trust: 'optional-suggestion',
+      suggestion: recommendation.fallback,
+    });
+  }
   return rows.length ? rows : [{ gap: 'No major gaps detected.', severity: 'record', trust: 'deterministic-proof', suggestion: 'Continue with local-first evidence plan.' }];
 }
 
-function localEvidenceRecommendations(repo, task, inventory) {
+function localEvidenceRecommendations(repo, task, inventory, files = []) {
   const rows = [];
   const commands = inventory.scripts.map((script) => script.command);
   const first = (pattern) => commands.find((command) => pattern.test(command));
+  const surfaces = inferTestingSurfaces(repo, task, files, loadProfile(repo));
   if (first(/test/i)) rows.push(`Run focused developer verification: ${first(/test/i)}.`);
   if (first(/typecheck|check/i)) rows.push(`Run type/static check evidence: ${first(/typecheck|check/i)}.`);
   if (first(/build/i)) rows.push(`Run build evidence when behavior or packaging changed: ${first(/build/i)}.`);
+  for (const recommendation of deterministicToolRecommendations({ task, files, surfaces, inventory })) {
+    const availability = recommendation.status === 'available' ? recommendation.command : `${recommendation.tool} unavailable; ${recommendation.fallback}`;
+    rows.push(`${recommendation.reason}: ${availability}.`);
+  }
   if (/qa|tester|manual/i.test(task)) rows.push('Generate tester-readable Markdown with `sdlc qa script --task "..."` and lint it with `sdlc qa human-lint --packet <path>`.');
   if (/api|swagger|openapi/i.test(task)) rows.push('Treat Swagger/OpenAPI/API client evidence as a testing surface, not rendered product UI.');
   if (/database|sql|data/i.test(task)) rows.push('Prefer metadata/aggregate/read-only evidence and redact sensitive details in learnings.');
@@ -366,12 +384,65 @@ function localEvidenceRecommendations(repo, task, inventory) {
   return rows;
 }
 
+export function deterministicToolRecommendations({ task = '', files = [], surfaces = [], inventory = {} } = {}) {
+  const text = String(task || '').toLowerCase();
+  const touched = files.map((file) => String(file || '').replace(/\\/g, '/'));
+  const hasTool = (name) => (inventory.tools || []).some((tool) => tool.name === name && tool.status === 'available');
+  const rows = [];
+  const add = (id, tool, command, reason, fallback) => {
+    if (rows.some((row) => row.id === id && row.tool === tool)) return;
+    rows.push({ id, tool, command, reason, fallback, status: hasTool(tool) ? 'available' : 'missing' });
+  };
+  const selected = (pattern) => touched.filter((file) => pattern.test(file));
+  const docs = selected(/\.(md|mdx|txt|adoc|rst)$/i);
+  const shell = selected(/\.(sh|bash|zsh|ksh)$/i);
+  const docker = selected(/(^|\/)Dockerfile[^/]*$|\.dockerfile$/i);
+  const json = selected(/\.(json|jsonc)$/i);
+  const yaml = selected(/\.(ya?ml)$/i);
+  const apiSpecs = selected(/(^|\/)(openapi|swagger|asyncapi)[^/]*\.(json|ya?ml)$/i);
+  const dependencyFiles = selected(/(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?|deno\.lock|requirements.*\.txt|pyproject\.toml|poetry\.lock|go\.mod|go\.sum|Cargo\.lock|packages\.lock\.json|.*\.(csproj|fsproj|vbproj))$/i);
+  const sourceFiles = selected(/\.(js|jsx|ts|tsx|mjs|cjs|py|cs|vb|fs|go|rs|java|kt|php|rb)$/i);
+  const configOrSensitive = selected(/(^|\/)(\.env|.*secret.*|.*credential.*|.*token.*|.*config.*|.*adapter.*|.*mcp.*|.*agent.*)/i);
+  const securityText = /\b(secret|credential|token|auth|oauth|session|cookie|permission|policy|security|mcp|adapter|sandbox|external service|provider)\b/.test(text);
+  const refactorText = /\b(refactor|rename|codemod|mechanical rewrite|structural search|large edit)\b/.test(text);
+
+  if (docs.length) {
+    add('markdown-lint', 'markdownlint-cli2', `markdownlint-cli2 ${quotePaths(docs)}`, 'Lint changed Markdown/prose structure deterministically', 'use focused changed-file review and `git diff --check`');
+    add('link-check', 'lychee', `lychee ${quotePaths(docs)}`, 'Check changed documentation links deterministically', 'manually inspect changed links and avoid claiming link health');
+    add('prose-style', 'vale', `vale ${quotePaths(docs)}`, 'Check public/team-facing prose consistency when styles are configured', 'perform focused terminology/readability review');
+  }
+  if (shell.length) add('shell-lint', 'shellcheck', `shellcheck ${quotePaths(shell)}`, 'Lint changed shell scripts deterministically', 'review shell quoting, errexit behavior, inputs, and sandbox assumptions manually');
+  if (docker.length) add('dockerfile-lint', 'hadolint', `hadolint ${quotePaths(docker)}`, 'Lint changed Dockerfiles deterministically', 'review Dockerfile layers, base image, user, and shell commands manually');
+  if (dependencyFiles.length || surfaces.includes('package-tooling') || /\b(dependency|package|vulnerability|supply chain)\b/.test(text)) {
+    add('dependency-vulnerability-scan', 'osv-scanner', 'osv-scanner --recursive .', 'Scan dependency manifests and lockfiles for known vulnerabilities', 'use package-manager audit or record vulnerability-scan cap');
+  }
+  if (apiSpecs.length || surfaces.includes('api-contract')) add('api-spec-lint', 'spectral', `spectral lint ${quotePaths(apiSpecs.length ? apiSpecs : ['openapi.yaml'])}`, 'Lint OpenAPI/AsyncAPI contract files deterministically', 'use API contract tests or manual schema review');
+  if (json.length) add('json-parse', 'jq', `jq empty ${quotePaths(json)}`, 'Validate changed JSON syntax deterministically', 'use language parser or focused syntax review');
+  if (yaml.length) add('yaml-parse', 'yq', `yq eval '.' ${quotePaths(yaml)}`, 'Validate changed YAML syntax deterministically', 'use repo-native YAML parser or focused syntax review');
+  if (securityText || configOrSensitive.length) add('secret-scan', 'gitleaks', 'gitleaks detect --source . --redact --no-banner', 'Scan for accidental secrets after sensitive/config/tooling changes', 'review changed config for secrets and avoid sharing raw values');
+  if (securityText && sourceFiles.length) add('sast-scan', 'semgrep', 'semgrep scan --config auto', 'Run deterministic static analysis for security-sensitive source changes', 'use focused code review and configured lint/typecheck evidence');
+  if (refactorText) add('structural-search', 'ast-grep', 'ast-grep scan', 'Use configured structural rules for broad mechanical code changes', 'use `rg` plus focused review for representative before/after examples');
+  return rows;
+}
+
+function quotePaths(files) {
+  return files.slice(0, 24).map(quotePath).join(' ');
+}
+
+function quotePath(file) {
+  const value = String(file);
+  if (/^[A-Za-z0-9_./:@%+=,-]+$/.test(value)) return value;
+  return `"${value.replace(/(["\\$`])/g, '\\$1')}"`;
+}
+
 function detectEvidenceFiles(repo) {
-  const candidates = ['package.json', 'deno.json', 'deno.jsonc', 'Makefile', 'docker-compose.yml', 'docker-compose.yaml', 'playwright.config.ts', 'playwright.config.js', 'cypress.config.ts', 'cypress.config.js', 'openapi.yaml', 'openapi.yml', 'swagger.json'];
+  const candidates = ['package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'deno.json', 'deno.jsonc', 'deno.lock', 'Makefile', 'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml', '.gitlab-ci.yml', 'playwright.config.ts', 'playwright.config.js', 'cypress.config.ts', 'cypress.config.js', 'openapi.yaml', 'openapi.yml', 'swagger.json', 'asyncapi.yaml', 'asyncapi.yml'];
   const files = candidates.filter((name) => existsSync(join(repo, name))).map((path) => ({ path, kind: 'root-config' }));
   for (const path of boundedWalk(repo, 4, 900)) {
     if (/\.(sln|csproj|fsproj|vbproj)$/.test(path)) files.push({ path, kind: 'dotnet-project' });
-    else if (/(^|\/)(openapi|swagger).*\.(json|ya?ml)$/i.test(path)) files.push({ path, kind: 'api-contract' });
+    else if (/(^|\/)(openapi|swagger|asyncapi).*\.(json|ya?ml)$/i.test(path)) files.push({ path, kind: 'api-contract' });
+    else if (/(^|\/)Dockerfile[^/]*$|\.dockerfile$/i.test(path)) files.push({ path, kind: 'container-build' });
+    else if (/(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|deno\.lock|Cargo\.lock|packages\.lock\.json)$/i.test(path)) files.push({ path, kind: 'dependency-lockfile' });
     else if (/(^|\/)(playwright|cypress|vitest|jest)\.config\.[cm]?[jt]s$/i.test(path)) files.push({ path, kind: 'test-tool-config' });
     else if (/(^|\/)deno\.jsonc?$/i.test(path)) files.push({ path, kind: 'deno-config' });
   }
@@ -447,15 +518,27 @@ function boundedWalk(repo, maxDepth, maxFiles) {
 }
 
 function toolTrust(name) {
-  if (['git', 'rg', 'jq', 'node'].includes(name)) return 'deterministic-proof';
+  if (['git', 'rg', 'jq', 'yq', 'node'].includes(name)) return 'deterministic-proof';
   if (['npm', 'pnpm', 'yarn', 'bun', 'deno', 'dotnet', 'cargo', 'pip', 'uv', 'npx'].includes(name)) return 'local-configuration';
   if (['docker', 'podman'].includes(name)) return 'optional-suggestion';
+  if (['gitleaks', 'semgrep', 'shellcheck', 'hadolint', 'osv-scanner', 'lychee', 'markdownlint-cli2', 'vale', 'spectral', 'ast-grep'].includes(name)) return 'optional-deterministic-tool';
   if (['cspell', 'codespell', 'typos', 'aspell', 'hunspell', 'vale'].includes(name)) return 'optional-suggestion';
   return 'weak-signal';
 }
 
 function toolDetail(name, repo) {
   if (name === 'git') return 'scope, branch, and diff evidence';
+  if (name === 'gitleaks') return 'optional redacted secret scanning';
+  if (name === 'semgrep') return 'optional static analysis/security scanning';
+  if (name === 'shellcheck') return 'optional shell script linting';
+  if (name === 'hadolint') return 'optional Dockerfile linting';
+  if (name === 'osv-scanner') return 'optional dependency vulnerability scanning';
+  if (name === 'lychee') return 'optional documentation link checking';
+  if (name === 'markdownlint-cli2') return 'optional Markdown linting';
+  if (name === 'vale') return 'optional prose style linting';
+  if (name === 'spectral') return 'optional API specification linting';
+  if (name === 'ast-grep') return 'optional structural search/lint/rewrite support';
+  if (name === 'yq') return 'optional YAML parsing/query support';
   if (['cspell', 'codespell', 'typos', 'aspell', 'hunspell', 'vale'].includes(name)) return 'optional prompt/prose hygiene support';
   if (name === detectPackageManager(repo)) return 'detected package manager';
   return 'local command availability';

@@ -94,7 +94,7 @@ Use `sdlc prompt compile --phase <phase> --task "<task>"` or `sdlc prompt compil
 
 Agent handoff packets are optional bounded work orders. They help organize verification, review, QA handoff, release handoff, and learning work, but tiny tasks can skip them when they add overhead.
 
-For tiny docs/mechanical work, `sdlc route fast-pass` can explicitly return `delegation: none`; use the listed deterministic checks before spending more model context or spawning subagents. `sdlc context compile` emits the smallest selected context packet within a token budget and defers optional docs until they are needed. `sdlc evidence recommend` maps files and surfaces to deterministic checks before LLM interpretation.
+For tiny docs/mechanical work, `sdlc route fast-pass` can explicitly return `delegation: none`; use the listed deterministic checks before spending more model context or spawning subagents. `sdlc context compile` emits the smallest selected context packet within a token budget and defers optional docs until they are needed. `sdlc evidence recommend` maps files and surfaces to deterministic checks before LLM interpretation. When available, the SDLC can recommend approved optional tools such as `gitleaks`, `semgrep`, `shellcheck`, `hadolint`, `osv-scanner`, `markdownlint-cli2`, `lychee`, `vale`, `spectral`, `ast-grep`, `jq`, `yq`, and `rg`; missing tools are reported as optional gaps with fallback evidence, not silently installed.
 
 For longer or interrupted work, the operator commands provide a compact local control surface that avoids asking the model to rediscover status from scratch:
 
