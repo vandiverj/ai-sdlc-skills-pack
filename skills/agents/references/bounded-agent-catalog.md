@@ -19,24 +19,25 @@ Portable agent definitions live in `.agents/agents/*.md`. Runtime-specific adapt
 
 ## Adapter Templates
 - Augment/Auggie: `.agents/templates/adapters/augment/agent.md`
+- Auggie SDLC roster: `.agents/templates/adapters/auggie/sdlc-*.md`
 - Pi: `.agents/templates/adapters/pi/agent.md`
 - Codex: `.agents/templates/adapters/codex/agent.toml` for generic role adapters, or `.agents/templates/adapters/codex/sdlc-*.toml` for Codex-native SDLC subagents
 
 ## Role Source Matrix
 
-| Portable role | Codex adapter | Prompt template | Downstream catalog status |
-| --- | --- | --- | --- |
-| Context scout | `templates/adapters/codex/sdlc-context-scout.toml` | none yet | portable agent |
-| Read-only code scout | `templates/adapters/codex/sdlc-read-only-code-scout.toml` | none yet | portable agent |
-| Implementation planner | `templates/adapters/codex/sdlc-implementation-planner.toml` | none yet | portable agent |
-| Implementation worker | `templates/adapters/codex/sdlc-implementation-worker.toml` | `templates/prompts/sdlc/implementation-worker.md` | portable agent |
-| Verification worker | `templates/adapters/codex/sdlc-verification-worker.toml` | `templates/prompts/sdlc/verification-worker.md` | portable agent |
-| Independent reviewer | `templates/adapters/codex/sdlc-independent-reviewer.toml` | `templates/prompts/sdlc/independent-reviewer.md` | portable agent |
-| Security privacy reviewer | `templates/adapters/codex/sdlc-security-privacy-reviewer.toml` | none yet | portable agent |
-| QA handoff worker | `templates/adapters/codex/sdlc-qa-handoff-worker.toml` | none yet | portable agent |
-| Release handoff worker | `templates/adapters/codex/sdlc-release-handoff-worker.toml` | `templates/prompts/sdlc/release-handoff-worker.md` | portable agent |
-| Process learning reviewer | `templates/adapters/codex/sdlc-process-learning-reviewer.toml` | `templates/prompts/sdlc/process-learning-reviewer.md` | portable agent |
-| Feedback reporter | `templates/adapters/codex/sdlc-feedback-reporter.toml` | none yet | portable agent |
+| Portable role | Codex adapter | Auggie adapter | Prompt template | Downstream catalog status |
+| --- | --- | --- | --- | --- |
+| Context scout | `templates/adapters/codex/sdlc-context-scout.toml` | `templates/adapters/auggie/sdlc-context-scout.md` | none yet | portable agent |
+| Read-only code scout | `templates/adapters/codex/sdlc-read-only-code-scout.toml` | `templates/adapters/auggie/sdlc-read-only-code-scout.md` | none yet | portable agent |
+| Implementation planner | `templates/adapters/codex/sdlc-implementation-planner.toml` | `templates/adapters/auggie/sdlc-implementation-planner.md` | none yet | portable agent |
+| Implementation worker | `templates/adapters/codex/sdlc-implementation-worker.toml` | `templates/adapters/auggie/sdlc-implementation-worker.md` | `templates/prompts/sdlc/implementation-worker.md` | portable agent |
+| Verification worker | `templates/adapters/codex/sdlc-verification-worker.toml` | `templates/adapters/auggie/sdlc-verification-worker.md` | `templates/prompts/sdlc/verification-worker.md` | portable agent |
+| Independent reviewer | `templates/adapters/codex/sdlc-independent-reviewer.toml` | `templates/adapters/auggie/sdlc-independent-reviewer.md` | `templates/prompts/sdlc/independent-reviewer.md` | portable agent |
+| Security privacy reviewer | `templates/adapters/codex/sdlc-security-privacy-reviewer.toml` | `templates/adapters/auggie/sdlc-security-privacy-reviewer.md` | none yet | portable agent |
+| QA handoff worker | `templates/adapters/codex/sdlc-qa-handoff-worker.toml` | `templates/adapters/auggie/sdlc-qa-handoff-worker.md` | none yet | portable agent |
+| Release handoff worker | `templates/adapters/codex/sdlc-release-handoff-worker.toml` | `templates/adapters/auggie/sdlc-release-handoff-worker.md` | `templates/prompts/sdlc/release-handoff-worker.md` | portable agent |
+| Process learning reviewer | `templates/adapters/codex/sdlc-process-learning-reviewer.toml` | `templates/adapters/auggie/sdlc-process-learning-reviewer.md` | `templates/prompts/sdlc/process-learning-reviewer.md` | portable agent |
+| Feedback reporter | `templates/adapters/codex/sdlc-feedback-reporter.toml` | `templates/adapters/auggie/sdlc-feedback-reporter.md` | none yet | portable agent |
 
 Conceptual downstream reviewer labels such as `test-engineer`, `spec-compliance-reviewer`, `code-quality-reviewer`, `contract-reviewer`, `production-readiness-reviewer`, and `doc-sync-reviewer` are router-reference roles unless repeated evidence justifies a separate portable agent.
 

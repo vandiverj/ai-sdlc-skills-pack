@@ -14,7 +14,7 @@ import { ensureEvidenceManifest, evidenceAdd, evidenceGap, evidenceInit, evidenc
 import { detectCiSystems, detectDeploySystems, detectTestFrameworks, sharedContextDetails, sharedContextReachability } from './environment.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { detectContextContradictions, evalAddCase, evalCase, evalCompare, evalLocalFirstSuite, evalReport, evalRetrievalAdd, evalRetrievalReport, evalRetrievalRun, evalRetrievalTest, evalRun, evalSuite, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
-import { adapterCodexInstall, adapterDoctor, adapterGenerate, adapterLimits, adapterProfile, adapterPrompt, eventReplay, eventValidate, hooksAudit, hooksContract, hooksPlan } from './adapters.mjs';
+import { adapterAuggieInstall, adapterCodexInstall, adapterDoctor, adapterGenerate, adapterLimits, adapterProfile, adapterPrompt, eventReplay, eventValidate, hooksAudit, hooksContract, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
 import { contextAliases, contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextDecision, contextDocCandidates, contextFinalCheck, contextFreshness, contextFreshnessRecommendations, contextFreshnessRow, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextPlacement, contextPlacementRecommendation, contextPrune, contextResolve, contextRestore, contextUpdatePlan, contextUpdateTargets, contextWhy, finalContextSignals, formatContextDocs, recommendedContextFile } from './context.mjs';
@@ -306,6 +306,7 @@ export async function main(argv) {
   if (area === 'agents' && action === 'status') return agentsStatus(repo, options);
   if (area === 'agents' && action === 'lint') return agentsLint(repo, options);
   if (area === 'agents' && action === 'install-codex') return adapterCodexInstall(repo, options);
+  if (area === 'agents' && action === 'install-auggie') return adapterAuggieInstall(repo, options);
   if (area === 'models' && action === 'inventory') return modelsInventory(repo, options);
   if (area === 'models' && (action === 'revalidate' || action === 'drift')) return modelsRevalidate(repo, options);
   if (area === 'review' && action === 'local') return reviewLocal(repo, options);

@@ -204,6 +204,8 @@ Usage:
   sdlc agents scout-validate --packet <findings.json> [--repo <path>]
   sdlc agents status --task "..." [--repo <path>]
   sdlc agents lint --packet <path> [--repo <path>]
+  sdlc agents install-codex [--frontier] [--target <path>] [--dry-run] [--repo <path>]
+  sdlc agents install-auggie [--target <path>] [--model-profile default|frontier-gpt] [--dry-run] [--repo <path>]
   sdlc review local --task "..." [--repo <path>] [--out <path>]
   sdlc response lint --file <path> [--role-response] [--repo <path>]
   sdlc qa human-lint --packet <path> [--repo <path>]

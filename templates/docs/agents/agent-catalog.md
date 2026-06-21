@@ -39,6 +39,7 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Write access: No.
 - Expected output: Files/artifacts to load, why they matter, uncertainty, and next recommended skill.
 - Codex frontier adapter: `sdlc_context_scout` using `gpt-5.3-codex-spark`.
+- Auggie adapter: `sdlc-context-scout`; default model unless installed with available frontier GPT mapping.
 
 ### read-only-code-scout
 - Purpose: Perform bounded read-only code discovery for a named language profile and task type.
@@ -49,6 +50,7 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Common task types: duplication-scan, abandoned-code-scan, extraction-candidate-scan, test-gap-scan, risk-surface-scan, context-summary.
 - Escalation triggers: unclear scope, missing source pointers, sensitive boundary uncertainty, invented facts, or findings more expensive to verify than manual review.
 - Codex frontier adapter: `sdlc_read_only_code_scout` using `gpt-5.3-codex-spark`.
+- Auggie adapter: `sdlc-read-only-code-scout`; default model unless installed with available frontier GPT mapping.
 
 ### implementation-planner
 - Purpose: Convert approved issue/contract/context into an executable, testable, bounded plan.
@@ -57,6 +59,7 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Write access: No implementation edits.
 - Expected output: Plan sections required by the `planning` implementation-plan reference.
 - Codex frontier adapter: `sdlc_implementation_planner` using `gpt-5.4-mini`.
+- Auggie adapter: `sdlc-implementation-planner`; default model unless installed with available frontier GPT mapping.
 
 ### implementation-worker
 - Purpose: Execute an approved plan within a safe-edit boundary.
@@ -65,6 +68,7 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Write access: Only assigned files.
 - Expected output: Changed files, tests run, blockers, and deviations from plan.
 - Codex frontier adapter: `sdlc_implementation_worker` using `gpt-5.4`.
+- Auggie adapter: `sdlc-implementation-worker`; default model unless installed with available frontier GPT mapping.
 
 ### verification-worker
 - Purpose: Run approved verification commands and tool-backed checks without editing files.
@@ -73,6 +77,16 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Write access: No.
 - Expected output: Commands/tools run, results, failed/skipped checks, rendered-review evidence or cap, and residual evidence risk.
 - Codex frontier adapter: `sdlc_verification_worker` using `gpt-5.4-mini`.
+- Auggie adapter: `sdlc-verification-worker`; default model unless installed with available frontier GPT mapping.
+
+### independent-reviewer
+- Purpose: Review a bounded plan, diff, or evidence packet independently from the implementing agent.
+- Status: portable agent.
+- Default model tier: `standard`; escalate to `deep` for high-risk work or unresolved evidence conflicts.
+- Write access: No.
+- Expected output: Blocking findings first, non-blocking findings, evidence gaps, residual risks, and a recommendation.
+- Codex frontier adapter: `sdlc_independent_reviewer` using `gpt-5.4`.
+- Auggie adapter: `sdlc-independent-reviewer`; default model unless installed with available frontier GPT mapping.
 
 ### release-handoff-worker
 - Purpose: Perform final Git/status hygiene and publish only when explicitly assigned.
@@ -81,6 +95,7 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Write access: May stage, commit, or push only inside the assigned repository and only when the handoff phase grants that authority.
 - Expected output: Final status, staged-file boundary, verification evidence, commit/push result or cap, and residual release risk.
 - Codex frontier adapter: `sdlc_release_handoff_worker` using `gpt-5.4-mini`.
+- Auggie adapter: `sdlc-release-handoff-worker`; default model unless installed with available frontier GPT mapping.
 
 ### process-learning-reviewer
 - Purpose: Aggregate repeated process evidence and recommend small SDLC improvements.
@@ -89,6 +104,7 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Write access: No.
 - Expected output: Patterns observed, reusable gaps, fixture-only issues, strategic questions, overfitting risk, and recommended artifact updates.
 - Codex frontier adapter: `sdlc_process_learning_reviewer` using `gpt-5.4-mini`.
+- Auggie adapter: `sdlc-process-learning-reviewer`; default model unless installed with available frontier GPT mapping.
 
 ### test-engineer
 - Purpose: Design or review tests, edge cases, regression checks, and verification commands.
@@ -125,6 +141,7 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Write access: No.
 - Expected output: Threat-model findings, required mitigations, tests/checks, residual risks.
 - Codex frontier adapter: `sdlc_security_privacy_reviewer` using `gpt-5.5`.
+- Auggie adapter: `sdlc-security-privacy-reviewer`; default model unless installed with available frontier GPT mapping.
 
 ### production-readiness-reviewer
 - Purpose: Review release, rollback, observability, migration, CI/local parity, and Git reviewability.
@@ -147,6 +164,7 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Write access: QA/handoff docs only when explicitly assigned.
 - Expected output: Tester setup, scenarios, expected results, regression checks, caps.
 - Codex frontier adapter: `sdlc_qa_handoff_worker` using `gpt-5.4-mini`.
+- Auggie adapter: `sdlc-qa-handoff-worker`; default model unless installed with available frontier GPT mapping.
 
 ### feedback-reporter
 - Purpose: Draft sanitized SDLC feedback events for parent-mediated submission.
@@ -155,6 +173,7 @@ Status: portable agent / router reference / conceptual role / future candidate
 - Write access: No direct MCP submission by default.
 - Expected output: `airtera.sdlc.feedback.v1`-compatible draft with `rawContentIncluded: false`.
 - Codex frontier adapter: `sdlc_feedback_reporter` using `gpt-5.4-mini`.
+- Auggie adapter: `sdlc-feedback-reporter`; default model unless installed with available frontier GPT mapping.
 
 ## Feedback rule
 Specialist agents return SDLC feedback drafts. The parent orchestrator validates and submits through AirteraCode MCP when available, or local `sdlc feedback add` fallback when not.

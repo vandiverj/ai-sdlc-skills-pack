@@ -84,7 +84,16 @@ If the runtime needs a broader authority than the portable role allows, update t
 - Use concise instruction files that link to portable docs.
 - Map roles only when the project actually uses Copilot customization for agent behavior.
 
-### Augment / Claude Code / Other Agent Runtimes
+### Augment / Auggie
+
+- Use `~/.augment/agents/*.md` for reusable personal SDLC subagents and `./.augment/agents/*.md` only for workspace-shared overrides.
+- Keep Auggie subagents as Markdown adapters over one portable role each.
+- Use `sdlc agents install-auggie` to install the SDLC roster into the user-level Augment agents folder.
+- Leave `model` unset when `auggie models list` reports only the default model. Use `--model-profile frontier-gpt` only after the local Auggie registry confirms those IDs are available.
+- Use Auggie tool restrictions to preserve read-only scouts/reviewers, bounded implementation workers, command-only verification, and parent-owned release/feedback submission.
+- Treat Augment IDE custom-agent support as runtime capability dependent; use the Auggie CLI adapter files as the source shape unless IDE-specific docs require a narrower adapter.
+
+### Claude Code / Other Agent Runtimes
 
 - Create runtime-specific agent files only for roles the project will use.
 - Keep each file derived from one portable role unless the runtime forces a combined role.

@@ -20,6 +20,32 @@ const LOCAL_CODEX_AGENT_FILES = [
   'sdlc-local-read-only-code-scout.toml',
   'sdlc-lmstudio-read-only-code-scout.toml',
 ];
+const AUGGIE_AGENT_FILES = [
+  'sdlc-context-scout.md',
+  'sdlc-read-only-code-scout.md',
+  'sdlc-implementation-planner.md',
+  'sdlc-implementation-worker.md',
+  'sdlc-verification-worker.md',
+  'sdlc-independent-reviewer.md',
+  'sdlc-security-privacy-reviewer.md',
+  'sdlc-qa-handoff-worker.md',
+  'sdlc-release-handoff-worker.md',
+  'sdlc-process-learning-reviewer.md',
+  'sdlc-feedback-reporter.md',
+];
+const AUGGIE_FRONTIER_GPT_MODELS = {
+  'sdlc-context-scout.md': 'gpt-5.1',
+  'sdlc-read-only-code-scout.md': 'gpt-5.1',
+  'sdlc-implementation-planner.md': 'gpt-5.2',
+  'sdlc-implementation-worker.md': 'gpt-5.4',
+  'sdlc-verification-worker.md': 'gpt-5.2',
+  'sdlc-independent-reviewer.md': 'gpt-5.4',
+  'sdlc-security-privacy-reviewer.md': 'gpt-5.5',
+  'sdlc-qa-handoff-worker.md': 'gpt-5.2',
+  'sdlc-release-handoff-worker.md': 'gpt-5.4',
+  'sdlc-process-learning-reviewer.md': 'gpt-5.2',
+  'sdlc-feedback-reporter.md': 'gpt-5.2',
+};
 
 export function adapterGenerate(repo, options = {}) {
   const runtime = options.runtime || 'generic';
@@ -77,7 +103,7 @@ export function adapterCodexInstall(repo, options = {}) {
 
   if (!files.length) fail(`No Codex agent templates found in ${adaptersDir}.`);
 
-  mkdirSync(targetDir, { recursive: true });
+  if (!options.dryRun) mkdirSync(targetDir, { recursive: true });
   const installed = [];
   for (const file of files) {
     const source = join(adaptersDir, file);
@@ -110,6 +136,58 @@ export function adapterCodexInstall(repo, options = {}) {
   console.log('\nInstalled agents:');
   console.log(formatList(installed.map((row) => `${row.status}: ${row.target}`)));
   console.log('\nRestart Codex or reload the current Codex surface if newly installed agents are not discoverable.');
+}
+
+export function adapterAuggieInstall(repo, options = {}) {
+  const adaptersDir = resolve(repo, options.templates || 'templates/adapters/auggie');
+  const targetDir = resolve(options.target || join(homedir(), '.augment', 'agents'));
+  const modelProfile = String(options.modelProfile || options['model-profile'] || 'default').toLowerCase();
+  const available = readdirSync(adaptersDir).filter((file) => file.endsWith('.md'));
+  const files = AUGGIE_AGENT_FILES.filter((file) => available.includes(file));
+
+  if (!files.length) fail(`No Auggie agent templates found in ${adaptersDir}.`);
+
+  if (!options.dryRun) mkdirSync(targetDir, { recursive: true });
+  const installed = [];
+  for (const file of files) {
+    const source = join(adaptersDir, file);
+    const target = join(targetDir, file);
+    const model = modelProfile === 'frontier-gpt' ? AUGGIE_FRONTIER_GPT_MODELS[file] : '';
+    const content = model ? withAuggieModel(readFileSync(source, 'utf8'), model) : readFileSync(source, 'utf8');
+    if (options.dryRun) installed.push({ source, target, model: model || 'default', status: 'dry-run' });
+    else {
+      safeWriteTextFile(targetDir, target, content);
+      installed.push({ source, target, model: model || 'default', status: 'installed' });
+    }
+  }
+
+  if (options.json) {
+    console.log(JSON.stringify({
+      schema: 'sdlc.auggie_agent_install.v1',
+      targetDir,
+      modelProfile,
+      installed,
+    }, null, 2));
+    return;
+  }
+
+  printObject({
+    targetDir,
+    modelProfile,
+    count: installed.length,
+    status: options.dryRun ? 'dry-run' : 'installed',
+  });
+  console.log('\nInstalled agents:');
+  console.log(formatList(installed.map((row) => `${row.status}: ${row.target} (model: ${row.model})`)));
+  console.log('\nRestart Auggie or reload Augment if newly installed agents are not discoverable.');
+  if (modelProfile === 'default') {
+    console.log('Run `auggie models list` before using `--model-profile frontier-gpt`; model availability varies by subscription and organization.');
+  }
+}
+
+function withAuggieModel(content, model) {
+  if (/^model:\s*.+$/m.test(content)) return content.replace(/^model:\s*.*$/m, `model: ${model}`);
+  return content.replace(/^(description:\s*".*"\n)/m, `$1model: ${model}\n`);
 }
 
 export function adapterDoctor(repo, options = {}) {

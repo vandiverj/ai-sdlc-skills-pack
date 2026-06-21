@@ -20,6 +20,16 @@ const expectedFrontierAdapters = [
   'sdlc-process-learning-reviewer.toml',
   'sdlc-feedback-reporter.toml',
 ];
+const expectedAuggieAdapters = expectedFrontierAdapters.map((file) => file.replace(/\.toml$/, '.md'));
+const auggieReadOnlyAdapters = new Set([
+  'sdlc-context-scout.md',
+  'sdlc-read-only-code-scout.md',
+  'sdlc-implementation-planner.md',
+  'sdlc-independent-reviewer.md',
+  'sdlc-security-privacy-reviewer.md',
+  'sdlc-process-learning-reviewer.md',
+  'sdlc-feedback-reporter.md',
+]);
 
 function readText(path) {
   return readFileSync(path, 'utf8');
@@ -37,14 +47,19 @@ function adapterNameFromFile(file) {
   return basename(file, '.toml').replaceAll('-', '_');
 }
 
+function auggieNameFromFile(file) {
+  return basename(file, '.md');
+}
+
 function sourcePathFromPortableLine(line) {
-  const source = line.replace(/^.*Portable source:\s*/, '').trim();
+  const source = line.replace(/^.*Portable source:\s*/, '').trim().replace(/^`|`$/g, '');
   if (source.startsWith('.agents/')) return source.replace(/^\.agents\//, '');
   return source;
 }
 
 const agentsDir = join(repoRoot, 'agents');
 const codexDir = join(repoRoot, 'templates', 'adapters', 'codex');
+const auggieDir = join(repoRoot, 'templates', 'adapters', 'auggie');
 const promptDir = join(repoRoot, 'templates', 'prompts', 'sdlc');
 const catalogPath = join(repoRoot, 'templates', 'docs', 'agents', 'agent-catalog.md');
 
@@ -52,6 +67,13 @@ for (const file of expectedFrontierAdapters) {
   const path = join(codexDir, file);
   if (!existsSync(path)) {
     failures.push(`templates/adapters/codex/${file}: expected frontier adapter is missing.`);
+  }
+}
+
+for (const file of expectedAuggieAdapters) {
+  const path = join(auggieDir, file);
+  if (!existsSync(path)) {
+    failures.push(`templates/adapters/auggie/${file}: expected Auggie adapter is missing.`);
   }
 }
 
@@ -77,6 +99,38 @@ for (const file of readdirSync(codexDir).filter((entry) => entry.startsWith('sdl
 
   if (!/feedback/i.test(text) || !/raw|sanitized|draft|submit/i.test(text)) {
     fail(path, 'missing usable feedback guidance.');
+  }
+}
+
+for (const file of readdirSync(auggieDir).filter((entry) => entry.startsWith('sdlc-') && entry.endsWith('.md')).sort()) {
+  const path = join(auggieDir, file);
+  const text = readText(path);
+  const expectedName = auggieNameFromFile(file);
+  if (!text.includes(`name: ${expectedName}`)) {
+    fail(path, `adapter name must be "${expectedName}".`);
+  }
+
+  const sourceLine = text.split('\n').find((line) => line.includes('Portable source:'));
+  if (!sourceLine) {
+    fail(path, 'missing Portable source line.');
+  } else {
+    const sourcePath = join(repoRoot, sourcePathFromPortableLine(sourceLine));
+    if (!existsSync(sourcePath)) fail(path, `Portable source does not exist: ${rel(sourcePath)}.`);
+  }
+
+  if (!/parent orchestrator owns AirteraCode MCP submission or local fallback/.test(text)) {
+    fail(path, 'missing parent-mediated feedback submission rule.');
+  }
+
+  if (!/SDLC feedback draft/i.test(text) || !/Do not submit feedback directly|parent validates and submits/i.test(text)) {
+    fail(path, 'missing usable feedback draft guidance.');
+  }
+
+  if (auggieReadOnlyAdapters.has(file)) {
+    const frontmatter = text.match(/^---\n([\s\S]*?)\n---/)?.[1] || '';
+    if (/str-replace-editor|save-file|remove-files|launch-process/.test(frontmatter)) {
+      fail(path, 'read-only Auggie adapter exposes edit, remove, or shell tools.');
+    }
   }
 }
 

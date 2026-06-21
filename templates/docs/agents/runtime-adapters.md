@@ -60,10 +60,21 @@ Adapters may translate model names, tool names, context-passing mechanics, permi
 
 ### Augment
 - Adapter files:
+  - `~/.augment/agents/*.md` for reusable personal SDLC subagents
   - `.augment/agents/*.md`
 - Notes:
   - Map Augment agents to portable roles and model tiers.
+  - Install the shared SDLC Auggie roster with `sdlc agents install-auggie`; this defaults to user-level `~/.augment/agents`.
+  - Leave subagent `model` unset when `auggie models list` reports only the default model. Use `sdlc agents install-auggie --model-profile frontier-gpt` only after the local Auggie registry confirms the configured GPT IDs are available.
+  - Recommended frontier GPT tier mapping when available:
+    - `fast`: `gpt-5.1`
+    - `standard-light`: `gpt-5.2`
+    - `standard`: `gpt-5.4`
+    - `deep`: `gpt-5.5`
+    - `consensus`: independent `standard`/`deep` reviewers selected by risk
   - Keep tool allowlists and write access aligned with `delegation-patterns.md`.
+  - Parent prompts must state the repository, safe-edit boundary, allowed MCP/tool scope, and Git authority for each spawned agent.
+  - Agents return sanitized SDLC feedback drafts; the parent orchestrator submits through AirteraCode MCP or local fallback.
 
 ### Claude Code
 - Adapter files:

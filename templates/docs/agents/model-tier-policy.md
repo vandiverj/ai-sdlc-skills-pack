@@ -77,6 +77,18 @@ consensus: independent standard/deep reviewers selected by risk
 
 Reserve `gpt-5.5` for high-risk security, privacy, data, migration, deployment, public-contract, or critical architecture review.
 
+## Auggie frontier GPT default mapping
+
+Use this mapping only when `auggie models list` confirms the model IDs are available for the current account or organization. Otherwise leave Auggie subagent `model` unset and use the Auggie default model.
+
+```text
+fast: gpt-5.1
+standard-light: gpt-5.2
+standard: gpt-5.4
+deep: gpt-5.5
+consensus: independent standard/deep reviewers selected by risk
+```
+
 ## Last updated
 - Date:
 - Updated because:
