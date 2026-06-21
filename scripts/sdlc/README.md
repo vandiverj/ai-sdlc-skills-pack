@@ -43,6 +43,19 @@ sdlc git packet
 
 Commit and push still require explicit human approval. The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.
 
+## Windows Setup And Tool Discovery
+
+For Windows, put `.agents\bin` on the user `Path`. The bin folder includes `sdlc.cmd`, which launches the Node helper from `scripts\sdlc\sdlc.mjs`.
+
+Use tool discovery before installing optional accelerators:
+
+```powershell
+sdlc tools inventory --repo <path>
+sdlc tools setup --repo <path>
+```
+
+`tools inventory` records what is available. `tools setup` is recommend-only: it prints missing tools and Windows install hints such as `winget`, `npm install -g`, or `python -m pip install` commands. It must not install software automatically; install commands require human approval and should remain optional accelerators with fallback evidence paths.
+
 ## Recovery
 
 When the state is unclear:

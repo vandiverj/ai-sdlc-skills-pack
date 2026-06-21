@@ -189,6 +189,7 @@ Usage:
   sdlc command explain --command "..." [--task "..."] [--repo <path>]
   sdlc tools detect [--repo <path>]
   sdlc tools inventory [--repo <path>] [--json] [--out <path>]
+  sdlc tools setup [--repo <path>] [--json] [--include-installed]
   sdlc tools status --task "..." [--repo <path>]
   sdlc tools gaps --task "..." [--repo <path>]
   sdlc tools recommend --task "..." [--repo <path>]

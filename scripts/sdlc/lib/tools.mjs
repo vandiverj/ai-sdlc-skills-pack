@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { join, relative, resolve } from 'node:path';
+import { delimiter, join, relative, resolve } from 'node:path';
 import { escapeCell, fail, formatList, optionFiles, printObject, printTable, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, splitList } from './common.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
@@ -115,12 +115,24 @@ export function toolsInventory(repo, options = {}) {
     return;
   }
   printTable(
-    ['Tool', 'Status', 'Trust', 'Detail'],
-    inventory.tools.map((tool) => [tool.name, tool.status, tool.trust, tool.detail]),
+    ['Tool', 'Status', 'Trust', 'Detail', 'Install Hint'],
+    inventory.tools.map((tool) => [tool.name, tool.status, tool.trust, tool.detail, tool.installHint || '']),
   );
   console.log(`\nCache: ${relative(repo, outPath)}`);
 }
 
+export function toolsSetup(repo, options = {}) {
+  const inventory = buildToolInventory(repo);
+  const rows = inventory.tools
+    .filter((tool) => options.includeInstalled || tool.status !== 'available')
+    .map((tool) => [tool.name, tool.status, tool.installHint || 'no install hint configured', tool.detail]);
+  if (options.json) {
+    console.log(JSON.stringify({ schema: 'sdlc-tools-setup-v1', repository: repo, platform: process.platform, tools: inventory.tools }, null, 2));
+    return;
+  }
+  printObject({ repository: repo, platform: process.platform, mode: 'recommend-only', installPolicy: 'Do not install automatically; use these commands only after human approval.' });
+  printTable(['Tool', 'Status', 'Install Hint', 'Why It Matters'], rows.length ? rows : [['none', 'available', '', 'All tracked tools are available.']]);
+}
 export function toolsGaps(repo, options = {}) {
   const task = options.task || '';
   if (!task) fail('Pass --task "...".');
@@ -320,6 +332,7 @@ export function buildToolInventory(repo) {
     status: commandExists(name) ? 'available' : 'missing',
     trust: toolTrust(name),
     detail: toolDetail(name, repo),
+    installHint: toolInstallHint(name),
   }));
   const files = detectEvidenceFiles(repo);
   const units = detectInventoryUnits(repo, files, scripts);
@@ -560,9 +573,77 @@ export function toolCapabilityRows(repo, profile = {}, commands = {}) {
   ];
 }
 
+function toolInstallHint(name) {
+  const platform = process.platform;
+  const windows = {
+    rg: 'winget install BurntSushi.ripgrep.MSVC',
+    jq: 'winget install jqlang.jq',
+    yq: 'winget install MikeFarah.yq',
+    node: 'winget install OpenJS.NodeJS.LTS',
+    npm: 'Install Node.js LTS; npm is bundled.',
+    npx: 'Install Node.js LTS; npx is bundled.',
+    pnpm: 'corepack enable pnpm or npm install -g pnpm',
+    yarn: 'corepack enable yarn or npm install -g yarn',
+    bun: 'winget install Oven-sh.Bun',
+    deno: 'winget install DenoLand.Deno',
+    git: 'winget install Git.Git',
+    gitleaks: 'winget install Gitleaks.Gitleaks',
+    semgrep: 'python -m pip install semgrep',
+    shellcheck: 'winget install koalaman.shellcheck',
+    hadolint: 'winget install hadolint.hadolint',
+    'osv-scanner': 'winget install Google.OSVScanner',
+    lychee: 'winget install lycheeverse.lychee',
+    'markdownlint-cli2': 'npm install -g markdownlint-cli2',
+    vale: 'winget install errata-ai.Vale',
+    spectral: 'npm install -g @stoplight/spectral-cli',
+    'ast-grep': 'npm install -g @ast-grep/cli',
+    cspell: 'npm install -g cspell',
+    codespell: 'python -m pip install codespell',
+    typos: 'winget install Crate-CI.Typos',
+    aspell: 'Install GNU Aspell manually or use cspell/codespell fallback.',
+    hunspell: 'Install Hunspell manually or use cspell/codespell fallback.',
+    docker: 'winget install Docker.DockerDesktop',
+    dotnet: 'winget install Microsoft.DotNet.SDK.8',
+    pip: 'Install Python; pip is usually bundled.',
+    cargo: 'winget install Rustlang.Rustup',
+    uv: 'winget install astral-sh.uv',
+    podman: 'winget install RedHat.Podman',
+  };
+  const unix = {
+    rg: 'install ripgrep with the OS package manager',
+    jq: 'install jq with the OS package manager',
+    yq: 'install yq with the OS package manager',
+    gitleaks: 'install gitleaks with the OS package manager or vendor instructions',
+    semgrep: 'python -m pip install semgrep',
+    'markdownlint-cli2': 'npm install -g markdownlint-cli2',
+    spectral: 'npm install -g @stoplight/spectral-cli',
+    'ast-grep': 'npm install -g @ast-grep/cli',
+    cspell: 'npm install -g cspell',
+    codespell: 'python -m pip install codespell',
+  };
+  return (platform === 'win32' ? windows : unix)[name] || '';
+}
+
 export function commandExists(command) {
-  const result = spawnSync('which', [command], { encoding: 'utf8' });
-  return result.status === 0;
+  return Boolean(resolveCommand(command));
+}
+
+function resolveCommand(command) {
+  const pathValue = process.env.PATH || process.env.Path || process.env.path || '';
+  const pathExt = process.platform === 'win32'
+    ? (process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD;.PS1').split(';')
+    : [''];
+  const names = process.platform === 'win32' && !/\.[A-Za-z0-9]+$/.test(command)
+    ? [command, ...pathExt.map((ext) => `${command}${ext.toLowerCase()}`), ...pathExt.map((ext) => `${command}${ext.toUpperCase()}`)]
+    : [command];
+  for (const dir of pathValue.split(delimiter).filter(Boolean)) {
+    for (const name of names) {
+      if (existsSync(join(dir, name))) return join(dir, name);
+    }
+  }
+  const probe = process.platform === 'win32' ? 'where.exe' : 'which';
+  const result = spawnSync(probe, [command], { encoding: 'utf8', shell: false });
+  return result.status === 0 ? String(result.stdout || '').split(/\r?\n/).find(Boolean) || command : '';
 }
 
 export function toolFallbacksForTask(task, surfaces, profile = {}) {
