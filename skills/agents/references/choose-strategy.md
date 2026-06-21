@@ -62,6 +62,7 @@ Use the smallest useful pattern:
 
 - `single-agent`: default for Micro/Tiny work and narrow Standard work.
 - `read-only exploration`: explorer gathers context, relationships, risks, or options without editing.
+- `cross-surface parity exploration`: for legacy-to-modern parity bugs, split read-only scouts by surface such as legacy implementation, modern UI consumer, API/backend owner, and data/fixture evidence; the orchestrator then synthesizes one parity contract before any write-capable worker starts.
 - `bounded implementation`: worker edits only assigned files from an approved plan.
 - `bundled implementation`: for low-risk Standard slices only, one worker prompt may include plan confirmation, bounded implementation, required verification, and a handoff packet when this reduces handoff overhead without reducing evidence.
 - `parallel specialist review`: specialists review security, contracts, tests, maintainability, docs, or production readiness.

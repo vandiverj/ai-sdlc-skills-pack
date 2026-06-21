@@ -508,6 +508,8 @@ classify-work
 
 Stop when expected behavior is unclear or a non-trivial/risky fix needs plan approval.
 
+For legacy parity bugs that compare an old implementation, a new UI, and an API/backend, run an agent-strategy checkpoint before implementation even when the human prompt does not say "multi-repo." Use read-only code scouts or equivalent bounded passes for each surface, synthesize the parity contract, choose the owning repo/unit, and set the safe edit boundary before writing files. When the human says "proceed" after diagnosis, do not jump directly to edits until the parity contract, target files, verification expectation, and unavailable-evidence caps are explicit.
+
 ### Refactor
 Use when changing structure without intended behavior change.
 

@@ -56,6 +56,18 @@ const agents = runJson(['agents', 'plan', '--task', 'fix README typo', '--files'
 assert(agents.delegation?.delegationRecommended === false, 'agents plan should suppress delegation for deterministic fast-pass.');
 assert((agents.recommendations || []).every((row) => row.recommendation === 'skip'), 'suppressed agents plan should skip all handoff roles.');
 
+const legacyParityTask = 'Pull latest comment for LC-50; review Classic ASP process, new ReactUI employee-dashboard, and Mainsite API backend for differences in employee photo upload process from dashboard';
+const parityAgents = runJson(['agents', 'plan', '--task', legacyParityTask, '--json']);
+assert(parityAgents.delegation?.delegationRecommended === true, 'legacy cross-surface parity task should not suppress delegation.');
+assert(parityAgents.delegation?.signals?.crossSurfaceLike === true, 'legacy cross-surface parity signal should be reported.');
+assert((parityAgents.recommendations || []).some((row) => row.role === 'read-only-code-scout' && row.languageProfile === 'classic-asp' && row.recommendation === 'strongly-recommended'), 'Classic ASP scout should be strongly recommended.');
+assert((parityAgents.recommendations || []).some((row) => row.role === 'read-only-code-scout' && row.languageProfile === 'typescript-react' && row.recommendation === 'strongly-recommended'), 'React scout should be strongly recommended.');
+assert((parityAgents.recommendations || []).some((row) => row.role === 'read-only-code-scout' && row.languageProfile === 'dotnet-csharp' && row.recommendation === 'strongly-recommended'), '.NET API scout should be strongly recommended.');
+assert((parityAgents.recommendations || []).some((row) => row.role === 'verification-worker' && row.recommendation !== 'skip'), 'legacy parity task should recommend verification.');
+assert((parityAgents.recommendations || []).some((row) => row.role === 'independent-reviewer' && row.recommendation === 'recommended'), 'legacy parity task should recommend independent review.');
+assert((parityAgents.recommendations || []).some((row) => row.role === 'process-learning-reviewer' && row.recommendation === 'skip'), 'product process wording should not trigger process-learning review.');
+assert((parityAgents.workspaceWarnings || []).some((warning) => /active repository is the reusable skills pack/.test(warning)), 'legacy parity task should warn when planned from the skills-pack repo.');
+
 if (failures.length) {
   for (const failure of failures) console.error(failure);
   process.exit(1);

@@ -45,8 +45,9 @@ export function agentsPlan(repo, options = {}) {
   const routingReceipt = tierRoutingReceipt(repo, task, '', { ...options, analysis, localFirst });
   const delegation = deterministicDelegationDecision(repo, task, options);
   const recommendations = delegation.delegationRecommended ? recommendAgentPackets(repo, task, options) : suppressAgentRecommendations(delegation);
+  const workspaceWarnings = agentWorkspaceWarnings(repo, task, recommendations);
   if (options.json) {
-    console.log(JSON.stringify({ schema: 'sdlc-agent-plan-v1', task, repository: repo, routingReceipt, delegation, recommendations }, null, 2));
+    console.log(JSON.stringify({ schema: 'sdlc-agent-plan-v1', task, repository: repo, routingReceipt, delegation, recommendations, workspaceWarnings }, null, 2));
     return;
   }
   const content = `# SDLC Agent Handoff Plan
@@ -71,9 +72,14 @@ ${formatList([
 | --- | --- | --- | --- |
 ${recommendations.map((row) => `| ${row.role} | ${row.recommendation} | ${row.score} | ${escapeCell(row.why)} |`).join('\n')}
 
+## Workspace Warnings
+
+${formatList(workspaceWarnings.length ? workspaceWarnings : ['No workspace mismatch warning detected.'])}
+
 ## Guidance
 
 - Create packets only when they reduce ambiguity, improve evidence, clarify boundaries, or support restart/handoff.
+- For cross-surface legacy parity work, generate read-only scout packets before coding so the orchestrator can synthesize a parity contract and safe edit boundary.
 - Tiny/low-risk work can proceed without packets.
 - Packets are bounded work orders, not autonomous subagents.
 - After using a packet or response, capture route fit with: sdlc calibrate add --route "${routingReceipt.workClass}" --route-fit "<right-sized|too heavy|too light>" --friction "<category>".
@@ -103,18 +109,21 @@ function deterministicDelegationDecision(repo, task, options = {}) {
   const mechanical = hasTerm(lower, ['typo', 'wording', 'format', 'rename', 'comment only', 'comments only']);
   const releaseLike = hasTerm(lower, ['commit', 'push', 'merge', 'deploy', 'release']);
   const dataLike = hasTerm(lower, ['database', 'migration', 'sql', 'auth', 'secret', 'token', 'security']);
+  const crossSurfaceLike = isCrossSurfaceLegacyTask(lower);
   const small = files.length <= 1 || (docsOnly && files.length <= 5);
-  const suppress = small && (docsOnly || mechanical) && !highRiskTriggers.length && !releaseLike && !dataLike;
+  const suppress = small && (docsOnly || mechanical) && !highRiskTriggers.length && !releaseLike && !dataLike && !crossSurfaceLike;
   return {
     schema: 'sdlc.delegation_decision.v1',
     delegationRecommended: !suppress,
     reason: suppress
       ? 'Deterministic fast-pass scope; use checks before subagents.'
-      : 'Normal route or risk signals may benefit from delegated packets.',
+      : crossSurfaceLike
+        ? 'Cross-surface legacy parity work needs read-only scout packets before coding.'
+        : 'Normal route or risk signals may benefit from delegated packets.',
     fastPassRoute: suppress ? 'tiny-docs' : inferRouteFromTask(task, git, loadProfile(repo).values),
     requiredChecks: suppress ? ['git diff --check', ...(files.some((file) => /SKILL\.md$/.test(file)) ? ['node scripts/test-skill-files.mjs'] : [])] : [],
     suppressedRoles: suppress ? HANDOFF_ROLES : [],
-    signals: { files, docsOnly, mechanical, highRiskTriggers, releaseLike, dataLike },
+    signals: { files, docsOnly, mechanical, highRiskTriggers, releaseLike, dataLike, crossSurfaceLike },
   };
 }
 
@@ -223,19 +232,20 @@ export function recommendAgentPackets(repo, task, options = {}) {
   const changed = git.changedFiles.length;
   const signals = agentSignals(lower, changed);
   const rows = [
+    ...recommendScoutPackets(signals),
     scoreRole({
     role: 'implementation-worker',
-      score: (changed ? 2 : 0) + (signals.implementation ? 2 : 0) + (signals.multiRepo ? 1 : 0),
-      why: changed ? 'Git has existing changed files; use this packet only if those files are in scope.' : signals.implementation ? 'Implementation intent is present; packet is optional unless scope grows.' : 'No implementation surface detected yet.',
+      score: (changed ? 2 : 0) + (signals.implementation ? 2 : 0) + (signals.multiRepo ? 1 : 0) + (signals.crossSurfaceLegacy ? 1 : 0),
+      why: changed ? 'Git has existing changed files; use this packet only if those files are in scope.' : signals.crossSurfaceLegacy ? 'Wait until read-only scouts define the parity contract and safe edit boundary.' : signals.implementation ? 'Implementation intent is present; packet is optional unless scope grows.' : 'No implementation surface detected yet.',
     }),
     scoreRole({
     role: 'verification-worker',
-      score: (signals.verify ? 3 : 0) + (changed ? 1 : 0) + (signals.noTests ? 2 : 0) + (signals.risky ? 1 : 0),
-      why: signals.verify || changed ? 'Task needs local evidence or a cap.' : 'Verification work is not yet prominent.',
+      score: (signals.verify ? 3 : 0) + (changed ? 1 : 0) + (signals.noTests ? 2 : 0) + (signals.risky ? 1 : 0) + (signals.crossSurfaceLegacy ? 2 : 0),
+      why: signals.crossSurfaceLegacy ? 'Parity work needs explicit same-surface proof or capped unavailable evidence.' : signals.verify || changed ? 'Task needs local evidence or a cap.' : 'Verification work is not yet prominent.',
     }),
     scoreRole({
     role: 'independent-reviewer',
-      score: (signals.risky ? 3 : 0) + (signals.multiRepo ? 2 : 0) + (signals.sensitive ? 2 : 0) + (signals.release ? 1 : 0),
+      score: (signals.risky ? 3 : 0) + (signals.multiRepo ? 2 : 0) + (signals.sensitive ? 2 : 0) + (signals.release ? 1 : 0) + (signals.crossSurfaceLegacy ? 3 : 0),
       why: signals.risky || signals.multiRepo || signals.sensitive ? 'Risk, sensitivity, or cross-system work benefits from independent review.' : 'Use when scope/risk grows.',
     }),
     scoreRole({
@@ -253,6 +263,7 @@ export function recommendAgentPackets(repo, task, options = {}) {
 }
 
 function agentSignals(lower, changed) {
+  const crossSurfaceLegacy = isCrossSurfaceLegacyTask(lower);
   return {
     implementation: /\b(implement|fix|add|develop|build|refactor)\b/.test(lower),
     verify: /\b(test|verify|validate|proof|evidence|qa)\b/.test(lower) || changed > 0,
@@ -262,9 +273,66 @@ function agentSignals(lower, changed) {
     multiRepo: /multi-repo|multi repo|multiple repositories|cross repo|workspace|several repositories/.test(lower),
     qa: /\b(qa|tester|manual|youtrack|test script|quality assurance)\b/.test(lower),
     release: hasTerm(lower, ['commit', 'push', 'merge', 'deploy', 'release', 'handoff', 'finish']),
-    process: /\b(learning|process|sdlc|workflow|agent|friction|redundancy)\b/.test(lower),
+    process: /\b(process learning|sdlc process|sdlc|workflow|agent strategy|subagent|subagents|friction|redundancy)\b/.test(lower),
     repeatedFriction: /\b(stuck|repeated|redundant|loop|friction|retry)\b/.test(lower),
+    crossSurfaceLegacy,
+    classicAsp: hasTerm(lower, ['classic asp', 'asp classic', 'www_dev']),
+    reactUi: hasTerm(lower, ['reactui', 'react ui', 'react', 'employee-dashboard']),
+    dotnetApi: hasTerm(lower, ['mainsite api', 'api backend', 'backend', 'dotnet', '.net', 'csharp', 'c#']),
+    databaseEvidence: hasTerm(lower, ['database', 'db', 'sql', 'stored procedure']),
   };
+}
+
+function recommendScoutPackets(signals) {
+  if (!signals.crossSurfaceLegacy) return [];
+  const scouts = [];
+  if (signals.classicAsp) {
+    scouts.push(scoutRecommendation('classic-asp', 'Classic legacy behavior must be source-linked before defining parity.'));
+  }
+  if (signals.reactUi) {
+    scouts.push(scoutRecommendation('typescript-react', 'Modern UI consumer behavior and payload shape must be source-linked.'));
+  }
+  if (signals.dotnetApi) {
+    scouts.push(scoutRecommendation('dotnet-csharp', 'API/backend ownership must be source-linked before implementation.'));
+  }
+  if (signals.databaseEvidence) {
+    scouts.push(scoutRecommendation('sql', 'Database fixture or persistence behavior should be checked read-only or capped.'));
+  }
+  return scouts.length ? scouts : [scoutRecommendation('generic', 'Cross-surface parity work needs read-only exploration before coding.')];
+}
+
+function scoutRecommendation(languageProfile, why) {
+  return {
+    role: 'read-only-code-scout',
+    languageProfile,
+    taskType: 'context-summary',
+    score: 7,
+    recommendation: 'strongly-recommended',
+    why: `${why} Create with: sdlc agents scout-packet --language-profile ${languageProfile} --task-type context-summary --scope <path> --task "...".`,
+  };
+}
+
+function isCrossSurfaceLegacyTask(lower) {
+  const legacy = hasTerm(lower, ['classic asp', 'asp classic', 'legacy', 'www_dev']);
+  const modern = hasTerm(lower, ['reactui', 'react ui', 'react', 'employee-dashboard', 'new ui', 'modern ui']);
+  const backend = hasTerm(lower, ['mainsite api', 'api backend', 'backend', 'dotnet', '.net', 'csharp', 'c#']);
+  const parity = hasTerm(lower, ['parity', 'differences', 'compare', 'fallback', 'dashboard', 'upload process', 'photo process']);
+  return legacy && modern && backend && parity;
+}
+
+function agentWorkspaceWarnings(repo, task, recommendations) {
+  const lower = task.toLowerCase();
+  const repoBase = repo.split(/[\\/]/).filter(Boolean).pop() || repo;
+  const crossSurface = isCrossSurfaceLegacyTask(lower);
+  const likelyExternalProduct = crossSurface || hasTerm(lower, ['mainsite', 'reactui', 'www_dev', 'youtrack', 'employee-dashboard']);
+  const warnings = [];
+  if (repoBase === '.agents' && likelyExternalProduct) {
+    warnings.push('Task appears to target a product workspace, but the active repository is the reusable skills pack. Re-run with --repo <target-workspace> before using dirty files or scope as task evidence.');
+  }
+  if (crossSurface && !recommendations.some((row) => row.role === 'read-only-code-scout')) {
+    warnings.push('Cross-surface legacy parity work should produce read-only scout packets before implementation.');
+  }
+  return warnings;
 }
 
 function hasTerm(text, terms) {
