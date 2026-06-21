@@ -28,12 +28,12 @@ If yes or unknown, route through `write-contract-spec` before implementation pla
 ## Agent Strategy Impact
 Single-agent / Delegation useful / Specialist review useful / Unknown
 
-If delegation or specialist review is useful or unknown, route through `choose-agent-strategy` before implementation planning.
+If delegation or specialist review is useful or unknown, route through the `agents` router before implementation planning.
 
 ## Implementation Pattern Impact
 Existing pattern applies / New pattern may be needed / Pattern exception likely / Unknown
 
-If an implementation pattern applies, is missing, or may need to change, route through `choose-implementation-pattern` before implementation planning.
+If an implementation pattern applies, is missing, or may need to change, route through the `implementation` router's implementation-patterns reference before implementation planning.
 
 ## Dependencies
 - 

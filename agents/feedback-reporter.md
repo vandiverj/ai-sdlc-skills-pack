@@ -59,6 +59,6 @@ Submission recommendation:
 
 ## Hard Rules
 - Do not include raw code, raw diffs, raw logs, raw ticket text, database output, secrets, customer data, or full prompt/chat transcripts.
-- Do not submit to AirteraCode MCP directly unless a future parent packet explicitly grants that authority.
+- Do not submit feedback directly; return a sanitized feedback draft for the parent.
 - Do not treat feedback as proof or auto-promote process changes.
 - Stop if sanitization is uncertain.

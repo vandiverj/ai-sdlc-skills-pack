@@ -71,6 +71,7 @@ Evidence gaps or caps:
 Test/evidence integrity findings:
 Rendered review findings or cap:
 Git reviewability findings:
+SDLC feedback draft:
 Recommended action:
 ```
 
@@ -80,3 +81,4 @@ Recommended action:
 - Keep reviewer context narrower than implementer context when possible.
 - Do not include implementer confidence as evidence.
 - Do not ask the reviewer to fix findings in this prompt.
+- Include a sanitized SDLC feedback draft when there is meaningful process friction, caps, skipped evidence, or tool/runtime evidence.

@@ -64,6 +64,7 @@ Evidence caps:
 Environment notes:
 Ready for review:
 Recommended next action:
+SDLC feedback draft:
 ```
 
 ## Fill Rules
@@ -73,3 +74,4 @@ Recommended next action:
 - Include exact commands whenever possible.
 - Include rendered-review expectations for UI/user-facing behavior.
 - Require caps for unavailable tools instead of substitute confidence.
+- Include a sanitized SDLC feedback draft when there is meaningful process friction, caps, skipped evidence, or tool/runtime evidence.

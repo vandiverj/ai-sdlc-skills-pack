@@ -59,7 +59,7 @@
   - Augment:
   - Claude Code:
 - Default strategy: single-agent for Micro/Tiny work unless risk appears.
-- Use `choose-agent-strategy` for Standard, High-risk, Exploratory, review, release, or cross-cutting work when delegation, specialists, independent verification, or model-tier selection may help.
+- Use the `agents` router for Standard, High-risk, Exploratory, review, release, or cross-cutting work when delegation, specialists, independent verification, or model-tier selection may help.
 - Model tiers are abstract in portable docs. Map concrete model names only in `docs/agents/runtime-adapters.md` or local runtime config.
 - Subagents must stay within assigned context, tools, and write boundaries. Prefer read-only specialists unless an approved plan assigns files.
 
@@ -70,7 +70,7 @@
 
 ## Implementation Patterns
 - Pattern guidance source of truth: `docs/patterns/`.
-- Use `choose-implementation-pattern` when work touches repeated project-specific surfaces such as forms, tables, modals, API handlers, data fetching, errors, tests, layouts, or feature modules.
+- Use the `implementation` router's implementation-patterns reference when work touches repeated project-specific surfaces such as forms, tables, modals, API handlers, data fetching, errors, tests, layouts, or feature modules.
 - Pattern docs capture project-specific conventions only. Do not duplicate formatter, linter, typecheck, schema, accessibility, test, or CI rules.
 - Standard patterns are the default for new work; deviations need a reason.
 - Deprecated or Superseded patterns should not be copied into new work.

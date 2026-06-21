@@ -265,7 +265,6 @@ sdlc action preview --action commit
 - `SUMMARY.md` - working baseline and development notes for the pack.
 - `skills/` - loader-compatible `SKILL.md` files for the workflow.
 - `agents/` - portable Markdown definitions for optional specialist, worker, reviewer, and handoff agents.
-- `agent-contracts/` - legacy compatibility role contracts kept until downstream references move to `agents/`.
 - `scripts/` - repository maintenance checks for skill file format and related rails.
 - `bin/sdlc` and `scripts/sdlc/` - small dependency-free helper CLI for task open/start/current/id/bundle/status/review/checkpoint/ledger/verify/QA/finish/complete, deterministic state/evidence/run-check/complete/scope/policy control-plane records, readiness, health, setup bootstrap/doctor/full doctor/install check, profile, context restore/audit/freshness/contradiction/inventory/place/update plans, change graph lite, workspace map/work-mode detection, deployable unit maps, testing-surface detection, safe learning capture/review/promotion, run start/finish, touched/impact/interaction/QA/manual-smoke/verification packets, validation ladders, fixture plans, route packets, review/release packets, packet completion/status, gates, done checks, multi-repo ledger/QA, contract, data, integration, live-system bug evidence, test-plan/test-suggest and handoff draft packets, security permission/tool audits, scenario validation/testing, rendered plan/evidence/smoke, verification, calibration/learned-flow promotion, and handoff mechanics.
 - `templates/` - starter docs, external context-root templates, SDLC scenarios, and feature context templates.
@@ -355,7 +354,7 @@ Use the `process-learning` router to record small observations about friction, g
 
 ## Tool and MCP use
 
-MCPs and tools are optional infrastructure. Use select-tools when external/current knowledge, tool access, or MCP boundaries matter. Tools retrieve or act; they do not remember for the project and they do not outrank local source-of-truth artifacts.
+MCPs and tools are optional infrastructure. Use the `tools` router when external/current knowledge, tool access, retrieval, or MCP boundaries matter. Tools retrieve or act; they do not remember for the project and they do not outrank local source-of-truth artifacts.
 
 ## Agent strategy
 
@@ -501,7 +500,7 @@ Do not save skill files with a UTF-8 BOM. The Codex skill loader expects the fir
 
 ## Recent workflow tightening
 
-The workflow now treats `classify-work` as the primary entry point that emits a compact execution contract. It includes `Micro` work, dirty surface routing, mid-stream reclassification, conditional artifact sync, and `review-agent-work` for human review of AI sessions through Git diffs, scoped commits, and verification evidence.
+The workflow now treats `classify-work` as the primary entry point that emits a compact execution contract. It includes `Micro` work, dirty surface routing, mid-stream reclassification, conditional artifact sync, and the `review` router's agent-work reference for human review of AI sessions through Git diffs, scoped commits, and verification evidence.
 
 ## Global Install, Local Configuration
 

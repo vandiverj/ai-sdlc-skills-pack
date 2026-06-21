@@ -82,6 +82,7 @@ Evidence caps or unavailable tools:
 Open questions with recommended defaults:
 Process findings:
 Recommended reusable SDLC change, if any:
+SDLC feedback draft:
 Stop condition:
 Ready for review:
 ```
@@ -92,3 +93,4 @@ Ready for review:
 - Keep the prompt specific enough to prevent scope drift.
 - Do not include reusable SDLC testing context unless the task is explicitly testing workflow behavior.
 - Do not let this template grant Git publication authority; use the release-handoff template for that phase.
+- Include a sanitized SDLC feedback draft when there is meaningful process friction, caps, skipped evidence, or tool/runtime evidence.

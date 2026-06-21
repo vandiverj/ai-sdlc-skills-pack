@@ -57,6 +57,7 @@ Recommended artifact updates:
 Why this is not overfit:
 Risks:
 Recommended next action:
+SDLC feedback draft:
 Knowledge candidate:
 - If reusable process learning should be captured, propose a candidate with `schemaVersion`, `kind`, `class`, `claim`, `sourceArtifacts`, `anchors`, `taskRunEvidence`, `appliesTo`, `confidence`, `confidenceLastConfirmed`, `decayPolicy`, `driftStatus`, `sensitivity`, `ownerArtifact`, and `suggestedAction`.
 - If no candidate is warranted, say `none` and explain why.
@@ -69,3 +70,4 @@ Knowledge candidate:
 - Keep Pi-specific or Codex-specific runtime issues out of reusable rules unless they generalize.
 - If evidence is weak, recommend more validation rather than permanent guidance.
 - Knowledge candidates are proposals only. Use `sdlc learn candidate-add` for the JSONL fallback, or submit to an approved MCP gateway when available; neither path promotes the claim automatically.
+- Include a sanitized SDLC feedback draft when there is meaningful process friction, caps, skipped evidence, or tool/runtime evidence.

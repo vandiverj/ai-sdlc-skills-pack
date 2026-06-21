@@ -9,9 +9,9 @@ Define how this project improves agent roles, model tiers, delegation rules, and
 ## Loop
 
 ```text
-capture-process-event
--> review-process-learning
--> update-agent-definitions
+process-learning capture-event reference
+-> process-learning review-learning reference
+-> agents update-definitions reference, when reviewed evidence supports role or adapter changes
 -> review-agent-strategy
 -> human Git review
 -> scoped commit

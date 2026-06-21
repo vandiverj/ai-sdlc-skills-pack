@@ -84,6 +84,7 @@ Commit created:
 Push/PR status:
 Evidence caps:
 Residual risks:
+SDLC feedback draft:
 Recommended next action:
 ```
 
@@ -94,3 +95,4 @@ Recommended next action:
 - Require explicit Git publication authority before push or PR.
 - Require Git identity evidence in the returned handoff whenever public push or PR is assigned.
 - If verification fails or a fix is needed, stop and route back to implementation instead of patching in this prompt.
+- Include a sanitized SDLC feedback draft when there is meaningful process friction, caps, skipped evidence, or tool/runtime evidence.

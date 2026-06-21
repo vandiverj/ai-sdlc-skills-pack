@@ -145,7 +145,7 @@ Process-improvement files store lightweight observations about the workflow itse
 
 Tools and MCPs provide retrieval, reasoning scaffolds, and actions. They do not remember for the project and they do not outrank local source-of-truth artifacts.
 
-Use select-tools when external/current knowledge, tool access, or MCP boundaries matter. Use MCPs to retrieve or act, not to remember. Record durable decisions or verified facts in the owning artifact, not raw tool dumps in Memory Bank files.
+Use the `tools` router when external/current knowledge, tool access, retrieval, or MCP boundaries matter. Use MCPs to retrieve or act, not to remember. Record durable decisions or verified facts in the owning artifact, not raw tool dumps in Memory Bank files.
 
 ## Agent instructions
 
@@ -155,7 +155,7 @@ Projects should maintain `AGENTS.md` when practical. It owns concise agent-facin
 
 For projects that use Codex, VS Code/Copilot, Augment, Claude Code, or other agent runtimes, use this pack's `.agents/agents/*.md` files as portable role definitions, keep project-local agent strategy in `docs/agents/*`, and use runtime-specific files as thin adapters. Use `setup-sdlc-in-repo` to install or refresh the SDLC and adapter files in downstream projects.
 
-Use `choose-agent-strategy` when Standard, High-risk, Exploratory, review, release, or cross-cutting work may benefit from delegation, specialist review, independent verification, or model-tier selection. Use abstract model tiers such as `deterministic`, `fast`, `standard`, `deep`, and `consensus`; map those tiers to concrete model names only in project-local adapter guidance.
+Use the `agents` router when Standard, High-risk, Exploratory, review, release, or cross-cutting work may benefit from delegation, specialist review, independent verification, or model-tier selection. Use abstract model tiers such as `deterministic`, `fast`, `standard`, `deep`, and `consensus`; map those tiers to concrete model names only in project-local adapter guidance.
 
 Use the fewest agents and least powerful model tier that can satisfy the evidence requirement. Escalate when confidence is low, verification fails, artifacts conflict, risk surfaces appear, scope expands, or the current agent cannot produce a testable plan, reviewable diff, or fresh evidence.
 
@@ -163,7 +163,7 @@ Use the fewest agents and least powerful model tier that can satisfy the evidenc
 
 For project-specific repeated implementation surfaces such as forms, tables, modals, API handlers, data fetching, errors, tests, layouts, or feature modules, keep guidance in `docs/patterns/*`.
 
-Use `choose-implementation-pattern` when a task may need one of those patterns. Patterns are preferred defaults that help agents code consistently where deterministic tooling cannot express product-specific conventions. They start Emerging, harden to Validated or Standard through reviewed evidence, and can be Deprecated or Superseded when requirements, design systems, frameworks, accessibility, security, performance, or maintainability change.
+Use the `implementation` router's implementation-patterns reference when a task may need one of those patterns. Patterns are preferred defaults that help agents code consistently where deterministic tooling cannot express product-specific conventions. They start Emerging, harden to Validated or Standard through reviewed evidence, and can be Deprecated or Superseded when requirements, design systems, frameworks, accessibility, security, performance, or maintainability change.
 
 Do not use pattern docs to duplicate formatter, linter, typechecker, schema, accessibility, test, or CI rules.
 
@@ -171,7 +171,7 @@ Do not use pattern docs to duplicate formatter, linter, typechecker, schema, acc
 
 For new projects or meaningful technical surface changes, choose and approve the technical approach before deep modeling, PRD breakdown, or implementation planning. This includes stack, architecture style, runtime, persistence, deployment, testing, operations, and dependency policy.
 
-Use `choose-technical-approach` after `define-application` has enough product/workflow/data context, and before `model-application` depends on stack constraints. Re-run it when a feature needs a new framework, library, service, database, runtime, hosting target, auth provider, queue, job system, AI provider, testing tool, deployment model, or other technical surface change.
+Use the `implementation` router's technical-approach reference after application definition has enough product/workflow/data context, and before application modeling depends on stack constraints. Re-run it when a feature needs a new framework, library, service, database, runtime, hosting target, auth provider, queue, job system, AI provider, testing tool, deployment model, or other technical surface change.
 
 Approved technical choices belong in ADRs, docs/application-model.md, AGENTS.md, docs/context-state.md, and Memory Bank indexes as applicable.
 
@@ -179,7 +179,7 @@ Approved technical choices belong in ADRs, docs/application-model.md, AGENTS.md,
 
 For new projects or meaningful changes to verification, build, generated artifacts, dependencies, CI, or agent commands, choose and approve project quality automation before implementation plans depend on unstated checks.
 
-Use `choose-quality-automation` after `choose-technical-approach` when the stack and risk profile are clear enough to select appropriate formatter, linter, type/schema checks, tests, builds, contract checks, accessibility checks, security/dependency/license checks, generated artifact validation, documentation validation, and CI/local preflight commands.
+Use the `quality` router's quality-automation reference after the technical approach is known when the stack and risk profile are clear enough to select appropriate formatter, linter, type/schema checks, tests, builds, contract checks, accessibility checks, security/dependency/license checks, generated artifact validation, documentation validation, and CI/local preflight commands.
 
 The workflow should prefer deterministic tooling over agent judgment for repeatable consistency and validation. Passing tools is evidence, not proof that the right product behavior was built.
 
@@ -189,7 +189,7 @@ Approved quality automation belongs in command wiring, CI/task runner files, AGE
 
 For projects where context selection becomes large, cross-cutting, repetitive, or unreliable, choose whether an optional retrieval, indexing, graph, embedding, RAG, semantic search, repo retrieval, or human navigation layer is justified.
 
-Use `choose-retrieval-approach` after `choose-technical-approach` and `choose-quality-automation` when the project scale, privacy constraints, source artifacts, and workflow needs are clear enough to decide whether retrieval should exist and what shape it should take.
+Use the `tools` router's retrieval-approach reference when the project scale, privacy constraints, source artifacts, and workflow needs are clear enough to decide whether retrieval should exist and what shape it should take.
 
 Retrieval output is a pointer, not proof. Important claims must trace back to authoritative artifacts such as code, tests, code-local docs, PRDs, contracts, ADRs, application model, feature context, AGENTS.md, context-state, or Memory Bank routing files.
 
@@ -306,54 +306,15 @@ See `WORKFLOW.md` for the canonical workflow map.
 
 ```text
 0. run-sdlc, when orchestrating from a human request
-1. classify-work
-2. setup-sdlc-in-repo, when installing or refreshing this SDLC in a downstream repo
-3. context-restore
-4. choose-agent-strategy, when delegation/model-tier selection may help
-5. choose-implementation-pattern, when project-specific implementation patterns may apply
-6. select-tools, when external/current knowledge or tool boundaries are needed
-7. select-context
-8. product-reframe
-9. define-application
-10. choose-technical-approach, when starting a project or changing technical surfaces
-11. choose-quality-automation, when quality rails are missing or changing
-12. choose-retrieval-approach, when retrieval/RAG/indexing may be justified
-13. grill-me / brainstorming
-14. model-application
-15. manage-context-state
-16. outside-voice-review
-17. review-application-model
-18. to-prd
-19. review-prd-against-model
-20. diagram-issues
-21. to-issues
-22. review-issue-dependencies
-23. write-contract-spec, when public/cross-boundary behavior changes
-24. review-contract-spec, when a contract spec is required
-25. write-implementation-plan
-26. review-implementation-plan
-27. create-work-branch
-28. safe-edit-boundary
-29. execute-plan / tdd
-30. verification-before-completion
-31. review-spec-compliance
-32. assert-doc-sync, when code/docs/contracts/context may disagree
-33. review-implementation-pattern, when project patterns apply
-34. engineering-principles-review, when complexity/readability/abstraction risk warrants it
-35. review-code-quality
-36. process-review-feedback
-37. health-check
-38. document-release
-39. update-context-docs
-40. manage-context-state
-41. setup-agent-instructions, when agent instructions changed or are missing
-42. finish-development-branch
-43. review-agent-work, when a human wants to review AI work before continuing or merging
-44. review-agent-strategy, when delegation/model-tier usage needs review
-45. update-agent-definitions, when reviewed evidence supports strategy changes
-46. update-implementation-patterns, when reviewed evidence supports pattern changes
-47. capture-process-event, when process friction, gaps, corrections, near misses, or useful successes should be preserved
-48. context-save
+1. classify-work, to choose route, risk, dirty surfaces, gates, evidence, and caps
+2. context/tools/agents, only when context selection, tool boundaries, retrieval, delegation, or model tiers matter
+3. planning/review, only when requirements, contracts, model, issue slicing, or implementation plans need durable shape
+4. implementation, for safe edit boundary, execution, TDD, diagnosis, technical approach, or project patterns
+5. quality, for route-appropriate verification, evidence integrity, health checks, rendered evidence, and caps
+6. review, for spec, code quality, design, DevEx, security, agent-work, process-feedback, or release-readiness review
+7. context, to update docs/state only when dirty surfaces require it
+8. release, for finish packets, branch hygiene, and human-approved Git handoff
+9. process-learning, when repeated friction or useful workflow evidence should improve the SDLC
 ```
 
 ## Core skill boundaries
@@ -362,41 +323,29 @@ See `WORKFLOW.md` for the canonical workflow map.
 
 - `classify-work` chooses fast-pass route, workflow depth, context depth, dirty surfaces, confidence, evidence requirements, and escalation triggers. It does not solve the task.
 - `setup-sdlc-in-repo` installs or refreshes the portable SDLC files, agent strategy docs, and runtime adapters in a downstream repo.
-- `choose-agent-strategy` chooses single-agent or delegated work, model tiers, specialists, boundaries, and escalation triggers.
-- `review-agent-strategy` reviews whether delegation and model-tier usage were useful, bounded, cost-conscious, and reviewable.
-- `update-agent-definitions` updates portable agent definitions and adapter guidance from reviewed evidence.
-- `choose-implementation-pattern` chooses applicable project-specific implementation patterns, maturity, examples, and exceptions.
-- `review-implementation-pattern` checks whether implementation followed applicable patterns or justified deviations.
-- `update-implementation-patterns` creates, promotes, deprecates, supersedes, or revises patterns from reviewed evidence.
-- `assert-doc-sync` checks whether code, tests, docs, contracts, and context agree before completion or doc updates. If code and docs disagree, assume implementation may be wrong until verified.
-- `select-tools` chooses optional tools/MCPs and access boundaries. It does not make tool output a source of truth.
-- `context-restore` resumes from Memory Bank routing files, context-state, and checkpoints.
-- `select-context` decides what to load. It does not solve the task.
-- `manage-context-state` records uncertainty and affected artifacts. It does not replace PRDs, contracts, ADRs, feature context files, AGENTS.md, or Memory Bank routing files.
-- `choose-technical-approach` selects and records approved stack, architecture, runtime, persistence, deployment, testing, operations, and dependency constraints. It does not implement.
-- `choose-quality-automation` selects and records appropriate automated checks, command wiring, CI/local preflight expectations, and lifecycle usage. It does not replace spec or code review.
-- `choose-retrieval-approach` decides whether optional retrieval/RAG/indexing is justified and records source, trust, freshness, privacy, and lifecycle boundaries. It does not replace source artifacts.
+- `context` restores, selects, updates, asserts, and saves durable project context.
+- `agents` chooses agent strategy, model tiers, portable roles, runtime adapters, and agent-definition updates.
+- `tools` chooses optional tools, MCPs, retrieval approaches, and access boundaries. It does not make tool output a source of truth.
+- `implementation` handles technical approach, implementation patterns, safe edit boundaries, diagnosis, execution, and TDD.
+- `quality` handles quality automation, fresh verification, evidence integrity, rendered evidence, and health checks.
+- `review` handles agent work, agent strategy, planning artifacts, contracts, implementation plans, spec compliance, code quality, security, UX, production readiness, and process feedback.
+- `process-learning` captures and reviews process evidence before durable SDLC guidance changes.
 - `counterpoint` challenges a favored plan, design, workflow, or decision from a credible opposing lens before the direction is treated as settled.
-- `model-application` defines structure and diagrams using approved technical constraints. It does not create implementation issues.
-- `to-prd` defines durable requirements. It does not break work into tasks.
-- `write-contract-spec` defines observable public or cross-boundary behavior. It does not implement.
-- `review-contract-spec` checks whether the contract is clear, supported, and testable.
-- `write-implementation-plan` makes one issue executable. It does not implement.
-- `execute-plan` orchestrates implementation. `tdd` is the per-behavior discipline used inside execution.
-- `verification-before-completion` reports fresh evidence. It does not infer success from old runs.
+- `planning` defines application models, PRDs, issues, contracts, decisions, and implementation plans.
+- `review` checks planning artifacts and contracts before they drive implementation.
+- `quality` reports fresh evidence and does not infer success from old runs.
 - `engineering-principles-review` asks whether the design or code is understandable, cohesive, appropriately abstracted, and maintainable.
 - `review-spec-compliance` asks whether the implementation built the right thing. `review-code-quality` asks whether it was built well, safely, operably, accessibly when UI is involved, and with accurate code-local documentation.
-- `review-agent-work` reviews prior AI work for classification quality, skipped gates, verification evidence, Git reviewability, artifact sync, and unsafe silent changes.
-- `capture-process-event` records project-local process-learning events in a stable JSONL shape.
-- `review-process-learning` aggregates events across projects and recommends evidence-backed improvements.
+- `review` agent-work reference reviews prior AI work for classification quality, skipped gates, verification evidence, Git reviewability, artifact sync, and unsafe silent changes.
+- `process-learning` capture-event and review-learning references turn sanitized process evidence into reviewed improvement proposals.
 
 ## Optional memory and retrieval layer
 
-Retrieval/indexing tools such as Graphify, embeddings, vector search, repo retrieval, or Obsidian-style navigation may be useful later for large repositories. Treat them as optional retrieval accelerators that help select context. They must not become mandatory workflow dependencies and must not outrank code, tests, code-local docs, PRDs, contract specs, ADRs, application models, feature context files, AGENTS.md, context-state, or Memory Bank routing files. Use `choose-retrieval-approach` before adding or expanding them.
+Retrieval/indexing tools such as Graphify, embeddings, vector search, repo retrieval, or Obsidian-style navigation may be useful later for large repositories. Treat them as optional retrieval accelerators that help select context. They must not become mandatory workflow dependencies and must not outrank code, tests, code-local docs, PRDs, contract specs, ADRs, application models, feature context files, AGENTS.md, context-state, or Memory Bank routing files. Use the `tools` retrieval-approach reference before adding or expanding them.
 
 ## Process improvement layer
 
-Each project may capture lightweight process-learning events in `docs/process-improvement/events.jsonl`. Periodic `review-process-learning` runs can merge those logs across projects, rank patterns by severity and frequency, and propose improvements to project-local guidance, templates, quality automation, retrieval, or the reusable skills pack.
+Each project may capture lightweight process-learning events in `docs/process-improvement/events.jsonl`. Periodic `process-learning` review-learning runs can merge those logs across projects, rank patterns by severity and frequency, and propose improvements to project-local guidance, templates, quality automation, retrieval, or the reusable skills pack.
 
 Events are evidence for review, not automatic policy. Accepted changes still need normal human approval and scoped edits.
 
@@ -435,8 +384,8 @@ A task is not done until:
 ## Recommended next development work for this pack
 
 1. Pressure-test risk classification, context spine, contract-first gate, and code-local documentation expectations on a real feature.
-2. Pressure-test `choose-quality-automation` on projects with different stacks and risk profiles.
-3. Pressure-test `choose-retrieval-approach` on small, medium, and large projects before expanding graph/RAG guidance.
+2. Pressure-test the `quality` quality-automation reference on projects with different stacks and risk profiles.
+3. Pressure-test the `tools` retrieval-approach reference on small, medium, and large projects before expanding graph/RAG guidance.
 4. Tighten review skills using examples from those runs.
 5. Add templates only after the final process shape is concrete.
 6. Decide whether optional graph/index tooling belongs in the pack or in a separate companion pack.

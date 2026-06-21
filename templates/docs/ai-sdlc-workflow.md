@@ -20,13 +20,13 @@ See `SUMMARY.md` in the skills pack for the full baseline.
 
 ## Agent strategy
 - Portable source of truth: `docs/agents/`.
-- Use `choose-agent-strategy` when delegation, specialist review, independent verification, or model-tier selection may reduce risk.
+- Use the `agents` router when delegation, specialist review, independent verification, or model-tier selection may reduce risk.
 - Runtime-specific files are adapters and should point back to `AGENTS.md`, this workflow, and `docs/agents/`.
 - Use the least powerful model tier and fewest agents that can satisfy the evidence requirement.
 
 ## Implementation patterns
 - Portable source of truth: `docs/patterns/`.
-- Use `choose-implementation-pattern` when project-specific forms, tables, APIs, tests, layouts, or feature structure may matter.
+- Use the `implementation` router's implementation-patterns reference when project-specific forms, tables, APIs, tests, layouts, or feature structure may matter.
 - Use `review-implementation-pattern` before completion when implementation patterns affected the change.
 - Update patterns only from reviewed evidence, repeated friction, or material requirement/framework/design-system changes.
 
