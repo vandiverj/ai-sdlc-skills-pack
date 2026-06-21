@@ -51,7 +51,9 @@ This role exists to let the orchestrator offload low-risk scouting to a cheaper 
   "taskType": "context-summary",
   "scopeReviewed": [],
   "findings": [],
-  "sourcePointers": [],
+  "sourcePointers": [
+    "path/to/reviewed-file.ext"
+  ],
   "confidence": "low",
   "uncertainty": [],
   "verificationQuestions": [],
@@ -65,5 +67,8 @@ This role exists to let the orchestrator offload low-risk scouting to a cheaper 
 - Do not claim you ran verification unless you actually did and the packet allowed it.
 - Do not include raw secrets, raw ticket text, database output, or sensitive customer data.
 - Do not invent source pointers.
-- Do not recommend implementation from a finding that lacks a source pointer.
+- Top-level `sourcePointers` may name reviewed files or ranges.
+- Each finding must include exact finding-level pointers in `path:line` or `path:start-end` form.
+- For duplication or comparison findings, cite each compared block or function, not just one side.
+- Do not recommend implementation from a finding that lacks exact finding-level pointers.
 - Stop and hand back to the orchestrator if the task needs write access, broader scope, or protected data.

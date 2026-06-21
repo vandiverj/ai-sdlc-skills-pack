@@ -547,6 +547,8 @@ ${formatList(packet.escalationTriggers)}
 - Model tier preference: ${packet.modelTierPreference}
 - ${packet.fallbackInstruction}
 - The orchestrator must verify source pointers before acting on findings.
+- Top-level sourcePointers may name reviewed files or ranges; every finding must include exact line or range pointers in path:line or path:start-end form.
+- For duplication or comparison findings, cite each compared block or function, not just one side.
 - Record useful or noisy runs through \`sdlc_feedback\` or local \`sdlc feedback add\`.
 
 ## Request JSON
@@ -619,6 +621,15 @@ function validateScoutFindings(packet) {
       }
       if (!finding.summary) errors.push(`finding ${index + 1} is missing summary.`);
       if (!finding.sourcePointer && !finding.sourcePointers) errors.push(`finding ${index + 1} is missing sourcePointer/sourcePointers.`);
+      const findingPointers = [
+        ...(finding.sourcePointer ? [finding.sourcePointer] : []),
+        ...(Array.isArray(finding.sourcePointers) ? finding.sourcePointers : []),
+      ].map((pointer) => String(pointer || ''));
+      for (const pointer of findingPointers) {
+        if (!/:[0-9]+(?:-[0-9]+)?$/.test(pointer)) {
+          errors.push(`finding ${index + 1} source pointer must use path:line or path:start-end form: ${pointer}`);
+        }
+      }
       if (/edit|edited|changed|fixed|committed|pushed|deployed/i.test(String(finding.actionTaken || ''))) {
         errors.push(`finding ${index + 1} appears to claim forbidden action or edit work.`);
       }

@@ -19,6 +19,8 @@ Do not broaden scope.
 Do not include raw secrets, raw ticket text, raw logs, database output, or sensitive customer data.
 Return source-linked findings only.
 Always include `sourcePointers` for the source files or line ranges actually reviewed, even when `findings` is empty.
+For each finding, include exact finding-level pointers in `path:line` or `path:start-end` form.
+For duplication or comparison findings, cite each compared block or function, not just one side.
 Mark uncertainty and caps instead of guessing.
 Do not claim final correctness, implementation readiness, or verification completion.
 If the orchestrator provides an output schema, return only JSON matching that schema.
