@@ -27,9 +27,14 @@ Adapters may translate model names, tool names, context-passing mechanics, permi
 ### Codex
 - Adapter files:
   - `AGENTS.md`
+  - `~/.codex/agents/*.toml` for reusable personal SDLC subagents
+  - `.codex/agents/*.toml` only for repo-specific overrides or team-shared Codex agents
 - Notes:
   - Use the portable SDLC skills and docs as source of truth.
-  - Use model/delegation features only when the current Codex environment supports them.
+  - Use Codex-native subagents for bounded read-only exploration, review, or verification only when the current Codex environment supports them.
+  - Keep Codex custom-agent files thin adapters over portable roles such as `read-only-code-scout`.
+  - For hosted lower-tier models, confirm the assigned scope is allowed to leave the local environment.
+  - For LM Studio/local providers, prefer an adapter that inherits the parent Codex provider/model when the parent session is already local. Treat LM Studio-pinned custom agents as experimental until the current Codex surface can spawn them; use `codex exec --oss --local-provider lmstudio` for direct LM Studio scout runs.
   - Prefer prompt templates for role-separated phases before duplicating role text.
 
 ### Pi

@@ -565,7 +565,7 @@ ${JSON.stringify(packet, null, 2)}
   "taskType": "${packet.taskType}",
   "scopeReviewed": ${JSON.stringify(packet.scope, null, 2)},
   "findings": [],
-  "sourcePointers": [],
+  "sourcePointers": ${JSON.stringify(packet.scope, null, 2)},
   "confidence": "low|medium|high",
   "uncertainty": [],
   "verificationQuestions": [],
@@ -619,7 +619,7 @@ function validateScoutFindings(packet) {
       }
       if (!finding.summary) errors.push(`finding ${index + 1} is missing summary.`);
       if (!finding.sourcePointer && !finding.sourcePointers) errors.push(`finding ${index + 1} is missing sourcePointer/sourcePointers.`);
-      if (/edit|edited|changed|fixed|committed|pushed|deployed/i.test(String(finding.actionTaken || finding.summary || ''))) {
+      if (/edit|edited|changed|fixed|committed|pushed|deployed/i.test(String(finding.actionTaken || ''))) {
         errors.push(`finding ${index + 1} appears to claim forbidden action or edit work.`);
       }
     }

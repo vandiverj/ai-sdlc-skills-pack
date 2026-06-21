@@ -1,6 +1,6 @@
 # Cycle 5 Implementation Plan: Read-Only Code Scout Subagent Pilot
 
-Status: Packet generator and findings validator implemented
+Status: Manual fallback pilot, LM Studio runtime pilot, and Codex-native adapter correction completed
 Promotion state: Experiment
 Parent plan: [codex-local-model-sdlc-overview.md](codex-local-model-sdlc-overview.md)
 Prior cycle: [cycle-4a-implementation-report.md](cycle-4a-implementation-report.md)
@@ -101,11 +101,12 @@ The orchestrator must verify source pointers before acting on findings.
 Preferred order:
 
 1. Deterministic local packet generation.
-2. Manual fallback packet that can be pasted into a lower-tier/local runtime.
-3. Codex CLI sub-session runner if available and explicitly approved.
-4. LM Studio/OpenAI-compatible local endpoint only when configured and approved.
+2. Codex-native custom-agent adapter when the current Codex surface supports subagents.
+3. Manual fallback packet that can be pasted into a lower-tier/local runtime.
+4. Codex CLI `codex exec` only as a noninteractive smoke-test, runtime comparison, or fallback harness.
+5. Direct LM Studio/OpenAI-compatible endpoint only when configured and approved.
 
-No local model runtime is required for the first implementation. Cycle 5 may implement the packet and reconciliation contract first, then add runtime invocation behind capability checks.
+No local model runtime is required for the first implementation. Cycle 5 implements the packet and reconciliation contract first. Cycle 5a adds Codex custom-agent adapter templates so interactive Codex subagents can use the same contract without requiring the orchestrator to shell out to `codex exec`.
 
 ## Packet Contract
 
@@ -194,32 +195,59 @@ Acceptance:
 
 ### Slice 4: Manual Runtime Pilot
 
-Next step: use the generated packet with either:
+Implemented for manual fallback: generated a scout packet, produced a structured findings packet from a bounded read-only pass, validated the findings, and recorded `sdlc_feedback`.
 
-- a lower-tier frontier sub-session,
-- LM Studio local model,
-- or manual fallback with the same packet.
+Runtime/model execution status:
+
+- LM Studio was reachable at `http://192.168.137.171:1234`.
+- `google/gemma-4-26b-a4b-qat` was listed by the API.
+- The primary `google/gemma-4-26b-a4b-qat` model id hit reasoning-only output, malformed contract output, and then an LLGuidance structured-output backend error after schema attempts.
+- Server-side `json_schema` structured output was not usable with the current backend/schema combination.
+- `google/gemma-4-26b-a4b-qat:2` with plain JSON prompting produced a valid scout findings packet that passed `sdlc agents scout-validate`.
+- Codex CLI successfully called `google/gemma-4-26b-a4b-qat:2` through a custom `lmstudio-lan` provider pointed at `http://192.168.137.171:1234/v1` with `wire_api="responses"`.
+- After LM Studio was configured to listen on localhost, Codex CLI's built-in `--oss --local-provider lmstudio` path also successfully called `google/gemma-4-26b-a4b-qat:2`.
+- Codex CLI custom providers rejected `wire_api="chat"` in version 0.139.0, so the LAN adapter path must use the Responses wire API.
+- A real bounded read-only scout task through Codex CLI + LM Studio produced an invalid first packet, then a valid corrected packet after stricter contract prompting.
+- The corrected local-model packet's finding was source-linked but weak; orchestrator verification found the cited source exists and the parse-error sentinel behavior is already surfaced by validation.
+- An approved `gpt-5.3-codex-spark` scout sub-session was blocked by execution policy because it would send private workspace content to an external model provider. A retry after explicit informed user approval was also blocked, so this runtime path is unavailable for private workspace content in this environment.
+- User-run `gpt-5.3-codex-spark` scout from a local terminal reached the model but failed because the findings schema was not accepted by structured output. The schema was repaired by adding explicit `type: "object"` keys to forbidden-field `not.anyOf` branches.
+
+Still pending: prove usefulness on a real bounded scout task through one of:
+
+- a lower-tier frontier sub-session only for non-private/sanitized packets or an environment where policy permits external disclosure,
+- user-run frontier sub-session with the structured-output-compatible schema,
+- repeated LM Studio local-model runs with first-pass valid packets and useful findings,
+- or manual fallback with the same packet as the comparison baseline.
 
 Acceptance:
 - One low-risk task produces a findings packet.
 - Orchestrator verifies at least one accepted/rejected finding against source.
 - `sdlc_feedback` records whether the scout reduced friction or created noise.
 
-### Slice 5: Optional Invocation Adapter
+### Slice 5a: Codex-Native Subagent Adapter
 
-Deferred: only after manual packet validation, add a runtime adapter behind explicit capability checks.
+Implemented as adapter-template correction:
 
-Possible command:
+- `templates/adapters/codex/sdlc-read-only-code-scout.toml`
+- `templates/adapters/codex/sdlc-local-read-only-code-scout.toml`
 
-```bash
-sdlc agents scout-run --task "<task>" --language-profile classic-asp --task-type duplication-scan --scope "path/to/file.asp" --runtime codex-cli --model-tier local
+Preferred prompt shape:
+
+```text
+Use the sdlc_read_only_code_scout subagent. Give it the packet at <packet-path>. It must inspect only the scoped files, return findings matching templates/schemas/sdlc-read-only-code-scout-findings.schema.json, and stop without editing. Wait for it, then validate the returned packet and verify source pointers before acting.
 ```
 
 Acceptance:
-- Requires explicit approval before first runtime invocation.
-- Falls back to packet output when runtime is unavailable.
-- Captures output as a local artifact.
+- Uses user-level `~/.codex/agents/*.toml` as the default reusable runtime adapters over `agents/read-only-code-scout.md`.
+- Uses project-level `.codex/agents/*.toml` only for repo-specific overrides or team-shared adapter choices.
+- Includes `sdlc_lmstudio_read_only_code_scout` as an experimental direct LM Studio-pinned adapter, but tested hosted parent sessions cannot spawn it yet. Use `codex exec --oss --local-provider lmstudio` for direct LM Studio scout runs until that changes.
+- Keeps hosted-model privacy policy explicit.
+- Lets local-provider sessions inherit LM Studio model/provider settings from the parent Codex session.
+- Falls back to packet output or `codex exec` smoke testing when native subagents are unavailable.
 - Does not permit edits.
+
+Validation note:
+Before installing the adapters under `~/.codex/agents/` and restarting VS Code, the current chat subagent tool rejected the custom `sdlc_read_only_code_scout` agent type. After restart, both `sdlc_read_only_code_scout` and `sdlc_local_read_only_code_scout` were accepted. The first hosted scout returned schema-shaped JSON but failed local validation because no-finding packets still need reviewed `sourcePointers`. The adapter templates now state that `sourcePointers` must be included even when `findings` is empty. After reinstalling the updated adapters, a second hosted scout returned reviewed source pointers and passed `sdlc agents scout-validate`.
 
 ## Quality Oracle Ladder
 

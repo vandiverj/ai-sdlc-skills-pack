@@ -15,7 +15,7 @@ Portable agent definitions live in `.agents/agents/*.md`. Runtime-specific adapt
 ## Adapter Templates
 - Augment/Auggie: `.agents/templates/adapters/augment/agent.md`
 - Pi: `.agents/templates/adapters/pi/agent.md`
-- Codex: `.agents/templates/adapters/codex/agent.toml`
+- Codex: `.agents/templates/adapters/codex/agent.toml` for generic role adapters, or `.agents/templates/adapters/codex/sdlc-read-only-code-scout.toml` / `.agents/templates/adapters/codex/sdlc-local-read-only-code-scout.toml` / `.agents/templates/adapters/codex/sdlc-lmstudio-read-only-code-scout.toml` for Codex-native read-only scout subagents
 
 ## Rules
 - Portable source owns purpose, boundaries, output, verification duties, and escalation.

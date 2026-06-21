@@ -67,6 +67,10 @@ If the runtime needs a broader authority than the portable role allows, update t
 
 - Prefer portable skills and prompt templates directly.
 - Use `AGENTS.md` for project-local instructions and discovery.
+- Use user-level `~/.codex/agents/*.toml` as thin custom-agent adapters for reusable personal SDLC roles.
+- Use project `.codex/agents/*.toml` only for repo-specific overrides or team-shared Codex agents.
+- Keep concrete model names, reasoning effort, sandbox defaults, and local-provider inheritance in the Codex adapter or local Codex config, not in portable role policy.
+- Treat `codex exec` as a noninteractive test harness or fallback runner, not the default architecture for interactive Codex subagents.
 - Do not duplicate full role definitions inside project instructions unless the runtime cannot access the portable source.
 
 ### Pi

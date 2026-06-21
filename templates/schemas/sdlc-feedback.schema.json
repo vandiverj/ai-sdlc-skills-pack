@@ -176,41 +176,49 @@
   "not": {
     "anyOf": [
       {
+        "type": "object",
         "required": [
           "rawSource"
         ]
       },
       {
+        "type": "object",
         "required": [
           "rawCode"
         ]
       },
       {
+        "type": "object",
         "required": [
           "rawDiff"
         ]
       },
       {
+        "type": "object",
         "required": [
           "rawLog"
         ]
       },
       {
+        "type": "object",
         "required": [
           "rawTicketText"
         ]
       },
       {
+        "type": "object",
         "required": [
           "rawDatabaseOutput"
         ]
       },
       {
+        "type": "object",
         "required": [
           "fullPrompt"
         ]
       },
       {
+        "type": "object",
         "required": [
           "chatTranscript"
         ]

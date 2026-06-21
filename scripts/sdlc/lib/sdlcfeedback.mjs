@@ -217,7 +217,7 @@ function readSdlcFeedbackEvents(inputPath) {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed.events) ? parsed.events : [parsed];
     } catch (error) {
-      return [{ parseError: error.message || String(error) }];
+      if (!raw.includes('\n')) return [{ parseError: error.message || String(error) }];
     }
   }
   return raw.split(/\r?\n/).filter(Boolean).map((line) => {

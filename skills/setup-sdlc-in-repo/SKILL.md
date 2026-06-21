@@ -81,7 +81,7 @@ Create PRD, contract, decision, issue, implementation-plan, release, concrete pa
 ## Runtime adapters
 Adapters are optional and should stay thin:
 
-- Codex: root `AGENTS.md` plus project-local `docs/agents/*` and portable skills guidance.
+- Codex: root `AGENTS.md`, project-local `docs/agents/*`, portable skills guidance, user-level `~/.codex/agents/*.toml` for reusable personal SDLC subagents, and optional project `.codex/agents/*.toml` only when the repository needs overrides or team-shared Codex agents.
 - VS Code/Copilot: `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md` when the project uses Copilot customization.
 - Augment: `.augment/agents/*.md` when the project uses Augment/Auggie subagents.
 - Claude Code: `.claude/agents/*.md` when the project uses Claude Code project agents.
@@ -106,7 +106,7 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 11. Draft changes without overwriting project-specific guidance.
 12. Merge existing instructions by linking to deeper docs and preserving local commands/conventions.
 13. Add `docs/patterns/README.md` and pattern templates when repeated project-specific implementation guidance should be captured.
-14. Add runtime adapters only for tools the project actually uses or explicitly wants.
+14. Add runtime adapters only for tools the project actually uses or explicitly wants. For reusable Codex SDLC subagents, prefer a one-time user-level install from `templates/adapters/codex/*.toml` into `~/.codex/agents/`. Copy adapters into project `.codex/agents/` only for repo-specific overrides or team-shared Codex agents. Keep the portable role in `.agents/agents/*.md` or project `docs/agents/*` as the source of truth.
 15. Add evidence packet and independent-reviewer templates when the project will use local handoffs, local review packets, or agent review roles.
 16. Run documentation verification checks and `git diff --check`.
 17. Run `sdlc readiness` again when available and report remaining setup gaps.
@@ -234,6 +234,8 @@ Install or update:
 - `docs/agents/learning-loop.md` for how process-learning events can improve agent definitions through human-reviewed commits.
 
 When this skills pack has portable role definitions in `.agents/agents/*.md`, use them as source material for project-local `docs/agents/*` and runtime adapters. Do not copy every portable role into a downstream repository unless the project will actually use it.
+
+Reusable Codex-native SDLC subagent adapters should usually be installed once under `~/.codex/agents/`. Use `templates/adapters/codex/sdlc-read-only-code-scout.toml` for approved hosted lower-tier scouting and `templates/adapters/codex/sdlc-local-read-only-code-scout.toml` for parent sessions already launched against a local provider such as LM Studio. Keep `templates/adapters/codex/sdlc-lmstudio-read-only-code-scout.toml` experimental until Codex can spawn OSS/LM Studio provider-backed custom agents from hosted parent sessions; use `codex exec --oss --local-provider lmstudio` for direct LM Studio scout runs for now. Install project `.codex/agents/` adapters only for repo-specific overrides or team-shared Codex configuration. Do not hard-code hosted model names into portable docs; keep concrete model mappings in the adapter or local Codex config.
 
 ## Implementation pattern installation
 Install or update:

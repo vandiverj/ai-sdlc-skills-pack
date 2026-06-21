@@ -30,7 +30,8 @@ Settled architecture facts for the current pilot:
 - The primary orchestrator is a frontier GPT-5.4-5.5 model.
 - Codex Extension and Codex CLI are harnesses for invoking and supervising work; they are not the model.
 - Codex Extension is the interactive developer surface.
-- Codex CLI is the first reference sub-session runner to prove the workflow.
+- Codex-native subagents are the preferred interactive sub-session path where available.
+- Codex CLI remains the first noninteractive smoke-test and fallback harness for proving packet, model, and runtime behavior.
 - The in-house MCP is the primary context source and has its own feedback/evaluation loop.
 - Context exploration should be thin reasoning over MCP retrieval and local repo facts, not free-roaming local-agent discovery.
 - The first domain is internal-only full-stack web development, not arbitrary public/open-domain software work.
@@ -50,7 +51,8 @@ The current skills pack is a useful baseline, not a sacred design. It already ha
 - `agents` owns portable agent roles, model tiers, delegation patterns, runtime adapters, and review boundaries.
 - `agents/*.md` defines current portable roles: implementation worker, verification worker, independent reviewer, release handoff worker, and process learning reviewer.
 - `templates/docs/agents/*` already describes downstream project agent strategy, catalog, model-tier policy, delegation patterns, runtime adapters, and runtime practical guidance.
-- `templates/adapters/codex/agent.toml` already gives a thin Codex runtime-adapter shape.
+- `templates/adapters/codex/agent.toml` gives a generic thin Codex runtime-adapter shape.
+- `templates/adapters/codex/sdlc-read-only-code-scout.toml` and `templates/adapters/codex/sdlc-local-read-only-code-scout.toml` provide the first concrete Codex-native subagent adapters for the read-only scout role.
 - AI/agent security guidance already treats generated agents, MCPs, adapters, tool calls, local context, and automation authority as review surfaces.
 
 The missing piece is a concrete multi-tier routing and runtime-adapter layer: how the SDLC decides when to use the top frontier model, a cheaper frontier tier, deterministic tooling, or a local model role; how the selected runtime invokes that role; what context it receives; which tools it may touch; how results are reconciled; and how cost/quality tradeoffs are measured.
@@ -1922,7 +1924,7 @@ No finding may drive implementation without orchestrator source verification.
 ```
 
 Cycle 5 implementation status:
-Cycle 5 has a plan at [cycle-5-read-only-code-scout-subagent-pilot.md](cycle-5-read-only-code-scout-subagent-pilot.md) and implementation evidence at [cycle-5-implementation-report.md](cycle-5-implementation-report.md). It implemented the first bounded subagent packet path through `sdlc agents scout-packet` and `sdlc agents scout-validate`, while preserving the orchestrator as the final authority. Runtime invocation and local model calls remain gated follow-up work.
+Cycle 5 has a plan at [cycle-5-read-only-code-scout-subagent-pilot.md](cycle-5-read-only-code-scout-subagent-pilot.md) and implementation evidence at [cycle-5-implementation-report.md](cycle-5-implementation-report.md). It implemented the first bounded subagent packet path through `sdlc agents scout-packet` and `sdlc agents scout-validate`, then completed a manual fallback scout pilot with validated source-linked findings and `sdlc_feedback` capture. The LM Studio runtime pilot found that the primary `google/gemma-4-26b-a4b-qat` model id/backend path was unreliable after structured-output attempts, but `google/gemma-4-26b-a4b-qat:2` produced a valid scout findings packet with plain JSON prompting. Codex CLI successfully called `google/gemma-4-26b-a4b-qat:2` through both the built-in localhost `--oss --local-provider lmstudio` path and a custom LAN provider using `wire_api="responses"`. A real bounded LM Studio scout task produced an invalid first packet and a valid corrected packet after stricter contract prompting; the accepted finding was weak and remains evidence for more validation, not promotion. A `gpt-5.3-codex-spark` frontier scout attempt was blocked in this tool environment because it would disclose private workspace content to an external model provider; user-run terminal invocation reached the model but exposed a schema compatibility issue, now fixed by adding explicit `type: "object"` keys to forbidden-field schema branches.
 
 ### Later Cycles: Narrow Automation Expansion
 
@@ -2410,7 +2412,8 @@ templates/docs/agents/runtime-adapter-contract.md
 templates/docs/agents/agent-response-packet-contract.md
 templates/docs/agents/knowledge-layer-contract.md
 templates/docs/agents/retrieval-eval-contract.md
-templates/adapters/codex-cli-subsession/agent.toml
+templates/adapters/codex/sdlc-read-only-code-scout.toml
+templates/adapters/codex/sdlc-local-read-only-code-scout.toml
 templates/adapters/claude-code/subagent.md
 ```
 
@@ -2589,7 +2592,7 @@ Were runtime caps explicit instead of hidden in prose?
 Current documentation, provider-independent research, and human workflow feedback changed the plan in these ways:
 
 - Provider docs are used only for runtime capability discovery, not as authority for process policy. OpenAI Codex docs confirm the pilot should map to existing primitives before building new plumbing: custom agents/subagents, `agents.max_depth`, model/provider config, `lmstudio`/`ollama` local provider support, MCP in CLI and IDE, hooks, noninteractive `codex exec`, JSON-schema output, and Codex-as-MCP.
-- LM Studio docs confirm Codex can use LM Studio through an OpenAI-compatible Responses endpoint and the `--oss` path, so "can Codex target LM Studio?" is no longer the main unknown. The main unknown is which local models are good enough for which roles in this SDLC.
+- LM Studio and local testing confirm Codex can target LM Studio through an OpenAI-compatible Responses endpoint. Codex CLI 0.139.0 worked through the built-in `--oss --local-provider lmstudio` path when LM Studio listened on localhost. For LAN-hosted LM Studio, Codex CLI also worked through a custom provider with `wire_api="responses"`. The main unknown is which local models are good enough for which roles in this SDLC.
 - Claude Code docs confirm a viable portability target with subagents, MCP, hooks, tool restrictions, settings, and frontmatter-driven agent files. That supports the portable runtime-adapter contract instead of Codex-only policy.
 - MCP docs confirm the right abstraction for cross-runtime context/tool access: hosts connect to servers that expose resources, prompts, and tools with explicit consent and tool-safety expectations.
 - The provider-independent review reframed the "simple baseline" as a test requirement, but the user counterpoint reframes it again: the current daily workflow already approximates the simple baseline and leaves the human as the manual orchestrator. The plan now measures and reduces that burden instead of treating the baseline as the destination.
@@ -2754,6 +2757,8 @@ Remaining decisions should be made inside the relevant cycle, not at the overvie
 3. Cycle 3 follow-up: decide whether the deterministic retrieval helpers are ready for Provisional after repeated non-docs runs with acceptable context economy.
 4. Cycle 4A follow-up: use `sdlc_feedback` during normal Standard+ work and review repeated events through process-learning before changing durable rules.
 5. Cycle 4A follow-up: decide whether accumulated feedback needs a summarized report command beyond `list_sdlc_feedback` and `sdlc feedback export`.
-6. Cycle 5 follow-up: run a manual scout pilot on a low-risk real task and record accepted/rejected findings through `sdlc_feedback`.
-7. Cycle 5 follow-up: decide whether the first runtime pilot uses manual packet paste, Codex CLI sub-session, cheaper frontier model, or LM Studio local model.
-8. Later cycle: revisit read-only counterpoint, semantic-tail retrieval expansion, and fixture bounded-write only after passive feedback and read-only scout evidence show repeated value and low review burden.
+6. Cycle 5 follow-up: retry the user-run `gpt-5.3-codex-spark` scout command with the structured-output-compatible findings schema and validate the returned packet.
+7. Cycle 5 follow-up: repeat a bounded LM Studio scout task with a stricter first-pass contract and measure whether it returns valid findings without a repair prompt.
+8. Cycle 5 follow-up: compare accepted/rejected findings plus verification burden against the manual fallback pilot before promoting any local model role.
+9. Cycle 5 follow-up: treat externally spawned lower-tier frontier sub-sessions as unavailable from this tool environment for private workspace content; test them through user-run terminal commands, sanitized packets, or an environment whose policy permits the disclosure.
+10. Later cycle: revisit read-only counterpoint, semantic-tail retrieval expansion, and fixture bounded-write only after passive feedback and read-only scout evidence show repeated value and low review burden.

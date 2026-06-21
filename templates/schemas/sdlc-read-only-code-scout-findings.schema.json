@@ -129,21 +129,25 @@
   "not": {
     "anyOf": [
       {
+        "type": "object",
         "required": [
           "rawCode"
         ]
       },
       {
+        "type": "object",
         "required": [
           "rawDiff"
         ]
       },
       {
+        "type": "object",
         "required": [
           "rawTicketText"
         ]
       },
       {
+        "type": "object",
         "required": [
           "databaseOutput"
         ]
