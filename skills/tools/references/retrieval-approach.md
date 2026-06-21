@@ -83,6 +83,7 @@ Choose the smallest useful shape:
 ## Source-of-truth rules
 - Retrieval output is a pointer, not proof.
 - Claims used for design, implementation, verification, or completion must trace back to code, tests, code-local docs, PRDs, contracts, ADRs, application model, feature context, AGENTS.md, context-state, or Memory Bank routing files.
+- For curated cross-repo engineering knowledge, context MCP output must trace back to the Git-versioned engineering-context source path, context id, and review metadata. The MCP index is the retrieval interface; the source repo is the editable curated record.
 - Generated indexes, graph reports, embeddings, vector stores, Obsidian backlinks, and MCP answers must not outrank authoritative artifacts.
 - If retrieval exposes contradictions, stale docs, or missing links, update `docs/context-state.md` and route to the owning artifact.
 

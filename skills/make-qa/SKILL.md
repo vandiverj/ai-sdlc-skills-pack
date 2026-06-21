@@ -1,6 +1,6 @@
 ---
 name: make-qa
-description: Create or revise YouTrack QA Test Script content for non-technical human product testers. Use when Codex needs to turn a YouTrack issue, parent or linked issue context, comments, engineering-context docs, git history, code changes, screenshots or attachments, and development chat context into a staging-focused, assignment-ready QA script written in product workflow language; default to presenting the proposed script in chat for developer approval and only update YouTrack when explicitly instructed.
+description: Create or revise YouTrack QA Test Script content for non-technical human product testers. Use when Codex needs to turn a YouTrack issue, parent or linked issue context, comments, curated engineering-context knowledge, git history, code changes, screenshots or attachments, and development chat context into a staging-focused, assignment-ready QA script written in product workflow language; default to presenting the proposed script in chat for developer approval and only update YouTrack when explicitly instructed.
 user-invocable: true
 ---
 
@@ -20,7 +20,7 @@ Create assignment-ready QA scripts for staging testers who are experienced produ
 - Treat testers as domain experts who know business workflows and have many staging users/companies available.
 - Name the tester lane and business condition before naming exact accounts. Require exact data only for rare, reset-sensitive, known-bug, or developer-prepared states.
 - Use product navigation language in tester-facing steps. Do not mention filenames, endpoints, controllers, table names, tokens, feature flags, or fixture IDs outside developer notes.
-- Ground every concrete claim in evidence: YouTrack, comments, parent/linked issues, engineering-context docs, code, git diff/history, screenshots, image attachments if viewable, or explicit developer confirmation.
+- Ground every concrete claim in evidence: YouTrack, comments, parent/linked issues, context MCP results that cite engineering-context docs, local engineering-context fallback docs, code, git diff/history, screenshots, image attachments if viewable, or explicit developer confirmation.
 - Apply grounding to tester steps, developer notes, business facts, deprecations, eligibility rules, and source attributions. Never attribute a claim to a source that does not actually say it.
 - Never invent menu names, button labels, dropdown options, statuses, fields, messages, page names, URLs, or business rules. Ask, omit, or flag a gap when not grounded.
 - Expected results must be observable. Avoid vague wording such as "verify it works."
@@ -30,7 +30,7 @@ Create assignment-ready QA scripts for staging testers who are experienced produ
 
 For any comparison, parity, or "open page" script, include a concrete access method for each surface being tested.
 
-- Read `engineering-context/staging-access-map.md` when building navigation steps.
+- Use context MCP first to load `staging-access-map.md` when building navigation steps. If MCP is unavailable or stale, read the configured local `engineering-context/staging-access-map.md` fallback.
 - Use the access map to ground staging URLs, menu paths, and techniques for opening old and new views side by side.
 - If the access map does not exist or lacks the needed surface, create or append to it only from grounded evidence or developer confirmation.
 - Never invent a staging URL or menu path. If the access method is not grounded, ask the developer or mark the script as draft with that blocker.
@@ -65,8 +65,8 @@ For a YouTrack case:
 1. Read the YouTrack issue details, including existing QA Test Script if present.
 2. Read recent comments and attachment metadata. If image attachments are viewable, use them as grounding for UI claims.
 3. Read parent and linked issues when they explain scope or user workflow.
-4. Read `engineering-context/staging-access-map.md` for grounded staging URLs, menu paths, and old/new comparison techniques.
-5. Search other `engineering-context` docs for the product area, user lane, workflow, and known business language. Treat these docs as partial but primary grounding.
+4. Use context MCP to read `staging-access-map.md` for grounded staging URLs, menu paths, and old/new comparison techniques; fall back to the configured local engineering-context checkout when needed.
+5. Search context MCP for the product area, user lane, workflow, and known business language; fall back to local engineering-context docs when MCP is unavailable or missing coverage. Treat these docs as partial but primary grounding.
 6. Search git history for both the issue key and any parent issue key, because development may have happened before subtasks were split.
 7. Inspect relevant diffs and changed files to understand visible behavior and related product areas. Do not use live staging as the source of truth while drafting before deploy.
 8. Use current development chat context.
@@ -129,7 +129,7 @@ Write deprecation, "no longer offered," "changed," and eligibility claims only w
 
 ## Feedback Capture
 
-Automatically maintain `engineering-context/qa-script-feedback.md` in the workspace when feedback or gaps arise.
+When context MCP supports knowledge candidates, submit QA-script feedback or gaps as candidates first. Otherwise, maintain `engineering-context/qa-script-feedback.md` in the workspace when feedback or gaps arise.
 
 Append concise entries for:
 

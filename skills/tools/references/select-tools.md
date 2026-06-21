@@ -43,6 +43,7 @@ Next skill:
 
 ## Common tool roles
 - Documentation retrieval, such as Context7: use for current, version-specific external library/framework/API docs. Do not use it as a project context pruning tool.
+- Context MCP retrieval, such as `search_knowledge`, `get_context_doc`, `list_context_by_repo`, and `list_context_by_domain`: use for approved curated engineering-context knowledge. Treat results as pointers to Git-versioned source docs; writebacks remain human-gated.
 - Reasoning scaffold, such as Sequential Thinking: use for ambiguous architecture, debugging, refactoring, or high-risk tradeoffs. Do not make it mandatory for simple plans.
 - Repo retrieval/index tools: use for surgical retrieval from the project when Memory Bank and direct file selection are insufficient, preferably under an approved tools retrieval-approach decision.
 - Memory-sync tools: optional only if they write plain, reviewable repo artifacts and do not become hidden canonical memory.
@@ -59,6 +60,7 @@ Next skill:
 - Do not introduce new retrieval, RAG, vector, graph, hosted search, or human navigation tools without tools retrieval-approach guidance when the decision is meaningful.
 - Do not treat MCP output as a source of truth over local code/tests/docs.
 - Do not make optional MCPs mandatory for the workflow.
+- If context MCP is unavailable, stale, or lacks the needed source document, fall back to configured local context roots and record the cap.
 - If a memory-sync tool is used, it must write readable, version-controlled project files or be treated as transient.
 - If a tool affects implementation decisions, record the decision, source/link, or verified fact in the owning artifact.
 - If a tool reveals uncertainty, update docs/context-state.md.

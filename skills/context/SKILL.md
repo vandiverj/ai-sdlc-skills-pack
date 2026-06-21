@@ -46,6 +46,25 @@ Next skill:
 
 Context management is now a local artifact workflow, not a prompt dump.
 
+## Curated Knowledge Retrieval
+
+When an approved context MCP is available, use it first for cross-repo
+engineering knowledge:
+
+- Search with `search_knowledge` before manually scanning a local
+  engineering-context checkout.
+- Load specific docs with `get_context_doc` when a context id or path is known.
+- Use `list_context_by_repo` or `list_context_by_domain` to find relevant
+  curated context before broader repository search.
+
+Treat MCP results as pointers to curated source artifacts, not hidden memory.
+The Git-versioned engineering-context repository remains the editable curated
+source. If MCP is unavailable or stale, fall back to configured local context
+roots and record the freshness cap.
+
+Propose new durable facts through the context/knowledge candidate flow when
+available. Do not silently rewrite curated context docs without human approval.
+
 Use these helpers when available:
 
 ```bash
