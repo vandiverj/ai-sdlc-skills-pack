@@ -60,7 +60,7 @@ import { policyCheck, policyDecision, policyExplain, policyList, policyRowsForAc
 import { artifactBudget, artifactBudgetForRoute, artifactCleanupPlan, artifactLifecycle, artifactMigrate, artifactScratchAudit, artifactScratchCleanup, artifactScratchPolicy, artifactSpaPlan, artifactSummarize, artifactValidate, formatArtifactBudget } from './artifacts.mjs';
 import { checksDoctor, checksPlan, checksRun, runCheck } from './checks.mjs';
 import { impactAreas, primaryQaSteps, qaAreas, qaBuild, qaCompare, qaComplete, qaCoverage, qaHandoff, qaLint, qaModeCommand, qaOutline, qaOutlineForMode, qaReview, qaScenarios, qaScript, qaValidate } from './qa.mjs';
-import { capabilitiesNegotiate, capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, localFirstPlan, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsExperimentAdd, toolsExperimentReview, toolsFallback, toolsGaps, toolsInventory, toolsRecommend, toolsStatus } from './tools.mjs';
+import { capabilitiesNegotiate, capabilityDoctor, capabilityFallback, capabilityRows, capabilitySnapshot, databaseApprovalGateText, databaseQueryShape, externalEvidenceProfile, externalEvidenceSensitive, localFirstPlan, ticketFallbackFields, toolCapabilityRows, toolFallbacksForTask, toolsDetect, toolsExperimentAdd, toolsExperimentReview, toolsFallback, toolsGaps, toolsInventory, toolsRecommend, toolsSetup, toolsStatus } from './tools.mjs';
 import { affectedUnits, classifyTestingSurface, detectPackageManager, inferTestingSurfaces, qaModeForSurfaces, surfaceDetect, surfaceList, unitContext, unitDetect, unitDoctor, unitList, unitMap, unitProfile, unitResolve } from './units.mjs';
 import { contextGateRows, controlGateRows } from './gates.mjs';
 import { promptAudit, promptClean, promptCompile, promptSanitize, promptScore, promptStructure } from './prompt.mjs';
@@ -289,6 +289,7 @@ export async function main(argv) {
   if (area === 'tools' && action === 'status') return toolsStatus(repo, options);
   if (area === 'tools' && action === 'fallback') return toolsFallback(repo, options);
   if (area === 'tools' && action === 'inventory') return toolsInventory(repo, options);
+  if (area === 'tools' && action === 'setup') return toolsSetup(repo, options);
   if (area === 'tools' && action === 'gaps') return toolsGaps(repo, options);
   if (area === 'tools' && action === 'recommend') return toolsRecommend(repo, options);
   if (area === 'tools' && action === 'experiment' && rest[0] === 'add') return toolsExperimentAdd(repo, options);
