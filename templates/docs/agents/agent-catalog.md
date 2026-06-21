@@ -36,6 +36,7 @@ Learning signals:
 - Default model tier: `fast` or `standard`.
 - Write access: No.
 - Expected output: Files/artifacts to load, why they matter, uncertainty, and next recommended skill.
+- Codex frontier adapter: `sdlc_context_scout` using `gpt-5.3-codex-spark`.
 
 ### read-only-code-scout
 - Purpose: Perform bounded read-only code discovery for a named language profile and task type.
@@ -44,36 +45,42 @@ Learning signals:
 - Expected output: Source-linked findings, uncertainty, verification questions, caps, and recommended next action.
 - Common task types: duplication-scan, abandoned-code-scan, extraction-candidate-scan, test-gap-scan, risk-surface-scan, context-summary.
 - Escalation triggers: unclear scope, missing source pointers, sensitive boundary uncertainty, invented facts, or findings more expensive to verify than manual review.
+- Codex frontier adapter: `sdlc_read_only_code_scout` using `gpt-5.3-codex-spark`.
 
 ### implementation-planner
 - Purpose: Convert approved issue/contract/context into an executable, testable, bounded plan.
 - Default model tier: `standard`; escalate to `deep` for high-risk planning.
 - Write access: No implementation edits.
 - Expected output: Plan sections required by `write-implementation-plan`.
+- Codex frontier adapter: `sdlc_implementation_planner` using `gpt-5.4-mini`.
 
 ### implementation-worker
 - Purpose: Execute an approved plan within a safe-edit boundary.
 - Default model tier: `standard`.
 - Write access: Only assigned files.
 - Expected output: Changed files, tests run, blockers, and deviations from plan.
+- Codex frontier adapter: `sdlc_implementation_worker` using `gpt-5.4`.
 
 ### verification-worker
 - Purpose: Run approved verification commands and tool-backed checks without editing files.
 - Default model tier: `deterministic` when commands are specified; `standard` when interpreting failures.
 - Write access: No.
 - Expected output: Commands/tools run, results, failed/skipped checks, rendered-review evidence or cap, and residual evidence risk.
+- Codex frontier adapter: `sdlc_verification_worker` using `gpt-5.4-mini`.
 
 ### release-handoff-worker
 - Purpose: Perform final Git/status hygiene and publish only when explicitly assigned.
 - Default model tier: `standard`.
 - Write access: May stage, commit, or push only inside the assigned repository and only when the handoff phase grants that authority.
 - Expected output: Final status, staged-file boundary, verification evidence, commit/push result or cap, and residual release risk.
+- Codex frontier adapter: `sdlc_release_handoff_worker` using `gpt-5.4-mini`.
 
 ### process-learning-reviewer
 - Purpose: Aggregate repeated process evidence and recommend small SDLC improvements.
 - Default model tier: `standard`; escalate to `deep` for broad process architecture changes.
 - Write access: No.
 - Expected output: Patterns observed, reusable gaps, fixture-only issues, strategic questions, overfitting risk, and recommended artifact updates.
+- Codex frontier adapter: `sdlc_process_learning_reviewer` using `gpt-5.4-mini`.
 
 ### test-engineer
 - Purpose: Design or review tests, edge cases, regression checks, and verification commands.
@@ -104,6 +111,7 @@ Learning signals:
 - Default model tier: `deep`.
 - Write access: No.
 - Expected output: Threat-model findings, required mitigations, tests/checks, residual risks.
+- Codex frontier adapter: `sdlc_security_privacy_reviewer` using `gpt-5.5`.
 
 ### production-readiness-reviewer
 - Purpose: Review release, rollback, observability, migration, CI/local parity, and Git reviewability.
@@ -116,6 +124,23 @@ Learning signals:
 - Default model tier: `fast` or `standard`.
 - Write access: No, unless assigned a bounded docs update.
 - Expected output: Drift findings and owning artifacts to update.
+
+### qa-handoff-worker
+- Purpose: Create tester-readable QA handoff material from implementation evidence.
+- Default model tier: `standard`.
+- Write access: QA/handoff docs only when explicitly assigned.
+- Expected output: Tester setup, scenarios, expected results, regression checks, caps.
+- Codex frontier adapter: `sdlc_qa_handoff_worker` using `gpt-5.4-mini`.
+
+### feedback-reporter
+- Purpose: Draft sanitized SDLC feedback events for parent-mediated submission.
+- Default model tier: `standard`.
+- Write access: No direct MCP submission by default.
+- Expected output: `airtera.sdlc.feedback.v1`-compatible draft with `rawContentIncluded: false`.
+- Codex frontier adapter: `sdlc_feedback_reporter` using `gpt-5.4-mini`.
+
+## Feedback rule
+Specialist agents return SDLC feedback drafts. The parent orchestrator validates and submits through AirteraCode MCP when available, or local `sdlc feedback add` fallback when not.
 
 ## Specialist additions
 Add a specialist only when repeated work proves a stable need, the output contract is clear, and the role improves quality, safety, reviewability, or cost.

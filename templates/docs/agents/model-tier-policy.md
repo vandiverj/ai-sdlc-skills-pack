@@ -63,6 +63,20 @@ Escalate when:
 ## Runtime mappings
 Record project-local model names in `docs/agents/runtime-adapters.md` or runtime config files. Keep this file vendor-neutral unless the project intentionally chooses otherwise.
 
+## Codex frontier default mapping
+
+Use this mapping when a project has Codex frontier models available and has not defined a stricter local policy:
+
+```text
+fast: gpt-5.3-codex-spark
+standard-light: gpt-5.4-mini
+standard: gpt-5.4
+deep: gpt-5.5
+consensus: independent standard/deep reviewers selected by risk
+```
+
+Reserve `gpt-5.5` for high-risk security, privacy, data, migration, deployment, public-contract, or critical architecture review.
+
 ## Last updated
 - Date:
 - Updated because:

@@ -33,6 +33,11 @@ Adapters may translate model names, tool names, context-passing mechanics, permi
   - Use the portable SDLC skills and docs as source of truth.
   - Use Codex-native subagents for bounded read-only exploration, review, or verification only when the current Codex environment supports them.
   - Keep Codex custom-agent files thin adapters over portable roles such as `read-only-code-scout`.
+  - For a frontier-only SDLC roster, install `templates/adapters/codex/sdlc-*.toml` into `~/.codex/agents/` with `sdlc agents install-codex --frontier`.
+  - Restart or reload Codex after installing new custom-agent files before validating runtime discovery.
+  - Codex custom agents inherit the MCPs exposed by the current developer environment. Treat adapter MCP text as policy guidance, not a hard access-control boundary.
+  - Parent prompts must state the repository, safe-edit boundary, allowed MCP/tool scope, and Git authority for each spawned agent.
+  - Agents return sanitized SDLC feedback drafts; the parent orchestrator submits through AirteraCode MCP or local fallback.
   - For hosted lower-tier models, confirm the assigned scope is allowed to leave the local environment.
   - For LM Studio/local providers, prefer an adapter that inherits the parent Codex provider/model when the parent session is already local. Treat LM Studio-pinned custom agents as experimental until the current Codex surface can spawn them; use `codex exec --oss --local-provider lmstudio` for direct LM Studio scout runs.
   - Prefer prompt templates for role-separated phases before duplicating role text.

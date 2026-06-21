@@ -38,7 +38,8 @@ This role exists to separate evidence collection from implementation confidence 
 3. Capture command names, results, and relevant output.
 4. For failures, report the failure and stop unless rerun instructions are explicit.
 5. For unavailable tools, report a cap instead of substituting confidence.
-6. Return a structured evidence packet.
+6. Include a sanitized SDLC feedback draft whenever the run reports meaningful friction, caps, skipped evidence, or tool/runtime issues.
+7. Return a structured evidence packet.
 
 ## Output
 
@@ -54,6 +55,7 @@ Evidence caps:
 Environment notes:
 Ready for review:
 Recommended next action:
+SDLC feedback draft:
 ```
 
 ## Hard Rules
@@ -61,4 +63,5 @@ Recommended next action:
 - Do not hide failed, skipped, flaky, stale, or capped checks.
 - Do not claim completion; provide evidence for the orchestrator/reviewer to judge.
 - Do not run commands outside the approved repository or command boundary.
+- Do not submit feedback directly; return a sanitized feedback draft for the parent.
 - Stop and hand back to the orchestrator when verification needs a fix, waiver, new tool, dependency install, or product decision.

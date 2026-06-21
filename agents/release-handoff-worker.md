@@ -61,6 +61,7 @@ Push/PR status:
 Evidence caps:
 Residual risks:
 Recommended next action:
+SDLC feedback draft:
 ```
 
 ## Hard Rules
@@ -70,4 +71,5 @@ Recommended next action:
 - Do not claim a branch is ready when verification evidence is missing, stale, failed, or uncleared.
 - Do not hide Git identity, branch target, remote, or publication uncertainty.
 - Do not push publicly without reporting the author/committer identity evidence used for that decision.
+- Do not submit feedback directly; return a sanitized feedback draft for the parent.
 - Stop and hand back to the orchestrator when the branch needs splitting, a verification waiver, or a human release decision.

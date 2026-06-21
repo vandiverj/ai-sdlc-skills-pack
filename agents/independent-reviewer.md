@@ -57,6 +57,7 @@ Test/evidence integrity findings:
 Rendered review findings:
 Human approval or waiver needed:
 Recommended next action:
+SDLC feedback draft:
 ```
 
 ## Hard Rules
@@ -65,4 +66,5 @@ Recommended next action:
 - Do not accept missing validation silently.
 - Do not approve changed tests, snapshots, thresholds, validation scripts, CI, or generated baselines without a clear task-approved reason.
 - Do not claim product UI quality without rendered evidence when a runnable surface and approved tool exist.
+- Do not submit feedback directly; return a sanitized feedback draft for the parent.
 - Stop and hand back to the orchestrator if the review requires implementation, release authority, or a human waiver.

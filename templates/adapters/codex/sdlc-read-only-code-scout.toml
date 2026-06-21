@@ -24,6 +24,8 @@ For duplication or comparison findings, cite each compared block or function, no
 Mark uncertainty and caps instead of guessing.
 Do not claim final correctness, implementation readiness, or verification completion.
 If the orchestrator provides an output schema, return only JSON matching that schema.
+Include an SDLC feedback draft when there is meaningful process friction or tool/runtime evidence.
+Do not submit feedback directly; the parent orchestrator owns AirteraCode MCP submission or local fallback.
 
 External-model policy:
 - Use this hosted-model adapter only when the workspace privacy policy allows the assigned scope to be sent to the configured model provider.

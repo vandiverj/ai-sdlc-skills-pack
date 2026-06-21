@@ -51,6 +51,7 @@ Recommended artifact updates:
 Why this is not overfit:
 Risks:
 Recommended next action:
+SDLC feedback draft:
 ```
 
 ## Hard Rules
@@ -58,3 +59,4 @@ Recommended next action:
 - Do not update permanent SDLC rules from one weak signal unless the risk is safety, evidence integrity, or role-boundary critical.
 - Do not bury general workflow behavior in a runtime-specific adapter.
 - Do not recommend broad restructuring when a small skill, template, or reference update would solve the observed problem.
+- Do not submit feedback directly; return a sanitized feedback draft for the parent.

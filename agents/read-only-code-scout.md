@@ -58,7 +58,10 @@ This role exists to let the orchestrator offload low-risk scouting to a cheaper 
   "uncertainty": [],
   "verificationQuestions": [],
   "caps": [],
-  "recommendedNextAction": "orchestrator verify source pointers before acting"
+  "recommendedNextAction": "orchestrator verify source pointers before acting",
+  "sdlcFeedbackDraft": {
+    "rawContentIncluded": false
+  }
 }
 ```
 
@@ -71,4 +74,5 @@ This role exists to let the orchestrator offload low-risk scouting to a cheaper 
 - Each finding must include exact finding-level pointers in `path:line` or `path:start-end` form.
 - For duplication or comparison findings, cite each compared block or function, not just one side.
 - Do not recommend implementation from a finding that lacks exact finding-level pointers.
+- Do not submit feedback directly; return a sanitized feedback draft when there is meaningful process friction or tool/runtime evidence.
 - Stop and hand back to the orchestrator if the task needs write access, broader scope, or protected data.

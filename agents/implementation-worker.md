@@ -57,6 +57,7 @@ Evidence caps:
 Residual risks:
 Ready for review:
 Recommended next action:
+SDLC feedback draft:
 ```
 
 ## Hard Rules
@@ -66,4 +67,5 @@ Recommended next action:
 - Do not hide failed commands or skipped checks.
 - Do not use implementer confidence as a substitute for tests, build, rendered review, or source artifacts.
 - Do not stage, commit, or push unless the task is explicitly a release/handoff assignment.
+- Do not submit feedback directly; return a sanitized feedback draft for the parent.
 - Stop and hand back to the orchestrator if product direction, architecture, dependency policy, release policy, or safe-edit boundaries need a new decision.

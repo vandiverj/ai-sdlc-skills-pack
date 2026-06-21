@@ -1,6 +1,25 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { fail, formatList, printObject, printTable, readJsonIfExists, readJsonLines, safeWriteTextFile } from './common.mjs';
+
+const FRONTIER_CODEX_AGENT_FILES = [
+  'sdlc-context-scout.toml',
+  'sdlc-read-only-code-scout.toml',
+  'sdlc-implementation-planner.toml',
+  'sdlc-implementation-worker.toml',
+  'sdlc-verification-worker.toml',
+  'sdlc-independent-reviewer.toml',
+  'sdlc-security-privacy-reviewer.toml',
+  'sdlc-qa-handoff-worker.toml',
+  'sdlc-release-handoff-worker.toml',
+  'sdlc-process-learning-reviewer.toml',
+  'sdlc-feedback-reporter.toml',
+];
+const LOCAL_CODEX_AGENT_FILES = [
+  'sdlc-local-read-only-code-scout.toml',
+  'sdlc-lmstudio-read-only-code-scout.toml',
+];
 
 export function adapterGenerate(repo, options = {}) {
   const runtime = options.runtime || 'generic';
@@ -41,6 +60,56 @@ export function adapterLimits(repo, options = {}) {
     'Do not assume runtime-specific support is present.',
     'Use CLI/chat fallback when hooks, MCPs, or browser tools are unavailable.',
   ]));
+}
+
+export function adapterCodexInstall(repo, options = {}) {
+  const adaptersDir = resolve(repo, options.templates || 'templates/adapters/codex');
+  const targetDir = resolve(options.target || join(homedir(), '.codex', 'agents'));
+  const includeLocal = Boolean(options.includeLocal || options.local);
+  const frontier = options.frontier !== false;
+  const available = readdirSync(adaptersDir).filter((file) => file.endsWith('.toml'));
+  const selected = frontier
+    ? [...FRONTIER_CODEX_AGENT_FILES, ...(includeLocal ? LOCAL_CODEX_AGENT_FILES : [])]
+    : available.filter((file) => file.startsWith('sdlc-'));
+  const files = selected
+    .filter((file) => includeLocal || !/local|lmstudio/i.test(file))
+    .filter((file) => available.includes(file));
+
+  if (!files.length) fail(`No Codex agent templates found in ${adaptersDir}.`);
+
+  mkdirSync(targetDir, { recursive: true });
+  const installed = [];
+  for (const file of files) {
+    const source = join(adaptersDir, file);
+    const target = join(targetDir, file);
+    if (options.dryRun) installed.push({ source, target, status: 'dry-run' });
+    else {
+      copyFileSync(source, target);
+      installed.push({ source, target, status: 'installed' });
+    }
+  }
+
+  if (options.json) {
+    console.log(JSON.stringify({
+      schema: 'sdlc.codex_agent_install.v1',
+      mode: frontier ? 'frontier' : 'all-sdlc',
+      targetDir,
+      includeLocal,
+      installed,
+    }, null, 2));
+    return;
+  }
+
+  printObject({
+    mode: frontier ? 'frontier' : 'all-sdlc',
+    targetDir,
+    includeLocal,
+    count: installed.length,
+    status: options.dryRun ? 'dry-run' : 'installed',
+  });
+  console.log('\nInstalled agents:');
+  console.log(formatList(installed.map((row) => `${row.status}: ${row.target}`)));
+  console.log('\nRestart Codex or reload the current Codex surface if newly installed agents are not discoverable.');
 }
 
 export function adapterDoctor(repo, options = {}) {
