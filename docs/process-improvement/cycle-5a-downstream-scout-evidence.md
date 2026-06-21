@@ -75,3 +75,63 @@ Keep local-model downstream scouting at `Experiment`. The run proves that LM Stu
 - Tighten the scout role, packet guidance, and validator so finding-level pointers must be exact line or range pointers.
 - Repeat a smaller downstream scout task after tightening.
 - Compare against hosted `sdlc_read_only_code_scout` when the current Codex surface can spawn it.
+
+## Follow-Up Results
+
+After tightening the source-pointer contract, the user-level Codex adapters were refreshed from `templates/adapters/codex/*.toml`.
+
+Hosted custom scout comparison:
+
+```text
+/private/tmp/cycle5a-wwwdev-hosted-comparison-scout-packet.md
+/private/tmp/cycle5a-wwwdev-hosted-scout-findings.json
+```
+
+The hosted `sdlc_read_only_code_scout` completed and returned a no-finding packet. Validation passed. The packet used line-range reviewed pointers:
+
+```text
+/Users/jerrickvandiver/work/www_dev/adminCompEmpSearch/status_and_results_func.asp:1-868
+/Users/jerrickvandiver/work/www_dev/adminCompEmpSearch/adminCompEmpSearchInitialForm.html:1-174
+/Users/jerrickvandiver/work/www_dev/adminCompEmpSearch/admin_companyemp_search.js:1-16
+```
+
+The hosted scout did not produce an actionable finding, but it followed the tightened no-finding pointer contract better than the first LM Studio run.
+
+Smaller LM Studio post-tightening test:
+
+```text
+/private/tmp/cycle5a-wwwdev-small-tightened-scout-packet.md
+/private/tmp/cycle5a-wwwdev-small-tightened-lmstudio-raw.txt
+```
+
+Scope:
+
+```text
+adminCompEmpSearch/adminCompEmpSearchInitialForm.html
+adminCompEmpSearch/admin_companyemp_search.js
+```
+
+Result:
+
+```text
+sdlc agents scout-validate --repo /Users/jerrickvandiver/work/www_dev --packet /private/tmp/cycle5a-wwwdev-small-tightened-lmstudio-raw.txt
+```
+
+failed because each finding used `issue` and `details` instead of the required `summary` field.
+
+The smaller LM Studio run did improve from file-level pointers to line-qualified pointers, but source verification still found pointer precision issues:
+
+```text
+Session assignment was reported at adminCompEmpSearch/adminCompEmpSearchInitialForm.html:6, but the assignment is line 5.
+SQL construction was reported at adminCompEmpSearch/adminCompEmpSearchInitialForm.html:43, but the construction is line 41.
+```
+
+Current comparison:
+
+```text
+LM Studio first downstream run: valid packet, plausible finding, weak/wrong line pointers.
+Hosted custom scout comparison: valid no-finding packet, better reviewed-range pointers, no actionable finding.
+LM Studio smaller tightened run: invalid packet due to finding field names, better but still imprecise line pointers.
+```
+
+Cycle 5a conclusion remains unchanged: local-model downstream scouts are useful enough for controlled experiments but not reliable enough for unattended findings. Hosted custom scouts currently have better contract adherence for no-finding packets.
