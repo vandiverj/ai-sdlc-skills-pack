@@ -5,7 +5,8 @@ import { defaultRunsDir } from './paths.mjs';
 import { dedupe, escapeCell, escapeCommandArg, fail, formatInlineList, formatInlineStatus, formatList, optionFiles, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
-import { detectStack, inferTestingSurfaces, matchesAny } from './units.mjs';
+import { securityTriggers } from './routes.mjs';
+import { affectedUnits, detectStack, inferTestingSurfaces, matchesAny } from './units.mjs';
 import { classifyTouchedSurface } from './surface.mjs';
 
 export function verificationMaturity(profile, commands) {
@@ -217,6 +218,88 @@ export function workmodeDetect(repo, options = {}, deps = {}) {
     stack: detectStack(repo).join(', ') || 'generic',
     recommendedNextCommand: `sdlc impact packet --task "${escapeCommandArg(task || 'current task')}"`,
   });
+}
+
+export function routeFastPass(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = optionFiles(options, git.changedFiles);
+  const units = affectedUnits(repo, files, profile.values);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const route = options.route || inferRouteFromTaskForFastPass(task, git, profile.values, files);
+  const triggers = securityTriggersForFastPass(task, profile.values);
+  const base = fastPassAssessment(repo, task, route, { ...git, changedFiles: files }, profile, units, surfaces, triggers);
+  const docsOnly = isDocsOnlyTask(task, files, surfaces);
+  const mechanical = matchesAny(String(task).toLowerCase(), ['typo', 'wording', 'format', 'markdown', 'readme', 'docs', 'comment only', 'comments only']);
+  const blockedBy = [];
+  if (!base.eligible) blockedBy.push(...base.reasons.filter((reason) => !reason.startsWith('Eligible:')));
+  if (!docsOnly && !mechanical && !isSingleSafeFile(files)) blockedBy.push('Task is not obviously docs-only, mechanical, or single-file safe.');
+  if (files.length > 1 && !docsOnly) blockedBy.push('Multiple non-doc changed files require normal route judgment.');
+  const eligible = blockedBy.length === 0;
+  const requiredChecks = fastPassChecks({ route, docsOnly, files, surfaces });
+  const result = {
+    schema: 'sdlc.fast_pass.v1',
+    task,
+    repository: repo,
+    eligible,
+    route: eligible ? (docsOnly ? 'tiny-docs' : route) : route,
+    reasons: eligible ? [...base.reasons, docsOnly ? 'Docs/process-only surface can use minimal deterministic checks.' : 'Small mechanical scope can use deterministic checks before LLM review.'] : base.reasons,
+    blockedBy: [...new Set(blockedBy)],
+    requiredChecks,
+    delegation: eligible ? 'none' : 'route-dependent',
+    tokenGuidance: eligible ? 'Use deterministic checks and a short final handoff; do not spawn subagents unless new risk appears.' : 'Use normal SDLC context/evidence planning.',
+  };
+  if (options.json) console.log(JSON.stringify(result, null, 2));
+  else renderFastPass(result);
+  if (!eligible) process.exitCode = 1;
+}
+
+function inferRouteFromTaskForFastPass(task, git, profile, files) {
+  if (files.length && files.every((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file))) return 'tiny-docs';
+  if (isDocsOnlyTask(task, files, [])) return 'tiny-docs';
+  return 'standard';
+}
+
+function securityTriggersForFastPass(task, profile) {
+  return securityTriggers(task, profile).filter((trigger) => !/generated runtime adapter or skill surface/.test(trigger));
+}
+
+function isDocsOnlyTask(task, files, surfaces) {
+  const text = String(task || '').toLowerCase();
+  const taskDocs = matchesAny(text, ['docs', 'readme', 'markdown', 'typo', 'wording', 'comment only', 'comments only']);
+  const fileDocs = files.length > 0 && files.every((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file) || /^docs\//.test(file));
+  const surfaceDocs = surfaces.length > 0 && surfaces.every((surface) => ['docs-process', 'documentation'].includes(surface));
+  return taskDocs || fileDocs || surfaceDocs;
+}
+
+function isSingleSafeFile(files) {
+  return files.length <= 1;
+}
+
+function fastPassChecks({ route, docsOnly, files, surfaces }) {
+  const checks = ['git diff --check'];
+  if (docsOnly || route === 'tiny-docs' || surfaces.includes('docs-process')) checks.push('changed-file review');
+  if (files.some((file) => /SKILL\.md$/.test(file))) checks.push('node scripts/test-skill-files.mjs');
+  if (files.some((file) => /^templates\/adapters\//.test(file) || /^agents\//.test(file))) checks.push('node scripts/test-agent-contracts.mjs');
+  return [...new Set(checks)];
+}
+
+function renderFastPass(result) {
+  printObject({
+    task: result.task,
+    eligible: result.eligible,
+    route: result.route,
+    delegation: result.delegation,
+    tokenGuidance: result.tokenGuidance,
+  });
+  console.log('\n## Reasons\n');
+  console.log(formatList(result.reasons));
+  console.log('\n## Blocked By\n');
+  console.log(formatList(result.blockedBy));
+  console.log('\n## Required Checks\n');
+  console.log(formatList(result.requiredChecks));
 }
 
 export function validationLadder(repo, options = {}, deps = {}) {

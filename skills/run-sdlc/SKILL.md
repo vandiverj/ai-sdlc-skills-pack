@@ -152,6 +152,9 @@ The command planner and guide are paved paths, not mandatory golden flows. Use t
 Before spending model context on mechanical discovery, use the local-first control plane for Standard+ work, risky work, cross-repo work, API/data work, no-test work, or rough voice-dictated prompts:
 
 ```bash
+sdlc route fast-pass --task "<human task>"
+sdlc context compile --task "<human task>" --budget 4000
+sdlc evidence recommend --task "<human task>"
 sdlc tools inventory --repo <repo>
 sdlc tools gaps --task "<human task>" --repo <repo>
 sdlc tools recommend --task "<human task>" --repo <repo>
@@ -160,6 +163,8 @@ sdlc prompt audit --task "<human task>" --repo <repo>
 ```
 
 The original human prompt remains authoritative. Prompt cleanup is suggestion-first and must not silently rewrite product terms, ticket IDs, file paths, branch names, code symbols, API names, or user constraints. Use `sdlc prompt compile --phase <phase> --task "<human task>"` or `sdlc prompt compile --role <role> --task "<human task>"` when a bounded paste-ready prompt is useful.
+
+Use `sdlc route fast-pass --task "<human task>"` before spawning subagents for tiny docs/mechanical work. If it returns `eligible: true`, run the listed deterministic checks and skip agent delegation unless new risk appears. Use `sdlc context compile --task "<human task>" --budget <tokens>` when model context is getting large; start with selected context only and load deferred context only for concrete questions. Use `sdlc evidence recommend --task "<human task>"` to choose checks from touched files and surfaces before asking a model to interpret broad uncertainty.
 
 Use `sdlc context project --task "<human task>" --phase <phase>` when prompt context needs to be kept small. It should return a compact projection of high-value artifacts, local facts, and evidence gaps instead of inviting the agent to load every document.
 

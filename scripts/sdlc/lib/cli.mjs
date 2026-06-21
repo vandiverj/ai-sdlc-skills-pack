@@ -10,14 +10,14 @@ import { appendPacketCompletion, completionTrackedPacketKinds, doneChecksForRout
 import { runDashboard, runFinish, runNext, runPlan, runResume, runStart, runStartGates, runStartPacketCommand, runStatus } from './run.mjs';
 import { appendControlEvent, classifyControlPathActivity, controlTraceRow, ensureControlRunDir, gitScopeRows, nextActionForStage, nextActionFromGates, readControlJsonLines, readCurrentState, readCurrentStateInfo, stateAdvance, stateBlockers, stateCurrent, stateExplain, stateInit, synthesizeState, writeGateRows } from './state.mjs';
 import { getRecipe, matchRecipes, recipeCompile, recipeExplain, recipeList, recipeMatch, recipeMaturity, recipePromote, recipeRetire, recipeReview, recipeShow } from './recipes.mjs';
-import { ensureEvidenceManifest, evidenceAdd, evidenceGap, evidenceInit, evidenceMatrix, evidencePlan, evidenceProvenance, evidenceRequired, evidenceRequirementsForTask, evidenceSanitizeCheck, evidenceStatus, readEvidenceManifest } from './evidence.mjs';
+import { ensureEvidenceManifest, evidenceAdd, evidenceGap, evidenceInit, evidenceMatrix, evidencePlan, evidenceProvenance, evidenceRecommend, evidenceRequired, evidenceRequirementsForTask, evidenceSanitizeCheck, evidenceStatus, readEvidenceManifest } from './evidence.mjs';
 import { detectCiSystems, detectDeploySystems, detectTestFrameworks, sharedContextDetails, sharedContextReachability } from './environment.mjs';
 import { inferContracts, inferDirtySurfaces, inferLikelyRoute, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { detectContextContradictions, evalAddCase, evalCase, evalCompare, evalLocalFirstSuite, evalReport, evalRetrievalAdd, evalRetrievalReport, evalRetrievalRun, evalRetrievalTest, evalRun, evalSuite, scenarioList, scenarioShow, scenarioTest, scenarioValidate } from './scenarios.mjs';
 import { adapterAuggieInstall, adapterCodexInstall, adapterDoctor, adapterGenerate, adapterLimits, adapterProfile, adapterPrompt, eventReplay, eventValidate, hooksAudit, hooksContract, hooksPlan } from './adapters.mjs';
 import { indexBuild, indexQuery } from './index.mjs';
 import { configDiff, configExplain, configExport, configImport, configNormalize, configValidate } from './config.mjs';
-import { contextAliases, contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextConflictCheck, contextContradictions, contextDecision, contextDocCandidates, contextFinalCheck, contextFreshness, contextFreshnessRecommendations, contextFreshnessRow, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextPlacement, contextPlacementRecommendation, contextPrune, contextResolve, contextRestore, contextUpdatePlan, contextUpdateTargets, contextWhy, finalContextSignals, formatContextDocs, recommendedContextFile } from './context.mjs';
+import { contextAliases, contextAssemble, contextAudit, contextBucketCheck, contextBucketConfidence, contextBudget, contextCompact, contextCompile, contextConflictCheck, contextContradictions, contextDecision, contextDocCandidates, contextFinalCheck, contextFreshness, contextFreshnessRecommendations, contextFreshnessRow, contextGate, contextInventory, contextLedger, contextPack, contextPlace, contextPlacement, contextPlacementRecommendation, contextPrune, contextResolve, contextRestore, contextUpdatePlan, contextUpdateTargets, contextWhy, finalContextSignals, formatContextDocs, recommendedContextFile } from './context.mjs';
 import { learnArchive, learnBacklog, learnCandidateAdd, learnCandidateDrift, learnCandidateExport, learnCandidateTest, learnCandidateValidate, learnCandidates, learnCapture, learnDedupe, learnExport, learnFromRun, learnImport, learnPromote, learnPromoteCheck, learnProposeChange, learnQuick, learnReview, learnReviewCycle, learnRoute, learnSanitize, learnSplit, learnSuggest, learnSummary, learnSyncCheck, learnWorkbench } from './learning.mjs';
 import { caseIdPolicy, expectedQaNeed, proposedCommitMessage, requiresCaseId, shouldSuggestTestPlan, taskBundle, taskCaseId, taskCurrent, taskDoctor, taskFastPass, taskFinish, taskId, taskLedger, taskLedgerRows, taskMetrics, taskOpen, taskPreflight, taskQa, taskReview, taskRunId, taskStart, taskStatus, taskType, taskVerify } from './task.mjs';
 import { upgradeApply, upgradeExplain, upgradePlan } from './upgrade.mjs';
@@ -52,7 +52,7 @@ import { sdlcFeedbackAdd, sdlcFeedbackExport, sdlcFeedbackTest, sdlcFeedbackVali
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, handoffSplit as statusHandoffSplit, readiness as statusReadiness } from './status.mjs';
 import { intakeCheck, intakePacket } from './intake.mjs';
 import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
-import { confidenceBlock, detectWorkModes, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, inferVerificationMaturity, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verificationMaturity, verify, workmodeDetect } from './assessment.mjs';
+import { confidenceBlock, detectWorkModes, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, inferVerificationMaturity, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, routeFastPass, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verificationMaturity, verify, workmodeDetect } from './assessment.mjs';
 import { changeGraph, changeGraphEdges, changeGraphImplications, classifySearchPath, formatSearchGroups, groupBy, searchClassify, searchPattern, searchRetireCheck } from './graphsearch.mjs';
 import { createServices } from './services.mjs';
 import { helpArtifacts, helpExpert, helpHandoffPackets, helpLocalFirst, helpOnboarding, helpOperator, helpPrompts, helpQuickstart, helpSensitiveWork, helpWorkflow, printHelp } from './help.mjs';
@@ -142,6 +142,7 @@ export async function main(argv) {
   if (area === 'context' && action === 'update-plan') return contextUpdatePlan(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'budget') return contextBudget(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'assemble') return contextAssemble(repo, options, contextControlDependencies());
+  if (area === 'context' && action === 'compile') return contextCompile(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'project') return contextProject(repo, options);
   if (area === 'context' && action === 'compact') return contextCompact(repo, options, contextControlDependencies());
   if (area === 'context' && action === 'ledger') return contextLedger(repo, options, contextControlDependencies());
@@ -183,6 +184,7 @@ export async function main(argv) {
   if (area === 'state' && action === 'blockers') return stateBlockers(repo, options, stateDependencies());
   if (area === 'state' && action === 'explain') return stateExplain(repo, options, stateDependencies());
   if (area === 'route' && action === 'start') return routeStart(repo, rest[0] || options.route, options, routePacketDependencies());
+  if (area === 'route' && (action === 'fast-pass' || action === 'fastpass')) return routeFastPass(repo, options);
   if (area === 'route' && action === 'retire') return routeRetire(repo, options, routePacketDependencies());
   if (area === 'route' && action === 'proof') return routeProof(repo, options, routePacketDependencies());
   if (area === 'packet' && action === 'status') return packetStatus(repo, options, routePacketDependencies());
@@ -363,6 +365,7 @@ export async function main(argv) {
   if (area === 'evidence' && action === 'provenance') return evidenceProvenance(repo, options, { findPackets });
   if (area === 'evidence' && action === 'sanitize-check') return evidenceSanitizeCheck(repo, options);
   if (area === 'evidence' && action === 'required') return evidenceRequired(repo, options);
+  if (area === 'evidence' && action === 'recommend') return evidenceRecommend(repo, options);
   if (area === 'evidence' && action === 'status') return evidenceStatus(repo, options);
   if (area === 'evidence' && action === 'add') return evidenceAdd(repo, options);
   if (area === 'evidence' && action === 'plan') return evidencePlan(repo, options);

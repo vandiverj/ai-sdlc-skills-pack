@@ -59,6 +59,15 @@ Prefer short, decisive answers. The execution contract should be small enough fo
 ## Fast-pass principle
 The workflow is a dependency graph, not a mandatory ladder. A skipped gate is acceptable only when the classification explains why the failure it prevents is unlikely or cheap.
 
+Use deterministic routing helpers before spending model context when the task may be Micro/Tiny:
+
+```bash
+sdlc route fast-pass --task "<task>" [--files <paths>] --json
+sdlc evidence recommend --task "<task>" [--files <paths>] --json
+```
+
+If `sdlc route fast-pass` returns `eligible: true`, prefer the returned deterministic checks and `delegation: none`. Escalate only when the checks fail, the file scope grows, security/data/release triggers appear, or the task stops being mechanical/docs-only.
+
 ## Security trigger overlay
 Before finalizing the route, check `references/security-route-triggers.md`.
 

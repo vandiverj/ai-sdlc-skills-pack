@@ -78,6 +78,9 @@ sdlc guide start --task "<task>"
 The SDLC should gather deterministic local facts before asking the model to reason. For medium, risky, cross-repo, API/data, or no-test work, these commands help reduce prompt/context load:
 
 ```bash
+sdlc route fast-pass --task "<task>"
+sdlc context compile --task "<task>" --budget 4000
+sdlc evidence recommend --task "<task>"
 sdlc tools inventory --repo <path>
 sdlc tools gaps --task "<task>" --repo <path>
 sdlc tools recommend --task "<task>" --repo <path>
@@ -90,6 +93,8 @@ sdlc review local --task "<task>" --repo <path>
 Use `sdlc prompt compile --phase <phase> --task "<task>"` or `sdlc prompt compile --role <role> --task "<task>"` when you want a bounded, paste-ready prompt that includes the original human intent, cleaned prompt suggestion, local tool facts, constraints, approvals, and evidence boundaries.
 
 Agent handoff packets are optional bounded work orders. They help organize verification, review, QA handoff, release handoff, and learning work, but tiny tasks can skip them when they add overhead.
+
+For tiny docs/mechanical work, `sdlc route fast-pass` can explicitly return `delegation: none`; use the listed deterministic checks before spending more model context or spawning subagents. `sdlc context compile` emits the smallest selected context packet within a token budget and defers optional docs until they are needed. `sdlc evidence recommend` maps files and surfaces to deterministic checks before LLM interpretation.
 
 For longer or interrupted work, the operator commands provide a compact local control surface that avoids asking the model to rediscover status from scratch:
 

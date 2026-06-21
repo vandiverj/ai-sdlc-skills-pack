@@ -218,6 +218,132 @@ export function contextDecision(repo, options = {}, deps = {}) {
   console.log(content.trimEnd());
 }
 
+export function contextCompile(repo, options = {}, deps = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const phase = options.phase || 'planning';
+  const budget = Math.max(500, Number(options.budget || 4000));
+  const decision = buildContextDecision(repo, task, phase, options, deps);
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const commands = discoverCommands(profile.values, packageJson);
+  const selected = [];
+  const deferred = [];
+  let used = tokenEstimateForText(task) + 250;
+  for (const row of decision.selected.sort((a, b) => contextPriority(b) - contextPriority(a))) {
+    if (used + row.approxTokens <= budget) {
+      selected.push(row);
+      used += row.approxTokens;
+    } else {
+      deferred.push({ ...row, reason: `${row.reason}; deferred to stay within ${budget} token budget` });
+    }
+  }
+  deferred.push(...decision.skipped);
+  const packet = {
+    schema: 'sdlc.context_compile.v1',
+    generatedAt: new Date().toISOString(),
+    task,
+    phase,
+    route: decision.route,
+    repository: repo,
+    budget,
+    estimatedTokens: used,
+    selected: selected.map(contextCompileRow),
+    loadNextOnlyIfNeeded: deferred.map(contextCompileRow).slice(0, 20),
+    commandFacts: Object.entries(commands).filter(([, command]) => command).map(([key, command]) => ({ key, command })),
+    git: {
+      branch: git.branch,
+      status: git.status || 'clean',
+      changedFiles: git.changedFiles,
+    },
+    guidance: [
+      'Start with selected context only.',
+      'Load deferred context only when the selected packet cannot answer a concrete question.',
+      'Prefer current source files, tests, and command output over old generated docs.',
+      'Use deterministic evidence commands before asking a model to interpret broad context.',
+    ],
+  };
+  if (options.json) {
+    console.log(JSON.stringify(packet, null, 2));
+    return;
+  }
+  const content = renderContextCompile(packet);
+  if (options.out) {
+    const outPath = resolve(repo, options.out);
+    safeWriteTextFile(repo, outPath, content);
+    console.log(relative(repo, outPath));
+  } else {
+    console.log(content.trimEnd());
+  }
+}
+
+function contextPriority(row) {
+  let score = 0;
+  if (/AGENTS\.md|sdlc-profile|repository setup/i.test(row.label)) score += 6;
+  if (row.freshness === 'fresh') score += 3;
+  if (row.freshness === 'stale') score -= 2;
+  if (row.sensitivity === 'local-only') score += 1;
+  if (row.approxTokens > 3000) score -= 3;
+  if (row.reason.includes('near a changed file')) score += 4;
+  return score;
+}
+
+function contextCompileRow(row) {
+  return {
+    path: row.relativePath,
+    label: row.label,
+    approximateTokens: row.approxTokens,
+    reason: row.reason,
+    freshness: row.freshness,
+    sensitivity: row.sensitivity,
+  };
+}
+
+function renderContextCompile(packet) {
+  return `# SDLC Context Compile
+
+Date: ${packet.generatedAt}
+Task: ${packet.task}
+Route: ${packet.route}
+Phase: ${packet.phase}
+Budget: ${packet.budget}
+Estimated tokens: ${packet.estimatedTokens}
+
+## Selected Context
+
+| Context | Tokens | Freshness | Sensitivity | Reason |
+| --- | --- | --- | --- | --- |
+${packet.selected.map((row) => `| ${escapeCell(row.path)} | ${row.approximateTokens} | ${row.freshness} | ${row.sensitivity} | ${escapeCell(row.reason)} |`).join('\n') || '| none | 0 | n/a | n/a | no selected context |'}
+
+## Load Next Only If Needed
+
+| Context | Reason |
+| --- | --- |
+${packet.loadNextOnlyIfNeeded.map((row) => `| ${escapeCell(row.path)} | ${escapeCell(row.reason)} |`).join('\n') || '| none | none |'}
+
+## Command Facts
+
+${formatList(packet.commandFacts.map((row) => `${row.key}: ${row.command}`))}
+
+## Git Facts
+
+${formatList([
+  `branch: ${packet.git.branch || 'unknown'}`,
+  `status: ${packet.git.status}`,
+  `changed files: ${packet.git.changedFiles.join(', ') || 'none'}`,
+])}
+
+## Guidance
+
+${formatList(packet.guidance)}
+`;
+}
+
+function tokenEstimateForText(text) {
+  return Math.ceil(String(text || '').split(/\s+/).filter(Boolean).length * 1.3);
+}
+
 export function contextWhy(repo, options = {}, deps = {}) {
   const task = options.task || '';
   const path = options.path || '';

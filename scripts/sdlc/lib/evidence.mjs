@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { appendControlJsonLine, dedupeBy, escapeCell, fail, formatList, optionFiles, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, slug, stamp, writeOrPrint } from './common.mjs';
 import { getGitInfo } from './git.mjs';
-import { loadProfile } from './profile.mjs';
+import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { ensureControlRunDir, readCurrentState, readCurrentStateInfo } from './state.mjs';
 import { matchRecipes } from './recipes.mjs';
@@ -117,6 +117,82 @@ export function evidencePlan(repo, options = {}) {
   const rows = evidenceRequirementsForTask(repo, task, route, git, profile, options);
   const content = ['# SDLC Evidence Plan', '', `Task: ${task}`, `Route: ${route}`, '', '| Evidence | Level | Summary |', '| --- | --- | --- |', ...rows.map((row) => `| ${escapeCell(row.id)} | ${row.level} | ${escapeCell(row.summary)} |`), ''].join('\n');
   writeOrPrint(repo, options.out, content);
+}
+
+export function evidenceRecommend(repo, options = {}) {
+  const task = options.task || '';
+  if (!task) fail('Pass --task "...".');
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = optionFiles(options, git.changedFiles);
+  const route = options.route || inferRouteFromTask(task, { ...git, changedFiles: files }, profile.values);
+  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const requirements = evidenceRequirementsForTask(repo, task, route, { ...git, changedFiles: files }, profile, options);
+  const checks = recommendedEvidenceChecks({ task, route, files, surfaces, commands, requirements });
+  const result = {
+    schema: 'sdlc.evidence_recommend.v1',
+    task,
+    repository: repo,
+    route,
+    touchedFiles: files,
+    surfaces,
+    checks,
+    requirements,
+    llmUse: checks.some((check) => check.kind === 'interpretation') ? 'interpret gaps/failures only' : 'not needed before deterministic checks',
+  };
+  if (options.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  console.log(renderEvidenceRecommend(result).trimEnd());
+}
+
+function recommendedEvidenceChecks({ route, files, surfaces, commands, requirements }) {
+  const checks = [];
+  const add = (id, command, reason, kind = 'deterministic') => {
+    if (!command) return;
+    if (checks.some((check) => check.id === id && check.command === command)) return;
+    checks.push({ id, command, kind, reason });
+  };
+  add('diff-check', 'git diff --check', 'Catch whitespace and patch hygiene issues before review.');
+  if (files.some((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file)) || route === 'tiny-docs' || surfaces.includes('docs-process')) {
+    add('docs-review', 'changed-file review', 'Docs/process-only work needs source-truth and rendered/readability review.');
+  }
+  if (files.some((file) => /SKILL\.md$/.test(file))) add('skill-files', 'node scripts/test-skill-files.mjs', 'Skill frontmatter and encoding must remain valid.');
+  if (files.some((file) => /^agents\//.test(file) || /^templates\/adapters\//.test(file) || /agent/i.test(file))) add('agent-contracts', 'node scripts/test-agent-contracts.mjs', 'Agent adapter and feedback contracts must remain aligned.');
+  if (files.some((file) => /\.mjs$|\.js$|\.cjs$/.test(file))) {
+    for (const file of files.filter((item) => /\.mjs$|\.js$|\.cjs$/.test(item)).slice(0, 8)) add(`node-check-${file}`, `node --check ${file}`, 'JavaScript syntax check for edited script.');
+  }
+  if (commands.lint && (surfaces.includes('code') || files.some((file) => /\.(js|jsx|ts|tsx|mjs|cjs)$/.test(file)))) add('lint', commands.lint, 'Lint changed JavaScript/TypeScript surface.');
+  if (commands.typecheck && files.some((file) => /\.(ts|tsx)$/.test(file))) add('typecheck', commands.typecheck, 'Typecheck TypeScript surface.');
+  if (commands.test && !['tiny-docs', 'review-only'].includes(route)) add('test', commands.test, 'Run configured tests for behavior-affecting work.');
+  if (surfaces.includes('rendered-product-ui')) add('rendered-ui', 'sdlc render evidence --task "<task>"', 'UI changes need rendered/browser evidence or an explicit cap.');
+  if (surfaces.includes('api-contract')) add('api-contract', 'sdlc qa api --task "<task>"', 'API/contract changes need request/response or contract evidence.');
+  if (surfaces.includes('data-persistence')) add('data-evidence', 'sdlc data evidence --task "<task>"', 'Data changes need safe data evidence or cap.');
+  if (requirements.some((req) => req.id === 'policy')) add('policy', 'sdlc safety preflight --task "<task>"', 'Security/tool triggers require policy boundary review.', 'deterministic-or-human');
+  if (!checks.length) add('verification-ladder', 'sdlc validate ladder --task "<task>"', 'Fallback validation ladder when no concrete command is known.');
+  return checks;
+}
+
+function renderEvidenceRecommend(result) {
+  return `# SDLC Evidence Recommendations
+
+Task: ${result.task}
+Route: ${result.route}
+Surfaces: ${result.surfaces.join(', ') || 'none detected'}
+LLM use: ${result.llmUse}
+
+## Recommended Checks
+
+| Check | Kind | Command | Reason |
+| --- | --- | --- | --- |
+${result.checks.map((row) => `| ${escapeCell(row.id)} | ${row.kind} | ${escapeCell(row.command)} | ${escapeCell(row.reason)} |`).join('\n')}
+
+## Evidence Requirements
+
+${formatList(result.requirements.map((row) => `${row.id} (${row.level}): ${row.summary}`))}
+`;
 }
 
 export function evidenceMatrix(repo, options = {}) {

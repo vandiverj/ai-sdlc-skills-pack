@@ -43,9 +43,10 @@ export function agentsPlan(repo, options = {}) {
   const analysis = journal.promptAnalysis || analyzePrompt(task, repo, options);
   const localFirst = journal.localFirst || buildLocalFirstPlan(repo, task, options);
   const routingReceipt = tierRoutingReceipt(repo, task, '', { ...options, analysis, localFirst });
-  const recommendations = recommendAgentPackets(repo, task, options);
+  const delegation = deterministicDelegationDecision(repo, task, options);
+  const recommendations = delegation.delegationRecommended ? recommendAgentPackets(repo, task, options) : suppressAgentRecommendations(delegation);
   if (options.json) {
-    console.log(JSON.stringify({ schema: 'sdlc-agent-plan-v1', task, repository: repo, routingReceipt, recommendations }, null, 2));
+    console.log(JSON.stringify({ schema: 'sdlc-agent-plan-v1', task, repository: repo, routingReceipt, delegation, recommendations }, null, 2));
     return;
   }
   const content = `# SDLC Agent Handoff Plan
@@ -56,6 +57,15 @@ Repository: ${repo}
 ## Tier-Routing Receipt
 
 ${renderTierRoutingReceipt(routingReceipt)}
+
+## Delegation Decision
+
+${formatList([
+  `Delegation recommended: ${delegation.delegationRecommended}`,
+  `Reason: ${delegation.reason}`,
+  `Fast-pass route: ${delegation.fastPassRoute}`,
+  `Required deterministic checks: ${delegation.requiredChecks.join('; ') || 'none'}`,
+])}
 
 | Role | Recommendation | Score | Why |
 | --- | --- | --- | --- |
@@ -76,10 +86,45 @@ ${recommendations.map((row) => `| ${row.role} | ${row.recommendation} | ${row.sc
     promptAnalysis: analysis,
     localFirst,
     routingReceipt,
+    delegation,
     nextRecommendedAction: `Review ${relative(repo, outPath)} or capture route fit with sdlc calibrate add --route "${routingReceipt.workClass}" --route-fit "<right-sized|too heavy|too light>" --friction "<category>"`,
   }, options);
   console.log(content.trimEnd());
   console.log(`\nSaved: ${relative(repo, outPath)}`);
+}
+
+function deterministicDelegationDecision(repo, task, options = {}) {
+  const git = getGitInfo(repo);
+  const files = String(options.files || '').trim() ? String(options.files).split(/[,;\n]/).map((file) => file.trim()).filter(Boolean) : git.changedFiles;
+  const lower = task.toLowerCase();
+  const triggers = securityTriggers(task, loadProfile(repo).values);
+  const highRiskTriggers = triggers.filter((trigger) => !/generated runtime adapter or skill surface/.test(trigger));
+  const docsOnly = files.length ? files.every((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file) || /^docs\//.test(file)) : hasTerm(lower, ['docs', 'readme', 'markdown', 'typo', 'wording']);
+  const mechanical = hasTerm(lower, ['typo', 'wording', 'format', 'rename', 'comment only', 'comments only']);
+  const releaseLike = hasTerm(lower, ['commit', 'push', 'merge', 'deploy', 'release']);
+  const dataLike = hasTerm(lower, ['database', 'migration', 'sql', 'auth', 'secret', 'token', 'security']);
+  const small = files.length <= 1 || (docsOnly && files.length <= 5);
+  const suppress = small && (docsOnly || mechanical) && !highRiskTriggers.length && !releaseLike && !dataLike;
+  return {
+    schema: 'sdlc.delegation_decision.v1',
+    delegationRecommended: !suppress,
+    reason: suppress
+      ? 'Deterministic fast-pass scope; use checks before subagents.'
+      : 'Normal route or risk signals may benefit from delegated packets.',
+    fastPassRoute: suppress ? 'tiny-docs' : inferRouteFromTask(task, git, loadProfile(repo).values),
+    requiredChecks: suppress ? ['git diff --check', ...(files.some((file) => /SKILL\.md$/.test(file)) ? ['node scripts/test-skill-files.mjs'] : [])] : [],
+    suppressedRoles: suppress ? HANDOFF_ROLES : [],
+    signals: { files, docsOnly, mechanical, highRiskTriggers, releaseLike, dataLike },
+  };
+}
+
+function suppressAgentRecommendations(delegation) {
+  return HANDOFF_ROLES.map((role) => ({
+    role,
+    score: 0,
+    recommendation: 'skip',
+    why: `${delegation.reason} Required checks: ${delegation.requiredChecks.join('; ') || 'none'}.`,
+  }));
 }
 
 export function agentsPacket(repo, options = {}) {
