@@ -1,12 +1,11 @@
 ---
 name: make-qa
 description: Create or revise YouTrack QA Test Script content for non-technical human product testers. Use when Codex needs to turn a YouTrack issue, parent or linked issue context, comments, curated engineering-context knowledge, git history, code changes, screenshots or attachments, and development chat context into a staging-focused, assignment-ready QA script written in product workflow language; default to presenting the proposed script in chat for developer approval and only update YouTrack when explicitly instructed.
-user-invocable: true
 ---
 
 # make-qa
 
-Current version: v0.2
+Current version: v0.3
 
 ## Purpose
 
@@ -24,6 +23,9 @@ Create assignment-ready QA scripts for staging testers who are experienced produ
 - Apply grounding to tester steps, developer notes, business facts, deprecations, eligibility rules, and source attributions. Never attribute a claim to a source that does not actually say it.
 - Never invent menu names, button labels, dropdown options, statuses, fields, messages, page names, URLs, or business rules. Ask, omit, or flag a gap when not grounded.
 - Expected results must be observable. Avoid vague wording such as "verify it works."
+- Separate the surface under test from the navigation path used to reach it. If a related case already owns full regression for a navigation surface, use that surface only as an access path and say which case owns the broader regression.
+- Avoid redundant tester work across related cases. When multiple cases overlap, assign one owner for full workflow regression and keep the other scripts to their distinct validation slice.
+- Verify user-facing navigation labels from product source, durable context, YouTrack evidence, screenshots, or explicit developer correction. Use exact menu/button labels when grounded; otherwise ask or mark the script draft.
 - If the tester would have to guess, the script is not ready.
 
 ## Access And Navigation Gate
@@ -33,6 +35,7 @@ For any comparison, parity, or "open page" script, include a concrete access met
 - Use context MCP first to load `staging-access-map.md` when building navigation steps. If MCP is unavailable or stale, read the configured local `engineering-context/staging-access-map.md` fallback.
 - Use the access map to ground staging URLs, menu paths, and techniques for opening old and new views side by side.
 - If the access map does not exist or lacks the needed surface, create or append to it only from grounded evidence or developer confirmation.
+- For role-specific pages, provide separate access paths per tester lane when they differ, using exact visible labels such as menu group names, submenu names, or button text.
 - Never invent a staging URL or menu path. If the access method is not grounded, ask the developer or mark the script as draft with that blocker.
 - A comparison script is not assignment-ready until every compared surface has a concrete, grounded access method.
 
@@ -70,8 +73,9 @@ For a YouTrack case:
 6. Search git history for both the issue key and any parent issue key, because development may have happened before subtasks were split.
 7. Inspect relevant diffs and changed files to understand visible behavior and related product areas. Do not use live staging as the source of truth while drafting before deploy.
 8. Use current development chat context.
-9. Identify tester lane, access path, product workflow, safe actions, scope, observable expected result, related spot checks, and failure details.
-10. Ask the developer before finalizing when a load-bearing element is unclear.
+9. Check related cases for overlap so the new script does not duplicate full workflow coverage owned elsewhere.
+10. Identify tester lane, access path, product workflow, safe actions, scope, observable expected result, related spot checks, and failure details.
+11. Ask the developer before finalizing when a load-bearing element is unclear.
 
 If neither tools nor developer context can answer a key question, mark it as a case-understanding gap and record it in feedback.
 
@@ -117,10 +121,10 @@ Use `references/qa-script-template.md` when a full template or examples are need
 
 Include a `Technical Notes For Developer` section after the tester script when technical context should not be lost. Keep it clearly separate from tester instructions.
 
-Always stamp generated scripts exactly:
+Always stamp generated scripts with the current skill version exactly:
 
 ```markdown
-QA script drafted by make-qa v0.2
+QA script drafted by make-qa v0.3
 ```
 
 Developer notes may include affected files, routes, endpoints, automation coverage, setup risks, unresolved questions, backend-only verification, or why no human QA is needed. They must obey the same grounding and attribution rules as tester-facing content.
