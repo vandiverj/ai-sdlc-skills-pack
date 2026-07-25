@@ -81,6 +81,8 @@ For skill-pack architecture, phase ownership, and future consolidation decisions
 
 For concrete route recipes, use `references/route-recipes.md`. Load it when the agent or SDLC helper CLI needs required context packets, checks, evidence shape, stop gates, or completion criteria for common routes.
 
+For closing the context-engine retrieval loop at task end, use `references/outcome-reporting.md`. Load it when a run used `get_task_context` and is reaching an end state, or when deciding what to send to `feedback` versus `sdlc_feedback`.
+
 Before finalizing a route, apply the security trigger overlay from `classify-work/references/security-route-triggers.md`. The overlay can add gates/evidence or escalate risk without changing the base route name.
 
 When available, the helper CLI in `bin/sdlc` or `scripts/sdlc/sdlc.mjs` should automate mechanical task open/start/current/id/bundle/status/review/checkpoint/ledger/verify/QA/finish decisions, profile, readiness, health, context restore/audit/freshness/contradiction/inventory/place/update plans, context pack, change graph lite, run start/finish, touched-surface ledgers, impact packets, route packet, review packet, release packet, developer verification packets, manual smoke packets, human QA Markdown scripts, final gates, Git action packets, packet completion/status, done checks, multi-repo packets/ledgers/QA scripts, contract packets, data/integration/live-bug packets, rendered evidence, surface/unit detection, safe learning capture/review/promotion, security/tool audit packets, verification, calibration/learned-flow promotion, and handoff tasks. It is an affordance over the SDLC, not a replacement for route judgment, human approval gates, review, or verification interpretation.
@@ -92,6 +94,8 @@ For repositories containing multiple deployable codebases, reason at `workspace 
 Process learnings may be captured in `.agents/learnings/` only after sanitizing product/client details. Keep portable SDLC lessons separate from product-specific durable facts. Product facts usually belong in repo/unit/shared external context, not the skills pack.
 
 For passive process improvement, prefer the AirteraCode MCP `sdlc_feedback` tool when available. If it is unavailable, use `sdlc feedback add` as the local fallback. Capture only sanitized event metadata, source pointers, evidence summaries, friction, human corrections, route fit, and suggested actions; never include raw code, raw diffs, ticket text, database output, secrets, customer data, or full prompt/chat transcripts.
+
+`sdlc_feedback` reports on the **process**. It does not report on the **retrieval**. When a run used `get_task_context`, also close the retrieval loop with the `feedback` tool at task end — carrying the `pack_ref` from the pack, plus the real touched-surface list and test result. SDLC runs are the highest-quality outcome source because they know the task, the diff, and the test result together. Load `references/outcome-reporting.md` for the contract.
 
 Optional external evidence MCPs such as YouTrack and read-only database access are capability-aware overlays, not required dependencies. Use them only when profile/runtime policy allows and they materially reduce task uncertainty. If they are unavailable, use pasted ticket context, local code/tests/docs, and human-provided sanitized logs/query results instead. Read-only access still needs data-boundary care because it can expose private tickets, customer data, proprietary schemas, production records, or secrets.
 
