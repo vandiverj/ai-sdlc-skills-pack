@@ -1,6 +1,6 @@
 ---
 name: vercel-react-best-practices
-description: Use for explicit React/Next.js performance, bundle, load-time, render/re-render, data-fetch, hydration, or Vercel optimization tasks. Do not use for ordinary React UI features, component edits, tests, styling, accessibility, or app behavior changes unless performance is a stated goal.
+description: React/Next.js/Vercel performance work — bundle, load-time, render/re-render, data-fetch, hydration, optimization. Not for ordinary UI features, component edits, tests, styling, or accessibility unless performance is a stated goal.
 license: MIT
 metadata:
   author: vercel

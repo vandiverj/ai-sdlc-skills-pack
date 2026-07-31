@@ -1,6 +1,6 @@
 ---
 name: counterpoint
-description: 'Run an adversarial/counterpoint pass against any plan, design, implementation approach, review, decision, or artifact to challenge assumptions, expose decision inertia, generate credible alternatives, and reconcile the strongest opposing view before committing to a direction. Use when the user asks for counterpoint, adversarial review, devil''s advocate, second opinion, alternative perspective, challenge my plan, avoid confirmation bias, or highest-quality result before proceeding.'
+description: 'Adversarial pass against a plan, design, approach, decision, or artifact before committing to it. Use when the user asks for counterpoint, adversarial review, devil''s advocate, second opinion, alternative perspective, challenge my plan, avoid confirmation bias, or the highest-quality result before proceeding.'
 user-invocable: true
 ---
 
