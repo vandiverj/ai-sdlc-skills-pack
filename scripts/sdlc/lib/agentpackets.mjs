@@ -43,7 +43,7 @@ export function agentsPlan(repo, options = {}) {
   const analysis = journal.promptAnalysis || analyzePrompt(task, repo, options);
   const localFirst = journal.localFirst || buildLocalFirstPlan(repo, task, options);
   const routingReceipt = tierRoutingReceipt(repo, task, '', { ...options, analysis, localFirst });
-  const delegation = deterministicDelegationDecision(repo, task, options);
+  const delegation = delegationStrategyDecision(repo, task, options);
   const recommendations = delegation.delegationRecommended ? recommendAgentPackets(repo, task, options) : suppressAgentRecommendations(delegation);
   const workspaceWarnings = agentWorkspaceWarnings(repo, task, recommendations);
   if (options.json) {
@@ -66,6 +66,14 @@ ${formatList([
   `Reason: ${delegation.reason}`,
   `Fast-pass route: ${delegation.fastPassRoute}`,
   `Required deterministic checks: ${delegation.requiredChecks.join('; ') || 'none'}`,
+  `Parallelism recommended: ${delegation.parallelism.parallelRecommended}`,
+  `Parallelism reason: ${delegation.parallelism.reason}`,
+  `Parallel workstreams: ${delegation.parallelism.workstreams.join('; ') || 'none'}`,
+  `Sequential dependencies: ${delegation.parallelism.sequentialDependencies.join('; ') || 'none'}`,
+  `Maximum useful concurrency: ${delegation.parallelism.maximumUsefulConcurrency}`,
+  `Ownership: ${delegation.parallelism.ownership}`,
+  `Synthesis point: ${delegation.parallelism.synthesisPoint}`,
+  `Runtime fallback: ${delegation.parallelism.runtimeFallback}`,
 ])}
 
 | Role | Recommendation | Score | Why |
@@ -80,6 +88,7 @@ ${formatList(workspaceWarnings.length ? workspaceWarnings : ['No workspace misma
 
 - Create packets only when they reduce ambiguity, improve evidence, clarify boundaries, or support restart/handoff.
 - For cross-surface legacy parity work, generate read-only scout packets before coding so the orchestrator can synthesize a parity contract and safe edit boundary.
+- Run recommended workstreams concurrently only when ownership is non-overlapping and the synthesis point is explicit.
 - Tiny/low-risk work can proceed without packets.
 - Packets are bounded work orders, not autonomous subagents.
 - After using a packet or response, capture route fit with: sdlc calibrate add --route "${routingReceipt.workClass}" --route-fit "<right-sized|too heavy|too light>" --friction "<category>".
@@ -99,7 +108,7 @@ ${formatList(workspaceWarnings.length ? workspaceWarnings : ['No workspace misma
   console.log(`\nSaved: ${relative(repo, outPath)}`);
 }
 
-function deterministicDelegationDecision(repo, task, options = {}) {
+export function delegationStrategyDecision(repo, task, options = {}) {
   const git = getGitInfo(repo);
   const files = String(options.files || '').trim() ? String(options.files).split(/[,;\n]/).map((file) => file.trim()).filter(Boolean) : git.changedFiles;
   const lower = task.toLowerCase();
@@ -110,8 +119,12 @@ function deterministicDelegationDecision(repo, task, options = {}) {
   const releaseLike = hasTerm(lower, ['commit', 'push', 'merge', 'deploy', 'release']);
   const dataLike = hasTerm(lower, ['database', 'migration', 'sql', 'auth', 'secret', 'token', 'security']);
   const crossSurfaceLike = isCrossSurfaceLegacyTask(lower);
+  const inferredRoute = inferRouteFromTask(task, git, loadProfile(repo).values);
+  const riskyRoute = ['multi-repo-integration', 'contract-first', 'release-push', 'bugfix-live-system'].includes(inferredRoute);
+  const explicitlyTiny = hasTerm(lower, ['micro', 'tiny', 'small local', 'small one-file', 'small one file', 'one-file low-risk', 'one file low risk', 'narrow local', 'obvious local', 'low-risk local', 'low risk local']);
   const small = files.length <= 1 || (docsOnly && files.length <= 5);
-  const suppress = small && (docsOnly || mechanical) && !highRiskTriggers.length && !releaseLike && !dataLike && !crossSurfaceLike;
+  const suppress = small && (docsOnly || mechanical || explicitlyTiny) && !highRiskTriggers.length && !releaseLike && !dataLike && !crossSurfaceLike && !riskyRoute;
+  const parallelism = buildParallelismDecision(task, files, agentSignals(lower, files.length), !suppress);
   return {
     schema: 'sdlc.delegation_decision.v1',
     delegationRecommended: !suppress,
@@ -120,10 +133,113 @@ function deterministicDelegationDecision(repo, task, options = {}) {
       : crossSurfaceLike
         ? 'Cross-surface legacy parity work needs read-only scout packets before coding.'
         : 'Normal route or risk signals may benefit from delegated packets.',
-    fastPassRoute: suppress ? 'tiny-docs' : inferRouteFromTask(task, git, loadProfile(repo).values),
+    fastPassRoute: suppress ? (docsOnly ? 'tiny-docs' : 'micro-tiny-fast-pass') : inferredRoute,
     requiredChecks: suppress ? ['git diff --check', ...(files.some((file) => /SKILL\.md$/.test(file)) ? ['node scripts/test-skill-files.mjs'] : [])] : [],
     suppressedRoles: suppress ? HANDOFF_ROLES : [],
-    signals: { files, docsOnly, mechanical, highRiskTriggers, releaseLike, dataLike, crossSurfaceLike },
+    parallelism,
+    signals: { files, docsOnly, mechanical, explicitlyTiny, inferredRoute, highRiskTriggers, releaseLike, dataLike, crossSurfaceLike },
+  };
+}
+
+function buildParallelismDecision(task, files, signals, delegationRecommended) {
+  const lower = String(task || '').toLowerCase();
+  const orderedOrOverlapping = hasTerm(lower, ['same file', 'shared mutable state', 'shared state', 'ordered discovery', 'ordered discoveries', 'sequential', 'tightly coupled', 'depends on']);
+  const runtimeFallback = 'Preserve the same role boundaries as sequential phases and record the runtime capability cap.';
+
+  if (!delegationRecommended) {
+    return {
+      parallelRecommended: false,
+      reason: 'Deterministic or single-agent fast-pass work does not justify coordination overhead.',
+      workstreams: [],
+      sequentialDependencies: ['complete the scoped task and deterministic verification in one flow'],
+      maximumUsefulConcurrency: 1,
+      ownership: 'primary agent owns the scoped task',
+      synthesisPoint: 'primary agent final verification',
+      runtimeFallback,
+    };
+  }
+
+  if (orderedOrOverlapping) {
+    return {
+      parallelRecommended: false,
+      reason: 'The task signals overlapping ownership, shared state, or ordered dependencies.',
+      workstreams: [],
+      sequentialDependencies: ['complete the dependency-producing work before starting its consumer'],
+      maximumUsefulConcurrency: 1,
+      ownership: 'one active writer for the coupled surface',
+      synthesisPoint: 'primary agent after the ordered work completes',
+      runtimeFallback,
+    };
+  }
+
+  if (signals.crossSurfaceLegacy) {
+    const workstreams = [
+      signals.classicAsp ? 'read-only legacy implementation scout' : '',
+      signals.reactUi ? 'read-only modern UI scout' : '',
+      signals.dotnetApi ? 'read-only API/backend scout' : '',
+      signals.databaseEvidence ? 'read-only data or fixture evidence scout' : '',
+    ].filter(Boolean);
+    return {
+      parallelRecommended: true,
+      reason: 'Independent read-only surfaces can be inspected concurrently before the parity contract is synthesized.',
+      workstreams: workstreams.length ? workstreams : ['read-only scout per independent surface'],
+      sequentialDependencies: ['synthesize one parity contract before assigning write-capable implementation'],
+      maximumUsefulConcurrency: Math.max(2, Math.min(4, workstreams.length || 2)),
+      ownership: 'one read-only scout per repository or surface; no write ownership during exploration',
+      synthesisPoint: 'orchestrator parity contract and safe edit boundary',
+      runtimeFallback,
+    };
+  }
+
+  const explicitlyIndependent = /\b(parallel|independent|non-overlapping|nonoverlapping|disjoint)\b/.test(lower);
+  if (signals.multiRepo && explicitlyIndependent) {
+    return {
+      parallelRecommended: true,
+      reason: 'The task explicitly identifies independent repository-scoped discovery before cross-repository synthesis.',
+      workstreams: ['one read-only scout per independently owned repository or deployable unit'],
+      sequentialDependencies: ['synthesize repository findings before implementation or contract decisions'],
+      maximumUsefulConcurrency: 3,
+      ownership: 'each scout is restricted to one named repository or deployable unit',
+      synthesisPoint: 'orchestrator cross-repository impact and ownership decision',
+      runtimeFallback,
+    };
+  }
+
+  if (signals.multiRepo) {
+    return {
+      parallelRecommended: false,
+      reason: 'Multiple repositories are involved, but independence and non-overlapping ownership have not been established.',
+      workstreams: [],
+      sequentialDependencies: ['map cross-repository contracts and ordering before enabling concurrent work'],
+      maximumUsefulConcurrency: 1,
+      ownership: 'primary agent retains cross-repository orchestration until boundaries are explicit',
+      synthesisPoint: 'orchestrator dependency and ownership decision',
+      runtimeFallback,
+    };
+  }
+  if (explicitlyIndependent && files.length > 1) {
+    const workstreams = [...new Set(files)].slice(0, 4).map((file) => `bounded workstream for ${file}`);
+    return {
+      parallelRecommended: workstreams.length > 1,
+      reason: workstreams.length > 1 ? 'The task identifies independent work and the available file scopes can be assigned without overlap.' : 'Independent work was requested, but distinct ownership was not established.',
+      workstreams,
+      sequentialDependencies: ['integrate all workstreams before final verification'],
+      maximumUsefulConcurrency: Math.max(1, Math.min(4, workstreams.length)),
+      ownership: 'one owner per distinct file or explicitly bounded surface',
+      synthesisPoint: 'primary agent integration and full-scope verification',
+      runtimeFallback,
+    };
+  }
+
+  return {
+    parallelRecommended: false,
+    reason: 'No independent, non-overlapping workstreams have been established yet.',
+    workstreams: [],
+    sequentialDependencies: ['decompose and confirm ownership before enabling parallel execution'],
+    maximumUsefulConcurrency: 1,
+    ownership: 'primary agent retains ownership until a bounded decomposition exists',
+    synthesisPoint: 'primary agent final verification',
+    runtimeFallback,
   };
 }
 
@@ -350,11 +466,12 @@ function recommendationForScore(score) {
   return 'skip';
 }
 
-function renderAgentPacket(repo, task, role, options) {
+export function renderAgentPacket(repo, task, role, options) {
   const journal = options.journal || loadTaskJournal(repo, task, options);
   const analysis = options.analysis || journal.promptAnalysis || analyzePrompt(task, repo, options);
   const localFirst = options.localFirst || journal.localFirst || buildLocalFirstPlan(repo, task, options);
   const routingReceipt = options.routingReceipt || journal.routingReceipt || tierRoutingReceipt(repo, task, role, { ...options, analysis, localFirst });
+  const delegation = journal.delegation?.parallelism ? journal.delegation : delegationStrategyDecision(repo, task, options);
   const git = getGitInfo(repo);
   return `# SDLC Agent Handoff Packet
 
@@ -406,6 +523,10 @@ ${renderLocalFirstPlan(localFirst).trim()}
 ## Tier-Routing Receipt
 
 ${renderTierRoutingReceipt(routingReceipt)}
+
+## Delegation and Parallelism Contract
+
+${renderDelegationContract(delegation)}
 
 ## Linked Artifacts
 
@@ -474,7 +595,8 @@ export function tierRoutingReceipt(repo, task, role = '', options = {}) {
     ...(git.status ? ['dirty worktree'] : []),
     ...(hasTerm(lower, ['production', 'database', 'sql', 'security', 'auth', 'secret', 'token']) ? ['sensitive or high-risk task terms'] : []),
   ];
-  const candidateTier = candidateTierForRole(role, lower, riskSignals, localFirst);
+  const tierRiskSignals = riskSignals.filter((signal) => signal !== 'dirty worktree');
+  const candidateTier = candidateTierForRole(role, lower, tierRiskSignals, localFirst);
   return {
     task,
     workClass: route,
@@ -493,14 +615,14 @@ export function tierRoutingReceipt(repo, task, role = '', options = {}) {
 }
 
 function candidateTierForRole(role, lower, riskSignals, localFirst) {
-  if ((localFirst?.canProveLocally || []).length && role === 'verification-worker') return 'deterministic-tools';
-  if (role === 'verification-worker') return 'deterministic-tools';
-  if (riskSignals.length || hasTerm(lower, ['architecture', 'public contract', 'security', 'privacy', 'production'])) return 'top-frontier-orchestrator';
-  if (role === 'process-learning-reviewer') return 'local-or-standard-read-only';
-  if (role === 'independent-reviewer') return 'standard-review';
-  if (role === 'release-handoff-worker') return 'standard-or-manual';
-  if (role === 'implementation-worker') return 'cheaper-frontier-after-safe-boundary';
-  return 'manual-or-cheaper-frontier';
+  if ((localFirst?.canProveLocally || []).length && role === 'verification-worker') return 'deterministic';
+  if (role === 'verification-worker') return 'deterministic';
+  if (riskSignals.length || hasTerm(lower, ['architecture', 'public contract', 'security', 'privacy', 'production'])) return 'deep';
+  if (role === 'process-learning-reviewer') return 'fast';
+  if (role === 'independent-reviewer') return 'standard';
+  if (role === 'release-handoff-worker') return 'standard';
+  if (role === 'implementation-worker') return 'standard';
+  return 'fast';
 }
 
 function evidenceContractForTier(candidateTier, role, localFirst) {
@@ -510,7 +632,7 @@ function evidenceContractForTier(candidateTier, role, localFirst) {
     'explicit caps for unavailable evidence',
     'human approval boundary for commit/push/merge/deploy/release',
   ];
-  if (candidateTier === 'deterministic-tools') return [...localProof.slice(0, 3), 'fresh command output or explicit cap', ...common].filter(Boolean);
+  if (candidateTier === 'deterministic') return [...localProof.slice(0, 3), 'fresh command output or explicit cap', ...common].filter(Boolean);
   if (role === 'verification-worker') return ['verification command output, manual smoke evidence, or cap', ...common];
   if (role === 'independent-reviewer') return ['findings or no-findings statement tied to files/evidence', ...common];
   if (role === 'implementation-worker') return ['changed files and rationale', 'verification run or cap', ...common];
@@ -525,16 +647,18 @@ function escalationTriggersForTier(candidateTier) {
     'human correction',
     'sensitive data or approval uncertainty',
   ];
-  if (candidateTier.includes('local')) return ['weak structured output', 'latency or retry burden', ...common];
-  if (candidateTier.includes('cheaper')) return ['repeated repair loop', ...common];
+  if (candidateTier === 'fast') return ['weak structured output', 'repeated repair loop', ...common];
+  if (candidateTier === 'standard') return ['repeated repair loop', 'conflicting evidence', ...common];
+  if (candidateTier === 'deep') return ['unresolved disagreement requiring independent review', ...common];
   return common;
 }
 
 function fallbackTierFor(candidateTier) {
-  if (candidateTier === 'deterministic-tools') return 'manual packet or standard model only for interpretation';
-  if (candidateTier.includes('local')) return 'manual-packet or standard frontier review';
-  if (candidateTier.includes('cheaper')) return 'top-frontier-orchestrator';
-  return 'manual-packet with top-frontier reconciliation';
+  if (candidateTier === 'deterministic') return 'fast or standard only when model interpretation is needed';
+  if (candidateTier === 'fast') return 'standard';
+  if (candidateTier === 'standard') return 'deep';
+  if (candidateTier === 'deep') return 'consensus or human decision';
+  return 'human decision backed by deterministic evidence';
 }
 
 function renderTierRoutingReceipt(receipt) {
@@ -547,6 +671,22 @@ function renderTierRoutingReceipt(receipt) {
     `Escalation triggers: ${receipt.escalationTriggers.join('; ')}`,
     `Fallback tier: ${receipt.fallbackTier}`,
     `Do not claim: ${receipt.doNotClaim.join('; ')}`,
+  ]);
+}
+
+function renderDelegationContract(delegation) {
+  const parallel = delegation.parallelism || {};
+  return formatList([
+    `Delegation recommended: ${delegation.delegationRecommended}`,
+    `Delegation reason: ${delegation.reason}`,
+    `Parallelism recommended: ${parallel.parallelRecommended || false}`,
+    `Parallelism reason: ${parallel.reason || 'not evaluated'}`,
+    `Parallel workstreams: ${(parallel.workstreams || []).join('; ') || 'none'}`,
+    `Sequential dependencies: ${(parallel.sequentialDependencies || []).join('; ') || 'none'}`,
+    `Maximum useful concurrency: ${parallel.maximumUsefulConcurrency || 1}`,
+    `Ownership: ${parallel.ownership || 'primary agent owns the task'}`,
+    `Synthesis point: ${parallel.synthesisPoint || 'primary agent final verification'}`,
+    `Runtime fallback: ${parallel.runtimeFallback || 'run the same bounded roles sequentially'}`,
   ]);
 }
 
@@ -815,11 +955,11 @@ function runtimeRecommendation(role) {
     'Default fallback: manual packet handoff using this file.',
   ];
   return {
-    'implementation-worker': ['Suggested tier: cheaper frontier or standard model only after safe edit boundary is approved.', ...common],
-    'verification-worker': ['Suggested tier: deterministic commands first; model only interprets failures or caps.', ...common],
-    'independent-reviewer': ['Suggested tier: standard/deep model when risk warrants; deterministic evidence remains primary.', ...common],
-    'release-handoff-worker': ['Suggested tier: standard model or manual synthesis; release authority stays human.', ...common],
-    'process-learning-reviewer': ['Suggested tier: local/standard model for read-only synthesis; promotion requires review.', ...common],
+    'implementation-worker': ['Suggested tier: standard after the safe edit boundary is approved.', ...common],
+    'verification-worker': ['Suggested tier: deterministic; use fast or standard only to interpret failures or caps.', ...common],
+    'independent-reviewer': ['Suggested tier: standard; escalate to deep when risk warrants. Deterministic evidence remains primary.', ...common],
+    'release-handoff-worker': ['Suggested tier: standard or manual synthesis; release authority stays human.', ...common],
+    'process-learning-reviewer': ['Suggested tier: fast for read-only synthesis; escalate to standard when ambiguity persists. Promotion requires review.', ...common],
   }[role] || common;
 }
 
@@ -834,6 +974,10 @@ function lintAgentPacket(text) {
     { ok: /Allowed Scope/i.test(text), finding: 'Missing allowed scope.' },
     { ok: /Forbidden Scope/i.test(text), finding: 'Missing forbidden scope.' },
     { ok: /Tier-Routing Receipt/i.test(text), finding: 'Missing tier-routing receipt.' },
+    { ok: /Delegation and Parallelism Contract/i.test(text), finding: 'Missing delegation and parallelism contract.' },
+    { ok: /Maximum useful concurrency:/i.test(text), finding: 'Missing maximum useful concurrency.' },
+    { ok: /Ownership:/i.test(text), finding: 'Missing ownership boundary.' },
+    { ok: /Runtime fallback:/i.test(text), finding: 'Missing runtime fallback.' },
     { ok: /Candidate tier:/i.test(text), finding: 'Missing candidate tier in routing receipt.' },
     { ok: /Escalation triggers:/i.test(text), finding: 'Missing escalation triggers in routing receipt.' },
     { ok: /Commands \/ Tools Allowed/i.test(text), finding: 'Missing allowed commands/tools.' },

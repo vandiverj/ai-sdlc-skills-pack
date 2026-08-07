@@ -33,6 +33,13 @@ Avoid failed optional-context probes. Do not directly read `docs/memory-bank/*`,
 Avoid guessed configuration-file probes. Do not directly read framework/config filenames such as `tsconfig.app.json`, `vitest.config.ts`, `playwright.config.ts`, `.eslintrc*`, or similar unless the user names them, package scripts reference them, project guidance names them, or a successful file listing confirms them. If configuration discovery is needed, list the repository root or use package scripts first, then read only confirmed files.
 
 ## Core rule
+
+For substantive repository work, automatically use this skill as the top-level router even when the user does not explicitly invoke `/run-sdlc` or name an SDLC skill. Do not wait for a slash command before classifying and routing implementation, bugfix, refactor, diagnosis, planning, review, release, setup, or resumed work. Honor explicit user instructions to skip, limit, pause, or stop the workflow.
+
+### Agent-strategy checkpoint
+
+After classification, default Micro and Tiny work to deterministic tools or a single agent unless a risk overlay requires specialist review. Standard, High-risk, Exploratory, broad Review, Release, cross-repository, and repeated-failure work must perform an explicit agent-strategy checkpoint. The checkpoint may select single-agent execution, but it must record why delegation is or is not useful, parallel workstreams, sequential dependencies, initial and escalation model tiers, non-overlapping ownership, evidence handoffs, and runtime fallback. Use the `agents` router as the detailed source of truth.
+
 Do not run the whole workflow by default. Run the smallest route that prevents the most likely expensive failure.
 
 Use the route matrix from `classify-work`: Micro, Tiny, Standard, High-risk, Exploratory, Review-only, or Release/handoff. Treat the full SDLC as available capability, not a mandatory ladder.
@@ -373,7 +380,7 @@ When delegating implementation, verification, independent review, release handof
 8. Continue after approval.
 9. Reclassify when new evidence changes the route.
 10. Ensure approved quality automation is considered and used when verification or tooling surfaces matter.
-11. Choose agent strategy when delegation, specialists, model tiers, or runtime adapters may help.
+11. Perform an explicit agent-strategy checkpoint for Standard, High-risk, Exploratory, broad Review, Release, cross-repository, and repeated-failure work; choose the smallest useful delegation pattern and lowest sufficient model tier.
 12. Capture process-learning events when real work exposes friction, gaps, corrections, near misses, or useful workflow successes.
 13. Run `slice-product-fit` for Standard implementation slices before implementation planning, and for smaller work when actor, input, contract, data, AI, or cross-slice risk appears.
 14. Surface contract, product-fit, and planning attention items in chat when they affect the next decision or implementation path.
@@ -419,6 +426,15 @@ Technical approach status:
 Quality automation status:
 Retrieval approach status:
 Agent strategy status:
+Delegation decision:
+Why delegation is or is not useful:
+Parallel workstreams:
+Sequential dependencies:
+Initial model tier:
+Escalation model tier:
+Write ownership:
+Agent evidence handoffs:
+Runtime fallback:
 Implementation pattern status:
 Slice product-fit status:
 Fast-pass route:
@@ -606,6 +622,9 @@ classify-work
 Stop at failed verification, unresolved high-risk findings, or release approval.
 
 ## Consent gates
+
+Routine selection and execution of an agent strategy under an already-approved policy does not require repeated human approval. Ask for approval when changing delegation policy, model-tier mappings, portable roles, runtime adapters, write or tool permissions, material cost boundaries, or task scope.
+
 Ask for human approval before proceeding past:
 
 - Product direction or MVP scope.
@@ -706,6 +725,7 @@ rather than active context routing.
 
 ## Hard rules
 - Do not make the human manually pick skills.
+- Do not require the human to invoke `/run-sdlc` or manually select skills for substantive repository work; apply the default route automatically unless the human opts out or caps the workflow.
 - Do not continue through a consent gate silently.
 - Do not implement meaningful work before the required route gates pass.
 - Do not skip `slice-product-fit` for Standard implementation work before implementation planning.

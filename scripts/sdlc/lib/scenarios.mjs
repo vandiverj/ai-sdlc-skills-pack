@@ -9,7 +9,7 @@ import { matchRecipes } from './recipes.mjs';
 import { inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { detectStack } from './units.mjs';
 import { analyzePrompt } from './prompt.mjs';
-import { recommendAgentPackets, tierRoutingReceipt } from './agentpackets.mjs';
+import { delegationStrategyDecision, recommendAgentPackets, renderAgentPacket, tierRoutingReceipt } from './agentpackets.mjs';
 
 const modulePath = fileURLToPath(import.meta.url);
 const agentsRoot = resolve(dirname(modulePath), '..', '..', '..');
@@ -94,12 +94,18 @@ export function scenarioTest(repo, options = {}) {
   const agentResults = agentRegressionCases().map((item) => {
     const rows = recommendAgentPackets(repo, item.task, options);
     const receipt = tierRoutingReceipt(repo, item.task, item.receiptRole || '', options);
+    const decision = delegationStrategyDecision(repo, item.task, { ...options, ...(item.decisionOptions || {}) });
+    const renderedPacket = item.expectedPacketFields ? renderAgentPacket(repo, item.task, item.receiptRole || 'verification-worker', options) : '';
     const recommendationPass = Object.entries(item.expected || {}).every(([role, recommendation]) => rows.find((row) => row.role === role)?.recommendation === recommendation);
     const tierPass = item.expectedTier ? receipt.candidateTier === item.expectedTier : true;
-    return { ...item, rows, receipt, pass: recommendationPass && tierPass };
+    const delegationPass = item.expectedDelegation === undefined ? true : decision.delegationRecommended === item.expectedDelegation;
+    const parallelismPass = item.expectedParallel === undefined ? true : decision.parallelism.parallelRecommended === item.expectedParallel;
+    const fallbackPass = item.expectedRuntimeFallback ? Boolean(decision.parallelism.runtimeFallback) : true;
+    const packetPass = item.expectedPacketFields ? item.expectedPacketFields.every((field) => renderedPacket.includes(field)) : true;
+    return { ...item, rows, receipt, decision, renderedPacket, pass: recommendationPass && tierPass && delegationPass && parallelismPass && fallbackPass && packetPass };
   });
   for (const result of agentResults) {
-    console.log(`${result.pass ? 'PASS' : 'FAIL'} agents ${result.name}: ${result.rows.map((row) => `${row.role}=${row.recommendation}`).join(', ')} tier=${result.receipt.candidateTier}`);
+    console.log(`${result.pass ? 'PASS' : 'FAIL'} agents ${result.name}: ${result.rows.map((row) => `${row.role}=${row.recommendation}`).join(', ')} tier=${result.receipt.candidateTier} delegation=${result.decision.delegationRecommended} parallel=${result.decision.parallelism.parallelRecommended}`);
     if (!result.pass) console.log(`  task: ${result.task}`);
   }
   const retrievalResults = defaultRetrievalEvalCases().slice(0, 3).map((item) => runRetrievalEvalCase(repo, item, options));
@@ -449,7 +455,15 @@ export function agentRegressionCases() {
       name: 'fixture verify only',
       task: 'approved fixture validation verify behavior',
       receiptRole: 'verification-worker',
-      expectedTier: 'deterministic-tools',
+      expectedTier: 'deterministic',
+      expectedPacketFields: [
+        '## Delegation and Parallelism Contract',
+        'Delegation recommended:',
+        'Parallelism recommended:',
+        'Maximum useful concurrency:',
+        'Ownership:',
+        'Runtime fallback:',
+      ],
       expected: {
         'verification-worker': 'recommended',
         'independent-reviewer': 'skip',
@@ -462,6 +476,74 @@ export function agentRegressionCases() {
         'verification-worker': 'strongly-recommended',
         'independent-reviewer': 'strongly-recommended',
         'release-handoff-worker': 'strongly-recommended',
+      },
+    },
+    {
+      name: 'tiny docs fast pass',
+      task: 'fix a typo in the README',
+      decisionOptions: { files: 'README.md' },
+      expectedTier: 'fast',
+      expectedDelegation: false,
+      expectedParallel: false,
+      expectedRuntimeFallback: true,
+      expected: {
+        'independent-reviewer': 'skip',
+      },
+    },
+    {
+      name: 'tiny local code fast pass',
+      task: 'make a small local low-risk null guard fix in one file',
+      decisionOptions: { files: 'src/guard.js' },
+      expectedTier: 'fast',
+      expectedDelegation: false,
+      expectedParallel: false,
+      expectedRuntimeFallback: true,
+      expected: {
+        'independent-reviewer': 'skip',
+      },
+    },
+    {
+      name: 'parallel multi repo discovery',
+      task: 'investigate independent behavior across multiple repositories with read-only scouts',
+      expectedTier: 'fast',
+      expectedDelegation: true,
+      expectedParallel: true,
+      expectedRuntimeFallback: true,
+      expected: {
+        'independent-reviewer': 'optional',
+      },
+    },
+    {
+      name: 'sequential multi repo dependency',
+      task: 'coordinate an API contract and dependent client change across multiple repositories',
+      expectedTier: 'fast',
+      expectedDelegation: true,
+      expectedParallel: false,
+      expectedRuntimeFallback: true,
+      expected: {
+        'independent-reviewer': 'recommended',
+      },
+    },
+    {
+      name: 'overlapping same file stays sequential',
+      task: 'implement two tightly coupled changes in the same file sequentially',
+      decisionOptions: { files: 'src/app.ts,src/app.ts' },
+      expectedDelegation: true,
+      expectedParallel: false,
+      expectedRuntimeFallback: true,
+      expected: {
+        'implementation-worker': 'recommended',
+      },
+    },
+    {
+      name: 'security review escalates tier',
+      task: 'review a production authentication and privacy change',
+      receiptRole: 'independent-reviewer',
+      expectedTier: 'deep',
+      expectedDelegation: true,
+      expectedParallel: false,
+      expected: {
+        'independent-reviewer': 'recommended',
       },
     },
     {

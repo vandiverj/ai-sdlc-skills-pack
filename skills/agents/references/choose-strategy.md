@@ -42,6 +42,12 @@ Expected handoff:
 Escalation triggers:
 Runtime support:
 Fallback if unsupported:
+Parallelism decision:
+Parallel workstreams:
+Sequential dependencies:
+Maximum useful concurrency:
+File/repository ownership:
+Synthesis point:
 Human approval needed:
 Next skill:
 ```
@@ -71,7 +77,21 @@ Use the smallest useful pattern:
 - `process learning review`: reviewer aggregates run evidence and recommends small SDLC improvements without editing files.
 - `consensus review`: two or more independent reviews for critical decisions, with the orchestrator reconciling findings.
 
+## Parallelism decision
+
+Parallelize only when:
+
+- workstreams can proceed without depending on each other's intermediate results;
+- context, ownership, and expected outputs can be bounded independently;
+- write ownership does not overlap;
+- shared mutable state is absent or explicitly controlled;
+- the orchestrator has a defined synthesis point; and
+- expected elapsed-time, context, risk, or review benefits exceed coordination overhead.
+
+Keep work sequential when tasks edit the same files, require ordered discoveries, depend on shared mutable state, duplicate the same investigation, or cannot be integrated against one evidence contract. State the maximum useful concurrency instead of spawning every possible role. When runtime subagents are unavailable, preserve the same role boundaries through sequential phases and record the capability cap.
+
 ## Default role rules
+
 - The orchestrator owns classification, route choice, final synthesis, and human-facing decisions.
 - Explorers and reviewers are read-only unless explicitly assigned a bounded fix.
 - Workers need file ownership, allowed commands, stop conditions, and verification expectations.
@@ -95,6 +115,7 @@ Escalate model tier or request a specialist when:
 
 ## Hard rules
 - Do not delegate just to appear thorough.
+- Do not parallelize overlapping writes, ordered discoveries, shared mutable state, or duplicated investigation.
 - Do not use a heavier model when a lower tier can satisfy the evidence requirement.
 - Do not use a lower tier for high-risk decisions if it cannot reason about the relevant failure modes.
 - Do not allow subagents to change files outside their assigned ownership.
