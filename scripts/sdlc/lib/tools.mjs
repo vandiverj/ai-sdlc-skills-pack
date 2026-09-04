@@ -5,7 +5,7 @@ import { escapeCell, fail, formatList, optionFiles, printObject, printTable, rea
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { getGitInfo } from './git.mjs';
-import { detectPackageManager, inferTestingSurfaces } from './units.mjs';
+import { detectPackageManager, inferRepoUnits, inferTestingSurfaces } from './units.mjs';
 import { upsertTaskJournal } from './journal.mjs';
 
 function matchesAny(text, needles) {
@@ -316,14 +316,16 @@ ${plan.trustBoundary}
 export function buildToolInventory(repo) {
   const profile = loadProfile(repo);
   const packageJson = readJsonIfExists(join(repo, 'package.json'));
+  const inferredRepoUnits = inferRepoUnits(repo);
   const scripts = [
     ...scriptsFromPackageJson(packageJson, '.'),
     ...nestedPackageScripts(repo),
     ...makefileTargets(repo),
+    ...repositoryScripts(repo),
   ];
   const commands = discoverCommands(profile.values, packageJson);
   const toolNames = [
-    'git', 'rg', 'jq', 'yq', 'node', 'npm', 'pnpm', 'yarn', 'bun', 'deno', 'dotnet', 'cargo', 'pip', 'uv',
+    'git', 'rg', 'jq', 'yq', 'node', 'npm', 'pnpm', 'yarn', 'bun', 'deno', 'dotnet', 'swift', 'xcodebuild', 'cargo', 'pip', 'uv',
     'docker', 'podman', 'gitleaks', 'semgrep', 'shellcheck', 'hadolint', 'osv-scanner', 'lychee',
     'markdownlint-cli2', 'vale', 'spectral', 'ast-grep', 'cspell', 'codespell', 'typos', 'aspell', 'hunspell', 'npx',
   ];
@@ -334,8 +336,9 @@ export function buildToolInventory(repo) {
     detail: toolDetail(name, repo),
     installHint: toolInstallHint(name),
   }));
-  const files = detectEvidenceFiles(repo);
-  const units = detectInventoryUnits(repo, files, scripts);
+  const files = detectEvidenceFiles(repo, inferredRepoUnits);
+  const inferredUnits = inferredRepoUnits.map((unit) => ({ path: unit.path, kind: unit.type, testSurface: unit.testSurface || '', trust: 'local-configuration' }));
+  const units = dedupeInventoryUnits([...inferredUnits, ...detectInventoryUnits(repo, files, scripts)]);
   return {
     schema: 'sdlc-tool-inventory-v1',
     generatedAt: new Date().toISOString(),
@@ -448,11 +451,16 @@ function quotePath(file) {
   return `"${value.replace(/(["\\$`])/g, '\\$1')}"`;
 }
 
-function detectEvidenceFiles(repo) {
-  const candidates = ['package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'deno.json', 'deno.jsonc', 'deno.lock', 'Makefile', 'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml', '.gitlab-ci.yml', 'playwright.config.ts', 'playwright.config.js', 'cypress.config.ts', 'cypress.config.js', 'openapi.yaml', 'openapi.yml', 'swagger.json', 'asyncapi.yaml', 'asyncapi.yml'];
+function detectEvidenceFiles(repo, inferredUnits = inferRepoUnits(repo)) {
+  const candidates = ['package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'deno.json', 'deno.jsonc', 'deno.lock', 'Package.swift', 'Package.resolved', 'Makefile', 'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml', '.gitlab-ci.yml', 'playwright.config.ts', 'playwright.config.js', 'cypress.config.ts', 'cypress.config.js', 'openapi.yaml', 'openapi.yml', 'swagger.json', 'asyncapi.yaml', 'asyncapi.yml'];
   const files = candidates.filter((name) => existsSync(join(repo, name))).map((path) => ({ path, kind: 'root-config' }));
+  for (const unit of inferredUnits) {
+    if (unit.type === 'xcode-project' || unit.type === 'swift-package') files.push({ path: unit.path, kind: unit.type });
+  }
   for (const path of boundedWalk(repo, 4, 900)) {
     if (/\.(sln|csproj|fsproj|vbproj)$/.test(path)) files.push({ path, kind: 'dotnet-project' });
+    else if (/(^|\/)Package\.swift$|(^|\/)Package\.resolved$/i.test(path)) files.push({ path, kind: 'swift-package' });
+    else if (/\.xcodeproj\/project\.pbxproj$/i.test(path)) files.push({ path, kind: 'xcode-project' });
     else if (/(^|\/)(openapi|swagger|asyncapi).*\.(json|ya?ml)$/i.test(path)) files.push({ path, kind: 'api-contract' });
     else if (/(^|\/)Dockerfile[^/]*$|\.dockerfile$/i.test(path)) files.push({ path, kind: 'container-build' });
     else if (/(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|deno\.lock|Cargo\.lock|packages\.lock\.json)$/i.test(path)) files.push({ path, kind: 'dependency-lockfile' });
@@ -485,9 +493,40 @@ function makefileTargets(repo) {
   return [{ name: 'make', command: 'make', detail: 'Makefile detected; inspect targets before use.', unit: '.', trust: 'weak-signal' }];
 }
 
+function repositoryScripts(repo) {
+  const directory = join(repo, 'scripts');
+  if (!existsSync(directory)) return [];
+  let entries = [];
+  try {
+    entries = readdirSync(directory).slice(0, 120);
+  } catch {
+    return [];
+  }
+  return entries.flatMap((name) => {
+    const path = join(directory, name);
+    try {
+      if (!statSync(path).isFile()) return [];
+    } catch {
+      return [];
+    }
+    return [{ name, command: `scripts/${name}`, detail: 'Repository-local script; inspect usage and arguments before running.', unit: '.', trust: 'local-configuration' }];
+  });
+}
+
+function dedupeInventoryUnits(units) {
+  const seen = new Set();
+  return units.filter((unit) => {
+    const key = `${unit.path}:${unit.kind}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 80);
+}
+
 function detectInventoryUnits(repo, files, scripts) {
   const paths = new Set();
   for (const file of files) {
+    if (file.kind === 'xcode-project' || file.kind === 'swift-package') continue;
     const parts = file.path.split('/');
     if (parts.length > 1) paths.add(parts.slice(0, -1).join('/'));
   }
@@ -497,6 +536,8 @@ function detectInventoryUnits(repo, files, scripts) {
 
 function inferUnitKind(path, files) {
   if (files.some((file) => file.path.startsWith(`${path}/`) && file.kind === 'dotnet-project')) return 'dotnet-codebase';
+  if (files.some((file) => file.path.startsWith(`${path}/`) && file.kind === 'xcode-project')) return 'xcode-project';
+  if (files.some((file) => file.path.startsWith(`${path}/`) && file.kind === 'swift-package')) return 'swift-package';
   if (files.some((file) => file.path.startsWith(`${path}/`) && file.kind === 'api-contract')) return 'api-contract-unit';
   return 'project-unit';
 }

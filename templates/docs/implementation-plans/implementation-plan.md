@@ -21,6 +21,29 @@ Draft / Approved / Needs Review
 ## Assumptions and Open Questions
 - 
 
+## Slice Product Fit and Experience Impact
+- Slice product-fit status:
+- Primary actor:
+- Actor job-to-be-done:
+- Product outcome:
+- Before workflow:
+- After workflow:
+- Changed state, data, and feedback:
+- Upstream triggers:
+- Downstream consumers:
+- Adjacent/regression workflows:
+- Failure and recovery paths:
+- Concept ownership and boundaries:
+- Input/output contract:
+- Validation and resistance controls:
+- AI/automation authority:
+- Cross-slice impacts:
+- Predecessor work needed:
+- Implementation responsibilities by impact:
+- Scenario walkthroughs: happy / missing or ambiguous input / misuse, failure, or regression
+- Scenario-specific evidence needed:
+- Slice product-fit carried forward: Yes / No / Not applicable
+
 ## File Scope
 ### Files to Create
 - 
@@ -90,6 +113,12 @@ Draft / Approved / Needs Review
 - Type/schema:
 - Visual/accessibility:
 - Smoke:
+
+## Experience-Impact Closure
+- Implemented and verified:
+- Verified unaffected:
+- Deferred with rationale and human acceptance:
+- Blocking:
 
 ## Code-Local Documentation Updates
 - 

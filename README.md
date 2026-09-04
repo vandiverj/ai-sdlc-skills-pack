@@ -90,11 +90,19 @@ sdlc agents plan --task "<task>" --repo <path>
 sdlc review local --task "<task>" --repo <path>
 ```
 
+For observable behavior, create and check the task contract before implementation, then check the completed impact packet before finish:
+
+```bash
+sdlc contract task --task "<task>" --acceptance "<observable result>" --actor "<actor>" --actor-job "<job>" --before-workflow "<before>" --after-workflow "<after>" --changed-state "<state/data/feedback>" --upstream "<trigger>" --downstream "<consumer>" --adjacent "<regression path>" --failure-recovery "<failure/recovery>" --implementation-responsibility "<owners>" --scenario "happy;ambiguous;failure" --experience-evidence "<criterion/scenario proof>"
+sdlc contract check --packet <task-contract.json>
+sdlc impact check --packet <impact-packet.md>
+```
+
 Use `sdlc prompt compile --phase <phase> --task "<task>"` or `sdlc prompt compile --role <role> --task "<task>"` when you want a bounded, paste-ready prompt that includes the original human intent, cleaned prompt suggestion, local tool facts, constraints, approvals, and evidence boundaries.
 
 Agent handoff packets are optional bounded work orders. They help organize verification, review, QA handoff, release handoff, and learning work, but tiny tasks can skip them when they add overhead.
 
-For tiny docs/mechanical work, `sdlc route fast-pass` can explicitly return `delegation: none`; use the listed deterministic checks before spending more model context or spawning subagents. `sdlc context compile` emits the smallest selected context packet within a token budget and defers optional docs until they are needed. `sdlc evidence recommend` maps files and surfaces to deterministic checks before LLM interpretation. When available, the SDLC can recommend approved optional tools such as `gitleaks`, `semgrep`, `shellcheck`, `hadolint`, `osv-scanner`, `markdownlint-cli2`, `lychee`, `vale`, `spectral`, `ast-grep`, `jq`, `yq`, and `rg`; missing tools are reported as optional gaps with fallback evidence, not silently installed.
+For tiny docs or explicitly non-behavioral mechanical work, `sdlc route fast-pass` can return `delegation: none`; a one-file source change is not sufficient by itself. Observable changes to a user/system workflow, persisted state, feedback, output, recovery path, or downstream consumer require a normal route and an experience-impact trace. That trace carries the actor/job, before/after workflow, affected paths, implementation responsibilities, and scenario evidence through closure. `sdlc context compile` emits the smallest selected context packet within a token budget and defers optional docs until they are needed. `sdlc evidence recommend` maps files and surfaces to deterministic checks before LLM interpretation. When available, the SDLC can recommend approved optional tools such as `gitleaks`, `semgrep`, `shellcheck`, `hadolint`, `osv-scanner`, `markdownlint-cli2`, `lychee`, `vale`, `spectral`, `ast-grep`, `jq`, `yq`, and `rg`; missing tools are reported as optional gaps with fallback evidence, not silently installed.
 
 For longer or interrupted work, the operator commands provide a compact local control surface that avoids asking the model to rediscover status from scratch:
 
@@ -299,7 +307,7 @@ Start by classifying work as `Micro`, `Tiny`, `Standard`, `High-risk`, or `Explo
 Treat the workflow as a dependency graph, not a sequence to run every time.
 
 - `Micro`/`Tiny`: context, lightweight boundary, direct edit/execute, verification, doc-sync only if needed, dirty-surface docs only.
-- Standard: context, task/PRD, issue if needed, implementation plan, safe boundary, execution, verification, spec/code review, dirty-surface docs only.
+- Standard: context, task/PRD, issue if needed, slice-product-fit and experience-impact trace, implementation plan, safe boundary, execution, verification, spec/code review, dirty-surface docs only.
 - High-risk: all relevant gates, none skipped silently.
 - Exploratory: context, optional product/model exploration, spike boundary, prototype execution, findings evidence, context-state, save.
 

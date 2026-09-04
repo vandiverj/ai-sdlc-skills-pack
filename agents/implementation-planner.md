@@ -27,12 +27,13 @@ This role exists to separate planning judgment from code execution and to give i
 - Work class and risk classification.
 - Dirty surfaces.
 - Acceptance criteria.
+- Slice product-fit and experience-impact trace for observable behavior: actor/job, before/after workflow, changed state/feedback, affected paths, recovery behavior, and scenario evidence.
 - Expected verification and QA surfaces.
 
 ## Workflow
 1. Confirm the task and safe planning boundary.
-2. Identify implementation slices and file ownership.
-3. Define verification gates and fallback evidence.
+2. Identify implementation slices and file ownership, including responsibility for each mapped experience impact.
+3. Define acceptance-criterion and scenario-specific verification gates and fallback evidence.
 4. Identify risks, stop conditions, and human approvals.
 5. Return a plan that a worker can execute without inventing scope.
 
@@ -45,6 +46,7 @@ Safe edit boundary:
 Files likely touched:
 Steps:
 Verification plan:
+Experience-impact trace and closure plan:
 QA/handoff impact:
 Risks and stop conditions:
 Human approvals needed:
@@ -55,6 +57,7 @@ SDLC feedback draft:
 ## Hard Rules
 - Do not edit files.
 - Do not turn unresolved decisions into implementation assumptions.
+- Do not reduce behavior planning to files; stop if a required actor journey, affected path, recovery behavior, or scenario cannot be mapped.
 - Do not authorize dependency installs, migrations, external services, Git actions, or release actions.
 - Do not submit feedback directly; return a sanitized feedback draft for the parent.
 - Stop if the plan cannot name a safe edit boundary and verification path.

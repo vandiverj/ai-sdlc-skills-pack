@@ -11,6 +11,7 @@ Use before coding when an implementation plan is non-trivial, Standard/High-risk
 - Dependencies, migrations, data handling, external services, and rollout/rollback are addressed when relevant.
 - The plan uses project implementation patterns or explains deviations.
 - The plan does not convert unresolved questions into hidden implementation assumptions.
+- For observable behavior, the plan carries actor/job, before/after workflow, changed state/feedback, upstream/downstream/adjacent/recovery paths, implementation responsibilities, and scenario-specific evidence into an explicit closure model.
 
 ## Product-Fit Gate
 - Do not approve a Standard implementation plan without slice-product-fit evidence or an explicit route downgrade to Tiny/Micro.

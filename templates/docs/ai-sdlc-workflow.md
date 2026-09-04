@@ -14,6 +14,8 @@ This document defines the project's AI-assisted development process.
 8. Implementation patterns are evidence-backed project guidance, not duplicate tooling or universal laws.
 9. Confidence is limited by contextual caps when required evidence is missing.
 10. Product-experience claims require rendered review when a runnable UI/app surface and approved tool exist.
+11. Observable behavior retains one experience-impact trace from actor/job and before/after workflow through affected paths, implementation responsibility, scenario evidence, and closure.
+12. A one-file source edit is not fast-pass unless the task is explicitly non-behavioral and mechanical.
 
 ## Workflow
 See `SUMMARY.md` in the skills pack for the full baseline.
@@ -43,6 +45,7 @@ See `SUMMARY.md` in the skills pack for the full baseline.
 - Record changed files, validation run, skipped checks, contextual caps, and next action.
 - For Git-tracked code/text edits, run and record diff hygiene such as `git diff --check` before completion, commit, handoff, or evidence packet finalization when available.
 - For UI/user-facing workflow changes, include rendered browser/app/device evidence when available.
+- Map evidence to the acceptance criterion and experience scenario it proves; generic build/test success does not satisfy unrelated behavior.
 - Treat tests, snapshots, generated baselines, validation scripts, thresholds, and CI/local preflight config as protected evidence surfaces. If any changed, record why the change was needed and how the new evidence still protects behavior.
 - If no automated tests exist, use the strongest available alternative evidence and state the test gap honestly.
 
@@ -53,6 +56,7 @@ See `SUMMARY.md` in the skills pack for the full baseline.
 - [ ] Diff hygiene checked for Git-tracked code/text edits.
 - [ ] Verification run and recorded.
 - [ ] Evidence packet recorded at the route-appropriate level.
+- [ ] Every mapped experience impact is implemented and verified, verified unaffected, deferred with rationale and human acceptance, or blocking.
 - [ ] Contextual caps recorded or marked not applicable.
 - [ ] Rendered review recorded for UI/user-facing workflow changes, or explicitly marked unavailable/unverified.
 - [ ] Test/evidence surface changes justified.

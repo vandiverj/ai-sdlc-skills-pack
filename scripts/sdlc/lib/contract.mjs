@@ -1,13 +1,13 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { fail, formatList, printObject, readJsonIfExists, safeWriteJsonFile, stamp } from './common.mjs';
+import { fail, formatList, optionFiles, printObject, readJsonIfExists, safeWriteJsonFile, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { inferContracts } from './routes.mjs';
 import { inferTestingSurfaces, qaModeForSurfaces } from './units.mjs';
 import { matchRecipes } from './recipes.mjs';
-import { inferRouteFromTask, securityTriggers } from './routes.mjs';
+import { experienceImpactRequired, inferRouteFromTask, securityTriggers } from './routes.mjs';
 
 export function contractPacket(repo, options = {}) {
   const task = options.task || '';
@@ -59,9 +59,10 @@ export function contractTask(repo, options = {}) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
   const route = options.route || inferRouteFromTask(task, git, profile.values);
-  const surfaces = inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const files = optionFiles(options, git.changedFiles);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
   const qaMode = qaModeForSurfaces(surfaces, task);
-  const contract = taskContract(repo, task, { ...options, route, git, profile, surfaces, qaMode });
+  const contract = taskContract(repo, task, { ...options, route, git, profile, files, surfaces, qaMode });
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-${slugTask(task)}-task-contract.json`);
   safeWriteJsonFile(repo, outPath, contract);
   console.log(relative(repo, outPath));
@@ -84,11 +85,14 @@ export function taskContract(repo, task, context = {}) {
   const profile = context.profile || loadProfile(repo);
   const git = context.git || getGitInfo(repo);
   const route = context.route || inferRouteFromTask(task, git, profile.values);
-  const surfaces = context.surfaces || inferTestingSurfaces(repo, task, git.changedFiles, profile);
+  const files = context.files || git.changedFiles;
+  const surfaces = context.surfaces || inferTestingSurfaces(repo, task, files, profile);
   const qaMode = context.qaMode || qaModeForSurfaces(surfaces, task);
   const recipes = matchRecipes(task, git, profile.values);
   const triggers = securityTriggers(task, profile.values);
   const criteria = criteriaFromOptions(context);
+  const requiresExperienceImpact = experienceImpactRequired({ task, route, files, surfaces });
+  const experienceImpact = experienceImpactFromContext(context, requiresExperienceImpact);
   return {
     schema: 'sdlc-task-contract-v1',
     generatedAt: new Date().toISOString(),
@@ -101,7 +105,8 @@ export function taskContract(repo, task, context = {}) {
     intent: context.intent || task,
     acceptanceCriteria: criteria,
     nonGoals: listOption(context.nonGoals),
-    affectedActors: listOption(context.actors),
+    affectedActors: listOption(context.actors || context.actor),
+    experienceImpact,
     testingSurfaces: surfaces,
     qaMode,
     qaExpectations: qaExpectations(task, qaMode),
@@ -109,7 +114,7 @@ export function taskContract(repo, task, context = {}) {
     securityTriggers: triggers,
     recipes: recipes.map((row) => row.id),
     commitPushIntent: context.finishIntent || 'human decides at finish; no automatic merge/deploy/release',
-    openQuestions: openQuestions(task, criteria, triggers),
+    openQuestions: openQuestions(task, criteria, triggers, experienceImpact),
     evidenceRequired: criteria.map((criterion, index) => ({ criterionId: criterion.id, proofNeeded: proofForCriterion(criterion.text, surfaces, qaMode), status: 'open' })),
   };
 }
@@ -124,8 +129,8 @@ function criteriaFromOptions(options = {}) {
 function qaExpectations(task, qaMode) {
   if (/qa|quality assurance|tester|youtrack/i.test(task)) return ['produce Markdown QA script for human testers'];
   if (qaMode === 'api-contract') return ['produce API/developer validation steps, not rendered UI review'];
-  if (qaMode === 'rendered-ui') return ['include visible workflow and expected UI behavior'];
-  if (qaMode === 'data') return ['include safe data setup and expected persisted state'];
+  if (qaMode === 'ui-workflow') return ['include visible workflow and expected UI behavior'];
+  if (qaMode === 'data-persistence') return ['include safe data setup and expected persisted state'];
   return ['state developer validation evidence and QA cap or handoff need'];
 }
 
@@ -137,9 +142,10 @@ function constraintsForTask(task, triggers) {
   return constraints;
 }
 
-function openQuestions(task, criteria, triggers) {
+function openQuestions(task, criteria, triggers, experienceImpact) {
   const questions = [];
   if (!criteria.length || criteria[0].source === 'task-summary') questions.push('Are the acceptance criteria complete enough, or should the ticket/human clarify expected behavior?');
+  if (experienceImpact.required && experienceImpact.status !== 'ready') questions.push('Which actor journey, affected paths, recovery behavior, and scenarios must this observable change preserve?');
   if (triggers.some((trigger) => /ticket/i.test(trigger))) questions.push('Is ticket-system access available, and is read-only evidence sufficient?');
   if (triggers.some((trigger) => /database/i.test(trigger))) questions.push('What environment and query boundary are approved for database evidence?');
   if (/commit|push/i.test(task)) questions.push('At finish, should this stop at commit preview, commit, or push approval?');
@@ -154,14 +160,54 @@ function proofForCriterion(text, surfaces, qaMode) {
   return 'targeted automated check, smoke/manual evidence, or explicit cap';
 }
 
-function contractFindings(contract) {
+export function contractFindings(contract) {
+  const criteria = contract.acceptanceCriteria || [];
+  const criteriaReady = criteria.length > 0 && (!contract.experienceImpact?.required || criteria.every((criterion) => criterion.source !== 'task-summary'));
   return [
-    { area: 'acceptance criteria', status: contract.acceptanceCriteria?.length ? 'ready' : 'open', required: true, detail: contract.acceptanceCriteria?.length ? `${contract.acceptanceCriteria.length} criterion/criteria` : 'missing acceptance criteria' },
+    { area: 'acceptance criteria', status: criteriaReady ? 'ready' : 'open', required: true, detail: criteriaReady ? `${criteria.length} explicit criterion/criteria` : criteria.length ? 'task-summary criterion must be replaced with explicit observable acceptance criteria' : 'missing acceptance criteria' },
+    ...experienceImpactFindings(contract.experienceImpact),
     { area: 'testing surface', status: contract.testingSurfaces?.length ? 'ready' : 'open', required: true, detail: (contract.testingSurfaces || []).join(', ') || 'missing testing surface' },
     { area: 'qa expectations', status: contract.qaExpectations?.length ? 'ready' : 'open', required: false, detail: (contract.qaExpectations || []).join('; ') || 'missing QA expectations' },
     { area: 'approval boundary', status: /no automatic|human/i.test(contract.commitPushIntent || '') ? 'ready' : 'open', required: true, detail: contract.commitPushIntent || 'missing commit/push/release boundary' },
     { area: 'open questions', status: contract.openQuestions?.length ? 'open' : 'ready', required: false, detail: contract.openQuestions?.length ? contract.openQuestions.join('; ') : 'none' },
   ];
+}
+
+function experienceImpactFromContext(context, required) {
+  const impact = {
+    required,
+    status: required ? 'open' : 'not-required',
+    primaryActor: String(context.actor || listOption(context.actors)[0] || '').trim(),
+    actorJob: String(context.actorJob || context.userJob || '').trim(),
+    beforeWorkflow: listOption(context.beforeWorkflow || context.before),
+    afterWorkflow: listOption(context.afterWorkflow || context.after),
+    changedStates: listOption(context.changedState || context.changedStates),
+    upstreamTriggers: listOption(context.upstream || context.upstreamTriggers),
+    downstreamConsumers: listOption(context.downstream || context.downstreamConsumers),
+    adjacentWorkflows: listOption(context.adjacent || context.adjacentWorkflows),
+    failureRecovery: listOption(context.failureRecovery || context.recovery),
+    implementationResponsibilities: listOption(context.implementationResponsibility || context.implementationResponsibilities),
+    scenarios: listOption(context.scenario || context.scenarios),
+    evidenceNeeded: listOption(context.experienceEvidence || context.evidenceNeeded),
+  };
+  if (required && experienceImpactFindings(impact).every((finding) => finding.status === 'ready')) impact.status = 'ready';
+  return impact;
+}
+
+export function experienceImpactFindings(impact = {}) {
+  if (!impact.required) return [{ area: 'experience impact', status: 'ready', required: false, detail: 'not required for this non-behavioral route' }];
+  const rows = [
+    ['experience actor/job', impact.primaryActor && impact.actorJob, 'primary actor and job'],
+    ['before/after workflow', impact.beforeWorkflow?.length && impact.afterWorkflow?.length, 'before and after workflow'],
+    ['state and feedback', impact.changedStates?.length, 'changed state, data, or feedback'],
+    ['upstream triggers', impact.upstreamTriggers?.length, 'upstream triggers'],
+    ['downstream consumers', impact.downstreamConsumers?.length, 'downstream consumers'],
+    ['adjacent workflows', impact.adjacentWorkflows?.length, 'adjacent or regression workflows'],
+    ['failure/recovery', impact.failureRecovery?.length, 'failure and recovery behavior'],
+    ['implementation ownership', impact.implementationResponsibilities?.length, 'implementation responsibilities'],
+    ['scenario evidence', impact.scenarios?.length >= 3 && impact.evidenceNeeded?.length, 'happy, ambiguous, and failure/regression scenarios plus evidence'],
+  ];
+  return rows.map(([area, ready, detail]) => ({ area, status: ready ? 'ready' : 'open', required: true, detail: ready ? detail : `missing ${detail}` }));
 }
 
 function listOption(value) {

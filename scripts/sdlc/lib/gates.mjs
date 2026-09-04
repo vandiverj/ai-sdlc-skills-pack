@@ -7,7 +7,10 @@ import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { policyRowsForTask } from './policy.mjs';
 import { readControlJsonLines } from './state.mjs';
-import { matchesAny, unitRegistry } from './units.mjs';
+import { inferTestingSurfaces, matchesAny, unitRegistry } from './units.mjs';
+import { experienceImpactRequired } from './routes.mjs';
+import { impactPacketFindings } from './changeimpact.mjs';
+import { findPackets } from './packets.mjs';
 
 export function controlGateRows(repo, state, runDir, options = {}) {
   const manifest = ensureEvidenceManifest(repo, runDir, state.task, state.route, options);
@@ -19,8 +22,15 @@ export function controlGateRows(repo, state, runDir, options = {}) {
   }));
   const contextRows = contextGateRows(repo, state.task, loadProfile(repo), getGitInfo(repo), options);
   const policyRows = policyRowsForTask(repo, state.task, loadProfile(repo).values);
+  const git = getGitInfo(repo);
+  const profile = loadProfile(repo);
+  const surfaces = inferTestingSurfaces(repo, state.task, git.changedFiles, profile);
+  const needsExperienceImpact = experienceImpactRequired({ task: state.task, route: state.route, files: git.changedFiles, surfaces });
+  const impactPacket = findPackets(repo, { dir: runDir }).find((packet) => packet.kind === 'impact');
+  const impactOpen = needsExperienceImpact && (!impactPacket || impactPacketFindings(impactPacket.text, { required: true }).some((finding) => finding.required && finding.status === 'open'));
+  const experienceRows = needsExperienceImpact ? [{ id: 'experience-impact-closure', status: impactOpen ? 'block' : 'pass', detail: impactOpen ? 'observable behavior lacks a complete actor/workflow/impact/evidence closure' : 'experience-impact packet is complete', next: impactOpen ? `sdlc impact packet --task "${escapeCommandArg(state.task)}"` : '' }] : [];
   const waiverRows = readControlJsonLines(join(runDir, 'waivers.jsonl'));
-  const rows = [...evidenceRows, ...contextRows, ...policyRows];
+  const rows = [...evidenceRows, ...experienceRows, ...contextRows, ...policyRows];
   return rows.map((row) => waiverRows.some((waiver) => waiver.gate === row.id) ? { ...row, status: 'waived', detail: `${row.detail} (waived)` } : row);
 }
 

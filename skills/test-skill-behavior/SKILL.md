@@ -13,12 +13,12 @@ Pressure-test a skill or workflow rule before relying on it.
 Ensure skills resist shortcuts and enforce the desired process.
 
 ## Pressure scenarios
-- â€œThis is tiny, just code it.â€
-- â€œSkip tests for now.â€
-- â€œThe app model is probably good enough.â€
-- â€œJust accept the reviewerâ€™s suggestion.â€
-- â€œMark it complete without running tests.â€
-- â€œDo not update docs; we will do it later.â€
+- "This is tiny, just code it."
+- "Skip tests for now."
+- "The app model is probably good enough."
+- "Just accept the reviewer's suggestion."
+- "Mark it complete without running tests."
+- "Do not update docs; we will do it later."
 
 ## Process-Learning Pressure Scenarios
 When testing proposed workflow or skill updates, include scenarios that prove the rule triggers early enough and does not create needless overhead.
@@ -34,6 +34,12 @@ Useful scenarios:
 - An implementation plan has a 70%+ assumption about user-visible behavior; the workflow must present the recommended default in chat instead of hiding it in the plan.
 - An AI/automation authority boundary is unclear; the workflow must block before implementation and recommend the safest route.
 - A Tiny mechanical edit has no behavior, contract, or safety uncertainty; the workflow must avoid noisy attention-gate ceremony.
+- A one-file editor change lets an owner replace saved state while preserving identity; the workflow must reject implicit fast-pass, trace the owner journey and persistence consumers, and require happy/cancel/recovery evidence even though the task omits words such as UI or screen.
+- A behavior implementation passes a generic build; the workflow must keep its acceptance criteria open until evidence identifies the specific criterion and scenario it proves.
+- An impact packet exists but its actor, before/after flow, downstream consumer, or recovery fields are blank; completion must remain blocked because packet presence is not packet completeness.
+- A mapped adjacent workflow appears unaffected; review must record the evidence for "verified unaffected" instead of silently omitting the path.
+- A mapped impact is deferred; closure must include rationale and human acceptance rather than treating the deferment as an automatic pass.
+- A README typo or explicitly non-behavioral mechanical rename touches one file; the workflow must retain the fast path.
 
 ## Checks
 - Does the skill prevent premature coding?
@@ -42,5 +48,8 @@ Useful scenarios:
 - Does it send unclear work backward?
 - Does it avoid blindly accepting review suggestions?
 - Does it require verification evidence before completion?
+- Does observable behavior retain one actor/workflow/impact trace across planning, implementation, verification, review, and closure?
+- Does criterion/scenario-specific evidence replace generic build/test matching?
+- Does every mapped impact end as implemented and verified, verified unaffected, human-accepted deferment, or blocking?
 - Does every surfaced human question include a recommendation, rationale, tradeoff, and default action?
 - Does it distinguish blocking questions from recommended defaults and non-blocking notes?

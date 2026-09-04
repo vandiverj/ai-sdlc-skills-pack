@@ -48,6 +48,7 @@ Use AI planning to widen perspective before implementation. The point is not to 
    - Misuse, edge case, or cross-feature conflict.
 10. Check cross-slice impact.
     - Shared data, libraries, vocabularies, schedules, permissions, docs, tests, and future phases.
+    - Trace the before/after workflow, changed state/data/feedback, upstream triggers, downstream consumers, adjacent workflows, and failure/recovery paths.
 11. Identify required predecessor work.
     - If a different slice, data model, vocabulary, contract, or UX foundation is needed first, stop and propose that before this slice.
 12. Identify human attention items.
@@ -66,6 +67,13 @@ Secondary actors:
 Actor job-to-be-done:
 Product outcome:
 Whole-product fit:
+Before workflow:
+After workflow:
+Changed state, data, and feedback:
+Upstream triggers:
+Downstream consumers:
+Adjacent/regression workflows:
+Failure and recovery paths:
 Assumptions challenged:
 Concept ownership and boundaries:
 Input contract:
@@ -74,6 +82,7 @@ Human/domain language needed:
 Validation and resistance controls:
 AI/automation authority:
 Cross-slice impacts:
+Implementation responsibilities by impact:
 Scenario walkthroughs:
 Predecessor work needed:
 Evidence needed before confidence:
@@ -106,6 +115,7 @@ If the recommended route is `Revise`, `Split`, `Add predecessor`, or `Defer`, pr
 - Do not expose code-shaped variables, model flags, provider details, or internal enums directly to a human actor unless that actor is a technical operator and the product intentionally supports that.
 - Do not allow shared vocabularies or libraries to mutate through casual free text when consistency is required for future behavior.
 - Do not let AI or automation authority remain implicit.
+- Do not reduce impact analysis to changed files. Carry the actor journey and affected upstream, downstream, adjacent, and recovery paths into implementation ownership and scenario evidence.
 - Do not proceed to implementation planning when the correct next step is a predecessor slice.
 - Do not ask the human a product-fit question without giving a recommended answer, rationale, tradeoff, and default action.
 

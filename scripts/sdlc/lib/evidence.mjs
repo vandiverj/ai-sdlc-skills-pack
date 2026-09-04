@@ -6,7 +6,7 @@ import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { ensureControlRunDir, readCurrentState, readCurrentStateInfo } from './state.mjs';
 import { matchRecipes } from './recipes.mjs';
-import { inferRouteFromTask, securityTriggers } from './routes.mjs';
+import { experienceImpactRequired, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { buildToolInventory, deterministicToolRecommendations, externalEvidenceProfile } from './tools.mjs';
 import { inferTestingSurfaces, matchesAny, qaModeForSurfaces } from './units.mjs';
 import { taskContract } from './contract.mjs';
@@ -95,6 +95,7 @@ export function evidenceAdd(repo, options = {}) {
   const manifest = ensureEvidenceManifest(repo, runDir, task, stateInfo.state?.route || options.route || 'standard', options);
   const item = {
     id: options.id || `${kind}-${Date.now()}`,
+    criterionId: options.criterionId || options.criterion || '',
     kind,
     summary,
     path: options.path || '',
@@ -177,6 +178,7 @@ function recommendedEvidenceChecks({ route, files, surfaces, commands, requireme
   if (surfaces.includes('rendered-product-ui')) add('rendered-ui', 'sdlc render evidence --task "<task>"', 'UI changes need rendered/browser evidence or an explicit cap.');
   if (surfaces.includes('api-contract')) add('api-contract', 'sdlc qa api --task "<task>"', 'API/contract changes need request/response or contract evidence.');
   if (surfaces.includes('data-persistence')) add('data-evidence', 'sdlc data evidence --task "<task>"', 'Data changes need safe data evidence or cap.');
+  if (requirements.some((req) => req.id === 'experience-impact')) add('experience-impact', 'complete the task contract and impact packet before implementation', 'Observable behavior needs actor, before/after workflow, affected paths, and scenario evidence.', 'interpretation');
   if (requirements.some((req) => req.id === 'policy')) add('policy', 'sdlc safety preflight --task "<task>"', 'Security/tool triggers require policy boundary review.', 'deterministic-or-human');
   if (!checks.length) add('verification-ladder', 'sdlc validate ladder --task "<task>"', 'Fallback validation ladder when no concrete command is known.');
   return checks;
@@ -289,10 +291,10 @@ export function buildEvidenceMatrix(repo, task, options = {}) {
       criterion: criterion.text,
       proofNeeded,
       evidence: matched ? matched.summary || matched.kind : '',
-      status: matched ? 'satisfied' : 'missing',
+      status: matched?.status === 'cap' ? 'capped' : matched ? 'satisfied' : 'missing',
       required: true,
-      gap: matched ? '' : `No captured evidence mapped to ${criterion.id}.`,
-      next: matched ? 'none' : nextEvidenceCommand(contract, criterion, proofNeeded),
+      gap: matched?.status === 'cap' ? `Evidence for ${criterion.id} is explicitly capped.` : matched ? '' : `No captured evidence mapped to ${criterion.id}.`,
+      next: matched && matched.status !== 'cap' ? 'none' : nextEvidenceCommand(contract, criterion, proofNeeded),
       qa: qaImplication(contract, criterion, matched),
     };
   });
@@ -324,15 +326,19 @@ function loadTaskContract(repo, task, options = {}) {
   return null;
 }
 
-function evidenceMatchesCriterion(item, criterion, proofNeeded) {
+export function evidenceMatchesCriterion(item, criterion, proofNeeded) {
   const text = `${item.kind || ''} ${item.summary || ''} ${item.path || ''}`.toLowerCase();
-  const words = String(criterion.text || '').toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length > 4);
-  if (words.some((word) => text.includes(word))) return true;
-  if (/api|endpoint|swagger/i.test(proofNeeded) && /api|contract|swagger|test|check/i.test(text)) return true;
-  if (/render|browser|ui/i.test(proofNeeded) && /render|browser|ui|smoke|screenshot/i.test(text)) return true;
-  if (/data|database|query/i.test(proofNeeded) && /data|database|query|sql/i.test(text)) return true;
-  if (/diff|docs/i.test(proofNeeded) && /diff|docs|markdown|check/i.test(text)) return true;
-  return /verification|test|build|smoke|manual/i.test(text);
+  const scopedById = item.criterionId && item.criterionId === criterion.id;
+  const stopWords = new Set(['about', 'after', 'before', 'change', 'complete', 'ensure', 'should', 'their', 'there', 'these', 'thing', 'update', 'using', 'with']);
+  const words = [...new Set(String(criterion.text || '').toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length > 4 && !stopWords.has(word)))];
+  const overlap = words.filter((word) => text.includes(word));
+  const scoped = scopedById || (words.length > 0 && overlap.length >= Math.min(2, words.length));
+  if (!scoped) return false;
+  if (/api|endpoint|swagger/i.test(proofNeeded)) return /api|contract|swagger|request|response/i.test(text);
+  if (/render|browser|ui/i.test(proofNeeded)) return /render|browser|ui|smoke|screenshot|workflow/i.test(text);
+  if (/data|database|query/i.test(proofNeeded)) return /data|database|query|sql|persist|storage/i.test(text);
+  if (/diff|docs/i.test(proofNeeded)) return /diff|docs|markdown|check|review/i.test(text);
+  return /test|assert|check|smoke|manual|inspect|evidence|verification/i.test(text);
 }
 
 function proofForText(text, surfaces) {
@@ -351,11 +357,12 @@ function nextEvidenceCommand(contract, criterion, proofNeeded) {
 }
 
 function qaImplication(contract, criterion, matched) {
+  if (matched?.status === 'cap') return 'developer evidence is capped; keep the criterion open or obtain an explicit waiver/handoff decision';
   if (matched) return 'developer evidence exists; QA can focus on user-visible regression if needed';
   if (contract.qaMode === 'mixed-scope') return 'scope docs/process and product/runtime surfaces separately before QA handoff';
   if (contract.qaMode === 'api-contract') return 'include API/developer validation step or cap';
-  if (contract.qaMode === 'rendered-ui') return 'include human-visible workflow step';
-  if (contract.qaMode === 'data') return 'include safe setup and expected persisted state';
+  if (contract.qaMode === 'ui-workflow') return 'include human-visible workflow step';
+  if (contract.qaMode === 'data-persistence') return 'include safe setup and expected persisted state';
   return 'include in QA only if tester-visible';
 }
 
@@ -408,6 +415,7 @@ export function evidenceRequirementsForTask(repo, task, route, git, profile, opt
     evidenceRequirement('verification', 'required', 'At least one fresh check, smoke, or explicit cap is recorded.'),
     evidenceRequirement('finish-control', 'required', 'Commit/push/release remains human-controlled.'),
   ];
+  if (experienceImpactRequired({ task, route, files, surfaces })) requirements.push(evidenceRequirement('experience-impact', 'required', 'Actor/job, before/after workflow, affected paths, recovery behavior, and scenario-specific proof are traced to closure.'));
   if (route === 'tiny-docs') requirements.push(evidenceRequirement('diff-hygiene', 'required', 'Diff hygiene check is recorded.'));
   if (route === 'review-only') requirements.push(evidenceRequirement('review', 'required', 'Review verdict/findings are recorded.'));
   if (route === 'release-push') requirements.push(evidenceRequirement('release-approval', 'required', 'Release/git action approval boundary is explicit.'));
@@ -450,6 +458,7 @@ function evidenceRequirementSatisfied(req, captured, checks) {
   if (req.id === 'changed-files') return haystack.includes('touched') || haystack.includes('scope') || haystack.includes('changed');
   if (req.id === 'verification') return checks.some((check) => ['pass', 'cap'].includes(check.status)) || haystack.includes('verify') || haystack.includes('smoke') || haystack.includes('test') || haystack.includes('build');
   if (req.id === 'finish-control') return true;
+  if (req.id === 'experience-impact') return haystack.includes('experience-impact') || haystack.includes('experience impact closure');
   if (req.id === 'diff-hygiene') return haystack.includes('diff') || haystack.includes('format');
   if (req.id === 'manual-qa') return haystack.includes('qa');
   if (req.id === 'qa-outline') return haystack.includes('qa');

@@ -100,7 +100,7 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 5. Establish repository setup/profile locations before creating noisy artifacts. Prefer `sdlc readiness` first when the helper CLI is available, then `sdlc setup bootstrap --shared-context-root <path>` when a local profile or ignored evidence folders are missing.
 6. Decide the local AI notes policy: tracked shared docs belong under `docs/`; personal or pilot scratch notes belong under `.ai-local/` and should be ignored via `.git/info/exclude` or project `.gitignore` by explicit choice. Inspect `git status --short --untracked-files=all`, `git check-ignore -v .ai-local .ai-local/*`, and `.git/info/exclude` when `.ai-local/` exists.
 7. Check Git identity and privacy expectations before public or shared publication: `git config user.name`, `git config user.email`, whether a noreply email is desired, and how to verify author/committer with `git log --format=fuller -1`.
-8. Review infrastructure and quality capabilities: install/build/run commands, formatter, linter, typecheck/compiler, unit/integration/contract/E2E tests, rendered UI tooling, accessibility checks, security/dependency scans, CI/local preflight, deployment/smoke checks, logs/debugging, QA/manual validation.
+8. Review infrastructure and quality capabilities: install/build/run commands, formatter, linter, typecheck/compiler, unit/integration/contract/E2E tests, rendered UI tooling, accessibility checks, security/dependency scans, CI/local preflight, deployment/smoke checks, logs/debugging, QA/manual validation. Detect native stacks such as Swift Package Manager and Xcode projects and prefer their repository scripts over web/Node assumptions.
 9. Classify each capability as available/documented, available/undocumented, partial, missing but valuable, not applicable, or blocked by environment/security.
 10. Establish validation-target policy. Default to current repository deterministic checks and dry-run packets; optionally record a repo-local configured validation target in `.ai-local/sdlc-profile.md` or `.ai-local/sdlc-profile.json`; ask the developer before using an external disposable fixture or workspace repo.
 11. Draft changes without overwriting project-specific guidance.
@@ -111,7 +111,8 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 16. Run documentation verification checks and `git diff --check`.
 17. Run `sdlc readiness` again when available and report remaining setup gaps.
 18. For mixed legacy/modern UI systems, add or link `docs/context-root/mixed-ui-guidance.md` or an equivalent shared-context note so future agents do not flatten ASP Classic, React, shared CSS, API, and SQL risks into one generic UI bucket.
-19. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
+19. Record where the primary actor/job, application workflow, and experience-impact evidence come from so observable changes can retain the same trace through planning, implementation, verification, and review.
+20. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
 
 ## Helper CLI setup flow
 When the SDLC helper is available, use it to make setup concrete:

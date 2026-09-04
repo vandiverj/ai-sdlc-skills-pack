@@ -2,6 +2,8 @@ export function classifyTouchedSurface(file) {
   const value = String(file || '').toLowerCase();
   if (/\.(asp|asa|aspx|ascx)$/.test(value)) return 'frontend/UI';
   if (/\.(tsx|jsx|css|scss|html|vue|svelte)$/.test(value)) return 'frontend/UI';
+  if (/\.swift$/.test(value) && (/(^|\/)(ui|views?|screens?)(\/|$)/.test(value) || /(app|canvas|editor|screen|sidebar|toolbar|view|window|workspace)\.swift$/.test(value))) return 'frontend/UI';
+  if (/\.swift$/.test(value) || value.endsWith('package.swift') || value.includes('.xcodeproj/')) return 'native app/source';
   if (/\.(cs|vb|fs|go|rs|java|kt|php|rb|py)$/.test(value)) return 'backend/API';
   if (/\.(sql)$/.test(value) || value.includes('migration') || value.includes('schema')) return 'database/storage';
   if (value.includes('contract') || value.includes('openapi') || value.includes('swagger') || value.includes('proto')) return 'contracts/interfaces';
@@ -18,6 +20,7 @@ export function classifyTouchedSurface(file) {
 export function classifyRuntimeSurface(file) {
   const value = String(file || '').toLowerCase();
   if (/\.(asp|asa)$/.test(value)) return 'ASP Classic';
+  if (/\.swift$/.test(value) || value.endsWith('package.swift') || value.includes('.xcodeproj')) return 'Swift/Xcode';
   if (/\.(cs|csproj|sln)$/.test(value)) return '.NET';
   if (/\.(sql)$/.test(value)) return 'SQL/database';
   if (value.includes('deno.json') || value.includes('jsr.json')) return 'Deno/JSR';
@@ -28,5 +31,5 @@ export function classifyRuntimeSurface(file) {
 }
 
 export function needsManualQa(file) {
-  return ['frontend/UI', 'backend/API', 'database/storage', 'external integration', 'contracts/interfaces', 'config/environment', 'dependencies'].includes(classifyTouchedSurface(file));
+  return ['frontend/UI', 'native app/source', 'backend/API', 'database/storage', 'external integration', 'contracts/interfaces', 'config/environment', 'dependencies'].includes(classifyTouchedSurface(file));
 }

@@ -28,11 +28,14 @@ export function setupInspect(repo, options = {}) {
 
 export function setupRecommend(repo, options = {}) {
   const inventory = buildToolInventory(repo);
+  const profile = loadProfile(repo);
   const recommendations = [];
   if (!existsSync(join(repo, '.ai-local'))) recommendations.push('Create ignored `.ai-local` for SDLC run artifacts and repo-local profile.');
   if (!existsSync(join(repo, '.ai-local', 'sdlc-scratch', 'scripts'))) recommendations.push('Use `.ai-local/sdlc-scratch/scripts/` for agent-created temporary PowerShell/shell scripts so they do not dirty product source folders.');
   if (!inventory.scripts.some((script) => /test/i.test(script.name))) recommendations.push('Add or profile a focused test command, or document no-test/manual QA maturity.');
-  if ((inventory.units || []).length) recommendations.push('Record deployable/codebase units in repo setup so context and commands map correctly.');
+  if ((inventory.units || []).length && !profile.units?.length) recommendations.push('Record deployable/codebase units in repo setup so context and commands map correctly.');
+  if ((inventory.units || []).some((unit) => unit.kind === 'xcode-project' || unit.kind === 'swift-package') && (!profile.values.testCommand || !profile.values.buildCommand)) recommendations.push('Profile the focused Swift/Xcode test and build commands; do not fall back to JavaScript/browser assumptions.');
+  if ((inventory.units || []).some((unit) => unit.kind === 'xcode-project') && !profile.values.renderedUiReviewCommand && !profile.values.renderedReviewCap) recommendations.push('Configure a rendered native-app review command or keep an explicit manual rendered-review cap for owner-facing changes.');
   if (inventory.files.some((file) => file.kind === 'api-contract')) recommendations.push('Mark API/OpenAPI surfaces as testable API surfaces, not rendered UI.');
   if (!recommendations.length) recommendations.push('No major setup gaps detected.');
   const result = { schema: 'sdlc-setup-recommend-v1', repository: repo, recommendations };
@@ -52,13 +55,21 @@ Repository: ${repo}
 - build command:
 - rendered UI command:
 
-## Units
+## Product Experience Context
 
-- name:
-  path:
-  testing surface:
-  deploy method:
-  context bucket:
+- primary actor/job source:
+- workflow/application model:
+- experience-impact evidence location: .ai-local/sdlc-runs/
+
+## Unit: <name>
+
+- Path:
+- Type:
+- Testing surface:
+- Build command:
+- Test command:
+- Deploy method:
+- Context bucket:
 
 ## External Evidence
 

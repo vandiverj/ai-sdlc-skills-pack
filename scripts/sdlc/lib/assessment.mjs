@@ -5,7 +5,7 @@ import { defaultRunsDir } from './paths.mjs';
 import { dedupe, escapeCell, escapeCommandArg, fail, formatInlineList, formatInlineStatus, formatList, optionFiles, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
-import { securityTriggers } from './routes.mjs';
+import { behaviorChangeSignals, experienceImpactRequired, isExplicitlyMechanicalTask, securityTriggers } from './routes.mjs';
 import { affectedUnits, detectStack, inferTestingSurfaces, matchesAny } from './units.mjs';
 import { classifyTouchedSurface } from './surface.mjs';
 
@@ -50,8 +50,13 @@ export function fastPassAssessment(repo, task, route, git, profile, units, surfa
   const multiContext = related.length > 0 || units.length > 1 || dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)).length > 1;
   const irreversible = matchesAny(task, ['delete', 'drop', 'truncate', 'migrate production', 'deploy', 'release', 'merge', 'pipeline']);
   const broadTask = breadth.level !== 'narrow';
-  const eligible = !riskyRoute && !securityLike && !multiContext && !irreversible && !broadTask && files.length <= 5;
-  reasons.push(eligible ? 'Eligible: one small scope, no risk triggers, no multi-context ambiguity.' : 'Not eligible for micro/tiny fast-pass.');
+  const docsOnly = files.length > 0 && files.every((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file));
+  const explicitFastPath = docsOnly || isExplicitlyMechanicalTask(task);
+  const needsExperienceImpact = experienceImpactRequired({ task, route, files, surfaces });
+  const eligible = explicitFastPath && !needsExperienceImpact && !riskyRoute && !securityLike && !multiContext && !irreversible && !broadTask && files.length <= 5;
+  reasons.push(eligible ? 'Eligible: explicitly docs-only or mechanical scope with no risk triggers or multi-context ambiguity.' : 'Not eligible for micro/tiny fast-pass.');
+  if (!explicitFastPath) reasons.push('Task is not explicitly docs-only or mechanical; normal route judgment is required.');
+  if (needsExperienceImpact) reasons.push('Observable behavior requires an experience-impact trace before implementation.');
   if (riskyRoute) reasons.push(`Route ${route} needs normal preflight.`);
   if (securityLike) reasons.push(`Security/tool triggers present: ${triggers.join('; ')}.`);
   if (multiContext) reasons.push('Multiple repos, units, or context buckets require normal preflight.');
@@ -81,6 +86,7 @@ export function taskBreadthAssessment(task, files = [], surfaces = []) {
   if (matchesAny(text, broadPhrases)) signals.push('broad product/experience wording');
   if (matchesAny(text, interactionPhrases)) signals.push('interactive/stateful behavior');
   if (matchesAny(text, ['logic', 'rules', 'ai behavior', 'computer opponent', 'smart opponent'])) signals.push('domain logic or AI behavior');
+  if (behaviorChangeSignals(task, files, surfaces).length) signals.push('observable behavior needs experience-impact trace');
   if (matchesAny(text, ['qa', 'test plan', 'human tester', 'manual test'])) signals.push('QA/handoff expectation');
   const surfaceCount = dedupe(surfaces.filter(Boolean)).length;
   if (surfaceCount > 1) signals.push(`${surfaceCount} testing surfaces`);
@@ -107,7 +113,7 @@ export function qualityFloorRows({ task, git, units, surfaces, qaMode, packets }
   const hasVerificationPacket = packets.some((packet) => ['developer-verification', 'manual-smoke', 'route', 'review', 'release'].includes(packet.kind));
   const hasQa = packets.some((packet) => packet.kind === 'qa-script');
   const durableContextLikely = matchesAny(task, ['context', 'docs', 'learning', 'process', 'workflow', 'scenario', 'api contract', 'deployable unit']);
-  return [
+  const rows = [
     { item: 'Changed-files awareness', status: git.changedFiles.length || git.status === '' ? 'pass' : 'note', detail: `${git.changedFiles.length} changed file(s); status ${formatInlineStatus(git.status)}` },
     { item: 'One verification path', status: hasVerificationPacket ? 'pass' : 'open', detail: hasVerificationPacket ? 'evidence packet present' : 'run/check one relevant automated, manual, rendered, API, or data path' },
     { item: 'Surface-correct evidence', status: surfaces.length ? 'pass' : 'open', detail: surfaces.join(', ') || 'surface not detected' },
@@ -116,6 +122,8 @@ export function qualityFloorRows({ task, git, units, surfaces, qaMode, packets }
     { item: 'Developer finish control', status: 'pass', detail: 'commit/push require approval; merge/deploy/release forbidden by default' },
     { item: 'Confidence summary', status: 'open', detail: 'include proved/inferred/human-judgment/safe-next-action at final response' },
   ];
+  if (experienceImpactRequired({ task, files: git.changedFiles, surfaces })) rows.splice(3, 0, { item: 'Experience-impact trace', status: 'open', detail: 'map actor/job, before/after workflow, affected paths, recovery, responsibilities, and scenario evidence before implementation' });
+  return rows;
 }
 
 function requiresHumanQa(task, surfaces) {
@@ -232,10 +240,12 @@ export function routeFastPass(repo, options = {}) {
   const triggers = securityTriggersForFastPass(task, profile.values);
   const base = fastPassAssessment(repo, task, route, { ...git, changedFiles: files }, profile, units, surfaces, triggers);
   const docsOnly = isDocsOnlyTask(task, files, surfaces);
-  const mechanical = matchesAny(String(task).toLowerCase(), ['typo', 'wording', 'format', 'markdown', 'readme', 'docs', 'comment only', 'comments only']);
+  const mechanical = isExplicitlyMechanicalTask(task);
+  const needsExperienceImpact = experienceImpactRequired({ task, route, files, surfaces });
   const blockedBy = [];
   if (!base.eligible) blockedBy.push(...base.reasons.filter((reason) => !reason.startsWith('Eligible:')));
-  if (!docsOnly && !mechanical && !isSingleSafeFile(files)) blockedBy.push('Task is not obviously docs-only, mechanical, or single-file safe.');
+  if (!docsOnly && !mechanical) blockedBy.push('Task is not explicitly docs-only or mechanical; a single file is not proof of low behavioral risk.');
+  if (needsExperienceImpact) blockedBy.push('Observable behavior requires an experience-impact trace and normal route review.');
   if (files.length > 1 && !docsOnly) blockedBy.push('Multiple non-doc changed files require normal route judgment.');
   const eligible = blockedBy.length === 0;
   const requiredChecks = fastPassChecks({ route, docsOnly, files, surfaces });
@@ -272,10 +282,6 @@ function isDocsOnlyTask(task, files, surfaces) {
   const fileDocs = files.length > 0 && files.every((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file) || /^docs\//.test(file));
   const surfaceDocs = surfaces.length > 0 && surfaces.every((surface) => ['docs-process', 'documentation'].includes(surface));
   return taskDocs || fileDocs || surfaceDocs;
-}
-
-function isSingleSafeFile(files) {
-  return files.length <= 1;
 }
 
 function fastPassChecks({ route, docsOnly, files, surfaces }) {

@@ -84,12 +84,21 @@ When `slice-product-fit` applies, include these fields in the plan or explicitly
 Primary actor:
 Actor job-to-be-done:
 Product outcome:
+Before workflow:
+After workflow:
+Changed state, data, and feedback:
+Upstream triggers:
+Downstream consumers:
+Adjacent/regression workflows:
+Failure and recovery paths:
 Concept ownership and boundaries:
 Input/output contract:
 Validation and resistance controls:
 AI/automation authority:
 Cross-slice impacts:
 Predecessor work needed:
+Implementation responsibilities by impact:
+Scenario-specific evidence needed:
 Evidence needed before confidence:
 Slice product-fit carried forward: Yes / No / Not applicable
 ```
@@ -118,6 +127,7 @@ A plan is ready only if:
   final truth, whether the plan should be removed or retained after closeout,
   and which references must be updated if temporary artifacts are removed.
 - Open questions are either resolved, safely deferred, or explicitly blocking.
+- Every mapped experience-impact item has an owner and planned closure state: implemented and verified, verified unaffected, explicitly deferred with rationale and human acceptance, or blocking.
 - Decision-bearing questions and meaningful assumptions are surfaced in chat with recommendations, not only recorded in the plan.
 - The plan can be reviewed against the PRD, application model, and contract spec when present.
 

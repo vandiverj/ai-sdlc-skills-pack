@@ -42,6 +42,13 @@ export function inferRepoUnits(repo) {
   const units = [];
   const packageJson = readJsonIfExists(join(repo, 'package.json'));
   if (packageJson) units.push({ name: packageJson.name || basename(repo), path: '.', type: 'node/package' });
+  for (const directory of findDirectoriesByExt(repo, ['.xcodeproj'], 4, 40)) {
+    units.push({ name: basename(directory, '.xcodeproj'), path: dirname(relative(repo, directory)), type: 'xcode-project', testSurface: 'rendered-product-ui' });
+  }
+  for (const file of findFilesByName(repo, ['Package.swift'], 5, 80)) {
+    const unitPath = dirname(relative(repo, file));
+    units.push({ name: unitPath === '.' ? basename(repo) : basename(unitPath), path: unitPath, type: 'swift-package', testSurface: 'service-behavior' });
+  }
   for (const file of findFilesByExt(repo, ['.csproj'], 4, 80)) units.push({ name: basename(file, '.csproj'), path: dirname(relative(repo, file)), type: 'dotnet-project' });
   for (const file of findFilesByName(repo, ['openapi.json', 'openapi.yaml', 'swagger.json', 'swagger.yaml'], 4, 40)) units.push({ name: basename(dirname(file)) || 'openapi', path: dirname(relative(repo, file)), type: 'api-contract', testSurface: 'api-contract', swaggerOpenapi: relative(repo, file) });
   return dedupeBy(units, (unit) => `${unit.name}:${unit.path}`);
@@ -49,6 +56,8 @@ export function inferRepoUnits(repo) {
 
 export function inferUnitType(path) {
   if (existsAny(path, ['package.json'])) return 'node/package';
+  if (existsAny(path, ['Package.swift'])) return 'swift-package';
+  if (findDirectoriesByExt(path, ['.xcodeproj'], 1, 1).length) return 'xcode-project';
   if (findFilesByExt(path, ['.csproj'], 1, 1).length) return 'dotnet-project';
   if (findFilesByName(path, ['openapi.json', 'openapi.yaml', 'swagger.json', 'swagger.yaml'], 2, 1).length) return 'api-contract';
   return '';
@@ -57,6 +66,8 @@ export function inferUnitType(path) {
 export function inferUnitSurface(fullPath, unit = {}) {
   const text = `${unit.name || ''} ${unit.path || ''} ${unit.type || ''} ${unit.swaggerOpenapi || ''}`.toLowerCase();
   if (matchesAny(text, ['swagger', 'openapi', 'api-contract'])) return 'api-contract';
+  if (matchesAny(text, ['xcode-project', 'swiftui', 'macos app', 'ios app', 'ipados app'])) return 'rendered-product-ui';
+  if (matchesAny(text, ['swift-package'])) return 'service-behavior';
   if (matchesAny(text, ['worker', 'job', 'queue', 'import', 'export'])) return 'background-job';
   if (matchesAny(text, ['sql', 'database', 'migration'])) return 'data-persistence';
   if (matchesAny(text, ['react', 'web', 'ui', 'site', 'asp'])) return 'rendered-product-ui';
@@ -139,12 +150,13 @@ export function classifyTestingSurface(file) {
   const value = String(file || '').toLowerCase();
   if (value.includes('openapi') || value.includes('swagger') || value.endsWith('.http') || value.includes('postman')) return 'api-contract';
   if (/\.(tsx|jsx|css|scss|html|vue|svelte|asp|aspx|ascx)$/.test(value)) return 'rendered-product-ui';
+  if (/\.swift$/.test(value) && (/(^|\/)(ui|views?|screens?)(\/|$)/.test(value) || /(app|canvas|editor|screen|sidebar|toolbar|view|window|workspace)\.swift$/.test(value))) return 'rendered-product-ui';
   if (/\.(sql)$/.test(value) || value.includes('migration') || value.includes('schema')) return 'data-persistence';
   if (value.includes('integration') || value.includes('webhook') || value.includes('/provider') || value.includes('provider/') || value.includes('vendor') || value.includes('third-party') || value.includes('third_party')) return 'integration-provider';
   if (value.includes('worker') || value.includes('job') || value.includes('queue') || value.includes('import') || value.includes('export')) return 'background-job';
   if (value.includes('package.json') || value.includes('package-lock') || value.includes('pipeline') || value.includes('docker')) return 'package-tooling';
   if (value.endsWith('.md') || value.includes('/docs/') || value.includes('/learnings/')) return 'docs-process';
-  if (/\.(cs|vb|fs|go|rs|java|kt|php|rb|py|ts|js)$/.test(value)) return 'service-behavior';
+  if (/\.(cs|vb|fs|go|rs|java|kt|php|rb|py|ts|js|swift)$/.test(value) || value.endsWith('package.swift') || value.includes('.xcodeproj/')) return 'service-behavior';
   return '';
 }
 
@@ -170,6 +182,8 @@ export function detectStack(repo) {
     [existsAny(repo, ['package.json']), 'Node/TypeScript'],
     [existsAny(repo, ['deno.json', 'deno.jsonc', 'jsr.json']), 'Deno/JSR'],
     [existsAny(repo, ['next.config.js', 'next.config.mjs', 'next.config.ts']), 'Next.js'],
+    [existsAny(repo, ['Package.swift']) || hasFileExt(repo, ['.swift']), 'Swift'],
+    [findDirectoriesByExt(repo, ['.xcodeproj', '.xcworkspace'], 4, 1).length > 0, 'Apple/Xcode'],
     [hasFileExt(repo, ['.sln', '.csproj', '.vbproj']), '.NET'],
     [hasFileExt(repo, ['.asp', '.asa']), 'ASP Classic'],
     [hasFileExt(repo, ['.sql']), 'SQL/database'],
@@ -185,6 +199,7 @@ export function detectPackageManager(repo) {
   if (existsAny(repo, ['deno.json', 'deno.jsonc'])) return 'deno';
   if (existsAny(repo, ['bun.lockb', 'bun.lock'])) return 'bun';
   if (existsAny(repo, ['packages.lock.json'])) return 'nuget';
+  if (findFilesByName(repo, ['Package.swift', 'Package.resolved'], 5, 1).length) return 'swift-package-manager';
   return '';
 }
 
@@ -223,6 +238,32 @@ export function findFilesByName(repo, names, maxDepth = 4, maxResults = 100) {
   return findRepoFiles(repo, (file) => wanted.has(basename(file).toLowerCase()), maxDepth, maxResults);
 }
 
+export function findDirectoriesByExt(repo, extensions, maxDepth = 4, maxResults = 100) {
+  const results = [];
+  const visit = (dir, depth = 0) => {
+    if (depth > maxDepth || results.length >= maxResults) return;
+    let entries = [];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (['.git', 'node_modules', 'dist', 'build', '.next', '.ai-local'].includes(entry.name)) continue;
+      if (!entry.isDirectory()) continue;
+      const path = join(dir, entry.name);
+      if (extensions.some((ext) => entry.name.toLowerCase().endsWith(ext))) {
+        results.push(path);
+        if (results.length >= maxResults) return;
+        continue;
+      }
+      visit(path, depth + 1);
+    }
+  };
+  visit(repo);
+  return results;
+}
+
 export function findRepoFiles(repo, predicate, maxDepth = 4, maxResults = 100) {
   const results = [];
   const visit = (dir, depth = 0) => {
@@ -250,7 +291,7 @@ export function surfaceList() {
 
 | Surface | Use For | Not For |
 | --- | --- | --- |
-| rendered-product-ui | browser-visible product UI, layout, interaction, copy, animation | Swagger/OpenAPI-only APIs |
+| rendered-product-ui | browser- or native-app-visible product UI, layout, interaction, copy, animation | Swagger/OpenAPI-only APIs |
 | api-contract | Swagger/OpenAPI, HTTP endpoints, request/response contracts, developer API testing | human browser layout review |
 | service-behavior | backend logic, domain services, business rules, controllers without UI rendering | end-user visual acceptance |
 | data-persistence | SQL, EF, migrations, stored procedures, persistence invariants | generic UI smoke |

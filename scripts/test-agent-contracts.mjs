@@ -30,6 +30,12 @@ const auggieReadOnlyAdapters = new Set([
   'sdlc-process-learning-reviewer.md',
   'sdlc-feedback-reporter.md',
 ]);
+const experienceImpactRoles = new Set([
+  'implementation-planner.md',
+  'implementation-worker.md',
+  'verification-worker.md',
+  'independent-reviewer.md',
+]);
 
 function readText(path) {
   return readFileSync(path, 'utf8');
@@ -144,6 +150,9 @@ for (const file of readdirSync(promptDir).filter((entry) => entry.endsWith('.md'
   if (!/meaningful process friction, caps, skipped evidence, or tool\/runtime evidence/.test(text)) {
     fail(path, 'portable-role prompt template must state when to include a feedback draft.');
   }
+  if (experienceImpactRoles.has(file) && !/experience-impact/i.test(text)) {
+    fail(path, 'behavior-phase prompt template must carry the experience-impact trace or evidence map.');
+  }
 }
 
 const catalogText = readText(catalogPath);
@@ -162,6 +171,9 @@ for (const file of readdirSync(agentsDir).filter((entry) => entry.endsWith('.md'
   if (!text.includes('## Hard Rules')) fail(path, 'missing Hard Rules section.');
   if (!text.includes('Do not submit feedback directly')) {
     fail(path, 'missing parent-mediated feedback hard rule.');
+  }
+  if (experienceImpactRoles.has(file) && !/experience-impact/i.test(text)) {
+    fail(path, 'behavior-phase role must carry the experience-impact trace or evidence map.');
   }
 }
 

@@ -15,6 +15,7 @@ Use the minimum process that prevents the most likely expensive failure.
 - Delegation and model routing mostly need clear roles, minimal sufficient model tiers, bounded handoffs, and concrete escalation triggers.
 - Repeated implementation surfaces mostly need project pattern guidance that captures product-specific conventions without duplicating deterministic tooling.
 - Public interface work mostly needs a reviewed contract before implementation planning.
+- Observable behavior work needs an experience-impact trace that follows the actor's job and full workflow through implementation and evidence.
 - Security, data, migration, integration, or infrastructure work needs explicit risk review and rollback thinking.
 - Long-running work needs context routing and durable state updates.
 - Repeated process friction needs lightweight event capture and periodic cross-project review, not human memory.
@@ -44,6 +45,8 @@ Use `classify-work` when workflow depth is unclear. Do not run the full workflow
 Treat the workflow as a dependency graph, not a sequence to run every time. `classify-work` chooses the fast-pass route, context depth, dirty surfaces, skipped gates, and escalation triggers.
 
 A skipped gate is acceptable only when the classification explains why the failure it prevents is unlikely or cheap.
+
+A one-file diff is not enough to qualify for fast-pass. Non-document source work must be explicitly mechanical and non-behavioral; observable changes to a user/system workflow, persisted state, feedback, output, recovery path, or downstream consumer use the normal route.
 
 ### Micro
 ```text
@@ -80,6 +83,7 @@ classify-work
 -> quality, if quality rails are missing or changing
 -> planning, using existing task/PRD source or PRD reference if requirements need durable form
 -> planning issues, if not already tracked
+-> planning slice-product-fit and experience-impact trace
 -> planning implementation plan
 -> review implementation-plan reference
 -> implementation safe edit boundary
@@ -132,6 +136,7 @@ Context depth:
 
 Dirty surfaces decide artifact updates:
 - `requirementsSurfaceChanged` -> PRD, issue, acceptance criteria, model section.
+- `experienceImpactChanged` -> actor/job, before/after workflow, state/feedback, upstream/downstream/adjacent/recovery paths, implementation responsibilities, and scenario evidence in the slice-fit, plan, handoffs, and impact closure.
 - `publicContractSurfaceChanged` -> contract spec, API docs, schemas, compatibility notes.
 - `qualityAutomationChanged` -> quality automation decision, command wiring, CI/local preflight docs, AGENTS.md.
 - `retrievalApproachChanged` -> retrieval decision, tool boundaries, index location/freshness, AGENTS.md, context index, context-state.
@@ -148,6 +153,8 @@ Dirty surfaces decide artifact updates:
 Do not update every file every time.
 
 Mid-stream reclassification is required when implementation, verification, review, or doc-sync reveals that the original work class, route, or dirty surfaces were wrong.
+
+For observable behavior, every mapped experience-impact item must finish in one explicit state: implemented and verified, verified unaffected, deferred with rationale and human acceptance, or blocking. An impact packet's presence is not evidence that its content is complete, and generic build/test output must not satisfy an unrelated acceptance criterion.
 ## Engineering Principles
 
 Use engineering principles as judgment lenses, not slogans. First-principles reasoning, assumption challenge, story readability, cohesion, coupling, simplicity, DRY, SOLID, and design patterns should improve maintainability rather than create ceremony.

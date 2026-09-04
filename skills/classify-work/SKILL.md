@@ -126,6 +126,7 @@ classify-work
 -> implementation pattern selection, if repeated project-specific patterns may apply
 -> existing PRD/task source or planning PRD conversion if requirements need durable form
 -> planning issues, if not already tracked
+-> planning slice-product-fit, carrying the actor/job, before/after workflow, affected paths, recovery behavior, and evidence needs
 -> planning implementation plan
 -> review implementation-plan reference
 -> implementation safe-edit boundary
@@ -161,6 +162,7 @@ High-risk does not always mean every step. Every skipped gate must be justified.
 
 Usually required:
 - model/PRD/context-state alignment
+- slice-product-fit plus an experience-impact trace for observable behavior
 - contract spec when public/cross-boundary behavior changes
 - structured reasoning or tools selection for Sequential Thinking-style support when useful
 - `review/references/threat-model.md` when security, privacy, data, dependency, integration, untrusted input, AI/agent, tool-access, or abuse-case risk is present
@@ -242,6 +244,7 @@ Dirty surfaces decide which artifacts are eligible to update. Do not update ever
 
 ```text
 requirementsSurfaceChanged: yes/no
+experienceImpactChanged: yes/no
 publicContractSurfaceChanged: yes/no
 systemSurfaceChanged: yes/no
 technicalApproachChanged: yes/no
@@ -259,6 +262,7 @@ uncertaintyChanged: yes/no
 
 Surface routing:
 - `requirementsSurfaceChanged` -> update/review product intent, PRD, issue, acceptance criteria, or application model section.
+- `experienceImpactChanged` -> run/review slice-product-fit; carry actor/job, before/after workflow, state/feedback, upstream/downstream/adjacent/recovery paths, and scenario evidence through plan, implementation, verification, review, and closure.
 - `publicContractSurfaceChanged` -> write/review contract spec; update public API docs, schemas, type docs, examples, or compatibility notes.
 - `technicalApproachChanged` -> use implementation technical-approach guidance; update ADRs, application model, AGENTS.md, context-state, and Memory Bank indexes as applicable.
 - `qualityAutomationChanged` -> use quality automation guidance; update command wiring, CI/local preflight docs, AGENTS.md, verification expectations, context-state, and Memory Bank indexes as applicable.
@@ -293,6 +297,7 @@ If classification confidence is below 80%, take the smallest uncertainty-reducin
 Escalate when:
 - Micro -> Tiny: behavior, tests, docs, shared code, generated files, or more than one meaningful file changes.
 - Tiny -> Standard: more than one module changes, behavior changes, tests are non-trivial, or docs/code may disagree.
+- Any route -> planning slice-product-fit and experience-impact trace: observable user/system behavior, persisted state, feedback, outputs, recovery, or downstream consumers change.
 - Standard -> High-risk: public behavior, auth, permissions, user data, dependencies, migrations, infrastructure, concurrency, external integrations, or architecture changes.
 - Exploratory -> Standard: spike findings become production implementation.
 - Exploratory -> High-risk: spike touches high-risk systems or recommends high-risk production work.
@@ -361,6 +366,8 @@ Treat the work as higher risk when it touches:
 ## Hard rules
 - Do not use the full workflow for small work unless a risk signal is present.
 - Do not classify work as Micro or Tiny if it changes behavior across a public or shared boundary.
+- Do not use a one-file diff as proof that observable behavior is Micro/Tiny. Fast-pass requires docs-only or explicitly non-behavioral mechanical intent.
+- Do not let mapped experience impacts disappear between planning and completion; close each as implemented and verified, verified unaffected, explicitly deferred with rationale and human acceptance, or blocking.
 - Do not classify exploratory work as complete production work.
 - Do not silently downgrade the approved work class in later phases. If implementation or review evidence shows the scope is smaller or larger than planned, explicitly reclassify, explain why, and preserve any already-approved evidence expectations unless they are no longer relevant.
 - Do not update artifacts whose dirty surfaces are false unless review finds they are stale.

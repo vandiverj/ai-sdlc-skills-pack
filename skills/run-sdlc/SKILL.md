@@ -383,14 +383,15 @@ When delegating implementation, verification, independent review, release handof
 11. Perform an explicit agent-strategy checkpoint for Standard, High-risk, Exploratory, broad Review, Release, cross-repository, and repeated-failure work; choose the smallest useful delegation pattern and lowest sufficient model tier.
 12. Capture process-learning events when real work exposes friction, gaps, corrections, near misses, or useful workflow successes.
 13. Run `slice-product-fit` for Standard implementation slices before implementation planning, and for smaller work when actor, input, contract, data, AI, or cross-slice risk appears.
-14. Surface contract, product-fit, and planning attention items in chat when they affect the next decision or implementation path.
-15. Run a documentation hygiene checkpoint at phase closeout so active routing
+14. For observable behavior, establish one experience-impact trace and carry it across phases: actor/job; before/after workflow; changed state/data/feedback; upstream/downstream/adjacent/recovery paths; implementation responsibilities; scenario-specific evidence; and closure as implemented-and-verified, verified-unaffected, human-accepted deferral, or blocking.
+15. Surface contract, product-fit, and planning attention items in chat when they affect the next decision or implementation path.
+16. Run a documentation hygiene checkpoint at phase closeout so active routing
     docs point to current source truth, completed implementation plans are
     removed or marked inactive, slice-specific contracts are consolidated when
     stable, and backlog owns future work.
-16. Keep the user oriented with short progress summaries.
-17. Use compact evidence packets by default; reserve full reports for High-risk, release, audit-sensitive, cross-repo, or repeated-failure work.
-18. Route meaningful Standard, High-risk, repeated-failure, or disputed work through an independent reviewer role when useful and supported.
+17. Keep the user oriented with short progress summaries.
+18. Use compact evidence packets by default; reserve full reports for High-risk, release, audit-sensitive, cross-repo, or repeated-failure work.
+19. Route meaningful Standard, High-risk, repeated-failure, or disputed work through an independent reviewer role when useful and supported.
 
 ## What this skill does not do
 - Do not replace the specialized skills.
@@ -729,6 +730,8 @@ rather than active context routing.
 - Do not continue through a consent gate silently.
 - Do not implement meaningful work before the required route gates pass.
 - Do not skip `slice-product-fit` for Standard implementation work before implementation planning.
+- Do not treat one changed file as proof that behavior work is Micro/Tiny; fast-pass needs docs-only or explicitly non-behavioral mechanical intent.
+- Do not let an experience-impact item disappear at a phase handoff. Packet presence, generic test output, or implementer confidence does not close it.
 - Do not choose or change stack/dependencies/services silently.
 - Do not use heavy gates for Micro/Tiny work unless risk appears.
 - Do not treat this skill as a mega-skill.

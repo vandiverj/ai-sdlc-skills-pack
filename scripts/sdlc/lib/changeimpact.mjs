@@ -1,14 +1,15 @@
-import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { defaultRunsDir } from './paths.mjs';
-import { dedupe, escapeCell, fail, formatInlineList, formatList, safeWriteTextFile, stamp } from './common.mjs';
+import { dedupe, escapeCell, fail, formatInlineList, formatList, optionFiles, printObject, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { affectedUnits, inferTestingSurfaces } from './units.mjs';
+import { experienceImpactRequired } from './routes.mjs';
 
 export function touchedPacket(repo, options = {}, deps = {}) {
   const git = getGitInfo(repo);
-  const files = git.changedFiles;
+  const files = optionFiles(options, git.changedFiles);
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-touched-surface-ledger.md`);
   mkdirSync(dirname(outPath), { recursive: true });
 
@@ -73,9 +74,10 @@ export function impactPacket(repo, options = {}, deps = {}) {
 
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
-  const files = git.changedFiles;
+  const files = optionFiles(options, git.changedFiles);
   const units = affectedUnits(repo, files, profile, options.unit);
   const testingSurfaces = inferTestingSurfaces(repo, task, files, profile);
+  const experienceRequired = experienceImpactRequired({ task, route: options.route || 'standard', files, surfaces: testingSurfaces });
   const surfaces = dedupe(files.map(deps.classifyTouchedSurface));
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-impact-packet.md`);
   mkdirSync(dirname(outPath), { recursive: true });
@@ -104,12 +106,29 @@ Verification maturity: ${profile.values.verificationMaturity || 'not configured'
 
 ${formatList(deps.impactAreas(task, files, profile.values))}
 
-## User Or System Workflows
+## Experience-Impact Contract
 
-- Primary workflow:
-- Secondary/regression workflows:
-- Roles/permissions:
-- Environments affected:
+- Required: ${experienceRequired ? 'yes' : 'no'}
+- Experience-impact status: ${experienceRequired ? options.experienceStatus || 'open' : 'not-required'}
+- Primary actor: ${optionText(options.actor)}
+- Actor job: ${optionText(options.actorJob || options.userJob)}
+- Before workflow: ${optionText(options.beforeWorkflow || options.before)}
+- After workflow: ${optionText(options.afterWorkflow || options.after)}
+- Changed state/data/feedback: ${optionText(options.changedState || options.changedStates)}
+- Upstream triggers: ${optionText(options.upstream || options.upstreamTriggers)}
+- Downstream consumers: ${optionText(options.downstream || options.downstreamConsumers)}
+- Adjacent/regression workflows: ${optionText(options.adjacent || options.adjacentWorkflows)}
+- Failure/recovery behavior: ${optionText(options.failureRecovery || options.recovery)}
+- Implementation responsibilities: ${optionText(options.implementationResponsibility || options.implementationResponsibilities)}
+- Scenario walkthroughs: ${optionText(options.scenario || options.scenarios)}
+- Scenario-specific evidence: ${optionText(options.experienceEvidence || options.evidenceNeeded)}
+
+## Experience-Impact Closure
+
+- Implemented and verified: ${optionText(options.implementedVerified)}
+- Verified unaffected: ${optionText(options.verifiedUnaffected)}
+- Deferred with rationale and human acceptance: ${optionText(options.deferredApproved)}
+- Blocking impacts: ${optionText(options.blockingImpact || options.blockingImpacts)}
 
 ## Technical Impact
 
@@ -133,6 +152,75 @@ ${formatList(deps.qaAreas(task, files))}
 
   safeWriteTextFile(repo, outPath, content);
   console.log(relative(repo, outPath));
+}
+
+export function impactCheck(repo, options = {}) {
+  const packet = options.packet || options.file || '';
+  if (!packet) fail('Pass --packet <path>.');
+  const fullPath = resolve(repo, packet);
+  const text = readFileSync(fullPath, 'utf8');
+  const task = text.match(/^Task:\s*(.+)$/m)?.[1]?.trim() || options.task || '';
+  const profile = loadProfile(repo);
+  const git = getGitInfo(repo);
+  const files = optionFiles(options, git.changedFiles);
+  const surfaces = inferTestingSurfaces(repo, task, files, profile);
+  const required = /^- Required:\s*yes\s*$/im.test(text) || experienceImpactRequired({ task, route: options.route || 'standard', files, surfaces });
+  const findings = impactPacketFindings(text, { required });
+  const blocked = findings.filter((finding) => finding.required && finding.status === 'open');
+  printObject({ packet: relative(repo, fullPath), result: blocked.length ? 'open' : 'ready', blocked: blocked.length });
+  console.log('\n| Area | Status | Detail |');
+  console.log('| --- | --- | --- |');
+  for (const finding of findings) console.log(`| ${finding.area} | ${finding.status} | ${escapeCell(finding.detail)} |`);
+  if (blocked.length) process.exitCode = 1;
+}
+
+export function impactPacketFindings(text = '', options = {}) {
+  const required = options.required ?? /^- Required:\s*yes\s*$/im.test(text);
+  if (!required) return [{ area: 'experience impact', status: 'ready', required: false, detail: 'not required for this non-behavioral route' }];
+
+  const field = (label) => packetField(text, label);
+  const requiredFields = [
+    ['primary actor', 'Primary actor'],
+    ['actor job', 'Actor job'],
+    ['before workflow', 'Before workflow'],
+    ['after workflow', 'After workflow'],
+    ['changed state/data/feedback', 'Changed state/data/feedback'],
+    ['upstream triggers', 'Upstream triggers'],
+    ['downstream consumers', 'Downstream consumers'],
+    ['adjacent/regression workflows', 'Adjacent/regression workflows'],
+    ['failure/recovery behavior', 'Failure/recovery behavior'],
+    ['implementation responsibilities', 'Implementation responsibilities'],
+    ['scenario-specific evidence', 'Scenario-specific evidence'],
+  ];
+  const findings = requiredFields.map(([area, labels]) => {
+    const values = (Array.isArray(labels) ? labels : [labels]).map(field).filter(isMeaningful);
+    return { area, status: values.length ? 'ready' : 'open', required: true, detail: values.length ? values.join(' | ') : `missing ${area}` };
+  });
+  const status = field('Experience-impact status');
+  findings.unshift({ area: 'experience-impact status', status: /^complete$/i.test(status) ? 'ready' : 'open', required: true, detail: status || 'missing status; set to complete only after closure' });
+  const scenarios = field('Scenario walkthroughs').split('|').map((item) => item.trim()).filter(isMeaningful);
+  findings.push({ area: 'scenario walkthroughs', status: scenarios.length >= 3 ? 'ready' : 'open', required: true, detail: scenarios.length >= 3 ? scenarios.join(' | ') : 'fewer than three scenarios; include happy, ambiguous/missing input, and failure/recovery or regression' });
+  const deferred = field('Deferred with rationale and human acceptance');
+  const deferredReady = !isMeaningful(deferred) || (/accept|approv/i.test(deferred) && /because|rationale|reason/i.test(deferred));
+  if (!deferredReady) findings.push({ area: 'deferred impacts', status: 'open', required: true, detail: 'deferred impact must include rationale and explicit human acceptance' });
+  const completed = [field('Implemented and verified'), field('Verified unaffected'), deferredReady ? deferred : ''].filter(isMeaningful);
+  findings.push({ area: 'impact closure', status: completed.length ? 'ready' : 'open', required: true, detail: completed.length ? completed.join(' | ') : 'no impact item is closed' });
+  const blocking = field('Blocking impacts');
+  findings.push({ area: 'blocking impacts', status: isMeaningful(blocking) ? 'open' : 'ready', required: true, detail: isMeaningful(blocking) ? blocking : 'none recorded' });
+  return findings;
+}
+
+function packetField(text, label) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.match(new RegExp(`^- ${escaped}:[ \\t]*([^\\r\\n]*)$`, 'im'))?.[1]?.trim() || '';
+}
+
+function optionText(value) {
+  return splitList(value).join(' | ');
+}
+
+function isMeaningful(value) {
+  return Boolean(value && !/^(none|n\/a|not applicable|unknown|open|tbd)$/i.test(value.trim()));
 }
 
 export function interactionPacket(repo, options = {}, deps = {}) {

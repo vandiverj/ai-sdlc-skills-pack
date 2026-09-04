@@ -10,9 +10,12 @@ import { inferDirtySurfaces, inferRouteFromTask } from './routes.mjs';
 import { policyRowsForAction } from './policy.mjs';
 import { detectWorkModes, verificationMaturity } from './assessment.mjs';
 import { classifyTouchedSurface } from './surface.mjs';
+import { impactPacketFindings } from './changeimpact.mjs';
+import { experienceImpactRequired } from './routes.mjs';
 
 export function suggestedFinalGateCommand(gate, task) {
   if (gate.includes('touched')) return 'sdlc touched packet';
+  if (gate.includes('experience-impact packet incomplete')) return 'sdlc impact check --packet <impact-packet.md>';
   if (gate.includes('impact')) return `sdlc impact packet --task "${escapeCommandArg(task || 'current task')}"`;
   if (gate.includes('verification')) return `sdlc verify packet --task "${escapeCommandArg(task || 'current task')}"`;
   if (gate.includes('QA')) return `sdlc qa script --task "${escapeCommandArg(task || 'current task')}"`;
@@ -31,7 +34,10 @@ export function finalGateOpenItems(repo, task, gitInfo, packets) {
   const surfaces = dedupe(gitInfo.changedFiles.map(classifyTouchedSurface));
   const taskText = String(task || '').toLowerCase();
   const hasTouched = packets.some((packet) => packet.kind === 'touched');
-  const hasImpact = packets.some((packet) => packet.kind === 'impact');
+  const impactPackets = packets.filter((packet) => packet.kind === 'impact' && (!task || packet.text.match(/^Task:\s*(.+)$/m)?.[1]?.trim() === task));
+  const hasImpact = impactPackets.length > 0;
+  const needsExperienceImpact = experienceImpactRequired({ task, route: inferRouteFromTask(task, gitInfo, profile.values), files: gitInfo.changedFiles });
+  const completeExperienceImpact = impactPackets.some((packet) => !impactPacketFindings(packet.text, { required: needsExperienceImpact }).some((finding) => finding.required && finding.status === 'open'));
   const hasVerify = packets.some((packet) => packet.kind === 'developer-verification' && packet.completed);
   const hasQa = packets.some((packet) => packet.kind === 'qa-script');
   const hasSmoke = packets.some((packet) => packet.kind === 'manual-smoke' && packet.completed);
@@ -50,6 +56,7 @@ export function finalGateOpenItems(repo, task, gitInfo, packets) {
   const open = [];
   if (gitInfo.status && !hasTouched) open.push('touched packet missing for dirty work');
   if (task && !hasImpact) open.push('impact packet missing for scoped task');
+  if (needsExperienceImpact && hasImpact && !completeExperienceImpact) open.push('experience-impact packet incomplete for observable behavior');
   if (['mature CI', 'partial automated tests', 'smoke tests'].some((item) => maturity.toLowerCase().includes(item.toLowerCase())) && !hasVerify) open.push('developer verification packet completion missing or capped');
   if (manualQaMaturity && !hasQa) open.push('human QA Markdown script missing for manual-QA/no-tests workflow');
   if (!hasVerify) open.push('developer verification packet completion missing or capped');

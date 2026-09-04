@@ -4,6 +4,49 @@ function matchesAny(text, needles) {
   return needles.some((needle) => text.includes(needle));
 }
 
+export function isExplicitlyMechanicalTask(task = '') {
+  const text = String(task).toLowerCase();
+  return matchesAny(text, [
+    'typo',
+    'wording only',
+    'format only',
+    'formatting only',
+    'comment only',
+    'comments only',
+    'mechanical rename',
+    'mechanical rewrite',
+    'no behavior change',
+    'non-behavioral',
+  ]);
+}
+
+export function behaviorChangeSignals(task = '', files = [], surfaces = []) {
+  const text = String(task).toLowerCase();
+  if (isExplicitlyMechanicalTask(text)) return [];
+
+  const signals = [];
+  const actionLike = /\b(add|allow|change|correct|create|delete|disable|edit|enable|fix|implement|import|export|keep|persist|prevent|remove|replace|restore|save|support|update)\b/.test(text);
+  const actorLike = /\b(admin|administrator|coach|customer|human|member|operator|owner|parent|person|player|reviewer|tester|user)\b/.test(text);
+  const workflowLike = /\b(action|behavior|experience|flow|journey|step|task|workflow)\b/.test(text);
+  const stateLike = /\b(data|draft|error|feedback|identity|permission|recovery|result|saved|state|status|storage|value)\b/.test(text);
+  const boundaryLike = /\b(api|cli|contract|event|export|import|integration|message|notification|output|report|schema)\b/.test(text);
+  const visibleSurface = (surfaces || []).includes('rendered-product-ui') || (files || []).some((file) => /\.(tsx|jsx|css|scss|html|vue|svelte|asp|aspx|ascx)$/i.test(file) || (/\.swift$/i.test(file) && (/(^|\/)(ui|views?|screens?)(\/|$)/i.test(file) || /(app|canvas|editor|screen|sidebar|toolbar|view|window|workspace)\.swift$/i.test(file))));
+
+  if (visibleSurface) signals.push('rendered or interactive product surface');
+  if (actionLike && actorLike) signals.push('actor-facing behavior change');
+  if (actionLike && workflowLike) signals.push('workflow behavior change');
+  if (actionLike && stateLike) signals.push('state, persistence, feedback, or recovery change');
+  if (actionLike && boundaryLike) signals.push('observable system boundary change');
+  return dedupe(signals);
+}
+
+export function experienceImpactRequired({ task = '', route = 'standard', files = [], surfaces = [] } = {}) {
+  const docsOnly = files.length > 0 && files.every((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file));
+  if (route === 'tiny-docs' || docsOnly || isExplicitlyMechanicalTask(task)) return false;
+  if (behaviorChangeSignals(task, files, surfaces).length > 0) return true;
+  return ['standard', 'bugfix-regression', 'ui-rendered-review', 'contract-first', 'bugfix-live-system', 'weak-test-legacy', 'multi-repo-integration', 'review-only', 'release-push'].includes(route);
+}
+
 function profileToken(value) {
   const text = String(value || '').trim();
   if (!text || text.includes(' / ')) return '';
@@ -43,6 +86,7 @@ export function inferTaskRoute(task, profile = {}) {
 export function inferDirtySurfaces(task, gitInfo) {
   const text = task.toLowerCase();
   const surfaces = [];
+  if (behaviorChangeSignals(task, gitInfo.changedFiles || []).length) surfaces.push('experience impact');
   if (matchesAny(text, ['ui', 'render', 'layout', 'mobile', 'accessibility', 'page', 'screen', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) surfaces.push('rendered UI');
   if (matchesAny(text, ['api', 'contract', 'schema', 'event', 'webhook'])) surfaces.push('API/contracts/events');
   if (matchesAny(text, ['database', 'migration', 'data', 'retention'])) surfaces.push('data model/storage');
@@ -73,7 +117,7 @@ export function securityTriggers(task, profile = {}) {
   if (matchesAny(text, ['youtrack', 'ticket', 'issue id', 'acceptance criteria', 'yt-'])) triggers.push('ticket-system evidence');
   if (matchesAny(text, ['database mcp', 'read-only database', 'read only database', 'db mcp', 'native soc', 'production data', 'row-level', 'query production'])) triggers.push('database evidence boundary');
   if (matchesAny(text, ['credentialed write', 'write action', 'push', 'deploy', 'publish'])) triggers.push('credentialed write action');
-  if (matchesAny(text, ['production', 'prod', 'deploy', 'release'])) triggers.push('production or release surface');
+  if (matchesAny(text, ['production', 'deploy', 'release']) || /\bprod\b/.test(text)) triggers.push('production or release surface');
   if (matchesAny(text, ['cross repo', 'multi repo', 'multi-repo', 'release order'])) triggers.push('cross-repo release order');
   if (matchesAny(text, ['runtime adapter', 'adapter', 'agent', 'skill'])) triggers.push('generated runtime adapter or skill surface');
   if (matchesAny(text, ['prompt injection', 'tool injection', 'untrusted input', 'user content'])) triggers.push('prompt/tool injection risk');

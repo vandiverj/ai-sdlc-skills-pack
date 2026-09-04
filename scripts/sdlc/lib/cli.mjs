@@ -51,7 +51,7 @@ import { calibrateAdd, calibrateFlows, calibrateInspect, calibratePilotReport, c
 import { sdlcFeedbackAdd, sdlcFeedbackExport, sdlcFeedbackTest, sdlcFeedbackValidate } from './sdlcfeedback.mjs';
 import { dashboard as statusDashboard, gates as statusGates, handoff as statusHandoff, handoffDraft as statusHandoffDraft, handoffSplit as statusHandoffSplit, readiness as statusReadiness } from './status.mjs';
 import { intakeCheck, intakePacket } from './intake.mjs';
-import { impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
+import { impactCheck, impactPacket, interactionPacket, touchedPacket, touchedUpdate } from './changeimpact.mjs';
 import { confidenceBlock, detectWorkModes, fastPassAssessment, formatQualityFloorTable, formatValidationLadder, inferVerificationMaturity, preflightHumanJudgment, preflightInferred, preflightProved, qualityFloorRows, routeConfidence, routeFastPass, safeDefaultsForPreflight, taskBreadthAssessment, validationLadder, validationLadderRows, verificationMaturity, verify, workmodeDetect } from './assessment.mjs';
 import { changeGraph, changeGraphEdges, changeGraphImplications, classifySearchPath, formatSearchGroups, groupBy, searchClassify, searchPattern, searchRetireCheck } from './graphsearch.mjs';
 import { createServices } from './services.mjs';
@@ -230,6 +230,7 @@ export async function main(argv) {
   if (area === 'touched' && action === 'packet') return touchedPacket(repo, options, changeImpactDependencies());
   if (area === 'touched' && action === 'update') return touchedUpdate(repo, options);
   if (area === 'impact' && action === 'packet') return impactPacket(repo, options, changeImpactDependencies());
+  if (area === 'impact' && action === 'check') return impactCheck(repo, options);
   if (area === 'interaction' && action === 'packet') return interactionPacket(repo, options, changeImpactDependencies());
   if (area === 'review' && action === 'packet') return reviewPacket(repo, options, releaseDependencies());
   if (area === 'review' && action === 'complete') return reviewComplete(repo, options, releaseDependencies());

@@ -28,6 +28,7 @@ This role exists to reduce implementer confirmation bias. It is not a second imp
 
 ## Required Context
 - Original request or task.
+- Approved experience-impact trace when observable behavior changed.
 - Work class and risk classification.
 - Diff or changed file list.
 - Evidence packet.
@@ -38,7 +39,7 @@ This role exists to reduce implementer confirmation bias. It is not a second imp
 
 ## Workflow
 1. Confirm assigned repository, scope, and read-only posture.
-2. Inspect the diff, artifacts, verification evidence, and handoff claims.
+2. Inspect the diff, artifacts, verification evidence, handoff claims, and closure of every mapped experience impact.
 3. Separate blocking findings from non-blocking improvements.
 4. Identify missing, stale, failed, or capped evidence.
 5. Flag test/evidence integrity concerns when protected evidence surfaces changed.
@@ -52,6 +53,7 @@ Verdict: pass / pass-with-nonblocking-notes / blocked / needs-human-review
 Blocking findings:
 Non-blocking findings:
 Evidence gaps:
+Experience-impact closure findings:
 Contextual caps:
 Test/evidence integrity findings:
 Rendered review findings:
@@ -64,6 +66,7 @@ SDLC feedback draft:
 - Do not treat implementer confidence as evidence.
 - Do not rewrite code or docs during review.
 - Do not accept missing validation silently.
+- Do not approve behavior work when an actor journey or upstream/downstream/adjacent/recovery impact disappeared between planning, implementation, and evidence.
 - Do not approve changed tests, snapshots, thresholds, validation scripts, CI, or generated baselines without a clear task-approved reason.
 - Do not claim product UI quality without rendered evidence when a runnable surface and approved tool exist.
 - Do not submit feedback directly; return a sanitized feedback draft for the parent.

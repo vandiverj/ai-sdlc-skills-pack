@@ -25,6 +25,7 @@ classify work
 -> choose agent strategy when delegation, specialists, model tiers, or runtime adapters matter
 -> choose implementation pattern when repeated project-specific patterns may apply
 -> capture process events when real work exposes friction, gaps, corrections, near misses, or useful workflow successes
+-> trace actor/job, before/after workflow, affected paths, recovery, and evidence for observable behavior
 -> capture open questions
 -> write PRD/issues/contracts when needed
 -> write implementation plan when needed
@@ -57,11 +58,13 @@ Treat the workflow as a dependency graph, not a sequence to run every time. `cla
 Routes:
 - `Micro`: minimal context, tiny boundary, direct edit, smallest relevant verification.
 - `Tiny`: context, quality automation or retrieval approach only if rails are missing or changing, lightweight boundary, direct edit/execute, verification, doc-sync only if needed, dirty docs only.
-- `Standard`: context, quality automation/retrieval approach if rails are missing or changing, task/PRD, issue if needed, implementation plan, safe boundary, execution, verification, spec/code review, dirty docs only.
+- `Standard`: context, quality automation/retrieval approach if rails are missing or changing, task/PRD, issue if needed, slice-product-fit and experience-impact trace, implementation plan, safe boundary, execution, verification, spec/code review, dirty docs only.
 - `High-risk`: all relevant gates, none skipped silently.
 - `Exploratory`: context, optional product/model exploration, quality automation or retrieval approach if comparing rails/indexes/RAG, spike boundary, prototype execution, findings evidence, context-state, save.
 
 A skipped gate is acceptable only when the classification explains why the failure it prevents is unlikely or cheap.
+
+Single-file source work is not automatically Micro/Tiny. Fast-pass is reserved for docs-only or explicitly non-behavioral mechanical work; observable changes to a user/system workflow, state, feedback, output, recovery path, or downstream consumer use the normal route.
 ## Automated gating
 
 The workflow is a map, not a mandatory ladder. `classify-work` produces a fast-pass route, context depth, and dirty surfaces so agents run only the gates and artifact updates that are actually needed.
@@ -74,6 +77,7 @@ Context depth:
 
 Dirty surfaces route artifact updates:
 - `requirementsSurfaceChanged` -> PRD, issue, acceptance criteria, or model section.
+- `experienceImpactChanged` -> carry actor/job, before/after workflow, affected state and paths, recovery behavior, responsibilities, and scenario evidence from slice-product-fit through completion closure.
 - `publicContractSurfaceChanged` -> contract spec, public docs, schemas, examples, compatibility notes.
 - `qualityAutomationChanged` -> quality automation decision, command wiring, CI/local preflight docs, AGENTS.md, verification expectations, context-state, and Memory Bank indexes.
 - `retrievalApproachChanged` -> retrieval decision, tool boundaries, index location/freshness, AGENTS.md, context index, context-state.
@@ -87,6 +91,8 @@ Dirty surfaces route artifact updates:
 - `uncertaintyChanged` -> context-state.
 
 Do not update every file every time. Reclassify mid-stream when implementation, verification, review, or doc-sync shows the route was wrong.
+
+For observable behavior, close every mapped experience impact as implemented and verified, verified unaffected, explicitly deferred with rationale and human acceptance, or blocking. Packet presence and generic test/build output are not substitutes for content-complete, criterion-linked evidence.
 ## Engineering principles
 
 Use engineering principles as judgment lenses, not slogans. First-principles reasoning, assumption challenge, story readability, single responsibility, cohesion, coupling, simplicity, DRY, SOLID, and design patterns should improve maintainability rather than create ceremony.

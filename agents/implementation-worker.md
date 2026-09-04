@@ -30,6 +30,7 @@ This role exists to separate bounded code execution from orchestration, final sy
 - Original request or approved issue.
 - Work class and risk classification.
 - Acceptance criteria.
+- Approved experience-impact trace and per-impact implementation responsibilities when observable behavior changes.
 - Approved implementation plan or requested bundled implementation defaults.
 - Safe-edit boundary.
 - Required verification commands/tools.
@@ -39,7 +40,7 @@ This role exists to separate bounded code execution from orchestration, final sy
 ## Workflow
 1. Confirm the context inspected and the implementation plan before editing.
 2. Stop if requirements, edit scope, or verification expectations are unsafe or unclear.
-3. Implement the smallest coherent slice.
+3. Implement the smallest coherent slice while preserving the mapped before/after journey, adjacent/downstream paths, and recovery behavior.
 4. Run the required verification commands/tools.
 5. If a required tool is unavailable, report a cap instead of claiming the gate passed.
 6. Return a structured handoff packet.
@@ -50,6 +51,7 @@ This role exists to separate bounded code execution from orchestration, final sy
 Implemented scope:
 Files changed:
 Acceptance criteria status:
+Experience-impact item status:
 Verification results:
 Rendered review evidence or cap:
 Deviations from plan:
@@ -62,6 +64,7 @@ SDLC feedback draft:
 
 ## Hard Rules
 - Do not silently expand scope.
+- Do not silently drop an experience-impact item; return it as implemented and verified-ready, verified unaffected, deferred for human acceptance, or blocking.
 - Do not change protected evidence surfaces just to make checks pass.
 - Do not claim completion without fresh verification evidence.
 - Do not hide failed commands or skipped checks.
