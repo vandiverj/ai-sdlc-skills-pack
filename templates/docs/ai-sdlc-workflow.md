@@ -14,7 +14,7 @@ This document defines the project's AI-assisted development process.
 8. Implementation patterns are evidence-backed project guidance, not duplicate tooling or universal laws.
 9. Confidence is limited by contextual caps when required evidence is missing.
 10. Product-experience claims require rendered review when a runnable UI/app surface and approved tool exist.
-11. Observable behavior retains one experience-impact trace from actor/job and before/after workflow through affected paths, implementation responsibility, scenario evidence, and closure.
+11. Observable behavior retains its intended outcome, material connected impacts, and claim-specific proof; workflow/recovery/scenario detail expands only with risk.
 12. A one-file source edit is not fast-pass unless the task is explicitly non-behavioral and mechanical.
 
 ## Workflow

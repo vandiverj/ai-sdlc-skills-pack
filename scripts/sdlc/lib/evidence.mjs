@@ -178,7 +178,7 @@ function recommendedEvidenceChecks({ route, files, surfaces, commands, requireme
   if (surfaces.includes('rendered-product-ui')) add('rendered-ui', 'sdlc render evidence --task "<task>"', 'UI changes need rendered/browser evidence or an explicit cap.');
   if (surfaces.includes('api-contract')) add('api-contract', 'sdlc qa api --task "<task>"', 'API/contract changes need request/response or contract evidence.');
   if (surfaces.includes('data-persistence')) add('data-evidence', 'sdlc data evidence --task "<task>"', 'Data changes need safe data evidence or cap.');
-  if (requirements.some((req) => req.id === 'experience-impact')) add('experience-impact', 'complete the task contract and impact packet before implementation', 'Observable behavior needs actor, before/after workflow, affected paths, and scenario evidence.', 'interpretation');
+  if (requirements.some((req) => req.id === 'experience-impact')) add('experience-impact', 'record the outcome, material connected impact, and proof before implementation', 'Expand workflow and scenarios only when risk or uncertainty warrants it.', 'interpretation');
   if (requirements.some((req) => req.id === 'policy')) add('policy', 'sdlc safety preflight --task "<task>"', 'Security/tool triggers require policy boundary review.', 'deterministic-or-human');
   if (!checks.length) add('verification-ladder', 'sdlc validate ladder --task "<task>"', 'Fallback validation ladder when no concrete command is known.');
   return checks;
@@ -415,7 +415,7 @@ export function evidenceRequirementsForTask(repo, task, route, git, profile, opt
     evidenceRequirement('verification', 'required', 'At least one fresh check, smoke, or explicit cap is recorded.'),
     evidenceRequirement('finish-control', 'required', 'Commit/push/release remains human-controlled.'),
   ];
-  if (experienceImpactRequired({ task, route, files, surfaces })) requirements.push(evidenceRequirement('experience-impact', 'required', 'Actor/job, before/after workflow, affected paths, recovery behavior, and scenario-specific proof are traced to closure.'));
+  if (experienceImpactRequired({ task, route, files, surfaces })) requirements.push(evidenceRequirement('experience-impact', 'required', 'Observable outcome, material connected impact, and claim-specific proof are traced to closure.'));
   if (route === 'tiny-docs') requirements.push(evidenceRequirement('diff-hygiene', 'required', 'Diff hygiene check is recorded.'));
   if (route === 'review-only') requirements.push(evidenceRequirement('review', 'required', 'Review verdict/findings are recorded.'));
   if (route === 'release-push') requirements.push(evidenceRequirement('release-approval', 'required', 'Release/git action approval boundary is explicit.'));

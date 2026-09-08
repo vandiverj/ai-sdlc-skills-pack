@@ -36,12 +36,12 @@ Implementation worker.
 ## Acceptance Criteria
 {{acceptance_criteria}}
 
-## Experience-Impact Trace
+## Outcome, Connected Impact, and Proof
 Required for observable behavior; otherwise state not applicable.
 
 {{experience_impact_trace}}
 
-The trace should name the actor/job, before/after workflow, changed state/data/feedback, upstream/downstream/adjacent/recovery paths, per-impact implementation responsibilities, and scenario-specific evidence.
+State the observable outcome, material connected impacts, and proof for each claim. Add workflow, recovery, ownership, and scenario detail only when risk or uncertainty warrants it.
 
 ## Approved Plan Or Bundled Defaults
 {{implementation_plan_or_bundled_defaults}}
@@ -81,7 +81,7 @@ Context inspected:
 Current understanding:
 Assumptions:
 Acceptance criteria status:
-Experience-impact items: implemented and verified-ready / verified unaffected / deferred for human acceptance / blocking
+Outcome/connected-impact status: verified / unaffected / deferred for human acceptance / blocking
 Implementation plan:
 Files changed:
 Verification evidence with command/tool results:
@@ -99,7 +99,7 @@ Ready for review:
 
 - Fill from the user's normal request, classification output, issue/PRD/contract/plan, safe-edit boundary, and current repository state.
 - Keep the prompt specific enough to prevent scope drift.
-- Do not let mapped experience impacts disappear at the implementation handoff.
+- Do not let the intended outcome or material connected impacts disappear at the implementation handoff.
 - Do not include reusable SDLC testing context unless the task is explicitly testing workflow behavior.
 - Do not let this template grant Git publication authority; use the release-handoff template for that phase.
 - Include a sanitized SDLC feedback draft when there is meaningful process friction, caps, skipped evidence, or tool/runtime evidence.

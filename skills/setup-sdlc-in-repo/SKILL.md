@@ -111,7 +111,7 @@ When installing or refreshing the SDLC, ensure the runtime can discover the port
 16. Run documentation verification checks and `git diff --check`.
 17. Run `sdlc readiness` again when available and report remaining setup gaps.
 18. For mixed legacy/modern UI systems, add or link `docs/context-root/mixed-ui-guidance.md` or an equivalent shared-context note so future agents do not flatten ASP Classic, React, shared CSS, API, and SQL risks into one generic UI bucket.
-19. Record where the primary actor/job, application workflow, and experience-impact evidence come from so observable changes can retain the same trace through planning, implementation, verification, and review.
+19. Record the intended outcome, material connected impacts, and proof source for observable changes; expand workflow detail only when risk warrants it.
 20. Recommend a scoped commit message, such as `Set up AI SDLC workflow`.
 
 ## Helper CLI setup flow

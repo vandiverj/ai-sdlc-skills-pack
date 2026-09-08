@@ -4,7 +4,7 @@ Use when an approved implementation plan is ready for coding.
 
 ## Steps
 - Read the plan, issue, contract, and relevant context.
-- For observable behavior, read the carried experience-impact trace and map each impact to an implementation responsibility and proof path.
+- For observable behavior, carry the intended outcome, material connected impacts, and a proof path for each claim.
 - Confirm safe edit boundary.
 - Implement one coherent increment at a time.
 - Keep diffs scoped and reviewable.

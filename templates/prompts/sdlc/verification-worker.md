@@ -27,7 +27,7 @@ Verification worker.
 ## Verification Target
 {{verification_target}}
 
-## Acceptance And Experience-Impact Evidence Map
+## Acceptance Outcome, Connected-Impact, And Proof Map
 {{acceptance_and_experience_evidence_map}}
 
 ## Work Classification
@@ -60,7 +60,7 @@ Verification scope:
 Repository boundaries:
 Commands/tools run:
 Results:
-Acceptance-criterion and experience-scenario evidence map:
+Claim-to-evidence proof map:
 Rendered review evidence or cap:
 Failed checks:
 Skipped checks:
@@ -76,7 +76,7 @@ SDLC feedback draft:
 - Use this template when evidence collection should be separate from implementation or review judgment.
 - Do not ask the verification worker to fix failures.
 - Include exact commands whenever possible.
-- Require each result to identify the criterion/scenario it proves; generic build/test success does not satisfy unrelated behavior.
+- Require each result to identify the claim it proves; generic build/test success does not satisfy unrelated behavior.
 - Include rendered-review expectations for UI/user-facing behavior.
 - Require caps for unavailable tools instead of substitute confidence.
 - Include a sanitized SDLC feedback draft when there is meaningful process friction, caps, skipped evidence, or tool/runtime evidence.

@@ -10,7 +10,7 @@ Use to check whether implementation satisfies the issue, PRD, application model,
 - Application model is preserved or intentionally updated.
 - Correct feature context and docs were updated or preserved.
 - Tests align with required behavior and contract.
-- Actor/job, before/after workflow, changed state/feedback, upstream/downstream/adjacent/recovery paths, and implementation responsibilities agree with the approved experience-impact trace.
+- The outcome, material connected impacts, and proof agree with the approved task intent; expanded journey mapping is checked only when the work required it.
 - Scenario-specific evidence covers the primary, missing/ambiguous, and failure/recovery or regression paths; generic command success is not treated as proof of every criterion.
 - Code, tests, contract, feature context, PRD, and model agree.
 

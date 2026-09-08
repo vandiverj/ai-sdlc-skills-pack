@@ -92,7 +92,8 @@ export function taskContract(repo, task, context = {}) {
   const triggers = securityTriggers(task, profile.values);
   const criteria = criteriaFromOptions(context);
   const requiresExperienceImpact = experienceImpactRequired({ task, route, files, surfaces });
-  const experienceImpact = experienceImpactFromContext(context, requiresExperienceImpact);
+  const expandedExperienceImpact = requiresExpandedExperienceImpact(route, triggers, files);
+  const experienceImpact = experienceImpactFromContext(context, requiresExperienceImpact, expandedExperienceImpact);
   return {
     schema: 'sdlc-task-contract-v1',
     generatedAt: new Date().toISOString(),
@@ -145,7 +146,7 @@ function constraintsForTask(task, triggers) {
 function openQuestions(task, criteria, triggers, experienceImpact) {
   const questions = [];
   if (!criteria.length || criteria[0].source === 'task-summary') questions.push('Are the acceptance criteria complete enough, or should the ticket/human clarify expected behavior?');
-  if (experienceImpact.required && experienceImpact.status !== 'ready') questions.push('Which actor journey, affected paths, recovery behavior, and scenarios must this observable change preserve?');
+  if (experienceImpact.required && experienceImpact.status !== 'ready') questions.push('What observable outcome changes, what connected path could regress, and what proof covers the result or recovery?');
   if (triggers.some((trigger) => /ticket/i.test(trigger))) questions.push('Is ticket-system access available, and is read-only evidence sufficient?');
   if (triggers.some((trigger) => /database/i.test(trigger))) questions.push('What environment and query boundary are approved for database evidence?');
   if (/commit|push/i.test(task)) questions.push('At finish, should this stop at commit preview, commit, or push approval?');
@@ -162,9 +163,9 @@ function proofForCriterion(text, surfaces, qaMode) {
 
 export function contractFindings(contract) {
   const criteria = contract.acceptanceCriteria || [];
-  const criteriaReady = criteria.length > 0 && (!contract.experienceImpact?.required || criteria.every((criterion) => criterion.source !== 'task-summary'));
+  const criteriaReady = criteria.length > 0;
   return [
-    { area: 'acceptance criteria', status: criteriaReady ? 'ready' : 'open', required: true, detail: criteriaReady ? `${criteria.length} explicit criterion/criteria` : criteria.length ? 'task-summary criterion must be replaced with explicit observable acceptance criteria' : 'missing acceptance criteria' },
+    { area: 'acceptance criteria', status: criteriaReady ? 'ready' : 'open', required: true, detail: criteriaReady ? `${criteria.length} criterion/criteria from ${criteria[0]?.source || 'task'}` : 'missing acceptance criteria' },
     ...experienceImpactFindings(contract.experienceImpact),
     { area: 'testing surface', status: contract.testingSurfaces?.length ? 'ready' : 'open', required: true, detail: (contract.testingSurfaces || []).join(', ') || 'missing testing surface' },
     { area: 'qa expectations', status: contract.qaExpectations?.length ? 'ready' : 'open', required: false, detail: (contract.qaExpectations || []).join('; ') || 'missing QA expectations' },
@@ -173,22 +174,46 @@ export function contractFindings(contract) {
   ];
 }
 
-function experienceImpactFromContext(context, required) {
+function requiresExpandedExperienceImpact(route, triggers = [], files = []) {
+  return ['contract-first', 'bugfix-live-system', 'multi-repo-integration'].includes(route)
+    || triggers.some((trigger) => /production|database|credential|destructive|cross-repo|external api/i.test(trigger))
+    || files.length > 8;
+}
+
+function experienceImpactFromContext(context, required, expanded = false) {
+  const primaryActor = String(context.actor || listOption(context.actors)[0] || '').trim();
+  const actorJob = String(context.actorJob || context.userJob || '').trim();
+  const beforeWorkflow = listOption(context.beforeWorkflow || context.before);
+  const afterWorkflow = listOption(context.afterWorkflow || context.after);
+  const changedStates = listOption(context.changedState || context.changedStates);
+  const upstreamTriggers = listOption(context.upstream || context.upstreamTriggers);
+  const downstreamConsumers = listOption(context.downstream || context.downstreamConsumers);
+  const adjacentWorkflows = listOption(context.adjacent || context.adjacentWorkflows);
+  const failureRecovery = listOption(context.failureRecovery || context.recovery);
+  const implementationResponsibilities = listOption(context.implementationResponsibility || context.implementationResponsibilities);
+  const scenarios = listOption(context.scenario || context.scenarios);
+  const evidenceNeeded = listOption(context.proof || context.experienceEvidence || context.evidenceNeeded);
   const impact = {
     required,
+    expanded,
     status: required ? 'open' : 'not-required',
-    primaryActor: String(context.actor || listOption(context.actors)[0] || '').trim(),
-    actorJob: String(context.actorJob || context.userJob || '').trim(),
-    beforeWorkflow: listOption(context.beforeWorkflow || context.before),
-    afterWorkflow: listOption(context.afterWorkflow || context.after),
-    changedStates: listOption(context.changedState || context.changedStates),
-    upstreamTriggers: listOption(context.upstream || context.upstreamTriggers),
-    downstreamConsumers: listOption(context.downstream || context.downstreamConsumers),
-    adjacentWorkflows: listOption(context.adjacent || context.adjacentWorkflows),
-    failureRecovery: listOption(context.failureRecovery || context.recovery),
-    implementationResponsibilities: listOption(context.implementationResponsibility || context.implementationResponsibilities),
-    scenarios: listOption(context.scenario || context.scenarios),
-    evidenceNeeded: listOption(context.experienceEvidence || context.evidenceNeeded),
+    outcome: String(context.outcome || context.productOutcome || [primaryActor, actorJob, ...afterWorkflow, ...changedStates].filter(Boolean).join(': ')).trim(),
+    connectedImpacts: listOption(context.connectedImpact || context.connectedImpacts || context.impact).length
+      ? listOption(context.connectedImpact || context.connectedImpacts || context.impact)
+      : [...downstreamConsumers, ...adjacentWorkflows, ...upstreamTriggers],
+    proof: evidenceNeeded,
+    primaryActor,
+    actorJob,
+    beforeWorkflow,
+    afterWorkflow,
+    changedStates,
+    upstreamTriggers,
+    downstreamConsumers,
+    adjacentWorkflows,
+    failureRecovery,
+    implementationResponsibilities,
+    scenarios,
+    evidenceNeeded,
   };
   if (required && experienceImpactFindings(impact).every((finding) => finding.status === 'ready')) impact.status = 'ready';
   return impact;
@@ -197,16 +222,18 @@ function experienceImpactFromContext(context, required) {
 export function experienceImpactFindings(impact = {}) {
   if (!impact.required) return [{ area: 'experience impact', status: 'ready', required: false, detail: 'not required for this non-behavioral route' }];
   const rows = [
-    ['experience actor/job', impact.primaryActor && impact.actorJob, 'primary actor and job'],
-    ['before/after workflow', impact.beforeWorkflow?.length && impact.afterWorkflow?.length, 'before and after workflow'],
-    ['state and feedback', impact.changedStates?.length, 'changed state, data, or feedback'],
-    ['upstream triggers', impact.upstreamTriggers?.length, 'upstream triggers'],
-    ['downstream consumers', impact.downstreamConsumers?.length, 'downstream consumers'],
-    ['adjacent workflows', impact.adjacentWorkflows?.length, 'adjacent or regression workflows'],
-    ['failure/recovery', impact.failureRecovery?.length, 'failure and recovery behavior'],
-    ['implementation ownership', impact.implementationResponsibilities?.length, 'implementation responsibilities'],
-    ['scenario evidence', impact.scenarios?.length >= 3 && impact.evidenceNeeded?.length, 'happy, ambiguous, and failure/regression scenarios plus evidence'],
+    ['observable outcome', impact.outcome, 'who is affected and what observable result changes'],
+    ['connected impact', impact.connectedImpacts?.length, 'the connected path or consumer most likely to regress'],
+    ['proof and recovery', impact.proof?.length, 'claim-specific proof covering the result or recovery path'],
   ];
+  if (impact.expanded) {
+    rows.push(
+      ['expanded workflow', impact.beforeWorkflow?.length && impact.afterWorkflow?.length, 'before and after workflow'],
+      ['expanded recovery', impact.failureRecovery?.length, 'failure and recovery behavior'],
+      ['expanded ownership', impact.implementationResponsibilities?.length, 'implementation responsibilities'],
+      ['expanded scenarios', impact.scenarios?.length >= 2, 'at least two risk-relevant scenarios'],
+    );
+  }
   return rows.map(([area, ready, detail]) => ({ area, status: ready ? 'ready' : 'open', required: true, detail: ready ? detail : `missing ${detail}` }));
 }
 

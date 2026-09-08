@@ -5,7 +5,7 @@ import { defaultRunsDir } from './paths.mjs';
 import { dedupe, escapeCell, escapeCommandArg, fail, formatInlineList, formatInlineStatus, formatList, optionFiles, printObject, readJsonIfExists, safeWriteTextFile, splitList, stamp } from './common.mjs';
 import { getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
-import { behaviorChangeSignals, experienceImpactRequired, isExplicitlyMechanicalTask, securityTriggers } from './routes.mjs';
+import { behaviorChangeSignals, experienceImpactRequired, isExplicitlyLocalBehaviorTask, isExplicitlyMechanicalTask, securityTriggers } from './routes.mjs';
 import { affectedUnits, detectStack, inferTestingSurfaces, matchesAny } from './units.mjs';
 import { classifyTouchedSurface } from './surface.mjs';
 
@@ -49,14 +49,16 @@ export function fastPassAssessment(repo, task, route, git, profile, units, surfa
   const securityLike = triggers.length > 0;
   const multiContext = related.length > 0 || units.length > 1 || dedupe(units.map((unit) => unit.contextBucket).filter(Boolean)).length > 1;
   const irreversible = matchesAny(task, ['delete', 'drop', 'truncate', 'migrate production', 'deploy', 'release', 'merge', 'pipeline']);
-  const broadTask = breadth.level !== 'narrow';
   const docsOnly = files.length > 0 && files.every((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file));
-  const explicitFastPath = docsOnly || isExplicitlyMechanicalTask(task);
+  const localBehavior = isExplicitlyLocalBehaviorTask(task) && files.length === 1;
+  const broadTask = breadth.level === 'broad' && !localBehavior;
+  const explicitFastPath = docsOnly || isExplicitlyMechanicalTask(task) || localBehavior;
   const needsExperienceImpact = experienceImpactRequired({ task, route, files, surfaces });
-  const eligible = explicitFastPath && !needsExperienceImpact && !riskyRoute && !securityLike && !multiContext && !irreversible && !broadTask && files.length <= 5;
-  reasons.push(eligible ? 'Eligible: explicitly docs-only or mechanical scope with no risk triggers or multi-context ambiguity.' : 'Not eligible for micro/tiny fast-pass.');
-  if (!explicitFastPath) reasons.push('Task is not explicitly docs-only or mechanical; normal route judgment is required.');
-  if (needsExperienceImpact) reasons.push('Observable behavior requires an experience-impact trace before implementation.');
+  const eligible = explicitFastPath && (!needsExperienceImpact || localBehavior) && !riskyRoute && !securityLike && !multiContext && !irreversible && !broadTask && files.length <= 5;
+  reasons.push(eligible ? 'Eligible: bounded work with direct proof and no risk or multi-context trigger.' : 'Not eligible for micro/tiny fast-pass.');
+  if (!explicitFastPath) reasons.push('Task is not explicitly docs-only, mechanical, or bounded behavior with direct proof; normal route judgment is required.');
+  if (needsExperienceImpact && !localBehavior) reasons.push('Observable behavior needs an outcome, connected-impact, and proof trace.');
+  if (localBehavior) reasons.push('Local reversible behavior may stay Tiny because the task names direct focused proof.');
   if (riskyRoute) reasons.push(`Route ${route} needs normal preflight.`);
   if (securityLike) reasons.push(`Security/tool triggers present: ${triggers.join('; ')}.`);
   if (multiContext) reasons.push('Multiple repos, units, or context buckets require normal preflight.');
@@ -86,7 +88,7 @@ export function taskBreadthAssessment(task, files = [], surfaces = []) {
   if (matchesAny(text, broadPhrases)) signals.push('broad product/experience wording');
   if (matchesAny(text, interactionPhrases)) signals.push('interactive/stateful behavior');
   if (matchesAny(text, ['logic', 'rules', 'ai behavior', 'computer opponent', 'smart opponent'])) signals.push('domain logic or AI behavior');
-  if (behaviorChangeSignals(task, files, surfaces).length) signals.push('observable behavior needs experience-impact trace');
+  if (behaviorChangeSignals(task, files, surfaces).length) signals.push('observable behavior needs outcome/connected-impact/proof closure');
   if (matchesAny(text, ['qa', 'test plan', 'human tester', 'manual test'])) signals.push('QA/handoff expectation');
   const surfaceCount = dedupe(surfaces.filter(Boolean)).length;
   if (surfaceCount > 1) signals.push(`${surfaceCount} testing surfaces`);
@@ -122,7 +124,7 @@ export function qualityFloorRows({ task, git, units, surfaces, qaMode, packets }
     { item: 'Developer finish control', status: 'pass', detail: 'commit/push require approval; merge/deploy/release forbidden by default' },
     { item: 'Confidence summary', status: 'open', detail: 'include proved/inferred/human-judgment/safe-next-action at final response' },
   ];
-  if (experienceImpactRequired({ task, files: git.changedFiles, surfaces })) rows.splice(3, 0, { item: 'Experience-impact trace', status: 'open', detail: 'map actor/job, before/after workflow, affected paths, recovery, responsibilities, and scenario evidence before implementation' });
+  if (experienceImpactRequired({ task, files: git.changedFiles, surfaces })) rows.splice(3, 0, { item: 'Behavior impact', status: 'open', detail: 'state the observable outcome, material connected impact, and proof/recovery path' });
   return rows;
 }
 
@@ -244,18 +246,19 @@ export function routeFastPass(repo, options = {}) {
   const needsExperienceImpact = experienceImpactRequired({ task, route, files, surfaces });
   const blockedBy = [];
   if (!base.eligible) blockedBy.push(...base.reasons.filter((reason) => !reason.startsWith('Eligible:')));
-  if (!docsOnly && !mechanical) blockedBy.push('Task is not explicitly docs-only or mechanical; a single file is not proof of low behavioral risk.');
-  if (needsExperienceImpact) blockedBy.push('Observable behavior requires an experience-impact trace and normal route review.');
+  const localBehavior = isExplicitlyLocalBehaviorTask(task);
+  if (!docsOnly && !mechanical && !localBehavior) blockedBy.push('Task is not explicitly docs-only, mechanical, or bounded local behavior with direct proof.');
+  if (needsExperienceImpact && !localBehavior) blockedBy.push('Observable behavior requires outcome/connected-impact/proof closure.');
   if (files.length > 1 && !docsOnly) blockedBy.push('Multiple non-doc changed files require normal route judgment.');
   const eligible = blockedBy.length === 0;
-  const requiredChecks = fastPassChecks({ route, docsOnly, files, surfaces });
+  const requiredChecks = fastPassChecks({ route, docsOnly, localBehavior, files, surfaces });
   const result = {
     schema: 'sdlc.fast_pass.v1',
     task,
     repository: repo,
     eligible,
     route: eligible ? (docsOnly ? 'tiny-docs' : route) : route,
-    reasons: eligible ? [...base.reasons, docsOnly ? 'Docs/process-only surface can use minimal deterministic checks.' : 'Small mechanical scope can use deterministic checks before LLM review.'] : base.reasons,
+    reasons: eligible ? [...base.reasons, docsOnly ? 'Docs/process-only surface can use minimal deterministic checks.' : localBehavior ? 'Bounded local behavior has a direct focused proof path.' : 'Small mechanical scope can use deterministic checks before LLM review.'] : base.reasons,
     blockedBy: [...new Set(blockedBy)],
     requiredChecks,
     delegation: eligible ? 'none' : 'route-dependent',
@@ -284,9 +287,10 @@ function isDocsOnlyTask(task, files, surfaces) {
   return taskDocs || fileDocs || surfaceDocs;
 }
 
-function fastPassChecks({ route, docsOnly, files, surfaces }) {
+function fastPassChecks({ route, docsOnly, localBehavior, files, surfaces }) {
   const checks = ['git diff --check'];
   if (docsOnly || route === 'tiny-docs' || surfaces.includes('docs-process')) checks.push('changed-file review');
+  if (localBehavior) checks.push('focused behavior/regression check named by the task or repository');
   if (files.some((file) => /SKILL\.md$/.test(file))) checks.push('node scripts/test-skill-files.mjs');
   if (files.some((file) => /^templates\/adapters\//.test(file) || /^agents\//.test(file))) checks.push('node scripts/test-agent-contracts.mjs');
   return [...new Set(checks)];

@@ -5,7 +5,7 @@ import { dedupe, escapeCell, fail, formatInlineList, formatList, optionFiles, pr
 import { getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { affectedUnits, inferTestingSurfaces } from './units.mjs';
-import { experienceImpactRequired } from './routes.mjs';
+import { experienceImpactRequired, inferRouteFromTask, securityTriggers } from './routes.mjs';
 
 export function touchedPacket(repo, options = {}, deps = {}) {
   const git = getGitInfo(repo);
@@ -77,7 +77,11 @@ export function impactPacket(repo, options = {}, deps = {}) {
   const files = optionFiles(options, git.changedFiles);
   const units = affectedUnits(repo, files, profile, options.unit);
   const testingSurfaces = inferTestingSurfaces(repo, task, files, profile);
-  const experienceRequired = experienceImpactRequired({ task, route: options.route || 'standard', files, surfaces: testingSurfaces });
+  const route = options.route || inferRouteFromTask(task, git, profile.values);
+  const experienceRequired = experienceImpactRequired({ task, route, files, surfaces: testingSurfaces });
+  const expandedRequired = ['contract-first', 'bugfix-live-system', 'multi-repo-integration'].includes(route)
+    || securityTriggers(task, profile.values).some((trigger) => /production|database|credential|destructive|cross-repo|external api/i.test(trigger))
+    || files.length > 8;
   const surfaces = dedupe(files.map(deps.classifyTouchedSurface));
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-impact-packet.md`);
   mkdirSync(dirname(outPath), { recursive: true });
@@ -109,7 +113,14 @@ ${formatList(deps.impactAreas(task, files, profile.values))}
 ## Experience-Impact Contract
 
 - Required: ${experienceRequired ? 'yes' : 'no'}
+- Expanded mapping required: ${expandedRequired ? 'yes' : 'no'}
 - Experience-impact status: ${experienceRequired ? options.experienceStatus || 'open' : 'not-required'}
+- Outcome: ${optionText(options.outcome || options.productOutcome || [options.actor, options.actorJob || options.userJob, options.afterWorkflow || options.after, options.changedState || options.changedStates].filter(Boolean))}
+- Connected impacts: ${optionText(options.connectedImpact || options.connectedImpacts || options.impact || [options.downstream || options.downstreamConsumers, options.adjacent || options.adjacentWorkflows, options.upstream || options.upstreamTriggers].filter(Boolean))}
+- Proof and recovery: ${optionText(options.proof || options.experienceEvidence || options.evidenceNeeded || [options.failureRecovery || options.recovery, options.scenario || options.scenarios].filter(Boolean))}
+
+## Expanded Mapping When Required
+
 - Primary actor: ${optionText(options.actor)}
 - Actor job: ${optionText(options.actorJob || options.userJob)}
 - Before workflow: ${optionText(options.beforeWorkflow || options.before)}
@@ -179,27 +190,27 @@ export function impactPacketFindings(text = '', options = {}) {
   if (!required) return [{ area: 'experience impact', status: 'ready', required: false, detail: 'not required for this non-behavioral route' }];
 
   const field = (label) => packetField(text, label);
-  const requiredFields = [
-    ['primary actor', 'Primary actor'],
-    ['actor job', 'Actor job'],
-    ['before workflow', 'Before workflow'],
-    ['after workflow', 'After workflow'],
-    ['changed state/data/feedback', 'Changed state/data/feedback'],
-    ['upstream triggers', 'Upstream triggers'],
-    ['downstream consumers', 'Downstream consumers'],
-    ['adjacent/regression workflows', 'Adjacent/regression workflows'],
-    ['failure/recovery behavior', 'Failure/recovery behavior'],
-    ['implementation responsibilities', 'Implementation responsibilities'],
-    ['scenario-specific evidence', 'Scenario-specific evidence'],
+  const fallbackOutcome = [field('Primary actor'), field('Actor job'), field('After workflow'), field('Changed state/data/feedback')].filter(isMeaningful).join(' | ');
+  const fallbackImpacts = [field('Downstream consumers'), field('Adjacent/regression workflows'), field('Upstream triggers')].filter(isMeaningful).join(' | ');
+  const fallbackProof = [field('Scenario-specific evidence'), field('Failure/recovery behavior')].filter(isMeaningful).join(' | ');
+  const coreFields = [
+    ['observable outcome', field('Outcome') || fallbackOutcome],
+    ['connected impacts', field('Connected impacts') || fallbackImpacts],
+    ['proof and recovery', field('Proof and recovery') || fallbackProof],
   ];
-  const findings = requiredFields.map(([area, labels]) => {
-    const values = (Array.isArray(labels) ? labels : [labels]).map(field).filter(isMeaningful);
-    return { area, status: values.length ? 'ready' : 'open', required: true, detail: values.length ? values.join(' | ') : `missing ${area}` };
-  });
+  const findings = coreFields.map(([area, value]) => ({ area, status: isMeaningful(value) ? 'ready' : 'open', required: true, detail: isMeaningful(value) ? value : `missing ${area}` }));
   const status = field('Experience-impact status');
   findings.unshift({ area: 'experience-impact status', status: /^complete$/i.test(status) ? 'ready' : 'open', required: true, detail: status || 'missing status; set to complete only after closure' });
-  const scenarios = field('Scenario walkthroughs').split('|').map((item) => item.trim()).filter(isMeaningful);
-  findings.push({ area: 'scenario walkthroughs', status: scenarios.length >= 3 ? 'ready' : 'open', required: true, detail: scenarios.length >= 3 ? scenarios.join(' | ') : 'fewer than three scenarios; include happy, ambiguous/missing input, and failure/recovery or regression' });
+  const expanded = options.expanded ?? /^- Expanded mapping required:\s*yes\s*$/im.test(text);
+  if (expanded) {
+    const expandedFields = [
+      ['expanded workflow', field('Before workflow') && field('After workflow')],
+      ['expanded recovery', field('Failure/recovery behavior')],
+      ['expanded ownership', field('Implementation responsibilities')],
+      ['expanded scenarios', field('Scenario walkthroughs').split('|').map((item) => item.trim()).filter(isMeaningful).length >= 2 ? field('Scenario walkthroughs') : ''],
+    ];
+    for (const [area, value] of expandedFields) findings.push({ area, status: isMeaningful(value) ? 'ready' : 'open', required: true, detail: isMeaningful(value) ? value : `missing ${area}` });
+  }
   const deferred = field('Deferred with rationale and human acceptance');
   const deferredReady = !isMeaningful(deferred) || (/accept|approv/i.test(deferred) && /because|rationale|reason/i.test(deferred));
   if (!deferredReady) findings.push({ area: 'deferred impacts', status: 'open', required: true, detail: 'deferred impact must include rationale and explicit human acceptance' });

@@ -28,7 +28,7 @@ export function controlGateRows(repo, state, runDir, options = {}) {
   const needsExperienceImpact = experienceImpactRequired({ task: state.task, route: state.route, files: git.changedFiles, surfaces });
   const impactPacket = findPackets(repo, { dir: runDir }).find((packet) => packet.kind === 'impact');
   const impactOpen = needsExperienceImpact && (!impactPacket || impactPacketFindings(impactPacket.text, { required: true }).some((finding) => finding.required && finding.status === 'open'));
-  const experienceRows = needsExperienceImpact ? [{ id: 'experience-impact-closure', status: impactOpen ? 'block' : 'pass', detail: impactOpen ? 'observable behavior lacks a complete actor/workflow/impact/evidence closure' : 'experience-impact packet is complete', next: impactOpen ? `sdlc impact packet --task "${escapeCommandArg(state.task)}"` : '' }] : [];
+  const experienceRows = needsExperienceImpact ? [{ id: 'experience-impact-closure', status: impactOpen ? 'block' : 'pass', detail: impactOpen ? 'observable behavior lacks an outcome/connected-impact/proof closure' : 'experience-impact packet is complete', next: impactOpen ? `sdlc impact packet --task "${escapeCommandArg(state.task)}"` : '' }] : [];
   const waiverRows = readControlJsonLines(join(runDir, 'waivers.jsonl'));
   const rows = [...evidenceRows, ...experienceRows, ...contextRows, ...policyRows];
   return rows.map((row) => waiverRows.some((waiver) => waiver.gate === row.id) ? { ...row, status: 'waived', detail: `${row.detail} (waived)` } : row);

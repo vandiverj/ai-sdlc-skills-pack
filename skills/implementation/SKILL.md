@@ -16,10 +16,10 @@ Route coding work to the smallest safe implementation stack. This is the umbrell
 - TDD, project implementation patterns, or technical approach decisions matter.
 
 ## Behavior
-1. Confirm the work class, target behavior, dirty surfaces, current plan, and experience-impact trace when observable behavior changes.
+1. Confirm the work class, target outcome, relevant connected impact, current plan when one is needed, and available proof.
 2. Select the minimal implementation references from `references/`.
 3. Set or confirm the safe edit boundary before modifying files.
-4. Execute in small reviewable increments, using TDD when behavior is testable and risk warrants it. Preserve the mapped actor journey, affected paths, recovery behavior, and implementation responsibility instead of optimizing only the named file.
+4. Execute in small reviewable increments, using TDD when behavior is testable and risk warrants it. Follow the affected behavior beyond the named file when evidence shows a connected path.
 5. Hand off to `review` and verification after edits.
 
 ## Reference Selection
@@ -47,13 +47,13 @@ Safe edit boundary:
 Commands allowed:
 Files likely touched:
 Verification expectation:
-Experience-impact responsibilities and scenario evidence:
+Outcome, connected impact, and proof:
 Review handoff:
 Stop condition:
 ```
 
 ## Stop Rules
 - Stop before edits if expected behavior, plan approval, safe edit boundary, or human consent is unclear.
-- Stop before behavior edits if the actor/job, before/after workflow, affected paths, recovery behavior, or scenario evidence is required but missing.
+- Stop before behavior edits only when the intended outcome or a material connected impact is unclear enough to change the implementation.
 - Stop if diagnosis changes the work class or exposes protected surfaces.
 - Stop if implementation needs new dependencies, migrations, secrets, external services, destructive commands, or public contract changes without approval.

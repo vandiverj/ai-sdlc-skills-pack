@@ -1,6 +1,30 @@
 export function printHelp() {
   console.log(`SDLC helper CLI
 
+Normal lifecycle:
+  sdlc start --task "..." [--repo <path>]
+  sdlc next --task "..." [--repo <path>]
+  sdlc prove --task "..." [--repo <path>]
+  sdlc qa-ready --task "..." [--repo <path>]
+  sdlc finish-ready --task "..." [--repo <path>]
+
+Use the smallest command that advances the work. Most tasks need start, one or
+more next steps, relevant proof, and finish-ready. qa-ready is optional.
+
+Help:
+  sdlc help quickstart
+  sdlc help workflow
+  sdlc help expert
+
+Commit, push, merge, deploy, release, destructive actions, dependency changes,
+migrations, secrets, and external-service writes remain human-controlled.`);
+}
+
+// Retained as a compatibility index for maintainers. Normal help intentionally
+// does not expose every implementation command as a recommended workflow.
+function printExpertCommandIndex() {
+  console.log(`SDLC helper CLI
+
 Usage:
   sdlc start --task "..." [--repo <path>]
   sdlc next --task "..." [--repo <path>]
@@ -392,13 +416,14 @@ Use chat first and let the coding agent run the CLI.
 Use SDLC for this task: <task>. Start local-first, keep context bounded, implement only the scoped change, verify with local evidence, prepare QA Markdown if needed, and stop before commit or push.
 \`\`\`
 
-Small local path:
+Normal path:
 
 \`\`\`bash
 sdlc start --task "<task>"
-sdlc operator dashboard --task "<task>"
-sdlc operator next --task "<task>"
-sdlc command capture --task "<task>" --command "<check>" --status pass --summary "<evidence>"
+sdlc next --task "<task>"
+sdlc prove --task "<task>"
+# Optional when a human QA handoff is useful:
+sdlc qa-ready --task "<task>"
 sdlc finish-ready --task "<task>"
 \`\`\`
 
@@ -412,19 +437,17 @@ Boundaries:
 export function helpOperator() {
   console.log(`# SDLC Operator Help
 
-The operator surface is the paved path for normal work.
+The five lifecycle commands are the paved path for normal work.
 
 \`\`\`bash
-sdlc operator start --task "<task>"
-sdlc operator dashboard --task "<task>"
-sdlc operator next --task "<task>"
-sdlc operator implement-ready --task "<task>"
-sdlc operator verify-ready --task "<task>"
-sdlc operator qa-ready --task "<task>"
-sdlc operator finish-ready --task "<task>"
+sdlc start --task "<task>"
+sdlc next --task "<task>"
+sdlc prove --task "<task>"
+sdlc qa-ready --task "<task>" # optional
+sdlc finish-ready --task "<task>"
 \`\`\`
 
-Use \`dashboard\` when asking "where are we?" It summarizes local facts, evidence, gaps, scratch-script warnings, QA/finish readiness, and one next action.
+Advanced operator commands remain available for diagnosing an unusual workflow, but are not required for ordinary work.
 
 The operator does not commit, push, merge, deploy, release, post tickets, or query sensitive data.`);
 }
@@ -443,7 +466,10 @@ Common expert groups:
 - Learning: \`learn workbench\`, \`feedback synthesize\`, \`process review\`
 - Safety: \`policy check\`, \`safety finish\`, \`artifact scratch-audit\`
 
-Run \`sdlc --help\` for the full command list.`);
+Use route/phase help when a specialized command is genuinely needed. Default help stays small so implementation details are not mistaken for mandatory process.
+
+Full compatibility index follows:`);
+  printExpertCommandIndex();
 }
 
 export function helpArtifacts() {
@@ -524,12 +550,15 @@ Use SDLC and prepare the finish decision for this task: <task>. Do not commit, p
 export function helpWorkflow() {
   console.log(`# SDLC Workflow
 
-1. Open: \`sdlc task open --task "..."\`
-2. Implement with the agent using repo context and route judgment.
-3. Evidence: \`sdlc task bundle --task "..."\`, then complete verify/smoke/QA packets as needed.
-4. Checkpoint: \`sdlc task review --task "..."\`
-5. Finish: \`sdlc task finish --task "..."\`
-6. Git decision: \`sdlc git packet\`, then human chooses no action / commit only / commit and push.
+1. Start: \`sdlc start --task "..."\`
+2. Advance: \`sdlc next --task "..."\`, then implement the bounded change.
+3. Prove the claims: \`sdlc prove --task "..."\`
+4. Prepare human QA only when useful: \`sdlc qa-ready --task "..."\`
+5. Check completion: \`sdlc finish-ready --task "..."\`
+
+For behavior changes, carry the observable outcome, material connected impact,
+and claim-specific proof. Expand into workflow, recovery, ownership, and scenario
+mapping only when risk or uncertainty warrants it.
 
 The SDLC never merges, deploys, releases, creates MR/PRs, triggers pipelines, moves branches, or moves files between environments by default.`);
 }

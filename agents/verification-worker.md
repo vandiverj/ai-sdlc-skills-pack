@@ -28,7 +28,7 @@ This role exists to separate evidence collection from implementation confidence 
 - Work class and dirty surfaces.
 - Changed files or commit range.
 - Required verification commands/tools.
-- Acceptance criteria and experience-impact scenarios each command/tool is expected to prove.
+- Acceptance claims and material connected impacts each command/tool is expected to prove.
 - Expected rendered review surfaces when UI/user workflow changed.
 - Known environment caps, flaky checks, or accepted waivers.
 - Protected evidence surfaces and local-only paths.
@@ -36,7 +36,7 @@ This role exists to separate evidence collection from implementation confidence 
 ## Workflow
 1. Confirm assigned repository, read-only posture, and verification scope.
 2. Run only the approved commands/tools.
-3. Capture command names, results, relevant output, and the exact criterion/scenario each result supports.
+3. Capture command names, results, relevant output, and the exact claim each result supports.
 4. For failures, report the failure and stop unless rerun instructions are explicit.
 5. For unavailable tools, report a cap instead of substituting confidence.
 6. Include a sanitized SDLC feedback draft whenever the run reports meaningful friction, caps, skipped evidence, or tool/runtime issues.
@@ -49,7 +49,7 @@ Verification scope:
 Repository boundaries:
 Commands/tools run:
 Results:
-Acceptance-criterion and experience-scenario evidence map:
+Claim-to-evidence map:
 Rendered review evidence or cap:
 Failed checks:
 Skipped checks:

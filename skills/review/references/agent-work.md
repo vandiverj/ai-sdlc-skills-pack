@@ -18,7 +18,7 @@ Use when reviewing completed or in-progress AI agent work for workflow adherence
 - Required rendered, security, release, pattern, or doc-sync reviews were not skipped silently.
 - Tests, snapshots, generated baselines, thresholds, or CI changes were part of the approved task.
 - Tool/MCP output that affected decisions was verified against project artifacts.
-- Observable behavior retained one experience-impact trace from planning through implementation and criterion/scenario-specific evidence.
+- Observable behavior retained its intended outcome, material connected impacts, and claim-specific proof through implementation.
 - No mapped impact disappeared at a handoff; each is implemented and verified, verified unaffected, explicitly deferred with rationale and human acceptance, or blocking.
 
 ## Hard Rules

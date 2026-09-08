@@ -16,7 +16,7 @@ Route verifier work to the smallest evidence stack that can support a completion
 - A completion claim needs fresh proof.
 
 ## Behavior
-1. Confirm the work class, changed surfaces, claim being verified, and experience-impact items/scenarios when observable behavior changed.
+1. Confirm the work class, changed surfaces, claim being verified, and the most relevant behavior/recovery evidence.
 2. Select the minimal quality references from `references/`.
 3. Run documented project commands before inventing new checks.
 4. Record commands, timestamps, exit codes, and evidence gaps.
@@ -46,7 +46,7 @@ Work class and surfaces:
 References selected:
 Commands run:
 Results:
-Acceptance-criterion and experience-scenario evidence map:
+Claim-to-evidence map:
 Evidence gaps:
 Overall verdict: pass / fail / partial
 Review handoff:
@@ -55,6 +55,6 @@ Stop condition:
 
 ## Stop Rules
 - Do not claim complete, fixed, safe, or ready without fresh evidence or explicit gaps.
-- Do not let a generic build/test result satisfy an unrelated acceptance criterion or experience scenario; record the evidence link or leave the item open.
+- Do not let a generic build/test result satisfy an unrelated behavior claim; record the evidence link or leave the claim open.
 - Stop before adding new dependencies, services, CI changes, generated baselines, snapshots, or broad tooling.
 - Stop if tests/checks appear to have been weakened to make work pass.

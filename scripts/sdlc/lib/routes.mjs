@@ -20,6 +20,13 @@ export function isExplicitlyMechanicalTask(task = '') {
   ]);
 }
 
+export function isExplicitlyLocalBehaviorTask(task = '') {
+  const text = String(task).toLowerCase();
+  const bounded = matchesAny(text, ['tiny', 'small', 'narrow', 'local', 'single-file', 'single file', 'reversible']);
+  const proved = matchesAny(text, ['focused test', 'targeted test', 'regression test', 'direct test', 'focused check', 'targeted check']);
+  return bounded && proved;
+}
+
 export function behaviorChangeSignals(task = '', files = [], surfaces = []) {
   const text = String(task).toLowerCase();
   if (isExplicitlyMechanicalTask(text)) return [];
@@ -44,7 +51,7 @@ export function experienceImpactRequired({ task = '', route = 'standard', files 
   const docsOnly = files.length > 0 && files.every((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file));
   if (route === 'tiny-docs' || docsOnly || isExplicitlyMechanicalTask(task)) return false;
   if (behaviorChangeSignals(task, files, surfaces).length > 0) return true;
-  return ['standard', 'bugfix-regression', 'ui-rendered-review', 'contract-first', 'bugfix-live-system', 'weak-test-legacy', 'multi-repo-integration', 'review-only', 'release-push'].includes(route);
+  return ['ui-rendered-review', 'contract-first', 'bugfix-live-system', 'multi-repo-integration'].includes(route);
 }
 
 function profileToken(value) {

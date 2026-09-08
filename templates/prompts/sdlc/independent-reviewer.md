@@ -30,7 +30,7 @@ Independent reviewer.
 ## Original Intent Or Acceptance Criteria
 {{original_intent_or_acceptance_criteria}}
 
-## Experience-Impact Trace And Claimed Closure
+## Outcome, Connected Impact, and Claimed Proof
 {{experience_impact_trace_and_closure}}
 
 ## Expected Review Route
@@ -84,6 +84,6 @@ Recommended action:
 - Fill from the diff/commit, implementation handoff, review-router route, and required evidence.
 - Keep reviewer context narrower than implementer context when possible.
 - Do not include implementer confidence as evidence.
-- Block when a mapped actor journey or upstream/downstream/adjacent/recovery impact disappeared or lacks criterion/scenario-specific evidence.
+- Block when the intended outcome or a material connected impact disappeared or lacks claim-specific evidence.
 - Do not ask the reviewer to fix findings in this prompt.
 - Include a sanitized SDLC feedback draft when there is meaningful process friction, caps, skipped evidence, or tool/runtime evidence.

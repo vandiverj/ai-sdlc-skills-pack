@@ -57,9 +57,9 @@ Repository: ${repo}
 
 ## Product Experience Context
 
-- primary actor/job source:
-- workflow/application model:
-- experience-impact evidence location: .ai-local/sdlc-runs/
+- product/workflow source:
+- material dependency or consumer source:
+- behavior proof location: .ai-local/sdlc-runs/
 
 ## Unit: <name>
 

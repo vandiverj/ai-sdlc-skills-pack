@@ -157,11 +157,10 @@ function recommendedCommands(context) {
   };
 
   add('task-preflight', 'next');
-  add('context-assemble');
-  add('evidence-required');
 
-  if (context.phase === 'planning' || context.route !== 'tiny-docs') add('task-contract');
-  if (context.route !== 'tiny-docs') add('evidence-matrix');
+  // Keep the default recommendation set small. Specialist commands are added
+  // only when the route or risk signals make their output decision-bearing.
+  if (context.phase === 'planning' && context.route !== 'tiny-docs') add('task-contract');
   if (context.triggers.length) add('policy-check');
   if (context.triggers.some((item) => /ticket/i.test(item)) || /yt-|youtrack|ticket/i.test(context.task)) add('ticket-evidence');
   if (context.triggers.some((item) => /database/i.test(item)) || /database|sql|data/i.test(context.task)) add('data-query-plan');
@@ -178,14 +177,11 @@ function recommendedCommands(context) {
   }
   if (context.route === 'bugfix-live-system') add('bug-live-evidence');
   if (context.surfaces.includes('rendered-product-ui')) add('render-plan');
-  if (context.surfaces.includes('api-contract')) add('qa-api');
-  if (context.surfaces.includes('data-persistence')) add('data-evidence');
-  if (context.surfaces.includes('integration-provider')) add('integration-packet');
-  for (const recipe of context.recipes) add(`recipe-${recipe.id}`);
+  if (context.route === 'contract-first' && context.surfaces.includes('api-contract')) add('qa-api');
+  if (context.route === 'bugfix-live-system' && context.surfaces.includes('data-persistence')) add('data-evidence');
+  if (context.route === 'multi-repo-integration' && context.surfaces.includes('integration-provider')) add('integration-packet');
 
   add('verify-ladder');
-  if (context.route !== 'tiny-docs') add('qa-coverage');
-  add('complete-check');
   add('finish-packet');
   return rows;
 }

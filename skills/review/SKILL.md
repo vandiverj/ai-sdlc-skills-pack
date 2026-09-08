@@ -14,7 +14,7 @@ Route review requests to the smallest meaningful review stack and load review-lo
 - `run-sdlc` or another router determines a review phase is required.
 
 ## Behavior
-1. Classify the claim being checked (spec, code quality, UX, security, agent work, release readiness) and load the experience-impact trace when observable behavior changed.
+1. Classify the claim being checked (spec, code quality, UX, security, agent work, release readiness) and inspect the outcome, connected impact, and proof when observable behavior changed.
 2. Select the minimal set of review references from `references/`.
 3. Use this router as the canonical review entry point. Former top-level `review-*`, `design-review`, `devex-review`, `production-readiness-review`, and `threat-model` skills now live here as references.
 4. Produce a structured review report using `templates/review-report.md` when present, or the required output below.
@@ -72,7 +72,7 @@ Verdict: pass / pass-with-notes / blocked / needs-human-review
 Blocking findings:
 Non-blocking findings:
 Evidence gaps:
-Experience-impact closure findings:
+Behavior and connected-impact findings:
 Recommended next action:
 ```
 

@@ -35,9 +35,17 @@ function runJson(args, expectFailure = false) {
   }
 }
 
+function runText(args) {
+  return execFileSync('node', [sdlc, ...args], { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
 function assert(condition, message) {
   if (!condition) failures.push(message);
 }
+
+const defaultHelp = runText(['--help']);
+assert(defaultHelp.includes('sdlc start --task') && defaultHelp.includes('sdlc finish-ready --task'), 'default help should expose the normal lifecycle.');
+assert(!defaultHelp.includes('sdlc context contradictions'), 'default help should hide specialist implementation commands.');
 
 const fastPass = runJson(['route', 'fast-pass', '--task', 'fix README typo', '--files', 'README.md', '--json']);
 assert(fastPass.schema === 'sdlc.fast_pass.v1', 'fast-pass schema mismatch.');
@@ -48,8 +56,12 @@ assert((fastPass.requiredChecks || []).includes('git diff --check'), 'fast-pass 
 const mechanicalFastPass = runJson(['route', 'fast-pass', '--task', 'tiny mechanical rename', '--files', 'scripts/sdlc/lib/routes.mjs', '--json']);
 assert(mechanicalFastPass.eligible === true, 'explicitly tiny mechanical source work should remain fast-pass eligible.');
 
-const experienceTask = 'Change the calibration editor so owners can replace a saved observation and keep its identity';
-const experienceFile = 'app/PitchlightApp/Features/Editor/PitchCalibrationOwnerWorkspace.swift';
+const localBehaviorFastPass = runJson(['route', 'fast-pass', '--task', 'small local reversible label fix with a focused test', '--files', 'src/LabelView.tsx', '--json']);
+assert(localBehaviorFastPass.eligible === true, 'bounded reversible behavior with named direct proof should be fast-pass eligible.');
+assert((localBehaviorFastPass.requiredChecks || []).some((item) => /focused behavior\/regression/.test(item)), 'local behavior fast-pass should retain its direct proof requirement.');
+
+const experienceTask = 'Change the editor so a user can replace a saved observation and keep its identity';
+const experienceFile = 'app/Sources/ObservationEditorView.swift';
 const experienceFastPass = runJson(['route', 'fast-pass', '--task', experienceTask, '--files', experienceFile, '--json'], true);
 assert(experienceFastPass.eligible === false, 'observable owner workflow changes must not become fast-pass merely because one file is named.');
 assert((experienceFastPass.blockedBy || []).some((item) => /observable behavior|experience-impact/i.test(item)), 'blocked behavior work should explain the missing experience-impact route.');
@@ -63,29 +75,30 @@ const experienceReview = runJson(['evidence', 'recommend', '--task', 'Review the
 assert(experienceReview.route === 'review-only', 'explicit read-only behavior inspection should use the review route.');
 assert((experienceReview.requirements || []).some((item) => item.id === 'experience-impact'), 'review-only inspection of observable behavior should retain the experience-impact trace.');
 
-const internalReview = runJson(['evidence', 'recommend', '--task', 'Review this implementation read-only without edits', '--files', 'app/Packages/PitchlightKit/Sources/PitchlightDomain/PitchCoordinateMapper.swift', '--json']);
-assert((internalReview.requirements || []).some((item) => item.id === 'experience-impact'), 'source review should require an explicit experience-impact or verified-unaffected decision even when UI words are absent.');
+const internalReview = runJson(['evidence', 'recommend', '--task', 'Review this implementation read-only without edits', '--files', 'src/domain/CoordinateMapper.swift', '--json']);
+assert(!(internalReview.requirements || []).some((item) => item.id === 'experience-impact'), 'internal review should not require a behavior-impact artifact without a behavior signal.');
 
 const incompleteContract = taskContract(repoRoot, experienceTask, { files: [experienceFile], acceptance: 'The owner can replace the saved observation.' });
-assert(contractFindings(incompleteContract).some((item) => item.required && item.status === 'open' && /experience|workflow|scenario/i.test(item.area)), 'behavior task contract should remain open without the experience-impact trace.');
+assert(contractFindings(incompleteContract).some((item) => item.required && item.status === 'open' && /outcome|impact|proof/i.test(item.area)), 'behavior task contract should remain open without outcome/connected-impact/proof.');
 
 const completeContract = taskContract(repoRoot, experienceTask, {
   files: [experienceFile],
   acceptance: 'The owner can replace the selected observation without changing its identity.',
-  actor: 'Pitchlight owner',
-  actorJob: 'Correct an already saved calibration observation without losing its stable identity.',
-  beforeWorkflow: 'Select an existing saved observation; choose replace.',
-  afterWorkflow: 'Capture the replacement; confirm the same observation remains selected.',
-  changedState: 'Geometry changes while the observation identifier and ordering remain stable.',
-  upstream: 'Saved-observation selection and replace command.',
-  downstream: 'Draft persistence, diagnostics, and later calibration review.',
-  adjacent: 'Add, edit, cancel, undo, and recovered-draft workflows.',
-  failureRecovery: 'Cancel leaves the saved observation unchanged; invalid replacement is rejected visibly.',
-  implementationResponsibility: 'Workspace action, domain edit, persistence round trip, and selection restoration.',
-  scenarios: 'happy replacement; cancelled or invalid replacement; recovered-draft and undo regression',
-  experienceEvidence: 'Domain identity test; persistence round-trip test; rendered replacement/cancel workflow.',
+  outcome: 'The user replaces the selected observation without changing its stable identity.',
+  connectedImpact: 'Draft persistence and the cancel path.',
+  proof: 'Identity regression test and rendered replace/cancel check.',
 });
 assert(!contractFindings(completeContract).some((item) => item.required && item.status === 'open'), 'complete behavior task contract should be ready.');
+
+const expandedContract = taskContract(repoRoot, 'Change a production API contract and database migration', {
+  files: ['src/api/contract.ts', 'migrations/002.sql'],
+  acceptance: 'Existing consumers continue to read records during rollout.',
+  outcome: 'Existing consumers keep receiving compatible records.',
+  connectedImpact: 'Database migration and older API clients.',
+  proof: 'Contract compatibility test and migration rollback rehearsal.',
+});
+assert(expandedContract.experienceImpact.expanded === true, 'high-risk contract/data work should require expanded impact mapping.');
+assert(contractFindings(expandedContract).some((item) => item.required && item.status === 'open' && /expanded/i.test(item.area)), 'expanded work should stay open without workflow, recovery, ownership, and scenarios.');
 
 assert(!evidenceMatchesCriterion({ kind: 'test', summary: 'npm test and build passed' }, { id: 'ac-1', text: 'Owner replacement keeps the saved observation identity' }, 'targeted automated check'), 'generic test/build evidence must not satisfy an unrelated acceptance criterion.');
 assert(!evidenceMatchesCriterion({ criterionId: 'ac-1', kind: 'build', summary: 'application build passed' }, { id: 'ac-1', text: 'Owner replacement keeps the saved observation identity' }, 'targeted automated check'), 'criterion labeling must not turn a generic build into behavior proof.');
@@ -94,19 +107,11 @@ assert(evidenceMatchesCriterion({ criterionId: 'ac-1', kind: 'test', summary: 'i
 const completeImpact = `# SDLC Impact Packet
 Task: ${experienceTask}
 - Required: yes
+- Expanded mapping required: no
 - Experience-impact status: complete
-- Primary actor: Pitchlight owner
-- Actor job: Correct a saved observation
-- Before workflow: select and replace
-- After workflow: same item remains selected
-- Changed state/data/feedback: geometry changes, identity stays stable
-- Upstream triggers: replace command
-- Downstream consumers: persistence and review
-- Adjacent/regression workflows: undo and recovered draft
-- Failure/recovery behavior: cancel preserves prior value
-- Implementation responsibilities: workspace, domain, persistence
-- Scenario walkthroughs: happy | invalid | recovery
-- Scenario-specific evidence: domain | round trip | rendered workflow
+- Outcome: The user replaces the selected observation without changing its stable identity
+- Connected impacts: draft persistence | cancel path
+- Proof and recovery: identity regression test | rendered replace/cancel check
 - Implemented and verified: replacement and identity preservation
 - Verified unaffected: ordering and add workflow
 - Deferred with rationale and human acceptance:
@@ -114,7 +119,10 @@ Task: ${experienceTask}
 `;
 assert(!impactPacketFindings(completeImpact).some((item) => item.required && item.status === 'open'), 'complete experience-impact packet should pass closure findings.');
 
-const incompleteImpact = completeImpact.replace('Experience-impact status: complete', 'Experience-impact status: open').replace('Primary actor: Pitchlight owner', 'Primary actor:');
+const incompleteExpandedImpact = completeImpact.replace('Expanded mapping required: no', 'Expanded mapping required: yes');
+assert(impactPacketFindings(incompleteExpandedImpact).some((item) => item.required && item.status === 'open' && /expanded/i.test(item.area)), 'expanded impact packet should require the risk-relevant detail omitted by the compact form.');
+
+const incompleteImpact = completeImpact.replace('Experience-impact status: complete', 'Experience-impact status: open').replace('Outcome: The user replaces the selected observation without changing its stable identity', 'Outcome:');
 const incompleteFinalGates = finalGateOpenItems(repoRoot, experienceTask, { status: 'M scoped', changedFiles: [experienceFile] }, [{ kind: 'impact', text: incompleteImpact }]);
 assert(incompleteFinalGates.includes('experience-impact packet incomplete for observable behavior'), 'finish gate must inspect impact content instead of accepting packet presence.');
 const completeFinalGates = finalGateOpenItems(repoRoot, experienceTask, { status: 'M scoped', changedFiles: [experienceFile] }, [{ kind: 'impact', text: completeImpact }]);
@@ -154,7 +162,7 @@ const agents = runJson(['agents', 'plan', '--task', 'fix README typo', '--files'
 assert(agents.delegation?.delegationRecommended === false, 'agents plan should suppress delegation for deterministic fast-pass.');
 assert((agents.recommendations || []).every((row) => row.recommendation === 'skip'), 'suppressed agents plan should skip all handoff roles.');
 
-const legacyParityTask = 'Pull latest comment for LC-50; review Classic ASP process, new ReactUI employee-dashboard, and Mainsite API backend for differences in employee photo upload process from dashboard';
+const legacyParityTask = 'Review a Classic ASP workflow, React dashboard, and .NET API across multiple repositories for differences in the employee photo upload process';
 const parityAgents = runJson(['agents', 'plan', '--task', legacyParityTask, '--json']);
 assert(parityAgents.delegation?.delegationRecommended === true, 'legacy cross-surface parity task should not suppress delegation.');
 assert(parityAgents.delegation?.signals?.crossSurfaceLike === true, 'legacy cross-surface parity signal should be reported.');

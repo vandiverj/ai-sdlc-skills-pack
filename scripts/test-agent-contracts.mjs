@@ -150,8 +150,8 @@ for (const file of readdirSync(promptDir).filter((entry) => entry.endsWith('.md'
   if (!/meaningful process friction, caps, skipped evidence, or tool\/runtime evidence/.test(text)) {
     fail(path, 'portable-role prompt template must state when to include a feedback draft.');
   }
-  if (experienceImpactRoles.has(file) && !/experience-impact/i.test(text)) {
-    fail(path, 'behavior-phase prompt template must carry the experience-impact trace or evidence map.');
+  if (experienceImpactRoles.has(file) && !/outcome[\s\S]*impact[\s\S]*proof|proof[\s\S]*outcome[\s\S]*impact/i.test(text)) {
+    fail(path, 'behavior-phase prompt template must carry outcome, connected impact, and proof.');
   }
 }
 
@@ -172,8 +172,8 @@ for (const file of readdirSync(agentsDir).filter((entry) => entry.endsWith('.md'
   if (!text.includes('Do not submit feedback directly')) {
     fail(path, 'missing parent-mediated feedback hard rule.');
   }
-  if (experienceImpactRoles.has(file) && !/experience-impact/i.test(text)) {
-    fail(path, 'behavior-phase role must carry the experience-impact trace or evidence map.');
+  if (experienceImpactRoles.has(file) && !/outcome[\s\S]*impact[\s\S]*proof|proof[\s\S]*outcome[\s\S]*impact/i.test(text)) {
+    fail(path, 'behavior-phase role must carry outcome, connected impact, and proof.');
   }
 }
 

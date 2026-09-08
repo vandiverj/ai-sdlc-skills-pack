@@ -389,7 +389,7 @@ function agentSignals(lower, changed) {
     multiRepo: /multi-repo|multi repo|multiple repositories|cross repo|workspace|several repositories/.test(lower),
     qa: /\b(qa|tester|manual|youtrack|test script|quality assurance)\b/.test(lower),
     release: hasTerm(lower, ['commit', 'push', 'merge', 'deploy', 'release', 'handoff', 'finish']),
-    process: /\b(process learning|sdlc process|sdlc|workflow|agent strategy|subagent|subagents|friction|redundancy)\b/.test(lower),
+    process: /\b(process learning|process improvement|sdlc process|sdlc|workflow improvement|improve (?:the )?workflow|agent strategy|subagent|subagents|friction|redundancy)\b/.test(lower),
     repeatedFriction: /\b(stuck|repeated|redundant|loop|friction|retry)\b/.test(lower),
     crossSurfaceLegacy,
     classicAsp: hasTerm(lower, ['classic asp', 'asp classic', 'www_dev']),
