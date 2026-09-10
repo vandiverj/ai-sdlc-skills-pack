@@ -1,3 +1,7 @@
-display_name: SDLC Process Improvement
-short_description: Improve coding-agent SDLC quality, platform support, and repo configurability.
-default_prompt: Improve the SDLC coding-agent process with a research-backed plan, 10 review/revision loops, coding-quality/platform/repo-config analysis, implementation, fixture or dry-run validation, and approved commit/push handoff.
+interface:
+  display_name: "SDLC Process Improvement"
+  short_description: "Improve agent workflows from observed evidence"
+  default_prompt: "Use $sdlc-process-improvement to improve this workflow with the smallest evidenced change."
+
+policy:
+  allow_implicit_invocation: false

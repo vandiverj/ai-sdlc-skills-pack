@@ -1,8 +1,7 @@
+# Inherit the selected primary model and effort; override only for a bounded need.
 name = "sdlc_qa_handoff_worker"
 description = "SDLC QA handoff worker for tester-readable validation scripts and QA notes."
 
-model = "gpt-5.4-mini"
-model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 
 developer_instructions = """

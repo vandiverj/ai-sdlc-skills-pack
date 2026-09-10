@@ -2,3 +2,6 @@ interface:
   display_name: "Counterpoint"
   short_description: "Challenge assumptions before decisions"
   default_prompt: "Use $counterpoint to challenge this plan before we commit to it."
+
+policy:
+  allow_implicit_invocation: false

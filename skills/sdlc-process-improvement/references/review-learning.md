@@ -34,7 +34,7 @@ Use this loop:
 1. Aggregate events by repeated failure mode, near miss, or successful pattern.
 2. Identify affected skills and the route location where the rule belongs.
 3. Draft the smallest environment-neutral rule or checklist change.
-4. Pressure-test the change with `test-skill-behavior` before editing the skill.
+4. Pressure-test the change with `sdlc-process-improvement` behavior-testing reference before editing the skill.
 5. Record the result in a portable skill changelog, preferably `docs/process-improvement/skill-changelog.md` in the skills/source repository or equivalent docs location.
 6. Apply the skill update only after the proposal has a clear owner, evidence, and rollback/deprecation path.
 

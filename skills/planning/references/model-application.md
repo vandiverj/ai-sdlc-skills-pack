@@ -87,7 +87,7 @@ Use Mermaid unless the project has a stronger local diagram convention.
 
 ## Loop behavior
 - If user answers change scope, update the model and context-state before continuing.
-- If review finds blocking gaps, return to `grill-me`, `define-application`, `choose-technical-approach`, or another modeling pass.
+- If review finds blocking gaps, return to the planning requirements-interview reference, `define-application`, `choose-technical-approach`, or another modeling pass.
 - If implementation reveals a missing requirement, stop expanding implementation and update the model, PRD, issue, or context-state as appropriate.
 
 ## Next skills

@@ -1,8 +1,7 @@
+# Inherit the selected primary model and effort; override only for a bounded need.
 name = "sdlc_context_scout"
 description = "Read-only SDLC context scout for finding source-of-truth files, risks, and missing context."
 
-model = "gpt-5.3-codex-spark"
-model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 
 developer_instructions = """

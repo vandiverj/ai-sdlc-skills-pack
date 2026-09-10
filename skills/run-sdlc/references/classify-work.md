@@ -1,9 +1,3 @@
----
-name: classify-work
-description: 'Choose the lightest safe route for a software task from scope, risk, uncertainty, changed surfaces, and available proof.'
-user-invocable: true
----
-
 # classify-work
 
 ## Purpose
@@ -38,7 +32,7 @@ Use the fast pass for docs-only or explicitly mechanical work and for genuinely 
 
 For observable behavior, require a compact outcome/impact/proof trace. Require expanded journey and dependency mapping only for Standard work when the blast radius is unclear, or for High-risk/cross-boundary work.
 
-Apply `references/security-route-triggers.md` when security, data, tools, dependencies, production, or irreversible actions may be involved.
+Apply `security-route-triggers.md` when security, data, tools, dependencies, production, or irreversible actions may be involved.
 
 ## Output
 

@@ -1,4 +1,45 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { lstatSync, readFileSync, readlinkSync } from 'node:fs';
+import { join } from 'node:path';
+
+// Conservative fallback: bind proof to HEAD, tracked edits, and untracked input.
+// Ignored run records are excluded so capturing evidence does not invalidate it.
+export function evidenceRevision(repo) {
+  const hash = createHash('sha256');
+  const run = (args) => execFileSync('git', args, { cwd: repo, stdio: ['ignore', 'pipe', 'ignore'] });
+  try {
+    const head = git(repo, ['rev-parse', '--verify', 'HEAD']);
+    hash.update(head);
+    const tracked = head ? run(['diff', '--name-only', '--no-renames', '-z', 'HEAD']) : run(['ls-files', '-z']);
+    const untracked = run(['ls-files', '--others', '--exclude-standard', '-z']);
+    const files = [...new Set((tracked.toString() + untracked.toString()).split('\0').filter(Boolean))].sort();
+    for (const file of files) {
+      const path = join(repo, file);
+      hash.update(file + '\0');
+      let stat;
+      try { stat = lstatSync(path); } catch (error) { if (error.code === 'ENOENT') { hash.update('deleted'); continue; } throw error; }
+      hash.update(String(stat.mode));
+      if (stat.isSymbolicLink()) hash.update(readlinkSync(path));
+      else if (stat.isFile()) hash.update(run(['hash-object', '--', file]));
+    }
+    return hash.digest('hex');
+  } catch {
+    // Unreadable inputs cannot establish freshness.
+    return '';
+  }
+}
+
+export function fileSnapshots(repo, files) {
+  return Object.fromEntries(files.map((file) => {
+    try {
+      const path = join(repo, file);
+      const stat = lstatSync(path);
+      const content = stat.isSymbolicLink() ? readlinkSync(path) : readFileSync(path);
+      return [file, createHash('sha256').update(String(stat.mode)).update(content).digest('hex')];
+    } catch { return [file, null]; }
+  }));
+}
 
 export function getGitInfo(repo) {
   const branch = git(repo, ['branch', '--show-current']) || '';

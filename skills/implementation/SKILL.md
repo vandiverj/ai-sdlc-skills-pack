@@ -53,7 +53,7 @@ Stop condition:
 ```
 
 ## Stop Rules
-- Stop before edits if expected behavior, plan approval, safe edit boundary, or human consent is unclear.
+- Resolve a material uncertainty about expected behavior, scope, or authority before dependent edits. A separate approved plan is unnecessary when the requested change and proof are already clear.
 - Stop before behavior edits only when the intended outcome or a material connected impact is unclear enough to change the implementation.
 - Stop if diagnosis changes the work class or exposes protected surfaces.
 - Stop if implementation needs new dependencies, migrations, secrets, external services, destructive commands, or public contract changes without approval.

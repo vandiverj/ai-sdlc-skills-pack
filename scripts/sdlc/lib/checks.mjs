@@ -1,9 +1,11 @@
+import { evidenceContractRevision } from './evidence.mjs';
 import { spawnSync } from 'node:child_process';
 import { join, relative } from 'node:path';
 import { appendControlJsonLine, dedupeBy, escapeCell, fail, printObject, printTable, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, slug, stamp, writeOrPrint } from './common.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { ensureControlRunDir, readCurrentStateInfo } from './state.mjs';
 import { unitRegistry } from './units.mjs';
+import { evidenceRevision } from './git.mjs';
 
 function readEvidenceManifest(runDir) {
   return readJsonIfExists(join(runDir, 'evidence.json')) || { captured: [] };
@@ -17,6 +19,8 @@ export function runCheck(repo, options = {}, rawTokens = [], dependencies = {}) 
   const delimiter = rawTokens.indexOf('--');
   const commandTokens = delimiter >= 0 ? rawTokens.slice(delimiter + 1) : [];
   const start = new Date();
+  const revision = evidenceRevision(repo);
+  const contractRevision = evidenceContractRevision(repo, task, options);
   let result;
   if (options.cap) {
     result = {
@@ -66,11 +70,15 @@ export function runCheck(repo, options = {}, rawTokens = [], dependencies = {}) 
       endedAt,
     };
   }
+  result.revision = revision === evidenceRevision(repo) ? revision : '';
+  result.contractRevision = contractRevision === evidenceContractRevision(repo, task, options) ? contractRevision : '';
+  result.task = task;
+  result.criterionId = options.criterionId || options.criterion || '';
   appendControlJsonLine(repo, join(runDir, 'checks.jsonl'), result);
   addEvidenceFromCheck(repo, runDir, result);
   dependencies.appendControlEvent(repo, runDir, 'check', `${name}: ${result.status}`, result);
   printObject(result);
-  if (result.mode === 'command' && result.exitCode && result.exitCode !== 0) process.exitCode = Number(result.exitCode) || 1;
+  if (result.status !== 'pass') process.exitCode = Number(result.exitCode) || 1;
 }
 
 export function checksPlan(repo, options = {}) {
@@ -82,10 +90,18 @@ export function checksPlan(repo, options = {}) {
 export function checksRun(repo, options = {}) {
   const commands = checkCommandRecords(repo, options).filter((item) => item.command);
   if (!commands.length) fail('No configured build/test/check commands found. Run sdlc checks doctor or configure the repo profile.');
-  const runDir = ensureControlRunDir(repo, options, options.task || 'checks');
+  const stateInfo = readCurrentStateInfo(repo, options);
+  const task = options.task || stateInfo.state?.task;
+  if (!task) fail('Pass --task or initialize state before running checks.');
+  const runDir = stateInfo.runDir || ensureControlRunDir(repo, { ...options, task }, task);
   for (const item of commands) {
+    const revision = evidenceRevision(repo);
+  const contractRevision = evidenceContractRevision(repo, task, options);
     const result = spawnSync(item.command, { cwd: repo, shell: true, encoding: 'utf8' });
     const check = { timestamp: new Date().toISOString(), name: `${item.kind}-${item.unit || 'repo'}`, kind: item.kind, command: item.command, status: result.status === 0 ? 'pass' : classifyRunCheckFailure(result), exitCode: result.status, summary: summarizeCommandOutput(`${result.stdout || ''}\n${result.stderr || ''}`) };
+    check.revision = revision === evidenceRevision(repo) ? revision : '';
+    check.contractRevision = contractRevision === evidenceContractRevision(repo, task, options) ? contractRevision : '';
+    check.task = task;
     appendControlJsonLine(repo, join(runDir, 'checks.jsonl'), check);
     addEvidenceFromCheck(repo, runDir, check);
     console.log(`${check.name}: ${check.status}`);
@@ -135,6 +151,11 @@ export function addEvidenceFromCheck(repo, runDir, check) {
     summary: `${check.status}: ${check.summary || check.command || check.name}`,
     path: check.outputPath || '',
     status: check.status,
+    revision: check.revision,
+    contractRevision: check.contractRevision,
+    task: check.task,
+    criterionId: check.criterionId || '',
+    command: check.command || '',
     capturedAt: new Date().toISOString(),
   }];
   manifest.updatedAt = new Date().toISOString();

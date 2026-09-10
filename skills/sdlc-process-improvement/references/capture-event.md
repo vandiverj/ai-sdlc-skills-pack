@@ -22,7 +22,7 @@ Process events are observations, not decisions. They should be small enough to r
 - `docs/process-improvement/friction-log.md`, optional human-readable rollup for notable events.
 
 ## Skill Change Candidates
-When an event reveals a reusable process gap, name the likely router/reference owner instead of storing it as a vague lesson. Prefer environment-neutral owners such as `run-sdlc`, `planning/references/slice-product-fit.md`, `planning/references/implementation-plan.md`, `review/references/implementation-plan.md`, `test-skill-behavior`, or process-learning review.
+When an event reveals a reusable process gap, name the likely router/reference owner instead of storing it as a vague lesson. Prefer environment-neutral owners such as `run-sdlc`, `planning/references/slice-product-fit.md`, `planning/references/implementation-plan.md`, `review/references/implementation-plan.md`, `sdlc-process-improvement` behavior-testing reference, or process-learning review.
 
 Capture whether the lesson is a one-off project note, a project pattern, an agent definition update, or a portable skill update candidate.
 

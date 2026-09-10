@@ -18,7 +18,7 @@ Route review requests to the smallest meaningful review stack and load review-lo
 2. Select the minimal set of review references from `references/`.
 3. Use this router as the canonical review entry point. Former top-level `review-*`, `design-review`, `devex-review`, `production-readiness-review`, and `threat-model` skills now live here as references.
 4. Produce a structured review report using `templates/review-report.md` when present, or the required output below.
-5. Stop at blocking findings and hand back to the orchestrator or request human approval.
+5. Return blocking findings to the implementation owner. In an implementation task, fix authorized defects and rerun affected checks; ask only when a fix needs additional scope or authority. A review-only request remains read-only.
 
 ## Reference selection
 

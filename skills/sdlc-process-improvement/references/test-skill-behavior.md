@@ -1,9 +1,3 @@
----
-name: test-skill-behavior
-description: 'Pressure-test whether a skill activates correctly, improves the requested outcome, and avoids unnecessary process.'
-user-invocable: true
----
-
 # test-skill-behavior
 
 ## Purpose

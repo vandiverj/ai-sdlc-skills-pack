@@ -25,7 +25,7 @@ Use when reviewing completed or in-progress AI agent work for workflow adherence
 - Lead with risks, missing evidence, Git reviewability problems, and artifact drift.
 - Do not infer safety from the implementer's confidence.
 - Do not rewrite artifacts during review unless the user asks for fixes.
-- If the work route was wrong, recommend `classify-work` before further implementation.
+- If the work route was wrong, recommend `run-sdlc` classification reference before further implementation.
 
 ## Output
 ```text

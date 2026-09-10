@@ -2,14 +2,14 @@
 # choose-agent-strategy
 
 ## Description
-Choose whether to use one agent or delegated specialist agents, and select the minimum model tier needed for the work evidence requirements.
+Choose whether bounded delegation adds useful independent work. Preserve the selected primary model and use task-appropriate reasoning effort.
 
 ## Use when
 - Work is Standard, High-risk, Exploratory, broad review, release work, or cross-cutting.
 - A task would benefit from read-only exploration, specialist review, independent verification, or bounded implementation workers.
 - The current agent is likely to overuse a heavy model for simple work or underuse a stronger model for risky work.
 - A project has configured Codex, VS Code/Copilot, Augment, Claude Code, or another runtime with different agent/model capabilities.
-- `classify-work`, `run-sdlc`, planning implementation-plan guidance, `review/references/agent-work.md`, or `review/references/production-readiness.md` needs delegation or escalation boundaries.
+- `run-sdlc` classification reference, `run-sdlc`, planning implementation-plan guidance, `review/references/agent-work.md`, or `review/references/production-readiness.md` needs delegation or escalation boundaries.
 
 ## Purpose
 Make delegation intentional, portable, and reviewable. The SDLC decides roles, model tiers, boundaries, and escalation triggers. Runtime adapters translate that strategy into the files or features a specific IDE/tool supports.
@@ -53,6 +53,9 @@ Next skill:
 ```
 
 ## Model tiers
+For the GPT-6 profile, use `medium` for ordinary work, `high` for consequential ambiguity or difficult diagnosis, and `xhigh` only for unusually hard or disputed work. This is a configurable workload policy, not proof that lower effort is always equivalent. Children inherit the primary model and effort unless a bounded task justifies an override. Runtime support determines whether effort can change during a session.
+
+The following capability labels remain compatible with existing project profiles; they do not require different model families or a routing receipt for every task.
 Use project-defined tiers instead of hard-coded model names:
 
 - `deterministic`: no model; use scripts, commands, tests, static tools, or CI.
@@ -106,7 +109,7 @@ Keep work sequential when tasks edit the same files, require ordered discoveries
 ## Escalation triggers
 Escalate model tier or request a specialist when:
 
-- Confidence is below the threshold set by `classify-work`.
+- Confidence is below the threshold set by `run-sdlc` classification reference.
 - Verification fails twice or fails for an unexplained reason.
 - Requirements, contracts, code, tests, docs, or tool output conflict.
 - Security, privacy, data, dependency, AI/agent, migration, deployment, or public-contract risk appears.
@@ -116,7 +119,7 @@ Escalate model tier or request a specialist when:
 ## Hard rules
 - Do not delegate just to appear thorough.
 - Do not parallelize overlapping writes, ordered discoveries, shared mutable state, or duplicated investigation.
-- Do not use a heavier model when a lower tier can satisfy the evidence requirement.
+- Do not change the user's chosen primary model merely to minimize token price. Evaluate cheaper models and effort levels against total delivery time and quality when relevant.
 - Do not use a lower tier for high-risk decisions if it cannot reason about the relevant failure modes.
 - Do not allow subagents to change files outside their assigned ownership.
 - Do not let runtime-specific agent configs become the source of truth over `.agents/agents/*.md`, project `docs/agents/*`, skills, and `AGENTS.md`.

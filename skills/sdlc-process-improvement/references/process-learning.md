@@ -1,9 +1,3 @@
----
-name: process-learning
-description: 'Router skill for capturing process events, reviewing repeated workflow signals, and updating reusable process guidance.'
-user-invocable: true
----
-
 # process-learning
 
 ## Purpose
@@ -17,16 +11,16 @@ Turn repeated SDLC friction and useful workflow discoveries into reviewed, porta
 
 | Trigger or surface | Load reference |
 | --- | --- |
-| Capture one lightweight process-learning event | `references/capture-event.md` |
-| Aggregate and review multiple events | `references/review-learning.md` |
-| Update implementation patterns from reviewed evidence | `references/update-patterns.md` |
-| Process review feedback needs disposition | `references/process-review-feedback.md` |
-| Current-repo dry run, configured validation target, or disposable pilot should validate router/evidence/agent behavior | `references/pilot-validation.md` |
+| Capture one lightweight process-learning event | `capture-event.md` |
+| Aggregate and review multiple events | `review-learning.md` |
+| Update implementation patterns from reviewed evidence | `update-patterns.md` |
+| Process review feedback needs disposition | `process-review-feedback.md` |
+| Current-repo dry run, configured validation target, or disposable pilot should validate router/evidence/agent behavior | `pilot-validation.md` |
 
 ## Handoffs
 - Use `review` for independent critique of process changes.
 - Use `agents`, `quality`, `implementation`, or `planning` when the learning changes a router's rules.
-- Use `test-skill-behavior` before relying on a meaningful skill change.
+- Use `sdlc-process-improvement` behavior-testing reference before relying on a meaningful skill change.
 
 ## Passive Feedback
 - When a real task exposes repeated friction, a route-fit problem, a verification gap, an agent miss, or a likely reusable improvement, capture a sanitized passive SDLC feedback event if the runtime provides `sdlc_feedback`.

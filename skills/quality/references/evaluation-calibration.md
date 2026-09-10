@@ -16,7 +16,7 @@ Use when recording whether the SDLC route, evidence expectation, model/agent cho
 - Do not update durable process rules from one weak signal.
 - Prefer repeated evidence or a high-severity near miss.
 - Separate project-local fixes from reusable SDLC changes.
-- Use `process-learning` for promotion decisions.
+- Use `sdlc-process-improvement` for promotion decisions.
 
 ## Output
 ```text

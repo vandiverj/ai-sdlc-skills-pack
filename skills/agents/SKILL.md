@@ -27,7 +27,7 @@ Own agent strategy and portable role definitions so `run-sdlc` can delegate with
 
 ## Handoffs
 - Use `review` for independent review of agent work or agent strategy.
-- Use `process-learning` for repeated delegation friction or improvements.
+- Use `sdlc-process-improvement` for repeated delegation friction or improvements.
 - Escalate to `run-sdlc` when delegation changes consent gates or work class.
 
 ## Required Output

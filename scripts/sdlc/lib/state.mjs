@@ -18,14 +18,13 @@ export function controlCurrentPointerPath(repo, options = {}) {
 
 export function controlRunDir(repo, options = {}) {
   const root = controlRunRoot(repo, options);
-  const id = options.taskId || `${stamp()}-${slug(options.task || 'task')}`;
+  const id = options.taskId || slug(options.task || 'task');
   return join(root, id);
 }
 
 export function ensureControlRunDir(repo, options = {}, task = '') {
   const info = readCurrentStateInfo(repo, options);
-  if (info.runDir) return info.runDir;
-  const runDir = controlRunDir(repo, { ...options, task });
+  const runDir = info.runDir || controlRunDir(repo, { ...options, task });
   mkdirSync(runDir, { recursive: true });
   return runDir;
 }
@@ -36,9 +35,14 @@ export function readCurrentState(repo, options = {}) {
 
 export function readCurrentStateInfo(repo, options = {}) {
   const pointer = readJsonIfExists(controlCurrentPointerPath(repo, options));
-  const runDir = options.taskId ? join(controlRunRoot(repo, options), options.taskId) : pointer?.path ? resolve(repo, pointer.path) : '';
+  const pointedDir = pointer?.path ? resolve(repo, pointer.path) : '';
+  const pointedState = pointedDir ? readJsonIfExists(join(pointedDir, 'state.json')) : null;
+  const runDir = options.taskId ? join(controlRunRoot(repo, options), options.taskId)
+    : options.task && pointedState?.task !== options.task ? join(controlRunRoot(repo, options), slug(options.task))
+      : pointedDir;
   const statePath = runDir ? join(runDir, 'state.json') : '';
   const state = statePath && existsSync(statePath) ? readJsonIfExists(statePath) : null;
+  if (state && options.task && state.task !== options.task) fail('The selected run belongs to another task. Use a distinct --task-id.');
   return { state, runDir, previousStage: state?.stage || '' };
 }
 

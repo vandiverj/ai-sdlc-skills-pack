@@ -49,7 +49,7 @@ export function behaviorChangeSignals(task = '', files = [], surfaces = []) {
 
 export function experienceImpactRequired({ task = '', route = 'standard', files = [], surfaces = [] } = {}) {
   const docsOnly = files.length > 0 && files.every((file) => /\.(md|mdx|txt|adoc|rst)$/i.test(file));
-  if (route === 'tiny-docs' || docsOnly || isExplicitlyMechanicalTask(task)) return false;
+  if (docsOnly || isExplicitlyMechanicalTask(task)) return false;
   if (behaviorChangeSignals(task, files, surfaces).length > 0) return true;
   return ['ui-rendered-review', 'contract-first', 'bugfix-live-system', 'multi-repo-integration'].includes(route);
 }
@@ -81,8 +81,10 @@ export function inferRouteFromTask(task, gitInfo, profile = {}) {
   if (matchesAny(text, ['spa artifact', 'generated spa', 'webpack', 'rollup', 'publish script', 'build-only app', 'build only app', 'generated bundle', 'artifact promotion'])) return 'standard';
   if (matchesAny(text, ['user interface', 'rendered product ui', 'visible ui', 'layout', 'mobile', 'accessibility', 'button', 'screen', 'page', 'board', 'placement', 'animation', 'animate', 'delay', 'turn feel', 'feels like a turn'])) return 'ui-rendered-review';
   if (matchesAny(text, ['staging log', 'production log', 'sql log', 'foreign key', 'fk ', 'live-connected', 'live connected'])) return 'bugfix-live-system';
-  if (matchesAny(text, ['docs', 'readme', 'markdown']) && !gitInfo.status) return 'tiny-docs';
+  if (matchesAny(text, ['docs', 'readme', 'markdown']) && (!gitInfo.status || gitInfo.changedFiles.every((file) => /\.(md|mdx|txt|adoc|rst)$/.test(file)))) return 'tiny-docs';
   if (hasBugfixIntent(text)) return 'bugfix-regression';
+  // Unrelated documentation changes must not downgrade a requested behavior change.
+  if (behaviorChangeSignals(task, gitInfo.changedFiles).length) return 'standard';
   return inferLikelyRoute(gitInfo) === 'tiny-docs' ? 'tiny-docs' : 'standard';
 }
 

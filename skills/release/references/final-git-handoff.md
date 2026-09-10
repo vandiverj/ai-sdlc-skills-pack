@@ -8,7 +8,7 @@ This reference is owned by the `release` router's finish-development-branch refe
 
 Normal implementation workers do not stage, commit, push, or open PRs.
 
-The SDLC prepares final Git and release evidence by default. It must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines. Commit and push require explicit human approval.
+The SDLC prepares final Git and release evidence by default. It must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines. Apply existing user/repository authorization to commit and push; ask only for missing authority.
 
 Git handoff belongs to:
 

@@ -32,7 +32,7 @@ function printGuide(mode, plan) {
   console.log('\nNext actions');
   for (const row of plan.commands.slice(0, 5)) console.log(`- ${row.command}\n  Why: ${row.why}`);
   console.log('\nChat prompt');
-  console.log(`Use SDLC for this task: ${plan.task}. Follow the recommended route, keep context compact, verify with surface-correct evidence, and stop before commit or push unless I approve.`);
+  console.log(`Use SDLC for this task: ${plan.task}. Follow the recommended route, keep context compact, verify with surface-correct evidence, and perform requested Git actions only with applicable user/repository authority.`);
   console.log('\nHuman gates');
   console.log('- Commit and push require explicit approval.');
   console.log('- Merge, deploy, release, ticket updates, database writes, and pipeline triggers are not automatic.');

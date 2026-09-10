@@ -1,110 +1,49 @@
-# AGENTS.md
+# Project agent guide
 
-## Project Overview
-- Purpose:
-- Primary users:
-- Current phase:
+Replace placeholders with verified project facts; omit unused sections.
 
-## Repository Layout
-- Source:
-- Tests:
-- Docs:
-- Generated artifacts:
+## Purpose and constraints
 
-## Setup
-```text
-<setup command>
-```
+- Product purpose and current delivery priority:
+- Accepted decisions and domain language:
+- Security, privacy, dependencies, and network constraints:
 
-## Commands
-- Format:
-- Lint:
-- Typecheck:
-- Test:
-- Build:
-- Health:
+## Repository map
 
-## Verification Guidance
-- Narrow check for small edits:
-- Broader check before completion:
-- Command flag policy:
-- Commands that are slow, flaky, or environment-dependent:
-- Rendered UI/app review path:
-- Evidence packet location:
-- Diff hygiene:
-  - Uncommitted work:
-  - Committed/reviewed work:
-- Protected evidence surfaces:
-  - Tests:
-  - Snapshots/baselines:
-  - Validation scripts:
-  - CI/local preflight config:
+- Source and tests:
+- Architecture and product documentation:
+- Generated output and ignored local evidence:
 
-## AI SDLC Workflow
-- Start with work classification.
-- Record the evidence packet level and any contextual caps before claiming completion.
-- Load the smallest safe context packet.
-- Use documented verification before claiming completion.
-- Treat tests, snapshots, generated baselines, validation commands, and CI config as protected evidence surfaces. If they change, record why and how the new evidence still protects behavior.
-- For UI or user-facing workflow changes, inspect the rendered browser/app/device surface when a runnable surface and approved tool are available; otherwise mark product-experience claims unverified.
-- Update context, docs, contracts, and agent instructions only when their surfaces changed.
-- Keep personal or pilot scratch notes out of commits unless explicitly intended; decide whether `.ai-local/` belongs in `.git/info/exclude` or project `.gitignore`.
-- Keep one-off agent helper scripts out of the repository root and product source folders. Use `.ai-local/sdlc-scratch/scripts/` for temporary `.ps1`, `.sh`, `.cmd`, or `.bat` files; clean stale scripts with `sdlc artifact scratch-cleanup`.
+## Development and verification
 
-## Agent Strategy
-- Project agent strategy source of truth: `docs/agents/`.
-- Runtime adapter files:
-  - Codex: `AGENTS.md`
-  - VS Code/Copilot:
-  - Augment:
-  - Claude Code:
-- Default strategy: single-agent for Micro/Tiny work unless risk appears.
-- Use the `agents` router for Standard, High-risk, Exploratory, review, release, or cross-cutting work when delegation, specialists, independent verification, or model-tier selection may help.
-- Model tiers are abstract in portable docs. Map concrete model names only in `docs/agents/runtime-adapters.md` or local runtime config.
-- Subagents must stay within assigned context, tools, and write boundaries. Prefer read-only specialists unless an approved plan assigns files.
+- Setup:
+- Focused checks for ordinary changes:
+- Broader checks and the checkpoints that require them:
+- Build/run command:
+- Rendered application verification:
+- Known environment limitations:
 
-## Code and Documentation Conventions
-- Code style:
-- Code-local documentation:
-- Public/shared surfaces that must be documented:
+Use the smallest workflow that proves the requested result. A small edit can use
+its diff and focused check directly. Behavioral changes need an observable outcome,
+material connected impact, and current proof; expand analysis for consequential risk.
+A cap records incomplete proof. Do not present it as successful verification.
 
-## Implementation Patterns
-- Pattern guidance source of truth: `docs/patterns/`.
-- Use the `implementation` router's implementation-patterns reference when work touches repeated project-specific surfaces such as forms, tables, modals, API handlers, data fetching, errors, tests, layouts, or feature modules.
-- Pattern docs capture project-specific conventions only. Do not duplicate formatter, linter, typecheck, schema, accessibility, test, or CI rules.
-- Standard patterns are the default for new work; deviations need a reason.
-- Deprecated or Superseded patterns should not be copied into new work.
+Read linked guidance when its subject matters. Keep durable project facts here or
+in their existing canonical document. Add profiles, agent catalogs, patterns, and
+handoff artifacts only when they solve an observed project need.
 
-## Security and Privacy
-- Secrets handling:
-- Network access:
-- Sensitive data:
-- Dependency policy:
+## Working rules
 
-## Retrieval and Tool Boundaries
-- Approved retrieval/index tools:
-- Allowed sources:
-- Disallowed sources:
-- Freshness expectations:
+Preserve unrelated changes. Keep edits and verification proportional to risk.
+When changing tests, baselines, or validation commands, explain why the resulting
+checks still protect behavior. Update documentation when its described surface changes.
+Use one agent by default; delegate independent, bounded work when the runtime and
+applicable instructions allow it. Honor the configured model and reasoning effort.
 
-## Runtime Adapter Boundaries
-- Runtime-specific files are adapters, not source of truth.
-- Adapter files must link back to `AGENTS.md`, `docs/ai-sdlc-workflow.md`, and `docs/agents/`.
-- Do not add or change hosted services, MCP servers, CI jobs, dependencies, or model-routing policy without the relevant approval gate.
+## Delivery authority
 
-## Branch, Commit, and PR Guidance
-- Branch naming:
-- Git identity/privacy:
-- Local-only files:
-  - `.ai-local/` policy:
-  - Scratch scripts: `.ai-local/sdlc-scratch/scripts/`
-  - Ignored via `.git/info/exclude` or `.gitignore`:
-  - Sanitized docs path, if any:
-- Public push/PR checks:
-- Commit expectations:
-- Keep commits scoped to one coherent task, gate, or mechanical change.
-- Do not bundle unrelated feature, docs, dependency, generated, and adapter changes unless explicitly approved.
-- PR expectations:
+- Branch and commit expectations:
+- Push, publication, deployment, and external-action authority:
 
-## Do Not Change Without Approval
-- 
+Existing user and repository authorization counts. Ask only when required authority
+or a material decision is missing. Readiness evidence does not grant permission.

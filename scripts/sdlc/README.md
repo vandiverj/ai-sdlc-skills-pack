@@ -4,44 +4,34 @@ Small dependency-free helper for repetitive SDLC mechanics.
 
 The CLI is an affordance over the Markdown SDLC. It does not replace agent judgment, source review, human approval gates, or route-specific skill guidance.
 
-## Golden Path
+## Normal use
 
-Use chat first and let the agent pick the smallest useful route.
-
-```bash
-sdlc intake packet --task "<task>"
-sdlc recipe match --task "<task>"
-sdlc run dashboard --task "<task>"
-sdlc task preflight --task "<task>"
-sdlc state init --task "<task>"
-sdlc evidence required --task "<task>"
-```
-
-During implementation, generate only the evidence that matches the route:
+Use chat first. These helpers are optional; direct commands and a concise evidence report are sufficient when no persistent run is needed.
 
 ```bash
-sdlc run-check --name test -- <test command>
-sdlc run-check --name build -- <build command>
-sdlc touched packet
-sdlc impact packet --task "<task>"
-sdlc interaction packet --task "<task>"
-sdlc validate ladder --task "<task>"
-sdlc verify packet --task "<task>"
-sdlc qa script --task "<task>"
+sdlc start --task "fix README typo" --files README.md
+sdlc run-check --task "fix README typo" --name diff --criterion ac-1 -- git diff --check
+sdlc prove --task "fix README typo"
+sdlc finish-ready --task "fix README typo"
 ```
 
-At the end:
+Inspect the actual text/diff as well; a whitespace check alone does not establish semantic correctness. Use `sdlc next` for guidance and `sdlc qa-ready` only when a QA handoff is needed. Specialist commands below remain optional.
+
+Named tasks share one run directory between journals, checks, and readiness. Keep `.ai-local/` ignored before using persistent helpers. Explicit `--task-id` selects a separate run. Evidence cannot be reused for another task; use a distinct task ID if normalized task names collide.
+
+`run-check` captures command output, status, criterion, task, and a working-tree revision. It returns nonzero for failure, unavailable tools, and caps. `prove`, `finish-ready`, and the compatibility `final gate` use passing current evidence. An old record without revision information cannot prove freshness. A cap describes partial work, not a pass; a waiver cannot make missing verification pass.
+
+For observable behavior, record its compact closure directly:
 
 ```bash
-sdlc complete check --task "<task>"
-sdlc finish packet --task "<task>"
-sdlc finish packet --task "<task>" --intent keep-change
-sdlc git guard --action commit
-sdlc action preview --action commit
-sdlc git packet
+sdlc evidence add --task "<task>" --kind experience-impact --summary "<closure>" --outcome "<observable result>" --connected-impact "<material consumer or recovery>" --proof "<specific checks>"
 ```
 
-Commit and push still require explicit human approval. The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.
+The closure does not replace criterion-specific test, rendered, or manual evidence. `--criterion ac-1` links a check to a criterion but cannot turn a generic build into behavior proof. Use `run-check --manual "<observed result>"` for actual manual inspection and `--cap "<reason>"` when evidence is unavailable. Existing contract and packet commands remain usable for detailed work; packet presence alone never grants readiness.
+
+Evidence freshness is checked locally without hooks or network access. The current conservative revision covers repository inputs, so changing inputs after a check invalidates proof. Update or rerun only the evidence the changed inputs affect; legacy completion packets may need fresh direct evidence recorded once.
+
+Apply existing authorization to requested Git or external actions. Readiness is advisory and never grants permission; ask only when authority is missing.
 
 ## Windows Setup And Tool Discovery
 
@@ -256,3 +246,10 @@ Key commands added for the global-local model:
 - `sdlc upgrade plan|apply|explain`: update local SDLC artifacts without merging, deploying, or overwriting team configuration.
 
 Context rule: durable state lives in local files; prompts should receive the smallest useful phase packet. Prefer `sdlc context assemble --phase <phase>` over copying full strategy docs, archived plans, raw logs, or unrelated repository memory into the model.
+
+Evidence also binds to the selected or stored contract contents. Pass the same
+`--contract`, `--task-id`, and `--out-root` when capturing and checking evidence.
+Changing a contract requires fresh proof. Task start captures pre-existing dirty
+file contents; subsequent edits expand the effective scope. Missing historical
+baselines are treated conservatively. These checks validate recorded provenance
+and coverage; they do not independently establish that a manual claim is true.

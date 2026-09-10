@@ -9,7 +9,7 @@ Choose, review, or revise whether a project needs an optional retrieval, indexin
 - context selection repeatedly cannot identify the right artifacts with Memory Bank routing, durable docs, file names, and targeted search.
 - A project needs local or hosted retrieval across source files, durable artifacts, external/domain docs, generated docs, multiple packages, or multiple related repositories.
 - The user asks about adding RAG, embeddings, vector search, knowledge graphs, Graphify, Obsidian, semantic search, repo retrieval, or a knowledge base.
-- `classify-work`, tools selection, context selection, planning model/implementation-plan guidance, or `review/references/agent-work.md` detects context-selection failures, stale indexes, retrieval drift, privacy risk, or unclear retrieval ownership.
+- `run-sdlc` classification reference, tools selection, context selection, planning model/implementation-plan guidance, or `review/references/agent-work.md` detects context-selection failures, stale indexes, retrieval drift, privacy risk, or unclear retrieval ownership.
 
 ## Purpose
 Decide whether retrieval infrastructure is worth its cost before adding it. Retrieval should help agents and humans find the authoritative artifacts to load; it must not become hidden memory or a competing source of truth.
@@ -109,7 +109,7 @@ After approval, route updates to the owning artifacts:
 - the `tools` router owns per-task tool access boundaries.
 
 ## Lifecycle integration
-- `classify-work` should mark `retrievalApproachChanged` when retrieval is missing, stale, changing, risky, or newly relevant.
+- `run-sdlc` classification reference should mark `retrievalApproachChanged` when retrieval is missing, stale, changing, risky, or newly relevant.
 - context selection should use retrieval only after Memory Bank routing, durable summaries, selected files, and targeted search are insufficient.
 - tools selection should define access boundaries before external, hosted, or MCP retrieval is used.
 - `graphify-index` and `graphify-query` are implementation options after this skill approves a graph/index approach.

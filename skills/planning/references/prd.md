@@ -8,7 +8,7 @@ Synthesize developed conversation context and the application model into a durab
 Turn clarified context into product requirements without re-interviewing the user unnecessarily or jumping directly into issues.
 
 ## Inputs
-- Conversation context from `grill-me` or approved design notes.
+- Conversation context from the planning requirements-interview reference or approved design notes.
 - `docs/application-model.md`.
 - Relevant `docs/context-state.md` open questions.
 - Related feature `context.md`, ADRs, or existing repo context when applicable.

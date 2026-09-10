@@ -1,3 +1,4 @@
+import { controlGateRows as readinessRows } from './gates.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { appendControlJsonLine, dedupe, escapeCommandArg, fail, formatInlineList, formatList, indentList, printGateRows, printObject, readJsonIfExists, safeWriteTextFile, stamp } from './common.mjs';
@@ -14,58 +15,14 @@ import { impactPacketFindings } from './changeimpact.mjs';
 import { experienceImpactRequired } from './routes.mjs';
 
 export function suggestedFinalGateCommand(gate, task) {
-  if (gate.includes('touched')) return 'sdlc touched packet';
-  if (gate.includes('experience-impact packet incomplete')) return 'sdlc impact check --packet <impact-packet.md>';
-  if (gate.includes('impact')) return `sdlc impact packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('verification')) return `sdlc verify packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('QA')) return `sdlc qa script --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('smoke')) return `sdlc smoke packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('data')) return `sdlc data packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('integration')) return `sdlc integration packet --task "${escapeCommandArg(task || 'current task')}"`;
-  if (gate.includes('test introduction')) return `sdlc test plan --task "${escapeCommandArg(task || 'current task')}"`;
-  return 'sdlc packet status';
+  return `sdlc finish-ready --task "${escapeCommandArg(task || 'current task')}"`;
 }
 
-export function finalGateOpenItems(repo, task, gitInfo, packets) {
-  const profile = loadProfile(repo);
-  const commands = discoverCommands(profile.values, readJsonIfExists(join(repo, 'package.json')));
-  const maturity = verificationMaturity(profile.values, commands);
-  const modes = detectWorkModes(repo, task, profile.values, gitInfo.changedFiles);
-  const surfaces = dedupe(gitInfo.changedFiles.map(classifyTouchedSurface));
-  const taskText = String(task || '').toLowerCase();
-  const hasTouched = packets.some((packet) => packet.kind === 'touched');
-  const impactPackets = packets.filter((packet) => packet.kind === 'impact' && (!task || packet.text.match(/^Task:\s*(.+)$/m)?.[1]?.trim() === task));
-  const hasImpact = impactPackets.length > 0;
-  const needsExperienceImpact = experienceImpactRequired({ task, route: inferRouteFromTask(task, gitInfo, profile.values), files: gitInfo.changedFiles });
-  const completeExperienceImpact = impactPackets.some((packet) => !impactPacketFindings(packet.text, { required: needsExperienceImpact }).some((finding) => finding.required && finding.status === 'open'));
-  const hasVerify = packets.some((packet) => packet.kind === 'developer-verification' && packet.completed);
-  const hasQa = packets.some((packet) => packet.kind === 'qa-script');
-  const hasSmoke = packets.some((packet) => packet.kind === 'manual-smoke' && packet.completed);
-  const hasData = packets.some((packet) => packet.kind === 'data');
-  const hasIntegration = packets.some((packet) => packet.kind === 'integration');
-  const hasTestPlan = packets.some((packet) => packet.kind === 'test-plan');
-  const manualQaMaturity = ['manual qa only', 'no automated tests'].some((item) => maturity.toLowerCase().includes(item));
-  const requiresSmoke =
-    manualQaMaturity ||
-    surfaces.includes('frontend/UI') ||
-    modes.includes('manual-QA-heavy') ||
-    matchesAny(taskText, ['manual smoke', 'smoke test', 'no automated tests', 'manual qa']);
-  const requiresData = surfaces.includes('database/storage') || modes.includes('database-heavy') || matchesAny(taskText, ['database', 'sql', 'data storage', 'migration']);
-  const requiresIntegration = surfaces.includes('external integration') || modes.includes('integration-heavy') || matchesAny(taskText, ['third-party', 'third party', 'webhook', 'integration', 'external system']);
-  const requiresTestPlan = manualQaMaturity || surfaces.includes('dependencies') || matchesAny(taskText, ['package', 'dependency', 'upgrade', 'no automated tests', 'missing tests']);
-  const open = [];
-  if (gitInfo.status && !hasTouched) open.push('touched packet missing for dirty work');
-  if (task && !hasImpact) open.push('impact packet missing for scoped task');
-  if (needsExperienceImpact && hasImpact && !completeExperienceImpact) open.push('experience-impact packet incomplete for observable behavior');
-  if (['mature CI', 'partial automated tests', 'smoke tests'].some((item) => maturity.toLowerCase().includes(item.toLowerCase())) && !hasVerify) open.push('developer verification packet completion missing or capped');
-  if (manualQaMaturity && !hasQa) open.push('human QA Markdown script missing for manual-QA/no-tests workflow');
-  if (!hasVerify) open.push('developer verification packet completion missing or capped');
-  if (!hasQa && !manualQaMaturity) open.push('human QA Markdown script missing or explicitly not needed');
-  if (requiresSmoke && !hasSmoke) open.push('manual smoke packet completion missing or capped');
-  if (requiresData && !hasData) open.push('data packet missing for data/storage workflow');
-  if (requiresIntegration && !hasIntegration) open.push('integration packet missing for external integration workflow');
-  if (requiresTestPlan && !hasTestPlan) open.push('test introduction plan missing for no-tests/dependency workflow');
-  return dedupe(open);
+export function finalGateOpenItems(repo, task, gitInfo, packets = [], options = {}) {
+  const runDir = ensureControlRunDir(repo, { ...options, task }, task);
+  const route = inferRouteFromTask(task, gitInfo, loadProfile(repo).values);
+  return readinessRows(repo, { task, route }, runDir, options)
+    .filter((row) => row.status === 'block').map((row) => row.detail);
 }
 
 export function completeCheck(repo, options = {}, dependencies = {}) {
@@ -127,15 +84,16 @@ export function finalGate(repo, options = {}, dependencies = {}) {
   const task = options.task || '';
   const git = getGitInfo(repo);
   const packets = findPackets(repo, {});
-  const open = finalGateOpenItems(repo, task, git, packets);
+  const open = finalGateOpenItems(repo, task, git, packets, options);
+  if (open.length) process.exitCode = 1;
   const hasQa = packets.some((packet) => packet.kind === 'qa-script');
   printObject({
     repository: repo,
     task: task || 'not provided',
     branch: git.branch || 'unknown',
     status: git.status || 'clean',
-    readyToCommit: open.length ? 'no' : 'yes, with explicit human approval only',
-    readyToPush: open.length ? 'no' : 'only with explicit human approval',
+    readyToCommit: open.length ? 'no' : 'yes; apply existing authorization',
+    readyToPush: open.length ? 'no' : 'only when authorized by the user',
     readyForQaHandoff: hasQa ? 'yes' : 'no',
     mergeDeployRelease: 'forbidden by SDLC default; use project-specific human process',
     openGates: open.join('; ') || 'none detected',
@@ -170,8 +128,8 @@ Status: ${gitInfo.status || 'clean'}
 
 - This packet prepares Git action evidence only.
 - The SDLC must not automatically merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines.
-- Commit requires explicit human approval.
-- Push requires explicit human approval.
+- Commit requires applicable authority; existing user/repository authorization counts.
+- Push requires applicable authority; existing user authorization counts.
 - Merge/deploy/release follows the project-specific human process.
 
 ## Proposed Commit
@@ -224,7 +182,7 @@ export function finishPacket(repo, options = {}, dependencies = {}) {
   const git = getGitInfo(repo);
   const packets = findPackets(repo, {});
   const recipes = matchRecipes(task, git, profile.values);
-  const open = finalGateOpenItems(repo, task, git, packets);
+  const open = finalGateOpenItems(repo, task, git, packets, options);
   const intent = options.intent || 'normal';
   const outPath = options.out ? resolve(repo, options.out) : join(defaultRunsDir(repo), `${stamp()}-finish-packet.md`);
   mkdirSync(dirname(outPath), { recursive: true });

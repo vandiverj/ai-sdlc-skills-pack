@@ -26,6 +26,8 @@ sdlc qa-ready --task "<task>"       # optional
 sdlc finish-ready --task "<task>"
 ```
 
+Record direct check evidence with `sdlc run-check --task "<task>" --name test --criterion ac-1 -- <focused command>`. See [CLI evidence semantics](scripts/sdlc/README.md) for freshness, manual checks, and partial results.
+
 Use `sdlc help expert` only when an unusual route needs a specialist command. The larger internal command set remains available for compatibility and diagnostics; it is not a checklist.
 
 ## Operating Model
@@ -58,9 +60,15 @@ Artifacts are tools, not progress. Create one only when it preserves a decision,
 
 ## Safety Kernel
 
-Always preserve unrelated user work and obey repository instructions. Fresh proof must support the claims being made. Explicit human authority is required for commit, push, merge, deploy, release, destructive actions, dependency changes, migrations, secrets, and external-service writes.
+Preserve unrelated user work and follow runtime policy, current user intent, and applicable repository constraints. Fresh proof must support the claims being made. Apply existing authorization to the next action; ask only when authority is missing. Readiness never authorizes an external or irreversible action. `WORKFLOW.md` owns the shared authority and evidence rules.
 
 Local run state and temporary scripts belong under ignored `.ai-local/` paths. Never treat generated packets, prior agent claims, or generic build success as proof of unrelated behavior.
+
+## GPT-6 profile
+
+Use GPT-6 at `medium` for ordinary development. Escalate to `high` for consequential ambiguity or hard diagnosis, and to `xhigh` only for unusually difficult work. Hosted Codex adapters inherit the selected model and effort. This is a configurable default, not a benchmark claim.
+
+The pack now exposes 16 skills. Classification, requirements interviewing, recurring learning, and skill evaluation live under their owning workflows. Meta/specialist workflows use explicit invocation where configured. The generic document fallback lives outside skill discovery in `compatibility/`.
 
 ## Pack Layout
 
@@ -83,6 +91,7 @@ node scripts/test-skill-files.mjs
 node scripts/test-agent-contracts.mjs
 node scripts/test-routing-optimization.mjs
 node scripts/test-deterministic-tools.mjs
+node scripts/test-readiness.mjs
 ```
 
 The SDLC should make important omissions harder while leaving straightforward work straightforward.

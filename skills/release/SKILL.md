@@ -42,5 +42,5 @@ Next action:
 ## Stop Rules
 - Do not push to protected branches without explicit approval.
 - Do not merge, deploy, release, move code between branches/environments, create merge requests/pull requests, or trigger deployment pipelines unless the human explicitly asks and the project-specific process is known.
-- Commit and push require explicit human approval.
+- Apply existing user/repository authorization to commit and push; ask only for missing authority.
 - Do not finish release-facing work with missing verification, unresolved high-risk findings, or unclear rollback/handoff.

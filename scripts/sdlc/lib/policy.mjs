@@ -57,7 +57,7 @@ export function policyRowsForTask(repo, task, profile = {}) {
   const rows = [];
   const triggers = securityTriggers(task || '', profile);
   if (triggers.length) rows.push({ id: 'policy-security-triggers', status: 'warn', detail: triggers.join(', '), next: `sdlc policy check --task "${escapeCommandArg(task || '')}"` });
-  if (matchesAny(String(task || '').toLowerCase(), ['merge', 'deploy', 'release', 'pipeline', 'move files'])) rows.push({ id: 'policy-release-boundary', status: 'block', detail: 'merge/deploy/release/pipeline/file movement is never automatic', next: 'human project-specific release process' });
+  if (matchesAny(String(task || '').toLowerCase(), ['merge', 'deploy', 'release', 'pipeline'])) rows.push({ id: 'policy-release-boundary', status: 'warn', detail: 'Readiness does not grant release authority; apply existing user authorization and runtime policy at the action boundary.', next: 'check authorization before the requested external action' });
   if (!rows.length) rows.push({ id: 'policy-default', status: 'pass', detail: 'no high-risk policy trigger detected', next: '' });
   return rows;
 }

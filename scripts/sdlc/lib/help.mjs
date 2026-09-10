@@ -429,7 +429,7 @@ sdlc finish-ready --task "<task>"
 
 Boundaries:
 
-- Commit and push require explicit human approval.
+- Apply existing user/repository authorization to commit and push; ask only for missing authority.
 - Merge, deploy, release, ticket writes, and database changes are not automated.
 - Temporary scripts belong under \`.ai-local/sdlc-scratch/scripts/\`.`);
 }
@@ -592,7 +592,7 @@ Use SDLC to review the current completion state of this task: <task>. Tell me wh
 
 ## Boundaries
 
-- Commit and push require explicit human approval.
+- Apply existing user/repository authorization to commit and push; ask only for missing authority.
 - Merge, deploy, release, MR/PR creation, pipeline triggers, and manual file movement stay outside default automation.
 - Feedback is local/sanitized by default and is for improving the SDLC, not measuring individual developers.`);
 }

@@ -7,6 +7,8 @@ user-invocable: true
 # planning
 
 ## Purpose
+Use `references/requirements-interview.md` when the user requests an interview or a material requirements decision needs clarification. Ordinary implementation requests do not need an interview.
+
 Route planning work to the smallest useful planning stack before implementation.
 
 ## Use When
@@ -30,7 +32,7 @@ Route planning work to the smallest useful planning stack before implementation.
 
 ## Handoffs
 - Use `review` for planning artifact review, contract review, and plan review.
-- Use `implementation` only after planning gates are approved.
+- Use `implementation` once material decisions are resolved and the requested work is authorized; do not add a separate plan-approval pause to an already clear task.
 - Escalate to `run-sdlc` when scope, work class, consent gates, or repository boundaries change.
 
 ## Required Output

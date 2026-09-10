@@ -21,7 +21,7 @@ Purpose: prove the consolidated router/reference skill structure works after pro
 | `release` discovered | pass / fail |  |
 | `agents` discovered | pass / fail |  |
 | `tools` discovered | pass / fail |  |
-| `process-learning` discovered | pass / fail |  |
+| `sdlc-process-improvement` discovered | pass / fail |  |
 
 ## Reference Loading Tests
 | Scenario | Expected router/reference | Result | Notes |

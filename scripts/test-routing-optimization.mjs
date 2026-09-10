@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import { contractFindings, taskContract } from './sdlc/lib/contract.mjs';
 import { impactPacketFindings } from './sdlc/lib/changeimpact.mjs';
 import { evidenceMatchesCriterion } from './sdlc/lib/evidence.mjs';
-import { finalGateOpenItems } from './sdlc/lib/finish.mjs';
 import { detectStack, inferRepoUnits } from './sdlc/lib/units.mjs';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -81,6 +80,17 @@ assert(!(internalReview.requirements || []).some((item) => item.id === 'experien
 const incompleteContract = taskContract(repoRoot, experienceTask, { files: [experienceFile], acceptance: 'The owner can replace the saved observation.' });
 assert(contractFindings(incompleteContract).some((item) => item.required && item.status === 'open' && /outcome|impact|proof/i.test(item.area)), 'behavior task contract should remain open without outcome/connected-impact/proof.');
 
+for (const git of [
+  { status: '', changedFiles: [] },
+  { status: '?? docs/unrelated.md', changedFiles: ['docs/unrelated.md'] },
+  { status: `M ${experienceFile}`, changedFiles: [experienceFile] },
+]) {
+  const scoped = taskContract(repoRoot, experienceTask, { git, files: [experienceFile], acceptance: 'Replacement preserves identity.' });
+  assert(scoped.route === 'standard' && scoped.experienceImpact.required, 'explicit behavior scope must retain evidence requirements regardless of ambient Git state.');
+  const staleRoute = taskContract(repoRoot, experienceTask, { git, files: [experienceFile], route: 'tiny-docs' });
+  assert(staleRoute.experienceImpact.required, 'a stale docs route must not disable proof for an explicit behavior surface.');
+}
+
 const completeContract = taskContract(repoRoot, experienceTask, {
   files: [experienceFile],
   acceptance: 'The owner can replace the selected observation without changing its identity.',
@@ -123,10 +133,7 @@ const incompleteExpandedImpact = completeImpact.replace('Expanded mapping requir
 assert(impactPacketFindings(incompleteExpandedImpact).some((item) => item.required && item.status === 'open' && /expanded/i.test(item.area)), 'expanded impact packet should require the risk-relevant detail omitted by the compact form.');
 
 const incompleteImpact = completeImpact.replace('Experience-impact status: complete', 'Experience-impact status: open').replace('Outcome: The user replaces the selected observation without changing its stable identity', 'Outcome:');
-const incompleteFinalGates = finalGateOpenItems(repoRoot, experienceTask, { status: 'M scoped', changedFiles: [experienceFile] }, [{ kind: 'impact', text: incompleteImpact }]);
-assert(incompleteFinalGates.includes('experience-impact packet incomplete for observable behavior'), 'finish gate must inspect impact content instead of accepting packet presence.');
-const completeFinalGates = finalGateOpenItems(repoRoot, experienceTask, { status: 'M scoped', changedFiles: [experienceFile] }, [{ kind: 'impact', text: completeImpact }]);
-assert(!completeFinalGates.includes('experience-impact packet incomplete for observable behavior'), 'finish gate should accept a content-complete experience-impact closure.');
+// Live readiness and legacy entrypoint parity are exercised in test-readiness.mjs.
 
 const nativeFixture = mkdtempSync(join(tmpdir(), 'sdlc-native-fixture-'));
 try {

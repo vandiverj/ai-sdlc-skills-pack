@@ -1,7 +1,7 @@
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { dedupe, escapeCommandArg, formatList, optionFiles, printObject, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, slug } from './common.mjs';
-import { getGitInfo } from './git.mjs';
+import { dedupe, escapeCommandArg, fail, formatList, optionFiles, printObject, readJsonIfExists, safeWriteJsonFile, safeWriteTextFile, slug } from './common.mjs';
+import { fileSnapshots, getGitInfo } from './git.mjs';
 import { loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { inferRouteFromTask } from './routes.mjs';
@@ -12,7 +12,7 @@ export function journalTaskId(task, options = {}) {
 }
 
 export function journalDir(repo, task, options = {}) {
-  return resolve(repo, options.journalDir || join(defaultRunsDir(repo), journalTaskId(task, options)));
+  return resolve(repo, options.journalDir || join(options.outRoot ? resolve(repo, options.outRoot) : defaultRunsDir(repo), journalTaskId(task, options)));
 }
 
 export function journalPaths(repo, task, options = {}) {
@@ -39,6 +39,7 @@ export function upsertTaskJournal(repo, task, updates = {}, options = {}) {
   const paths = journalPaths(repo, task, options);
   return withJournalLock(paths, () => {
     const existing = readJsonIfExists(paths.json) || {};
+    if (existing.task && existing.task !== task) fail('Journal belongs to another task. Use a distinct --task-id.');
     const profile = loadProfile(repo);
     const git = getGitInfo(repo);
     const files = Array.isArray(updates.touchedFiles) ? updates.touchedFiles : optionFiles(options, git.changedFiles);
@@ -49,6 +50,8 @@ export function upsertTaskJournal(repo, task, updates = {}, options = {}) {
     const now = new Date().toISOString();
     const journal = {
       schema: 'sdlc-task-journal-v1',
+      initialChanges: existing.initialChanges || git.changedFiles,
+      initialSnapshots: existing.initialSnapshots || fileSnapshots(repo, git.changedFiles),
       taskId: existing.taskId || journalTaskId(task, options),
       task,
       repository: repo,
@@ -184,7 +187,7 @@ export function journalNextAction(repo, task, options = {}, deps = {}) {
   const journal = loadTaskJournal(repo, task, options);
   const git = getGitInfo(repo);
   const packets = deps.findPackets ? deps.findPackets(repo, {}) : [];
-  const open = deps.finalGateOpenItems && (journal.task || task) ? deps.finalGateOpenItems(repo, journal.task || task, git, packets) : [];
+  const open = deps.finalGateOpenItems && (journal.task || task) ? deps.finalGateOpenItems(repo, journal.task || task, git, packets, options) : [];
   const scopedTask = journal.task || task;
   if (!scopedTask) {
     return nextActionRow('Start an SDLC task', 'No task was provided and no task journal was found.', 'sdlc start --task "..."', 'task journal', 'provide the task statement', 'Run with --task "..."');
@@ -192,24 +195,11 @@ export function journalNextAction(repo, task, options = {}, deps = {}) {
   if (!journal.task) {
     return nextActionRow('Create task run journal', 'No canonical run journal exists for this task.', `sdlc start --task "${escapeCommandArg(scopedTask)}"`, 'task memory', 'none', 'Use sdlc task start if console start is unavailable.');
   }
-  if (git.changedFiles.length && !journal.touchedFiles?.length) {
-    return nextActionRow('Record touched files', 'Git shows changed files but the journal has not captured touched surfaces yet.', 'sdlc touched packet', 'scope/evidence', 'none', `sdlc task ledger --task "${escapeCommandArg(scopedTask)}"`);
-  }
-  if (!packets.some((packet) => packet.kind === 'developer-verification') && git.changedFiles.length) {
-    return nextActionRow('Capture developer verification evidence', 'Implementation changes exist and no developer verification packet was found.', `sdlc verify packet --task "${escapeCommandArg(scopedTask)}"`, 'verification', 'none unless commands require approval', `sdlc verify ladder --task "${escapeCommandArg(scopedTask)}"`);
-  }
-  if (!packets.some((packet) => packet.kind === 'qa-script') && /qa|youtrack|manual|legacy|multi/i.test(`${journal.mode} ${journal.qaMode} ${journal.route}`)) {
-    return nextActionRow('Prepare human QA Markdown', 'Detected mode/route suggests human QA may be needed and no QA script packet exists.', `sdlc qa script --task "${escapeCommandArg(scopedTask)}"`, 'QA handoff', 'confirm QA is needed if uncertain', `sdlc qa coverage --task "${escapeCommandArg(scopedTask)}"`);
-  }
-  const recommendedAgent = (journal.agents || []).find((agent) => ['recommended', 'strongly-recommended'].includes(agent.recommendation || agent.status));
-  if (recommendedAgent && !recommendedAgent.path) {
-    return nextActionRow('Create bounded agent handoff packet', `The run journal recommends a ${recommendedAgent.role} packet for this task.`, `sdlc agents packet --role ${recommendedAgent.role} --task "${escapeCommandArg(scopedTask)}"`, 'agent handoff/process clarity', 'skip only if the work is tiny or the packet adds overhead', `sdlc agents status --task "${escapeCommandArg(scopedTask)}"`);
-  }
   if (open.length) {
     const command = deps.suggestedFinalGateCommand ? deps.suggestedFinalGateCommand(open[0], scopedTask) : `sdlc complete check --task "${escapeCommandArg(scopedTask)}"`;
     return nextActionRow('Close the next completion gate', open[0], command, 'finish readiness', 'human waiver may be needed for capped evidence', `sdlc complete explain --task "${escapeCommandArg(scopedTask)}"`);
   }
-  return nextActionRow('Ask for finish decision', 'No open deterministic gates were detected. Commit/push remains a human approval choice.', `sdlc finish-ready --task "${escapeCommandArg(scopedTask)}"`, 'finish decision', 'choose no action, commit only, or commit and push', `sdlc finish packet --task "${escapeCommandArg(scopedTask)}"`);
+  return nextActionRow('Finish the authorized task', 'Current evidence satisfies readiness. Apply existing authorization to any requested Git action.', `sdlc finish-ready --task "${escapeCommandArg(scopedTask)}"`, 'finish decision', 'only if the next requested action lacks authorization', `sdlc finish packet --task "${escapeCommandArg(scopedTask)}"`);
 }
 
 export function printJournalNextAction(row) {

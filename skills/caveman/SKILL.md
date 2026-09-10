@@ -1,6 +1,6 @@
 ---
 name: caveman
-description: 'Ultra-compressed reply mode (~75% fewer tokens) with lite/full/ultra and wenyan intensity levels. Use when the user says "caveman mode", "talk like caveman", "use caveman", "less tokens", "be brief", requests token efficiency, or invokes /caveman.'
+description: 'Ultra-compressed reply mode (~75% fewer tokens) with lite/full/ultra and wenyan intensity levels. Use when the user says "caveman mode", "talk like caveman", "use caveman", explicitly requests compressed replies, or invokes /caveman.'
 user-invocable: true
 ---
 

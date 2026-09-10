@@ -58,6 +58,8 @@ Use `references/fixture-validation.md` only when a runnable fixture or dry run i
 
 ## Validation
 
+Use `references/process-learning.md` to review recurring workflow evidence and `references/test-skill-behavior.md` to test activation and outcomes. Read their supporting references only for the relevant procedure. Learning remains local unless the user has authorized a configured external feedback workflow.
+
 Prefer, in order:
 
 1. current repository checks and representative dry runs,

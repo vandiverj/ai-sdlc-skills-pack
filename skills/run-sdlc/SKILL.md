@@ -15,7 +15,7 @@ Use this as the top-level router for substantive repository work. Skip it when t
 ## Operating model
 
 1. Preserve the user's request, repository instructions, existing decisions, and unrelated work.
-2. Use `classify-work` to choose Micro, Tiny, Standard, High-risk, Exploratory, Review-only, or Release/handoff.
+2. Choose the smallest route using the table below. Read `references/classify-work.md` only when classification is uncertain or changes materially.
 3. Inspect only the context needed for the next decision. Prefer repository commands and configuration over guessed conventions.
 4. Route one phase at a time to `planning`, `implementation`, `quality`, `review`, `release`, `context`, `agents`, or `tools`.
 5. Continue through routine, reversible work. Pause only for a real ambiguity or an action that needs additional authority.
@@ -23,6 +23,8 @@ Use this as the top-level router for substantive repository work. Skip it when t
 7. Update durable documentation only when durable truth changed.
 
 The workflow is a dependency graph, not a mandatory ladder. Do not create an artifact unless it preserves a decision, enables restart, or carries evidence that would otherwise be lost.
+
+Phase output fields are internal guidance, not mandatory reports to the user. Give one concise final handoff; do not print repeated classification, reference, and approval forms between ordinary steps. Use existing task/check records as evidence instead of copying them into new packets.
 
 ## Experience and impact
 

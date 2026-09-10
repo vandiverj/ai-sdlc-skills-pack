@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TextDecoder } from 'node:util';
@@ -17,9 +17,9 @@ function optionValue(name) {
 if (args.includes('--help') || args.includes('-h')) {
   console.log(`Usage: node scripts/test-skill-files.mjs [--skills-root <path>]
 
-Checks skills/**/SKILL.md files for UTF-8 without BOM, byte-0 YAML
-frontmatter, required frontmatter fields, LF line endings, and duplicate
-leading frontmatter.`);
+Checks skill entrypoints and optional agents/openai.yaml metadata for UTF-8,
+LF, supported metadata structure, invocation references, and stale defaults.
+This is structural validation, not proof of agent behavior.`);
   process.exit(0);
 }
 
@@ -110,6 +110,25 @@ for (const file of files) {
   if (bodyStart < lines.length && lines[bodyStart] === '---') {
     failures.push(`${label}: duplicate leading YAML frontmatter found.`);
   }
+}
+
+for (const file of files) {
+  const metadata = join(dirname(file), 'agents', 'openai.yaml');
+  if (!existsSync(metadata)) continue;
+  const bytes = readFileSync(metadata);
+  const label = displayPath(metadata);
+  if (bytes.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf]))) failures.push(`${label}: UTF-8 BOM is not allowed.`);
+  let text;
+  try { text = decoder.decode(bytes); } catch { failures.push(`${label}: invalid UTF-8.`); continue; }
+  if (text.includes('\r') || text.includes('\t') || !text.endsWith('\n')) failures.push(`${label}: use LF, spaces, and a final newline.`);
+  const roots = text.split('\n').filter((line) => /^[a-z_]+:/.test(line));
+  if (roots.some((line) => !/^(interface|policy|dependencies):\s*$/.test(line))) failures.push(`${label}: interface fields must be nested under interface.`);
+  const prompt = text.match(/^  default_prompt: "(.*)"$/m)?.[1];
+  if (/default_prompt:/.test(text) && !prompt?.includes(`$${basename(dirname(file))}`)) failures.push(`${label}: default_prompt must name its skill explicitly.`);
+  const short = text.match(/^  short_description: "(.*)"$/m)?.[1];
+  if (short && (short.length < 25 || short.length > 64)) failures.push(`${label}: short_description must be 25–64 characters.`);
+  if (/allow_implicit_invocation:/.test(text) && !/^  allow_implicit_invocation: (true|false)$/m.test(text)) failures.push(`${label}: invalid invocation policy.`);
+  if (/\b10 review\/revision loops\b/.test(text)) failures.push(`${label}: retired mandatory ten-loop default.`);
 }
 
 if (failures.length) {

@@ -56,5 +56,5 @@ Stop condition:
 ## Stop Rules
 - Do not claim complete, fixed, safe, or ready without fresh evidence or explicit gaps.
 - Do not let a generic build/test result satisfy an unrelated behavior claim; record the evidence link or leave the claim open.
-- Stop before adding new dependencies, services, CI changes, generated baselines, snapshots, or broad tooling.
+- Apply existing task authorization before changing dependencies, services, CI, baselines, snapshots, or tooling; ask only for additional scope or authority that is actually missing.
 - Stop if tests/checks appear to have been weakened to make work pass.

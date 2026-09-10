@@ -1,8 +1,7 @@
+# Inherit the selected primary model and effort; override only for a bounded need.
 name = "sdlc_security_privacy_reviewer"
 description = "Deep SDLC reviewer for security, privacy, data, dependency, MCP, and AI-agent risks."
 
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 
 developer_instructions = """

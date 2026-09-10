@@ -1,7 +1,8 @@
+import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { appendControlJsonLine, dedupeBy, escapeCell, fail, formatList, optionFiles, printObject, readJsonIfExists, readJsonLines, safeWriteJsonFile, slug, stamp, writeOrPrint } from './common.mjs';
-import { getGitInfo } from './git.mjs';
+import { evidenceRevision, fileSnapshots, getGitInfo } from './git.mjs';
 import { discoverCommands, loadProfile } from './profile.mjs';
 import { defaultRunsDir } from './paths.mjs';
 import { ensureControlRunDir, readCurrentState, readCurrentStateInfo } from './state.mjs';
@@ -9,7 +10,7 @@ import { matchRecipes } from './recipes.mjs';
 import { experienceImpactRequired, inferRouteFromTask, securityTriggers } from './routes.mjs';
 import { buildToolInventory, deterministicToolRecommendations, externalEvidenceProfile } from './tools.mjs';
 import { inferTestingSurfaces, matchesAny, qaModeForSurfaces } from './units.mjs';
-import { taskContract } from './contract.mjs';
+import { experienceImpactFindings, taskContract } from './contract.mjs';
 
 export function evidenceInit(repo, options = {}) {
   const route = options.route || 'standard';
@@ -79,7 +80,7 @@ export function evidenceStatus(repo, options = {}) {
   const runDir = stateInfo.runDir || ensureControlRunDir(repo, options, task || 'current-task');
   const route = options.route || stateInfo.state?.route || inferRouteFromTask(task, getGitInfo(repo), loadProfile(repo).values);
   const manifest = ensureEvidenceManifest(repo, runDir, task, route, options);
-  const rows = evidenceStatusRows(repo, runDir, manifest);
+  const rows = evidenceStatusRows(repo, runDir, manifest, options);
   printObject({ task: task || 'not provided', route, result: rows.some((row) => row.status === 'missing') ? 'open' : 'satisfied' });
   printEvidenceStatusRows(rows);
   if (rows.some((row) => row.status === 'missing' && row.level === 'required')) process.exitCode = 1;
@@ -100,6 +101,12 @@ export function evidenceAdd(repo, options = {}) {
     summary,
     path: options.path || '',
     status: options.status || 'captured',
+    task,
+    revision: evidenceRevision(repo),
+    contractRevision: evidenceContractRevision(repo, task, options),
+    outcome: options.outcome || '',
+    connectedImpact: options.connectedImpact || '',
+    proof: options.proof || '',
     capturedAt: new Date().toISOString(),
   };
   manifest.captured = [...(manifest.captured || []), item];
@@ -216,6 +223,7 @@ export function evidenceMatrix(repo, options = {}) {
   const matrix = buildEvidenceMatrix(repo, task, options);
   const content = renderEvidenceMatrix(matrix);
   writeOrPrint(repo, options.out, content);
+  if (matrix.rows.some((row) => row.required && row.status !== 'satisfied')) process.exitCode = 1;
 }
 
 export function evidenceGap(repo, options = {}) {
@@ -279,13 +287,14 @@ export function buildEvidenceMatrix(repo, task, options = {}) {
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
   const route = options.route || inferRouteFromTask(task, git, profile.values);
-  const runDir = readCurrentStateInfo(repo, options).runDir || ensureControlRunDir(repo, options, task);
+  const runOptions = { ...options, task };
+  const runDir = readCurrentStateInfo(repo, runOptions).runDir || ensureControlRunDir(repo, runOptions, task);
   const manifest = ensureEvidenceManifest(repo, runDir, task, route, options);
-  const contract = loadTaskContract(repo, task, options) || taskContract(repo, task, { route, git, profile, task });
-  const captured = [...(manifest.captured || []), ...readJsonLines(join(runDir, 'checks.jsonl')).map((row) => ({ kind: row.name || row.type || 'check', summary: row.summary || row.command || '', status: row.status === 0 || row.status === 'pass' ? 'captured' : row.status || 'captured' }))];
+  const contract = loadTaskContract(repo, task, runOptions) || taskContract(repo, task, { route: manifest.route, git, profile, files: manifest.files });
+  const captured = currentEvidence(repo, runDir, manifest, options);
   const rows = (contract.acceptanceCriteria || []).map((criterion) => {
     const proofNeeded = contract.evidenceRequired?.find((item) => item.criterionId === criterion.id)?.proofNeeded || proofForText(criterion.text, contract.testingSurfaces || []);
-    const matched = captured.find((item) => evidenceMatchesCriterion(item, criterion, proofNeeded));
+    const matched = criterionProof(captured, criterion, proofNeeded);
     return {
       criterionId: criterion.id,
       criterion: criterion.text,
@@ -298,7 +307,7 @@ export function buildEvidenceMatrix(repo, task, options = {}) {
       qa: qaImplication(contract, criterion, matched),
     };
   });
-  return { schema: 'sdlc-evidence-matrix-v1', generatedAt: new Date().toISOString(), task, route, runDir, contractSource: contract.source || 'generated', testingSurfaces: contract.testingSurfaces || [], qaMode: contract.qaMode || 'workflow', rows };
+  return { schema: 'sdlc-evidence-matrix-v1', generatedAt: new Date().toISOString(), task, route: manifest.route, runDir, contractSource: contract.source || 'generated', testingSurfaces: contract.testingSurfaces || [], qaMode: contract.qaMode || 'workflow', rows };
 }
 
 function renderEvidenceMatrix(matrix) {
@@ -316,17 +325,29 @@ ${matrix.rows.map((row) => `| ${escapeCell(row.criterion)} | ${escapeCell(row.pr
 `;
 }
 
+export function evidenceContractRevision(repo, task, options = {}) {
+  const contract = loadTaskContract(repo, task, { ...options, task });
+  if (!contract) return 'generated-from-task-and-source';
+  return createHash('sha256').update(JSON.stringify(contract)).digest('hex');
+}
+
 function loadTaskContract(repo, task, options = {}) {
-  if (options.contract) return readJsonIfExists(resolve(repo, options.contract));
+  if (options.contract) {
+    const contract = readJsonIfExists(resolve(repo, options.contract));
+    if (!contract || contract.task !== task) fail('Contract must belong to the requested task.');
+    return contract;
+  }
   const runDir = readCurrentStateInfo(repo, options).runDir || '';
   if (runDir) {
     const current = readJsonIfExists(join(runDir, 'task-contract.json'));
+    if (current && current.task !== task) fail('Stored contract belongs to another task.');
     if (current) return current;
   }
   return null;
 }
 
 export function evidenceMatchesCriterion(item, criterion, proofNeeded) {
+  if (item.status && !['pass', 'captured', 'cap'].includes(item.status)) return false;
   const text = `${item.kind || ''} ${item.summary || ''} ${item.path || ''}`.toLowerCase();
   const scopedById = item.criterionId && item.criterionId === criterion.id;
   const stopWords = new Set(['about', 'after', 'before', 'change', 'complete', 'ensure', 'should', 'their', 'there', 'these', 'thing', 'update', 'using', 'with']);
@@ -373,16 +394,27 @@ function escapeMatrixCommand(value) {
 export function ensureEvidenceManifest(repo, runDir, task, route, options = {}) {
   const path = join(runDir, 'evidence.json');
   const existing = readJsonIfExists(path);
-  if (existing) return existing;
+  if (existing?.task && existing.task !== task) fail('Evidence belongs to another task. Use a distinct --task-id.');
   const profile = loadProfile(repo);
   const git = getGitInfo(repo);
+  const journal = readJsonIfExists(join(runDir, 'run.json'));
+  const declared = optionFiles(options, journal?.touchedFiles || existing?.files || git.changedFiles);
+  const initialChanges = existing?.initialChanges || journal?.initialChanges || [];
+  const initialSnapshots = existing?.initialSnapshots || journal?.initialSnapshots || {};
+  const snapshots = fileSnapshots(repo, git.changedFiles);
+  const files = [...new Set([...declared, ...git.changedFiles.filter((file) => !initialChanges.includes(file) || !snapshots[file] || snapshots[file] !== initialSnapshots[file])])];
+  const currentRoute = options.route || inferRouteFromTask(task, { ...git, changedFiles: files }, profile.values);
   const manifest = {
+    ...existing,
     schema: 'sdlc-evidence-v1',
     task,
-    route,
-    required: evidenceRequirementsForTask(repo, task, route, git, profile, options),
-    captured: [],
-    createdAt: new Date().toISOString(),
+    route: currentRoute,
+    files,
+    initialChanges,
+    initialSnapshots,
+    required: evidenceRequirementsForTask(repo, task, currentRoute, { ...git, changedFiles: files }, profile, { ...options, files }),
+    captured: existing?.captured || [],
+    createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
   safeWriteJsonFile(repo, path, manifest);
@@ -393,13 +425,46 @@ export function readEvidenceManifest(runDir) {
   return readJsonIfExists(join(runDir, 'evidence.json')) || { required: [], captured: [] };
 }
 
-export function evidenceStatusRows(repo, runDir, manifest) {
-  const checks = readJsonLines(join(runDir, 'checks.jsonl'));
-  const captured = manifest.captured || [];
+export function evidenceStatusRows(repo, runDir, manifest, options = {}) {
+  const captured = currentEvidence(repo, runDir, manifest, options);
+  const passed = captured.filter((item) => ['pass', 'captured'].includes(item.status));
+  const contract = loadTaskContract(repo, manifest.task, { ...options, task: manifest.task }) || taskContract(repo, manifest.task, { files: manifest.files, route: manifest.route });
   return (manifest.required || []).map((req) => {
-    const matched = evidenceRequirementSatisfied(req, captured, checks);
+    let matched;
+    if (req.id === 'scope') matched = Boolean(manifest.task);
+    else if (req.id === 'changed-files') matched = Array.isArray(manifest.files);
+    else if (req.id === 'verification') matched = contract.acceptanceCriteria?.length > 0 && contract.acceptanceCriteria.every((criterion) => {
+      const proof = contract.evidenceRequired?.find((item) => item.criterionId === criterion.id)?.proofNeeded || proofForText(criterion.text, contract.testingSurfaces || []);
+      return Boolean(criterionProof(captured, criterion, proof));
+    });
+    else if (req.id === 'experience-impact') matched = passed.some((item) => item.kind === 'experience-impact' && experienceImpactFindings({
+      ...contract.experienceImpact, required: true,
+      expanded: contract.experienceImpact?.expanded || taskContract(repo, manifest.task, { files: manifest.files, route: manifest.route }).experienceImpact.expanded,
+      outcome: item.outcome, connectedImpacts: item.connectedImpact ? [item.connectedImpact] : [], proof: item.proof ? [item.proof] : [],
+    }).every((finding) => finding.status === 'ready'));
+    else matched = evidenceRequirementSatisfied(req, passed);
     return { id: req.id, level: req.level, status: matched ? 'satisfied' : 'missing', summary: req.summary };
   });
+}
+
+function criterionProof(records, criterion, proof) {
+  const relevant = records.filter((item) => item.criterionId === criterion.id || evidenceMatchesCriterion({ ...item, status: 'pass' }, criterion, proof));
+  // Every latest check mapped to this claim must be resolved, even under another name.
+  if (relevant.some((item) => !['pass', 'captured'].includes(item.status))) return null;
+  return relevant.find((item) => evidenceMatchesCriterion(item, criterion, proof));
+}
+
+function currentEvidence(repo, runDir, manifest, options = {}) {
+  const revision = evidenceRevision(repo);
+  if (!revision) return [];
+  const records = [...(manifest.captured || []), ...readJsonLines(join(runDir, 'checks.jsonl'))];
+  records.sort((a, b) => String(a.capturedAt || a.endedAt || a.timestamp || '').localeCompare(String(b.capturedAt || b.endedAt || b.timestamp || '')));
+  const latest = new Map();
+  for (const item of records) {
+    if (item.task !== manifest.task) continue;
+    latest.set(`${item.kind || item.name}:${item.criterionId || ''}`, item);
+  }
+  return [...latest.values()].filter((item) => item.revision === revision && item.contractRevision === evidenceContractRevision(repo, manifest.task, options));
 }
 
 export function evidenceRequirementsForTask(repo, task, route, git, profile, options = {}) {
@@ -412,7 +477,7 @@ export function evidenceRequirementsForTask(repo, task, route, git, profile, opt
   const requirements = [
     evidenceRequirement('scope', 'required', 'Task scope/intent is recorded.'),
     evidenceRequirement('changed-files', 'required', 'Changed files and touched surfaces are known.'),
-    evidenceRequirement('verification', 'required', 'At least one fresh check, smoke, or explicit cap is recorded.'),
+    evidenceRequirement('verification', 'required', 'Current passing evidence covers each acceptance criterion; failures and caps remain open.'),
     evidenceRequirement('finish-control', 'required', 'Commit/push/release remains human-controlled.'),
   ];
   if (experienceImpactRequired({ task, route, files, surfaces })) requirements.push(evidenceRequirement('experience-impact', 'required', 'Observable outcome, material connected impact, and claim-specific proof are traced to closure.'));
@@ -452,18 +517,11 @@ export function evidenceRequirement(id, level, summary) {
   return { id, level, summary };
 }
 
-function evidenceRequirementSatisfied(req, captured, checks) {
-  const haystack = `${captured.map((item) => `${item.kind} ${item.id} ${item.summary}`).join(' ')} ${checks.map((item) => `${item.name} ${item.kind} ${item.status} ${item.summary}`).join(' ')}`.toLowerCase();
-  if (req.id === 'scope') return haystack.includes('scope') || haystack.includes('impact') || haystack.includes('state');
-  if (req.id === 'changed-files') return haystack.includes('touched') || haystack.includes('scope') || haystack.includes('changed');
-  if (req.id === 'verification') return checks.some((check) => ['pass', 'cap'].includes(check.status)) || haystack.includes('verify') || haystack.includes('smoke') || haystack.includes('test') || haystack.includes('build');
+function evidenceRequirementSatisfied(req, captured) {
   if (req.id === 'finish-control') return true;
-  if (req.id === 'experience-impact') return haystack.includes('experience-impact') || haystack.includes('experience impact closure');
-  if (req.id === 'diff-hygiene') return haystack.includes('diff') || haystack.includes('format');
-  if (req.id === 'manual-qa') return haystack.includes('qa');
-  if (req.id === 'qa-outline') return haystack.includes('qa');
-  if (req.id === 'policy') return haystack.includes('policy') || haystack.includes('security');
-  return haystack.includes(req.id.replace(/^recipe-/, '').replace(/-/g, ' ')) || haystack.includes(req.id);
+  if (req.id === 'diff-hygiene') return captured.some((item) => item.kind === 'diff' || item.kind === 'diff-hygiene' || item.command === 'git diff --check');
+  if (req.id === 'manual-qa' || req.id === 'qa-outline') return captured.some((item) => ['qa', 'manual-qa', 'qa-outline'].includes(item.kind));
+  return captured.some((item) => item.kind === req.id);
 }
 
 function printEvidenceRows(rows) {

@@ -29,7 +29,7 @@ This repository provides a portable, user-level SDLC for coding agents. It combi
 - Follow repository instructions and accepted product/architecture constraints.
 - Preserve unrelated work and avoid destructive Git operations.
 - Use fresh, claim-specific evidence and report unavailable evidence as a cap.
-- Keep commit, push, merge, deploy, release, destructive actions, dependency changes, migrations, secrets, and external writes behind explicit human authority.
+- Apply existing user/repository authority to consequential actions; request only missing authority. Readiness is not permission.
 - Do not install optional tools or create external integrations silently.
 
 ## Repository Map
